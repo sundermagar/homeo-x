@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { HelpCircle, Plus, X, RefreshCw, Trash2, Edit2, Search, MessageSquare, ListOrdered, CheckCircle2 } from 'lucide-react';
+import {
+  HelpCircle,
+  Plus,
+  X,
+  RefreshCw,
+  Trash2,
+  Edit2,
+  Search,
+  MessageSquare,
+  ListOrdered,
+  CheckCircle2,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useFaqs, useCreateFaq, useUpdateFaq, useDeleteFaq } from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
@@ -33,19 +44,16 @@ export default function FaqsPage() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const filtered = faqs.filter((f: Faq) =>
-    f.name?.toLowerCase().includes(search.toLowerCase()) ||
-    f.detail?.toLowerCase().includes(search.toLowerCase())
-  ).sort((a: Faq, b: Faq) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  const filtered = faqs
+    .filter(
+      (f: Faq) =>
+        f.name?.toLowerCase().includes(search.toLowerCase()) ||
+        f.detail?.toLowerCase().includes(search.toLowerCase()),
+    )
+    .sort((a: Faq, b: Faq) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filtered);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filtered);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -59,7 +67,7 @@ export default function FaqsPage() {
     setForm({
       name: faq.name,
       detail: faq.detail,
-      isActive: faq.isActive ?? true
+      isActive: faq.isActive ?? true,
     });
     setError(null);
     setIsModalOpen(true);
@@ -77,7 +85,11 @@ export default function FaqsPage() {
       setIsModalOpen(false);
     } catch (err: any) {
       console.error('FAQ Op Error:', err);
-      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Operation failed';
+      const msg =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        'Operation failed';
       setError(msg);
     }
   };
@@ -89,15 +101,15 @@ export default function FaqsPage() {
 
   return (
     <div className="plat-page fade-in">
-
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
             <HelpCircle size={20} className="color-primary" />
             Knowledge Base & FAQs
           </h1>
-          <p className="plat-header-sub">Manage common questions and internal library for your clinic staff.</p>
+          <p className="plat-header-sub">
+            Manage common questions and internal library for your clinic staff.
+          </p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
@@ -114,9 +126,7 @@ export default function FaqsPage() {
         </div>
         <div className="plat-stat-card">
           <p className="plat-stat-label">Active Listing</p>
-          <p className="plat-stat-value plat-stat-value-success">
-            {filtered.length}
-          </p>
+          <p className="plat-stat-value plat-stat-value-success">{filtered.length}</p>
         </div>
         <div className="plat-stat-card">
           <p className="plat-stat-label">Last Updated</p>
@@ -142,80 +152,95 @@ export default function FaqsPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : filtered.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={MessageSquare}
-            title={search ? "No matches found" : "Knowledge base is empty"}
-            description={search ? `No entries matching "${search}" were found.` : "Populate your clinic's knowledge base with common questions and answers."}
-            actionLabel={search ? "Clear Search" : "Add Entry"}
+            title={search ? 'No matches found' : 'Knowledge base is empty'}
+            description={
+              search
+                ? `No entries matching "${search}" were found.`
+                : "Populate your clinic's knowledge base with common questions and answers."
+            }
+            actionLabel={search ? 'Clear Search' : 'Add Entry'}
             onAction={search ? () => setSearch('') : handleOpenCreate}
             variant="card"
             className="my-8"
           />
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '60px' }}>Order</th>
-                  <th>Question & Answer</th>
-                  <th style={{ width: '120px' }}>Status</th>
-                  <th style={{ width: '120px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((faq: Faq, index) => (
-                  <tr key={faq.id} className="plat-table-row">
-                    <td data-label="Order" className="plat-table-cell font-mono text-xs color-muted">
-                      <div className="flex items-center gap-1.5">
-                        <ListOrdered size={12} className="opacity-50" />
-                        {(currentPage - 1) * itemsPerPage + index + 1}
-                      </div>
-                    </td>
-                    <td data-label="FAQ" className="plat-table-cell">
-                      <div className="flex flex-col gap-2">
-                        <div className="font-bold text-main leading-tight flex items-center gap-2">
-                          <MessageSquare size={14} className="color-primary opacity-60" />
-                          {faq.name}
-                        </div>
-                        <div className="plat-glass-box text-xs color-muted leading-relaxed italic border-l-2 border-primary">
-                          {faq.detail}
-                        </div>
-                      </div>
-                    </td>
-                    <td data-label="Status" className="plat-table-cell">
-                      {faq.isActive !== false ? (
-                        <span className="plat-badge plat-badge-staff flex items-center w-fit gap-1">
-                          <CheckCircle2 size={10} /> Published
-                        </span>
-                      ) : (
-                        <span className="plat-badge plat-badge-default w-fit">Draft</span>
-                      )}
-                    </td>
-                    <td className="plat-table-cell">
-                      <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(faq)} title="Edit Content">
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(faq.id)} title="Archive">
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px' }}>Order</th>
+                    <th>Question & Answer</th>
+                    <th style={{ width: '120px' }}>Status</th>
+                    <th style={{ width: '120px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((faq: Faq, index) => (
+                    <tr key={faq.id} className="plat-table-row">
+                      <td
+                        data-label="Order"
+                        className="plat-table-cell font-mono text-xs color-muted"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <ListOrdered size={12} className="opacity-50" />
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </div>
+                      </td>
+                      <td data-label="FAQ" className="plat-table-cell">
+                        <div className="flex flex-col gap-2">
+                          <div className="font-bold text-main leading-tight flex items-center gap-2">
+                            <MessageSquare size={14} className="color-primary opacity-60" />
+                            {faq.name}
+                          </div>
+                          <div className="plat-glass-box text-xs color-muted leading-relaxed italic border-l-2 border-primary">
+                            {faq.detail}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Status" className="plat-table-cell">
+                        {faq.isActive !== false ? (
+                          <span className="plat-badge plat-badge-staff flex items-center w-fit gap-1">
+                            <CheckCircle2 size={10} /> Published
+                          </span>
+                        ) : (
+                          <span className="plat-badge plat-badge-default w-fit">Draft</span>
+                        )}
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="flex justify-end gap-3">
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon"
+                            onClick={() => handleOpenEdit(faq)}
+                            title="Edit Content"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(faq.id)}
+                            title="Archive"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
@@ -228,10 +253,16 @@ export default function FaqsPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
                 {error && (
-                  <div className="plat-alert plat-alert-danger" style={{ marginBottom: '1rem', fontSize: '13px' }}>
+                  <div
+                    className="plat-alert plat-alert-danger"
+                    style={{ marginBottom: '1rem', fontSize: '13px' }}
+                  >
                     {error}
                   </div>
                 )}
@@ -241,7 +272,7 @@ export default function FaqsPage() {
                     className="plat-form-input"
                     required
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="e.g. How to handle emergency appointments?"
                   />
                 </div>
@@ -252,7 +283,7 @@ export default function FaqsPage() {
                     required
                     style={{ minHeight: '200px', padding: '12px' }}
                     value={form.detail}
-                    onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, detail: e.target.value }))}
                     placeholder="Explain the process in detail..."
                   />
                 </div>
@@ -260,7 +291,7 @@ export default function FaqsPage() {
                   <input
                     type="checkbox"
                     checked={form.isActive}
-                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                   />
                   <span className="plat-checkbox-label">Active & Visible</span>
                 </label>
@@ -268,14 +299,19 @@ export default function FaqsPage() {
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Discard Changes</button>
-            <button type="submit" className="plat-btn plat-btn-primary px-10" disabled={createFaq.isPending || updateFaq.isPending}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>
+              Discard Changes
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary px-10"
+              disabled={createFaq.isPending || updateFaq.isPending}
+            >
               {editingId ? 'Update Entry' : 'Save Entry'}
             </button>
           </div>
         </form>
       </Drawer>
-
     </div>
   );
 }

@@ -1,13 +1,25 @@
-import type { 
-  Lead, LeadFollowup, Referral, CaseReminder,
-  CreateLeadDto, UpdateLeadDto, 
-  CreateFollowupDto, UpdateFollowupDto,
-  CreateReferralDto, CreateReminderDto, UpdateReminderDto
+import type {
+  Lead,
+  LeadFollowup,
+  Referral,
+  CaseReminder,
+  CreateLeadDto,
+  UpdateLeadDto,
+  CreateFollowupDto,
+  UpdateFollowupDto,
+  CreateReferralDto,
+  CreateReminderDto,
+  UpdateReminderDto,
 } from '@mmc/types';
 
 export interface ILeadRepository {
   // Leads
-  findManyLeads(filters: { search?: string; status?: string; page: number; limit: number }): Promise<{ data: any[]; total: number }>;
+  findManyLeads(filters: {
+    search?: string;
+    status?: string;
+    page: number;
+    limit: number;
+  }): Promise<{ data: any[]; total: number }>;
   findLeadById(id: number): Promise<any | null>;
   createLead(dto: any): Promise<number>;
   updateLead(id: number, dto: any): Promise<void>;
@@ -26,7 +38,12 @@ export interface ILeadRepository {
   deleteReferral(id: number): Promise<void>;
 
   // Reminders
-  findReminders(filters: { status?: string; page: number; limit: number; date?: string }): Promise<{ data: any[]; total: number }>;
+  findReminders(filters: {
+    status?: string;
+    page: number;
+    limit: number;
+    date?: string;
+  }): Promise<{ data: any[]; total: number }>;
   findReminderById(id: number): Promise<any | null>;
   createReminder(dto: any): Promise<number>;
   updateReminder(id: number, dto: any): Promise<void>;

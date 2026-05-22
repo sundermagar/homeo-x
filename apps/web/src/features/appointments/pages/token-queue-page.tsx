@@ -2,11 +2,34 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import {
-  Clock, UserCheck, CheckCircle2, Users, RefreshCw, Plus, Ticket,
-  ChevronRight, Activity, IndianRupee, ChevronLeft, LayoutGrid, List, Search, X, MoreVertical, Printer, MessageCircle
+  Clock,
+  UserCheck,
+  CheckCircle2,
+  Users,
+  RefreshCw,
+  Plus,
+  Ticket,
+  ChevronRight,
+  Activity,
+  IndianRupee,
+  ChevronLeft,
+  LayoutGrid,
+  List,
+  Search,
+  X,
+  MoreVertical,
+  Printer,
+  MessageCircle,
 } from 'lucide-react';
 import { StickerPrint } from '@/shared/components/StickerPrint';
-import { useWaitlist, useCallNext, useCompleteVisit, useTodayAppointments, useIssueToken, useAddToWaitlist } from '../hooks/use-appointments';
+import {
+  useWaitlist,
+  useCallNext,
+  useCompleteVisit,
+  useTodayAppointments,
+  useIssueToken,
+  useAddToWaitlist,
+} from '../hooks/use-appointments';
 import { useDailyCollection } from '@/features/billing/hooks/use-billing';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -18,7 +41,11 @@ import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import '../styles/appointments.css';
 
 const WAIT_STATUS = { 0: 'Waiting', 1: 'Called', 2: 'Done' } as Record<number, string>;
-const WAIT_COLOR = { 0: 'var(--pp-warning-fg)', 1: 'var(--pp-blue)', 2: 'var(--pp-success-fg)' } as Record<number, string>;
+const WAIT_COLOR = {
+  0: 'var(--pp-warning-fg)',
+  1: 'var(--pp-blue)',
+  2: 'var(--pp-success-fg)',
+} as Record<number, string>;
 
 function formatWaitTime(checkedInAt: Date | string | null) {
   if (!checkedInAt) return null;
@@ -31,7 +58,7 @@ function formatWaitTime(checkedInAt: Date | string | null) {
 
 const formatName = (name?: string | null) => {
   if (!name) return '';
-  return name.trim().replace(/\b\w/g, c => c.toUpperCase());
+  return name.trim().replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 import { useNavigate } from 'react-router-dom';
@@ -42,15 +69,23 @@ export default function TokenQueuePage() {
   const sendText = useSendText();
   const today = new Date().toISOString().split('T')[0]!;
   const user = useAuthStore((s) => s.user);
-  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
-  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+  const rawRole = (
+    (user as any)?.type ||
+    (user as any)?.role ||
+    (user as any)?.roleName ||
+    ''
+  ).toLowerCase();
+  const isDoctor =
+    rawRole === 'doctor' ||
+    rawRole === 'medical practitioner' ||
+    ((user as any)?.name || '').toLowerCase().startsWith('dr');
 
   const [tab, setTab] = useState<'queue' | 'tokens' | 'collection'>('queue');
   const [doctorFilter, setDoctorFilter] = useState(() =>
-    isDoctor ? String((user as any)?.id ?? '') : ''
+    isDoctor ? String((user as any)?.id ?? '') : '',
   );
   const [doctors, setDoctors] = useState<any[]>([]);
-  const [activeVitals, setActiveVitals] = useState<{ visitId: number, regid: number } | null>(null);
+  const [activeVitals, setActiveVitals] = useState<{ visitId: number; regid: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -61,7 +96,7 @@ export default function TokenQueuePage() {
 
   const openWhatsApp = (phone: string | null, name: string, time?: string, date?: string) => {
     if (!phone) {
-      toast({ description: "Mobile number not found", variant: "error" });
+      toast({ description: 'Mobile number not found', variant: 'error' });
       return;
     }
     const cleanPhone = phone.replace(/\D/g, '');
@@ -72,12 +107,18 @@ export default function TokenQueuePage() {
     sendText.mutate(
       {
         phone: finalPhone,
-        message: textMessage
+        message: textMessage,
       },
       {
-        onSuccess: () => toast({ description: '✅ Appointment WhatsApp sent successfully!', variant: 'success' }),
-        onError: (err: any) => toast({ description: '❌ Failed to send WhatsApp: ' + (err.response?.data?.message || err.message), variant: 'error' })
-      }
+        onSuccess: () =>
+          toast({ description: '✅ Appointment WhatsApp sent successfully!', variant: 'success' }),
+        onError: (err: any) =>
+          toast({
+            description:
+              '❌ Failed to send WhatsApp: ' + (err.response?.data?.message || err.message),
+            variant: 'error',
+          }),
+      },
     );
   };
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
@@ -89,19 +130,27 @@ export default function TokenQueuePage() {
 
   const MENU_W = 180;
 
-  const toggleMenu = useCallback((id: number | string, btn: HTMLButtonElement) => {
-    if (openMenuId === id) { setOpenMenuId(null); setMenuPos(null); triggerBtnRef.current = null; return; }
-    triggerBtnRef.current = btn;
-    const r = btn.getBoundingClientRect();
+  const toggleMenu = useCallback(
+    (id: number | string, btn: HTMLButtonElement) => {
+      if (openMenuId === id) {
+        setOpenMenuId(null);
+        setMenuPos(null);
+        triggerBtnRef.current = null;
+        return;
+      }
+      triggerBtnRef.current = btn;
+      const r = btn.getBoundingClientRect();
 
-    // Position right-aligned to button, below by default
-    let left = r.right - MENU_W;
-    if (left < 8) left = 8;
-    if (left + MENU_W > window.innerWidth - 8) left = window.innerWidth - MENU_W - 8;
+      // Position right-aligned to button, below by default
+      let left = r.right - MENU_W;
+      if (left < 8) left = 8;
+      if (left + MENU_W > window.innerWidth - 8) left = window.innerWidth - MENU_W - 8;
 
-    setMenuPos({ top: r.bottom + 4, left });
-    setOpenMenuId(id);
-  }, [openMenuId]);
+      setMenuPos({ top: r.bottom + 4, left });
+      setOpenMenuId(id);
+    },
+    [openMenuId],
+  );
 
   // After the portal mounts, measure actual menu and clamp within viewport
   useEffect(() => {
@@ -127,15 +176,24 @@ export default function TokenQueuePage() {
     }
 
     // Clamp left within viewport
-    if (left + mRect.width > vw - 8) { left = vw - mRect.width - 8; changed = true; }
-    if (left < 8) { left = 8; changed = true; }
+    if (left + mRect.width > vw - 8) {
+      left = vw - mRect.width - 8;
+      changed = true;
+    }
+    if (left < 8) {
+      left = 8;
+      changed = true;
+    }
 
     if (changed) setMenuPos({ top, left });
   });
 
   useEffect(() => {
     if (openMenuId === null) return;
-    const close = () => { setOpenMenuId(null); setMenuPos(null); };
+    const close = () => {
+      setOpenMenuId(null);
+      setMenuPos(null);
+    };
     const onMouse = (e: MouseEvent) => {
       const t = e.target as HTMLElement;
       // Don't close if clicking inside the menu OR on a kebab trigger button
@@ -148,7 +206,9 @@ export default function TokenQueuePage() {
       if (menuRef.current && menuRef.current.contains(e.target as Node)) return;
       close();
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
     document.addEventListener('mousedown', onMouse);
     window.addEventListener('scroll', onScroll, true);
     document.addEventListener('keydown', onKey);
@@ -170,15 +230,26 @@ export default function TokenQueuePage() {
 
   useEffect(() => {
     if (!isDoctor) {
-      apiClient.get('/doctors').then(({ data }) => {
-        const list = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-        setDoctors(list);
-      }).catch(() => { });
+      apiClient
+        .get('/doctors')
+        .then(({ data }) => {
+          const list = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+          setDoctors(list);
+        })
+        .catch(() => {});
     }
   }, [isDoctor]);
 
-  const { data: waitlist = [], isLoading: wLoading, refetch: wRefetch } = useWaitlist(today, doctorFilter ? Number(doctorFilter) : undefined);
-  const { data: todayAppts = [], isLoading: aLoading, refetch: aRefetch } = useTodayAppointments(doctorFilter ? Number(doctorFilter) : undefined);
+  const {
+    data: waitlist = [],
+    isLoading: wLoading,
+    refetch: wRefetch,
+  } = useWaitlist(today, doctorFilter ? Number(doctorFilter) : undefined);
+  const {
+    data: todayAppts = [],
+    isLoading: aLoading,
+    refetch: aRefetch,
+  } = useTodayAppointments(doctorFilter ? Number(doctorFilter) : undefined);
   const { data: collection, isLoading: cLoading, refetch: cRefetch } = useDailyCollection(today);
 
   const callNext = useCallNext();
@@ -188,26 +259,32 @@ export default function TokenQueuePage() {
 
   const totalReceived = collection?.totalReceived ?? 0;
 
-  const waiting = waitlist.filter(w => w.status === 0);
-  const inProgress = waitlist.filter(w => w.status === 1);
-  const withToken = todayAppts.filter(a => a.tokenNo);
+  const waiting = waitlist.filter((w) => w.status === 0);
+  const inProgress = waitlist.filter((w) => w.status === 1);
+  const withToken = todayAppts.filter((a) => a.tokenNo);
 
   // Data selection based on tab
   const currentDataList = useMemo(() => {
     let base: any[] = [];
     if (tab === 'queue') {
-      const waitlistApptIds = new Set(waitlist.map(w => w.appointmentId).filter(Boolean));
+      const waitlistApptIds = new Set(waitlist.map((w) => w.appointmentId).filter(Boolean));
       const expected = todayAppts
-        .filter(a => !waitlistApptIds.has(a.id) && ['Pending', 'Booked', 'Confirmed'].includes(a.status))
-        .map(a => ({ ...a, isExpected: true, status: -1 })); // Use -1 to denote "Expected/Not Checked In"
+        .filter(
+          (a) =>
+            !waitlistApptIds.has(a.id) && ['Pending', 'Booked', 'Confirmed'].includes(a.status),
+        )
+        .map((a) => ({ ...a, isExpected: true, status: -1 })); // Use -1 to denote "Expected/Not Checked In"
 
       // Sort inProgress by waitingNumber (descending), then waiting by waitingNumber (descending)
-      const sortedInProgress = [...inProgress].sort((a, b) => (Number(b.waitingNumber) || 0) - (Number(a.waitingNumber) || 0));
-      const sortedWaiting = [...waiting].sort((a, b) => (Number(b.waitingNumber) || 0) - (Number(a.waitingNumber) || 0));
+      const sortedInProgress = [...inProgress].sort(
+        (a, b) => (Number(b.waitingNumber) || 0) - (Number(a.waitingNumber) || 0),
+      );
+      const sortedWaiting = [...waiting].sort(
+        (a, b) => (Number(b.waitingNumber) || 0) - (Number(a.waitingNumber) || 0),
+      );
 
       base = [...sortedInProgress, ...sortedWaiting, ...expected];
-    }
-    else if (tab === 'tokens') {
+    } else if (tab === 'tokens') {
       // Sort by Token Number (descending) so new patients are at top
       base = [...todayAppts].sort((a, b) => {
         if (!a.tokenNo && !b.tokenNo) return (Number(b.id) || 0) - (Number(a.id) || 0);
@@ -215,21 +292,23 @@ export default function TokenQueuePage() {
         if (!b.tokenNo) return 1;
         return Number(b.tokenNo) - Number(a.tokenNo);
       });
-    }
-    else if (tab === 'collection') {
+    } else if (tab === 'collection') {
       // Sort by Receipt ID/Date (descending - latest first)
-      base = [...(collection?.records || [])].sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+      base = [...(collection?.records || [])].sort(
+        (a, b) => (Number(b.id) || 0) - (Number(a.id) || 0),
+      );
     }
 
     if (!searchQuery) return base;
     const q = searchQuery.toLowerCase();
-    return base.filter((item: any) =>
-      (item.patientName || '').toLowerCase().includes(q) ||
-      (item.patientNameFromCase || '').toLowerCase().includes(q) ||
-      (item.phone || '').toLowerCase().includes(q) ||
-      String(item.patientId || '').includes(q) ||
-      String(item.waitingNumber || '').includes(q) ||
-      String(item.tokenNo || '').includes(q)
+    return base.filter(
+      (item: any) =>
+        (item.patientName || '').toLowerCase().includes(q) ||
+        (item.patientNameFromCase || '').toLowerCase().includes(q) ||
+        (item.phone || '').toLowerCase().includes(q) ||
+        String(item.patientId || '').includes(q) ||
+        String(item.waitingNumber || '').includes(q) ||
+        String(item.tokenNo || '').includes(q),
     );
   }, [tab, inProgress, waiting, todayAppts, collection, searchQuery]);
 
@@ -241,9 +320,19 @@ export default function TokenQueuePage() {
   const fromEntry = totalItems === 0 ? 0 : (page - 1) * limit + 1;
   const toEntry = Math.min(page * limit, totalItems);
 
-  const handleCall = async (id: number) => { await callNext.mutateAsync(id); wRefetch(); };
-  const handleComplete = async (id: number) => { await completeVisit.mutateAsync(id); wRefetch(); aRefetch(); };
-  const handleIssueToken = async (appointmentId: number) => { await issueToken.mutateAsync(appointmentId); aRefetch(); };
+  const handleCall = async (id: number) => {
+    await callNext.mutateAsync(id);
+    wRefetch();
+  };
+  const handleComplete = async (id: number) => {
+    await completeVisit.mutateAsync(id);
+    wRefetch();
+    aRefetch();
+  };
+  const handleIssueToken = async (appointmentId: number) => {
+    await issueToken.mutateAsync(appointmentId);
+    aRefetch();
+  };
 
   const handlePrint = (token: any) => {
     setPrintData({
@@ -251,7 +340,7 @@ export default function TokenQueuePage() {
       regId: token.regid,
       date: new Date().toLocaleDateString(),
       age: token.age,
-      gender: token.gender
+      gender: token.gender,
     });
 
     setTimeout(() => {
@@ -260,14 +349,21 @@ export default function TokenQueuePage() {
         const printWindow = window.open('', '_blank', 'width=600,height=600');
         if (printWindow) {
           printWindow.document.write('<html><head><title>Print Sticker</title>');
-          document.querySelectorAll('style').forEach(style => { printWindow.document.write(style.outerHTML); });
-          document.querySelectorAll('link[rel="stylesheet"]').forEach(link => { printWindow.document.write(link.outerHTML); });
+          document.querySelectorAll('style').forEach((style) => {
+            printWindow.document.write(style.outerHTML);
+          });
+          document.querySelectorAll('link[rel="stylesheet"]').forEach((link) => {
+            printWindow.document.write(link.outerHTML);
+          });
           printWindow.document.write('</head><body>');
           printWindow.document.write(printContent);
           printWindow.document.write('</body></html>');
           printWindow.document.close();
           printWindow.focus();
-          setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+          setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+          }, 500);
         }
       }
     }, 100);
@@ -286,7 +382,10 @@ export default function TokenQueuePage() {
         pageSize={limit}
         totalItems={totalItems}
         onPageChange={setPage}
-        onPageSizeChange={(size) => { setLimit(size); setPage(1); }}
+        onPageSizeChange={(size) => {
+          setLimit(size);
+          setPage(1);
+        }}
       />
     );
   };
@@ -294,14 +393,40 @@ export default function TokenQueuePage() {
   const renderSkeletonGrid = () => (
     <div className="appt-queue-board">
       {[...Array(limit)].map((_, i) => (
-        <div key={i} className="appt-token-card-minimal" style={{ border: '1px solid #f1f5f9', padding: 24, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div
+          key={i}
+          className="appt-token-card-minimal"
+          style={{
+            border: '1px solid #f1f5f9',
+            padding: 24,
+            borderRadius: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="appt-shimmer" style={{ width: 60, height: 28, borderRadius: 4 }}></div>
             <div className="appt-shimmer" style={{ width: 80, height: 20, borderRadius: 4 }}></div>
           </div>
-          <div style={{ background: 'var(--pp-warm-1)', padding: 14, borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div className="appt-shimmer" style={{ width: '70%', height: 20, borderRadius: 4 }}></div>
-            <div className="appt-shimmer" style={{ width: '40%', height: 14, borderRadius: 4 }}></div>
+          <div
+            style={{
+              background: 'var(--pp-warm-1)',
+              padding: 14,
+              borderRadius: 8,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div
+              className="appt-shimmer"
+              style={{ width: '70%', height: 20, borderRadius: 4 }}
+            ></div>
+            <div
+              className="appt-shimmer"
+              style={{ width: '40%', height: 14, borderRadius: 4 }}
+            ></div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <div className="appt-shimmer" style={{ width: 40, height: 14, borderRadius: 4 }}></div>
@@ -323,7 +448,9 @@ export default function TokenQueuePage() {
           <tbody>
             {[...Array(limit)].map((_, i) => (
               <tr key={i} className="appt-skeleton-row">
-                <td colSpan={6}><div className="appt-skeleton-box" style={{ height: 40, margin: '8px 16px' }} /></td>
+                <td colSpan={6}>
+                  <div className="appt-skeleton-box" style={{ height: 40, margin: '8px 16px' }} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -338,10 +465,16 @@ export default function TokenQueuePage() {
         <div key={w.id} className={`appt-token-card-minimal ${w.status === 1 ? 'calling' : ''}`}>
           <div className="appt-token-header-minimal">
             <div className="appt-token-badge-wrap">
-              <div className="appt-token-num-minimal" style={{ color: w.status === -1 ? 'var(--pp-text-3)' : WAIT_COLOR[w.status] }}>
+              <div
+                className="appt-token-num-minimal"
+                style={{ color: w.status === -1 ? 'var(--pp-text-3)' : WAIT_COLOR[w.status] }}
+              >
                 {w.status === -1 ? 'Exp.' : `W${w.waitingNumber}`}
               </div>
-              <div className="appt-token-status-label" style={{ color: w.status === -1 ? 'var(--pp-text-3)' : WAIT_COLOR[w.status] }}>
+              <div
+                className="appt-token-status-label"
+                style={{ color: w.status === -1 ? 'var(--pp-text-3)' : WAIT_COLOR[w.status] }}
+              >
                 {w.status === -1 ? 'Expected' : WAIT_STATUS[w.status]}
               </div>
             </div>
@@ -349,7 +482,9 @@ export default function TokenQueuePage() {
           </div>
 
           <div className="appt-token-patient-box">
-            <div className="appt-token-patient-name">{formatName(w.patientName) || `Patient #${w.patientId}`}</div>
+            <div className="appt-token-patient-name">
+              {formatName(w.patientName) || `Patient #${w.patientId}`}
+            </div>
             {w.doctorName && <div className="appt-token-doctor-name">{w.doctorName}</div>}
           </div>
 
@@ -361,33 +496,62 @@ export default function TokenQueuePage() {
           <div className="appt-token-actions-minimal">
             {w.status === 1 ? (
               <>
-                <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleStartConsult(w)}>
+                <button
+                  className="appt-btn appt-btn-xs appt-btn-primary"
+                  onClick={() => handleStartConsult(w)}
+                >
                   <Activity size={13} strokeWidth={2} /> Consult
                 </button>
-                <button className="appt-btn appt-btn-xs appt-btn-success" onClick={() => handleComplete(w.id)} disabled={completeVisit.isPending}>
+                <button
+                  className="appt-btn appt-btn-xs appt-btn-success"
+                  onClick={() => handleComplete(w.id)}
+                  disabled={completeVisit.isPending}
+                >
                   <CheckCircle2 size={13} strokeWidth={1.6} /> Done
                 </button>
               </>
             ) : w.status === -1 ? (
               <>
                 {!w.tokenNo && (
-                  <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleIssueToken(w.id)} disabled={issueToken.isPending}>
+                  <button
+                    className="appt-btn appt-btn-xs appt-btn-primary"
+                    onClick={() => handleIssueToken(w.id)}
+                    disabled={issueToken.isPending}
+                  >
                     <Ticket size={13} /> Token
                   </button>
                 )}
-                <button className="appt-btn appt-btn-xs appt-btn-success" onClick={() => {
-                  if (!w.patientId) return toast({ description: "Not registered", variant: "error" });
-                  addToWaitlist.mutateAsync({ patientId: w.patientId, appointmentId: w.id, doctorId: w.doctorId ?? undefined });
-                }} disabled={addToWaitlist.isPending}>
+                <button
+                  className="appt-btn appt-btn-xs appt-btn-success"
+                  onClick={() => {
+                    if (!w.patientId)
+                      return toast({ description: 'Not registered', variant: 'error' });
+                    addToWaitlist.mutateAsync({
+                      patientId: w.patientId,
+                      appointmentId: w.id,
+                      doctorId: w.doctorId ?? undefined,
+                    });
+                  }}
+                  disabled={addToWaitlist.isPending}
+                >
                   <Plus size={13} /> Check In
                 </button>
               </>
             ) : (
-              <button className="appt-btn appt-btn-xs appt-btn-primary" onClick={() => handleCall(w.id)} disabled={callNext.isPending}>
+              <button
+                className="appt-btn appt-btn-xs appt-btn-primary"
+                onClick={() => handleCall(w.id)}
+                disabled={callNext.isPending}
+              >
                 <ChevronRight size={13} strokeWidth={1.6} /> Call Next
               </button>
             )}
-            <button className="appt-btn appt-btn-xs appt-btn-purple" onClick={() => setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })}>
+            <button
+              className="appt-btn appt-btn-xs appt-btn-purple"
+              onClick={() =>
+                setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 })
+              }
+            >
               <Activity size={13} strokeWidth={1.6} /> Vitals
             </button>
           </div>
@@ -413,12 +577,19 @@ export default function TokenQueuePage() {
           </thead>
           <tbody>
             {paginatedData.map((w: any) => (
-              <tr key={w.id} className={`appt-table-row-minimal ${w.status === 1 ? 'is-active-row' : ''}`}>
+              <tr
+                key={w.id}
+                className={`appt-table-row-minimal ${w.status === 1 ? 'is-active-row' : ''}`}
+              >
                 <td data-label="TOKEN" style={{ paddingLeft: 16 }}>
-                  <span className="appt-token-pill" style={{ color: WAIT_COLOR[w.status] }}>W{w.waitingNumber}</span>
+                  <span className="appt-token-pill" style={{ color: WAIT_COLOR[w.status] }}>
+                    W{w.waitingNumber}
+                  </span>
                 </td>
                 <td data-label="PATIENT">
-                  <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{formatName(w.patientName) || 'Unknown'}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>
+                    {formatName(w.patientName) || 'Unknown'}
+                  </div>
                   <div style={{ fontSize: '11px', color: 'var(--pp-text-3)', fontWeight: 500 }}>
                     {w.regid ? `ID: ${w.regid}` : '—'} • {w.mobile || 'No Mobile'}
                   </div>
@@ -426,10 +597,15 @@ export default function TokenQueuePage() {
                 <td data-label="DOCTOR">
                   <div style={{ fontWeight: 500 }}>{w.doctorName || 'General Staff'}</div>
                 </td>
-                <td data-label="WAIT TIME" className="appt-cell-muted">{formatWaitTime(w.checkedInAt || w.createdAt)}</td>
+                <td data-label="WAIT TIME" className="appt-cell-muted">
+                  {formatWaitTime(w.checkedInAt || w.createdAt)}
+                </td>
                 <td data-label="PACKAGE" style={{ textAlign: 'center' }}>
                   {w.packageName ? (
-                    <span className="appt-metadata-badge appt-metadata-package" style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                    <span
+                      className="appt-metadata-badge appt-metadata-package"
+                      style={{ display: 'inline-flex', justifyContent: 'center' }}
+                    >
                       {w.packageName}
                     </span>
                   ) : (
@@ -437,7 +613,9 @@ export default function TokenQueuePage() {
                   )}
                 </td>
                 <td data-label="STATUS" style={{ textAlign: 'center' }}>
-                  <span className={`appt-status-pill-minimal ${w.status === 1 ? 'consultation' : w.status === -1 ? 'pending' : 'waiting'}`}>
+                  <span
+                    className={`appt-status-pill-minimal ${w.status === 1 ? 'consultation' : w.status === -1 ? 'pending' : 'waiting'}`}
+                  >
                     {w.status === -1 ? 'Expected' : WAIT_STATUS[w.status]}
                   </span>
                 </td>
@@ -445,63 +623,143 @@ export default function TokenQueuePage() {
                   <div className="appt-kebab-wrap">
                     <button
                       className="appt-kebab-btn"
-                      onClick={(e) => { e.stopPropagation(); toggleMenu(w.id, e.currentTarget); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleMenu(w.id, e.currentTarget);
+                      }}
                     >
                       <MoreVertical size={16} />
                     </button>
                   </div>
-                  {openMenuId === w.id && menuPos && createPortal(
-                    <div
-                      ref={menuRef}
-                      className="appt-kebab-menu"
-                      style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}
-                    >
-                      {w.status === 1 ? (
-                        <>
-                          <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleStartConsult(w); setOpenMenuId(null); setMenuPos(null); }}>
-                            <Activity size={14} /> Consult
-                          </button>
-                          <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => { handleComplete(w.id); setOpenMenuId(null); setMenuPos(null); }} disabled={completeVisit.isPending}>
-                            <CheckCircle2 size={14} /> Done
-                          </button>
-                        </>
-                      ) : w.status === -1 ? (
-                        <>
-                          {!w.tokenNo && (
-                            <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(w.id); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
-                              <Ticket size={14} /> Issue Token
+                  {openMenuId === w.id &&
+                    menuPos &&
+                    createPortal(
+                      <div
+                        ref={menuRef}
+                        className="appt-kebab-menu"
+                        style={{
+                          position: 'fixed',
+                          top: menuPos.top,
+                          left: menuPos.left,
+                          zIndex: 9999,
+                        }}
+                      >
+                        {w.status === 1 ? (
+                          <>
+                            <button
+                              className="appt-kebab-item"
+                              style={{ color: 'var(--pp-blue)' }}
+                              onClick={() => {
+                                handleStartConsult(w);
+                                setOpenMenuId(null);
+                                setMenuPos(null);
+                              }}
+                            >
+                              <Activity size={14} /> Consult
                             </button>
-                          )}
-                          <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => {
-                            if (!w.patientId) {
-                              toast({ description: "Patient not registered", variant: "error" });
-                              return;
-                            }
-                            addToWaitlist.mutateAsync({
-                              patientId: w.patientId,
-                              appointmentId: w.id,
-                              doctorId: w.doctorId ?? undefined
-                            });
-                            setOpenMenuId(null); setMenuPos(null);
-                          }} disabled={addToWaitlist.isPending}>
-                            <Plus size={14} /> Check In
+                            <button
+                              className="appt-kebab-item"
+                              style={{ color: 'var(--pp-success-fg)' }}
+                              onClick={() => {
+                                handleComplete(w.id);
+                                setOpenMenuId(null);
+                                setMenuPos(null);
+                              }}
+                              disabled={completeVisit.isPending}
+                            >
+                              <CheckCircle2 size={14} /> Done
+                            </button>
+                          </>
+                        ) : w.status === -1 ? (
+                          <>
+                            {!w.tokenNo && (
+                              <button
+                                className="appt-kebab-item"
+                                style={{ color: 'var(--pp-blue)' }}
+                                onClick={() => {
+                                  handleIssueToken(w.id);
+                                  setOpenMenuId(null);
+                                  setMenuPos(null);
+                                }}
+                                disabled={issueToken.isPending}
+                              >
+                                <Ticket size={14} /> Issue Token
+                              </button>
+                            )}
+                            <button
+                              className="appt-kebab-item"
+                              style={{ color: 'var(--pp-success-fg)' }}
+                              onClick={() => {
+                                if (!w.patientId) {
+                                  toast({
+                                    description: 'Patient not registered',
+                                    variant: 'error',
+                                  });
+                                  return;
+                                }
+                                addToWaitlist.mutateAsync({
+                                  patientId: w.patientId,
+                                  appointmentId: w.id,
+                                  doctorId: w.doctorId ?? undefined,
+                                });
+                                setOpenMenuId(null);
+                                setMenuPos(null);
+                              }}
+                              disabled={addToWaitlist.isPending}
+                            >
+                              <Plus size={14} /> Check In
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="appt-kebab-item"
+                            style={{ color: 'var(--pp-blue)' }}
+                            onClick={() => {
+                              handleCall(w.id);
+                              setOpenMenuId(null);
+                              setMenuPos(null);
+                            }}
+                            disabled={callNext.isPending}
+                          >
+                            <ChevronRight size={14} /> Call
                           </button>
-                        </>
-                      ) : (
-                        <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleCall(w.id); setOpenMenuId(null); setMenuPos(null); }} disabled={callNext.isPending}>
-                          <ChevronRight size={14} /> Call
+                        )}
+                        <div className="appt-kebab-divider" />
+                        <button
+                          className="appt-kebab-item"
+                          style={{ color: 'var(--pp-purple)' }}
+                          onClick={() => {
+                            setActiveVitals({
+                              visitId: w.appointmentId || w.id,
+                              regid: w.patientId ?? 0,
+                            });
+                            setOpenMenuId(null);
+                            setMenuPos(null);
+                          }}
+                        >
+                          <Activity size={14} /> Vitals
                         </button>
-                      )}
-                      <div className="appt-kebab-divider" />
-                      <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: w.appointmentId || w.id, regid: w.patientId ?? 0 }); setOpenMenuId(null); setMenuPos(null); }}>
-                        <Activity size={14} /> Vitals
-                      </button>
-                      <button className="appt-kebab-item" style={{ color: '#25D366' }} onClick={() => { openWhatsApp(w.phone || w.mobile, w.patientName, w.bookingTime, new Date(w.appointmentDate || w.createdAt || today).toLocaleDateString('en-IN')); setOpenMenuId(null); setMenuPos(null); }}>
-                        <MessageCircle size={14} /> WhatsApp
-                      </button>
-                    </div>,
-                    document.body
-                  )}
+                        <button
+                          className="appt-kebab-item"
+                          style={{ color: '#25D366' }}
+                          onClick={() => {
+                            openWhatsApp(
+                              w.phone || w.mobile,
+                              w.patientName,
+                              w.bookingTime,
+                              new Date(
+                                w.appointmentDate || w.createdAt || today,
+                              ).toLocaleDateString('en-IN'),
+                            );
+                            setOpenMenuId(null);
+                            setMenuPos(null);
+                          }}
+                        >
+                          <MessageCircle size={14} /> WhatsApp
+                        </button>
+                      </div>,
+                      document.body,
+                    )}
                 </td>
               </tr>
             ))}
@@ -521,7 +779,16 @@ export default function TokenQueuePage() {
             Token Queue
           </h1>
           <p className="appt-header-sub">
-            Active waiting room — {today} • <span style={{ color: 'var(--pp-blue)', fontWeight: 700, fontFamily: 'var(--pp-font-mono)' }}>{currentTime.toLocaleTimeString()}</span>
+            Active waiting room — {today} •{' '}
+            <span
+              style={{
+                color: 'var(--pp-blue)',
+                fontWeight: 700,
+                fontFamily: 'var(--pp-font-mono)',
+              }}
+            >
+              {currentTime.toLocaleTimeString()}
+            </span>
           </p>
         </div>
         <div className="appt-header-actions">
@@ -534,10 +801,14 @@ export default function TokenQueuePage() {
               className="appt-filter-input"
               style={{ width: 180 }}
               value={doctorFilter}
-              onChange={e => setDoctorFilter(e.target.value)}
+              onChange={(e) => setDoctorFilter(e.target.value)}
             >
               <option value="">All Practitioners</option>
-              {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              {doctors.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
             </select>
           )}
         </div>
@@ -545,12 +816,38 @@ export default function TokenQueuePage() {
 
       {/* Stats bar */}
       <div className="appt-stats-bar">
-        {([
-          { label: 'Waiting', value: waiting.length, bg: 'var(--pp-warning-bg)', ic: '#d97706', icon: <Clock size={20} strokeWidth={2} /> },
-          { label: 'In Progress', value: inProgress.length, bg: 'rgba(124, 58, 237, 0.1)', ic: '#7c3aed', icon: <UserCheck size={20} strokeWidth={2} /> },
-          { label: 'Realized Revenue', value: `₹${totalReceived.toLocaleString()}`, bg: 'var(--pp-success-bg)', ic: '#059669', icon: <IndianRupee size={20} strokeWidth={2} /> },
-          { label: 'Tokens Issued', value: withToken.length, bg: 'var(--pp-blue-tint)', ic: 'var(--pp-blue)', icon: <Ticket size={20} strokeWidth={2} /> },
-        ] as const).map(item => (
+        {(
+          [
+            {
+              label: 'Waiting',
+              value: waiting.length,
+              bg: 'var(--pp-warning-bg)',
+              ic: '#d97706',
+              icon: <Clock size={20} strokeWidth={2} />,
+            },
+            {
+              label: 'In Progress',
+              value: inProgress.length,
+              bg: 'rgba(124, 58, 237, 0.1)',
+              ic: '#7c3aed',
+              icon: <UserCheck size={20} strokeWidth={2} />,
+            },
+            {
+              label: 'Realized Revenue',
+              value: `₹${totalReceived.toLocaleString()}`,
+              bg: 'var(--pp-success-bg)',
+              ic: '#059669',
+              icon: <IndianRupee size={20} strokeWidth={2} />,
+            },
+            {
+              label: 'Tokens Issued',
+              value: withToken.length,
+              bg: 'var(--pp-blue-tint)',
+              ic: 'var(--pp-blue)',
+              icon: <Ticket size={20} strokeWidth={2} />,
+            },
+          ] as const
+        ).map((item) => (
           <div key={item.label} className="appt-stat-card">
             <div className="appt-stat-icon-wrap" style={{ background: item.bg, color: item.ic }}>
               {item.icon}
@@ -565,13 +862,22 @@ export default function TokenQueuePage() {
 
       {/* Tabs */}
       <div className="appt-tabs">
-        <button className={`appt-tab ${tab === 'queue' ? 'active' : ''}`} onClick={() => setTab('queue')}>
+        <button
+          className={`appt-tab ${tab === 'queue' ? 'active' : ''}`}
+          onClick={() => setTab('queue')}
+        >
           Active Queue ({inProgress.length + waiting.length})
         </button>
-        <button className={`appt-tab ${tab === 'tokens' ? 'active' : ''}`} onClick={() => setTab('tokens')}>
+        <button
+          className={`appt-tab ${tab === 'tokens' ? 'active' : ''}`}
+          onClick={() => setTab('tokens')}
+        >
           Token Management ({todayAppts.length})
         </button>
-        <button className={`appt-tab ${tab === 'collection' ? 'active' : ''}`} onClick={() => setTab('collection')}>
+        <button
+          className={`appt-tab ${tab === 'collection' ? 'active' : ''}`}
+          onClick={() => setTab('collection')}
+        >
           Daily Collection Ledger
         </button>
       </div>
@@ -579,9 +885,30 @@ export default function TokenQueuePage() {
       {/* ─── LIVE QUEUE TAB ───────────────────────────────────────────────────── */}
       {tab === 'queue' && (
         <div className="animate-fade-in">
-          <div className="appt-action-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, background: 'var(--bg-surface-2)', padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-main)' }}>
+          <div
+            className="appt-action-row"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 20,
+              background: 'var(--bg-surface-2)',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: '1px solid var(--border-main)',
+            }}
+          >
             <div className="appt-search-wrapper" style={{ position: 'relative', width: 320 }}>
-              <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+              <Search
+                size={15}
+                style={{
+                  position: 'absolute',
+                  left: 14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#64748b',
+                }}
+              />
               <input
                 type="text"
                 placeholder="Search patient, ID, or phone..."
@@ -597,20 +924,35 @@ export default function TokenQueuePage() {
                   fontSize: '0.88rem',
                   fontWeight: 500,
                   transition: 'all 0.2s ease',
-                  boxShadow: 'var(--pp-shadow-sm)'
+                  boxShadow: 'var(--pp-shadow-sm)',
                 }}
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
                 <X
                   size={16}
-                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', cursor: 'pointer' }}
+                  style={{
+                    position: 'absolute',
+                    right: 14,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                  }}
                   onClick={() => setSearchQuery('')}
                 />
               )}
             </div>
-            <div className="appt-segmented-toggle" style={{ background: 'var(--bg-card)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-main)' }}>
+            <div
+              className="appt-segmented-toggle"
+              style={{
+                background: 'var(--bg-card)',
+                padding: '4px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-main)',
+              }}
+            >
               <button
                 className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
                 onClick={() => setViewMode('list')}
@@ -627,8 +969,12 @@ export default function TokenQueuePage() {
           </div>
 
           {wLoading ? (
-            viewMode === 'grid' ? renderSkeletonGrid() : renderSkeletonList()
-          ) : (inProgress.length + waiting.length) === 0 ? (
+            viewMode === 'grid' ? (
+              renderSkeletonGrid()
+            ) : (
+              renderSkeletonList()
+            )
+          ) : inProgress.length + waiting.length === 0 ? (
             <EmptyState
               icon={Users}
               title="Waiting room is empty"
@@ -685,18 +1031,31 @@ export default function TokenQueuePage() {
                             )}
                           </td>
                           <td data-label="PATIENT">
-                            <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>{formatName(a.patientName) || 'Unknown'}</div>
-                            <div style={{ fontSize: '11px', color: 'var(--pp-text-3)', fontWeight: 500 }}>
+                            <div style={{ fontWeight: 600, color: 'var(--pp-ink)' }}>
+                              {formatName(a.patientName) || 'Unknown'}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: '11px',
+                                color: 'var(--pp-text-3)',
+                                fontWeight: 500,
+                              }}
+                            >
                               {a.regid ? `ID: ${a.regid}` : '—'} • {a.mobile || 'No Mobile'}
                             </div>
                           </td>
                           <td data-label="DOCTOR">
                             <div style={{ fontWeight: 500 }}>{a.doctorName || 'General Staff'}</div>
                           </td>
-                          <td data-label="TIME" className="appt-cell-muted">{a.bookingTime ?? '—'}</td>
+                          <td data-label="TIME" className="appt-cell-muted">
+                            {a.bookingTime ?? '—'}
+                          </td>
                           <td data-label="PACKAGE" style={{ textAlign: 'center' }}>
                             {a.packageName ? (
-                              <span className="appt-metadata-badge appt-metadata-package" style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                              <span
+                                className="appt-metadata-badge appt-metadata-package"
+                                style={{ display: 'inline-flex', justifyContent: 'center' }}
+                              >
                                 {a.packageName}
                               </span>
                             ) : (
@@ -704,7 +1063,9 @@ export default function TokenQueuePage() {
                             )}
                           </td>
                           <td data-label="STATUS" style={{ textAlign: 'center' }}>
-                            <span className={`appt-status-pill-minimal ${a.status.toLowerCase().replace(/\s+/g, '')}`}>
+                            <span
+                              className={`appt-status-pill-minimal ${a.status.toLowerCase().replace(/\s+/g, '')}`}
+                            >
                               {a.status}
                             </span>
                           </td>
@@ -712,54 +1073,117 @@ export default function TokenQueuePage() {
                             <div className="appt-kebab-wrap">
                               <button
                                 className="appt-kebab-btn"
-                                onClick={(e) => { e.stopPropagation(); toggleMenu(`token-${a.id}`, e.currentTarget); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleMenu(`token-${a.id}`, e.currentTarget);
+                                }}
                               >
                                 <MoreVertical size={16} />
                               </button>
                             </div>
-                            {openMenuId === `token-${a.id}` && menuPos && createPortal(
-                              <div
-                                ref={menuRef}
-                                className="appt-kebab-menu"
-                                style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}
-                              >
-                                {!a.tokenNo ? (
-                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a.id); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
-                                    <Ticket size={14} /> Issue Token
+                            {openMenuId === `token-${a.id}` &&
+                              menuPos &&
+                              createPortal(
+                                <div
+                                  ref={menuRef}
+                                  className="appt-kebab-menu"
+                                  style={{
+                                    position: 'fixed',
+                                    top: menuPos.top,
+                                    left: menuPos.left,
+                                    zIndex: 9999,
+                                  }}
+                                >
+                                  {!a.tokenNo ? (
+                                    <button
+                                      className="appt-kebab-item"
+                                      style={{ color: 'var(--pp-blue)' }}
+                                      onClick={() => {
+                                        handleIssueToken(a.id);
+                                        setOpenMenuId(null);
+                                        setMenuPos(null);
+                                      }}
+                                      disabled={issueToken.isPending}
+                                    >
+                                      <Ticket size={14} /> Issue Token
+                                    </button>
+                                  ) : [
+                                      'Completed',
+                                      'Consultation',
+                                      'Waitlist',
+                                      'Absent',
+                                      'Cancelled',
+                                    ].includes(a.status) ? (
+                                    <div
+                                      className="appt-kebab-item"
+                                      style={{
+                                        color: 'var(--pp-text-3)',
+                                        cursor: 'default',
+                                        opacity: 0.6,
+                                      }}
+                                    >
+                                      <CheckCircle2 size={14} />{' '}
+                                      {a.status === 'Completed' ? 'Done' : a.status}
+                                    </div>
+                                  ) : (
+                                    <button
+                                      className="appt-kebab-item"
+                                      style={{ color: 'var(--pp-success-fg)' }}
+                                      onClick={() => {
+                                        if (!a.patientId) {
+                                          toast({
+                                            description:
+                                              'यह पेशेंट रजिस्टर नहीं है, सबसे पहले इसको ऐड करो (This patient is not registered, please add them first)',
+                                            variant: 'error',
+                                          });
+                                          return;
+                                        }
+                                        addToWaitlist.mutateAsync({
+                                          patientId: a.patientId || undefined,
+                                          appointmentId: a.id,
+                                          doctorId: a.doctorId ?? undefined,
+                                        });
+                                        setOpenMenuId(null);
+                                        setMenuPos(null);
+                                      }}
+                                      disabled={addToWaitlist.isPending}
+                                    >
+                                      <Plus size={14} /> Check In
+                                    </button>
+                                  )}
+                                  <div className="appt-kebab-divider" />
+                                  <button
+                                    className="appt-kebab-item"
+                                    style={{ color: 'var(--pp-purple)' }}
+                                    onClick={() => {
+                                      setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 });
+                                      setOpenMenuId(null);
+                                      setMenuPos(null);
+                                    }}
+                                  >
+                                    <Activity size={14} /> Vitals
                                   </button>
-                                ) : ['Completed', 'Consultation', 'Waitlist', 'Absent', 'Cancelled'].includes(a.status) ? (
-                                  <div className="appt-kebab-item" style={{ color: 'var(--pp-text-3)', cursor: 'default', opacity: 0.6 }}>
-                                    <CheckCircle2 size={14} /> {a.status === 'Completed' ? 'Done' : a.status}
-                                  </div>
-                                ) : (
-                                  <button className="appt-kebab-item" style={{ color: 'var(--pp-success-fg)' }} onClick={() => {
-                                    if (!a.patientId) {
-                                      toast({
-                                        description: "यह पेशेंट रजिस्टर नहीं है, सबसे पहले इसको ऐड करो (This patient is not registered, please add them first)",
-                                        variant: "error"
-                                      });
-                                      return;
-                                    }
-                                    addToWaitlist.mutateAsync({
-                                      patientId: a.patientId || undefined,
-                                      appointmentId: a.id,
-                                      doctorId: a.doctorId ?? undefined
-                                    });
-                                    setOpenMenuId(null); setMenuPos(null);
-                                  }} disabled={addToWaitlist.isPending}>
-                                    <Plus size={14} /> Check In
+                                  <button
+                                    className="appt-kebab-item"
+                                    style={{ color: '#25D366' }}
+                                    onClick={() => {
+                                      openWhatsApp(
+                                        a.phone || a.mobile,
+                                        a.patientName,
+                                        a.bookingTime,
+                                        new Date(
+                                          a.appointmentDate || a.createdAt || today,
+                                        ).toLocaleDateString('en-IN'),
+                                      );
+                                      setOpenMenuId(null);
+                                      setMenuPos(null);
+                                    }}
+                                  >
+                                    <MessageCircle size={14} /> WhatsApp
                                   </button>
-                                )}
-                                <div className="appt-kebab-divider" />
-                                <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setActiveVitals({ visitId: a.id, regid: a.patientId ?? 0 }); setOpenMenuId(null); setMenuPos(null); }}>
-                                  <Activity size={14} /> Vitals
-                                </button>
-                                <button className="appt-kebab-item" style={{ color: '#25D366' }} onClick={() => { openWhatsApp(a.phone || a.mobile, a.patientName, a.bookingTime, new Date(a.appointmentDate || a.createdAt || today).toLocaleDateString('en-IN')); setOpenMenuId(null); setMenuPos(null); }}>
-                                  <MessageCircle size={14} /> WhatsApp
-                                </button>
-                              </div>,
-                              document.body
-                            )}
+                                </div>,
+                                document.body,
+                              )}
                           </td>
                         </tr>
                       ))}
@@ -779,7 +1203,9 @@ export default function TokenQueuePage() {
           <div className="appt-card">
             <div className="appt-card-header">
               <h3 className="appt-card-title">Institutional Receipt Ledger</h3>
-              <div className="appt-badge appt-badge-visited">{(collection?.records.length || 0)} Transactions</div>
+              <div className="appt-badge appt-badge-visited">
+                {collection?.records.length || 0} Transactions
+              </div>
             </div>
             <div className="appt-table-scroll">
               <table className="appt-ledger-table">
@@ -795,7 +1221,12 @@ export default function TokenQueuePage() {
                   {cLoading ? (
                     [...Array(limit)].map((_, i) => (
                       <tr key={i} className="appt-skeleton-row">
-                        <td colSpan={4}><div className="appt-skeleton-box" style={{ height: 40, margin: '8px 16px' }} /></td>
+                        <td colSpan={4}>
+                          <div
+                            className="appt-skeleton-box"
+                            style={{ height: 40, margin: '8px 16px' }}
+                          />
+                        </td>
                       </tr>
                     ))
                   ) : !collection || collection.records.length === 0 ? (
@@ -814,20 +1245,41 @@ export default function TokenQueuePage() {
                     <>
                       {paginatedData.map((r: any) => (
                         <tr key={r.id} className="appt-ledger-row">
-                          <td data-label="RECEIPT ID" style={{ padding: '12px 16px', textAlign: 'left' }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--pp-blue)' }}>#{r.billNo || r.id}</div>
-                            <div style={{ fontSize: 10, color: 'var(--pp-text-3)', fontWeight: 600 }}>{r.billDate || 'Live Sync'}</div>
+                          <td
+                            data-label="RECEIPT ID"
+                            style={{ padding: '12px 16px', textAlign: 'left' }}
+                          >
+                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--pp-blue)' }}>
+                              #{r.billNo || r.id}
+                            </div>
+                            <div
+                              style={{ fontSize: 10, color: 'var(--pp-text-3)', fontWeight: 600 }}
+                            >
+                              {r.billDate || 'Live Sync'}
+                            </div>
                           </td>
                           <td data-label="PATIENT">
                             <div className="appt-cell-name">{formatName(r.patientName)}</div>
                             <div className="appt-cell-phone">{r.phone || 'No Contact Linked'}</div>
                           </td>
                           <td data-label="CHANNEL" style={{ textAlign: 'center' }}>
-                            <span className={`appt-badge ${r.paymentMode === 'Cash' ? 'appt-badge-visited' : 'appt-badge-confirmed'}`} style={{ fontSize: 10 }}>
+                            <span
+                              className={`appt-badge ${r.paymentMode === 'Cash' ? 'appt-badge-visited' : 'appt-badge-confirmed'}`}
+                              style={{ fontSize: 10 }}
+                            >
                               {r.paymentMode?.toUpperCase() || 'CASH'}
                             </span>
                           </td>
-                          <td data-label="NET VALUE" style={{ textAlign: 'right', paddingRight: 16, fontWeight: 800, color: 'var(--pp-success-fg)', fontSize: 15 }}>
+                          <td
+                            data-label="NET VALUE"
+                            style={{
+                              textAlign: 'right',
+                              paddingRight: 16,
+                              fontWeight: 800,
+                              color: 'var(--pp-success-fg)',
+                              fontSize: 15,
+                            }}
+                          >
                             ₹{Number(r.received).toLocaleString()}
                           </td>
                         </tr>
@@ -838,12 +1290,7 @@ export default function TokenQueuePage() {
               </table>
             </div>
           </div>
-          {printData && (
-            <StickerPrint
-              ref={stickerRef}
-              {...printData}
-            />
-          )}
+          {printData && <StickerPrint ref={stickerRef} {...printData} />}
           {renderSharedPagination()}
         </div>
       )}
@@ -853,7 +1300,10 @@ export default function TokenQueuePage() {
           visitId={activeVitals.visitId}
           regid={activeVitals.regid}
           onClose={() => setActiveVitals(null)}
-          onSuccess={() => { wRefetch(); aRefetch(); }}
+          onSuccess={() => {
+            wRefetch();
+            aRefetch();
+          }}
         />
       )}
     </div>
@@ -869,17 +1319,34 @@ function WaitlistCard({ entry, onStartConsult, onComplete, onVitals, isPending }
       <div className="appt-token-num">W{entry.waitingNumber}</div>
       <div className="appt-token-label">In Consultation</div>
 
-      <div className="appt-token-patient">{formatName(entry.patientName) || `Patient #${entry.patientId}`}</div>
+      <div className="appt-token-patient">
+        {formatName(entry.patientName) || `Patient #${entry.patientId}`}
+      </div>
       <div className="appt-token-doctor">{entry.doctorName ?? 'Practitioner'}</div>
 
       <div className="appt-token-actions">
-        <button className="appt-btn-icon" title="Start Consultation" onClick={() => onStartConsult(entry)}>
+        <button
+          className="appt-btn-icon"
+          title="Start Consultation"
+          onClick={() => onStartConsult(entry)}
+        >
           <Activity size={16} />
         </button>
-        <button className="appt-btn-icon" title="Mark Done" onClick={() => onComplete(entry.id)} disabled={isPending} style={{ color: 'var(--pp-success-fg)' }}>
+        <button
+          className="appt-btn-icon"
+          title="Mark Done"
+          onClick={() => onComplete(entry.id)}
+          disabled={isPending}
+          style={{ color: 'var(--pp-success-fg)' }}
+        >
           <CheckCircle2 size={16} />
         </button>
-        <button className="appt-btn-icon" title="Vitals" onClick={onVitals} style={{ color: 'var(--pp-purple)' }}>
+        <button
+          className="appt-btn-icon"
+          title="Vitals"
+          onClick={onVitals}
+          style={{ color: 'var(--pp-purple)' }}
+        >
           <Activity size={16} />
         </button>
       </div>

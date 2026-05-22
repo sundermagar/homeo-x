@@ -30,14 +30,33 @@ const storage = multer.diskStorage({
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowed = [
     // Images
-    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/bmp',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/svg+xml',
+    'image/bmp',
     // Documents / PDF
     'application/pdf',
-    'text/plain', 'text/csv',
+    'text/plain',
+    'text/csv',
     // Videos
-    'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-matroska', 'video/mpeg',
+    'video/mp4',
+    'video/webm',
+    'video/ogg',
+    'video/quicktime',
+    'video/x-matroska',
+    'video/mpeg',
     // Audio
-    'audio/mpeg', 'audio/mp3', 'audio/ogg', 'audio/wav', 'audio/webm', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/flac'
+    'audio/mpeg',
+    'audio/mp3',
+    'audio/ogg',
+    'audio/wav',
+    'audio/webm',
+    'audio/mp4',
+    'audio/x-m4a',
+    'audio/aac',
+    'audio/flac',
   ];
   if (allowed.includes(file.mimetype)) {
     cb(null, true);

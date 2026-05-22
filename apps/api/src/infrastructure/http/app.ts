@@ -61,16 +61,26 @@ import { TranslatorEngine } from '../../domains/consultation/engines/translator.
 import { getAiProviderChain } from '../ai/ai-provider-chain.js';
 import { createTerminologyRouter } from './routes/terminology.router.js';
 import { createNotificationsRouter } from './routes/notifications.router.js';
+import { followUpRouter } from './routes/follow-up.router.js';
 import { whatsappRouter } from './routes/whatsapp.js';
 import { whatsappWidgetRouter } from './routes/whatsapp-widget.js';
-import { setupNotificationsGateway, setNotificationEmitters } from './gateways/notifications.gateway.js';
+import {
+  setupNotificationsGateway,
+  setNotificationEmitters,
+} from './gateways/notifications.gateway.js';
 import { setupWhatsAppGateway, setWhatsAppGateway } from './gateways/whatsapp.gateway.js';
 
 const logger = createLogger('http');
 
 import { createDbClient, warmDbPools, TenantRegistry } from '@mmc/database';
 
-export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any; publicDb: any }> {
+export async function createApp(): Promise<{
+  app: Express;
+  server: HttpServer;
+  io: SocketIOServer;
+  tenantDb: any;
+  publicDb: any;
+}> {
   const app: Express = express();
   const server: HttpServer = createServer(app);
 
@@ -81,27 +91,35 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // ─── Security ───
   app.set('trust proxy', 1);
-  app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginEmbedderPolicy: false,
-  }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
   app.use(cors({ origin: appConfig.cors.origins, credentials: true }));
 
   // ─── Rate Limiting ───
-  app.use('/api/', rateLimit({
-    windowMs: appConfig.rateLimit.windowMs,
-    max: appConfig.rateLimit.max,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { success: false, error: 'Too many requests', code: 'RATE_LIMITED' },
-  }));
+  app.use(
+    '/api/',
+    rateLimit({
+      windowMs: appConfig.rateLimit.windowMs,
+      max: appConfig.rateLimit.max,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { success: false, error: 'Too many requests', code: 'RATE_LIMITED' },
+    }),
+  );
 
-  app.use('/api/auth/login', rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: appConfig.rateLimit.authMax,
-    message: { success: false, error: 'Too many login attempts', code: 'RATE_LIMITED' },
-  }));
+  app.use(
+    '/api/auth/login',
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: appConfig.rateLimit.authMax,
+      message: { success: false, error: 'Too many login attempts', code: 'RATE_LIMITED' },
+    }),
+  );
 
   // ─── Request Processing ───
   app.use(compression());
@@ -146,6 +164,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/deposits', createDepositsRouter());
   app.use('/api/expenses', createExpensesRouter());
   app.use('/api/charges', createChargesRouter());
+  app.use('/api/follow-ups', followUpRouter);
 
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());
@@ -153,10 +172,10 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // Temporary unauthenticated route for backfilling
   app.use('/api/public-clinicadmins', createClinicAdminsRouter());
   app.use('/api/clinicadmins', authMiddleware, createClinicAdminsRouter());
-  
+
   // Our modules — Settings & Configuration
   app.use('/api/settings', authMiddleware, createSettingsRouter());
-  
+
   // Clinical Terminology
   app.use('/api/terminology', createTerminologyRouter());
 
@@ -237,8 +256,6 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
     await (TenantRegistry as any).initialize(publicDb);
   }
 
-
-
   // --- AUTO-MIGRATE ALL TENANTS ON STARTUP ---
   // This ensures every tenant schema is always up-to-date with the latest migrations.
   // Runs in the background (fire-and-forget) so it doesn't block server startup.
@@ -247,7 +264,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
       const { migrateTenant } = await import('@mmc/database');
       const allTenants = TenantRegistry.getAll();
       const dbUrl = process.env.DATABASE_URL!;
-      
+
       let successCount = 0;
       let failCount = 0;
 
@@ -257,12 +274,17 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
           successCount++;
         } catch (migErr: any) {
           failCount++;
-          logger.warn({ schema: tenant.schemaName, err: migErr.message }, 'Tenant migration failed (non-fatal)');
+          logger.warn(
+            { schema: tenant.schemaName, err: migErr.message },
+            'Tenant migration failed (non-fatal)',
+          );
         }
       }
 
       if (failCount > 0) {
-        logger.warn(`Auto-migration finished with ${failCount}/${allTenants.length} failures (${successCount} succeeded)`);
+        logger.warn(
+          `Auto-migration finished with ${failCount}/${allTenants.length} failures (${successCount} succeeded)`,
+        );
       }
     } catch (err: any) {
       logger.error({ err: err.message }, 'Auto-migration system error (non-fatal)');
@@ -277,15 +299,16 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   logger.info('Express app configured with enterprise middleware stack');
 
   // Ensure performance indexes on first startup (fire-and-forget, non-blocking)
-  ensureIndexes(publicDb).catch(err => logger.warn({ err }, 'Index creation skipped'));
-  if (tenantDb) ensureIndexes(tenantDb).catch(err => logger.warn({ err }, 'Tenant index creation skipped'));
+  ensureIndexes(publicDb).catch((err) => logger.warn({ err }, 'Index creation skipped'));
+  if (tenantDb)
+    ensureIndexes(tenantDb).catch((err) => logger.warn({ err }, 'Tenant index creation skipped'));
 
   // Pre-spawn DB connections so the first user request doesn't wait on a ~3 s
   // TCP+TLS handshake. Also kicks off a 4-min keep-alive ping so connections
   // don't go cold when the app is idle.
   warmDbPools()
     .then(() => logger.info('DB pools warmed (idle keep-alive ping running)'))
-    .catch(err => logger.warn({ err: err?.message }, 'DB pool warmup skipped'));
+    .catch((err) => logger.warn({ err: err?.message }, 'DB pool warmup skipped'));
 
   // --- AUTO-ALIGN WABA ACCESS TOKENS WITH ENV ---
   // If the developer updates process.env.WHATSAPP_TOKEN, propagate it to the DB channels
@@ -305,7 +328,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
         WHERE table_name = 'wa_channels' 
           AND table_schema LIKE 'tenant_%'
       `);
-      const rawActiveSchemas = (schemaRows as any[]).map(r => r.table_schema);
+      const rawActiveSchemas = (schemaRows as any[]).map((r) => r.table_schema);
       const activeSchemas: string[] = [];
 
       for (const schemaName of rawActiveSchemas) {
@@ -313,7 +336,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
           const channelCheck = await publicDb.execute(sql`
             SELECT id FROM ${sql.raw(`"${schemaName}"."wa_channels"`)} LIMIT 1
           `);
-          const hasChannels = Array.isArray(channelCheck) ? channelCheck.length > 0 : (channelCheck as any).rows?.length > 0;
+          const hasChannels = Array.isArray(channelCheck)
+            ? channelCheck.length > 0
+            : (channelCheck as any).rows?.length > 0;
           if (hasChannels) {
             activeSchemas.push(schemaName);
           }
@@ -322,7 +347,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
         }
       }
 
-      logger.info(`Aligning WABA access tokens with .env for ${activeSchemas.length} active tenant schema(s)...`);
+      logger.info(
+        `Aligning WABA access tokens with .env for ${activeSchemas.length} active tenant schema(s)...`,
+      );
       for (const schemaName of activeSchemas) {
         try {
           const tenantDb = createDbClient(process.env.DATABASE_URL!, schemaName);
@@ -333,7 +360,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
           for (const row of rows) {
             const dbTokenDecrypted = decrypt(row.access_token);
             if (dbTokenDecrypted !== envToken) {
-              logger.info(`[SyncToken] Updating access token in schema ${schemaName} for WABA channel ${row.id}`);
+              logger.info(
+                `[SyncToken] Updating access token in schema ${schemaName} for WABA channel ${row.id}`,
+              );
               const encryptedToken = encrypt(envToken);
               await tenantDb.execute(sql`
                 UPDATE wa_channels SET access_token = ${encryptedToken}, updated_at = NOW() WHERE id = ${row.id}
@@ -363,7 +392,8 @@ async function ensureIndexes(db: any): Promise<void> {
 
   // Ensure case_reminders table exists (Added for Clinical Activity feature)
   try {
-    await db.execute(sql.raw(`
+    await db.execute(
+      sql.raw(`
       CREATE TABLE IF NOT EXISTS "case_reminders" (
         "id" serial PRIMARY KEY NOT NULL,
         "regid" integer NOT NULL,
@@ -372,28 +402,34 @@ async function ensureIndexes(db: any): Promise<void> {
         "status" varchar(20) DEFAULT 'Pending',
         "created_at" timestamp DEFAULT now()
       );
-    `));
-    
+    `),
+    );
+
     // Ensure regid column exists in vitals (from Migration 0014)
-    await db.execute(sql.raw(`
+    await db.execute(
+      sql.raw(`
       DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vitals' AND column_name = 'regid') THEN
           ALTER TABLE vitals ADD COLUMN regid INTEGER;
         END IF;
       END $$;
-    `));
+    `),
+    );
 
     // Ensure regid column exists in soap_notes (from Migration 0014)
-    await db.execute(sql.raw(`
+    await db.execute(
+      sql.raw(`
       DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'soap_notes' AND column_name = 'regid') THEN
           ALTER TABLE soap_notes ADD COLUMN regid INTEGER;
         END IF;
       END $$;
-    `));
+    `),
+    );
 
     // Ensure notifications table exists
-    await db.execute(sql.raw(`
+    await db.execute(
+      sql.raw(`
       CREATE TABLE IF NOT EXISTS "notifications" (
         "id" serial PRIMARY KEY NOT NULL,
         "user_id" integer NOT NULL,
@@ -406,7 +442,8 @@ async function ensureIndexes(db: any): Promise<void> {
         "created_at" timestamp DEFAULT now(),
         "updated_at" timestamp DEFAULT now()
       );
-    `));
+    `),
+    );
   } catch (err: any) {
     logger.debug({ err: err.message }, 'Failed to ensure case_reminders table');
   }
@@ -474,29 +511,31 @@ export async function runAdminBackfill(publicDb: any) {
     const bcrypt = await import('bcryptjs');
     logger.info('Running auto-backfill for clinic admins...');
 
-    const orgs = await publicDb.execute(sql`
+    const orgs = (await publicDb.execute(sql`
       SELECT id, name, admin_email, admin_password
       FROM organizations
       WHERE admin_email IS NOT NULL AND admin_email != ''
         AND admin_password IS NOT NULL AND admin_password != ''
         AND deleted_at IS NULL
-    `) as any[];
+    `)) as any[];
 
     let createdCount = 0;
     for (const org of orgs) {
       const email = org.admin_email;
-      const existing = await publicDb.execute(
-        sql`SELECT id FROM users WHERE LOWER(email) = LOWER(${email}) AND (deleted_at IS NULL OR deleted_at::text = '') LIMIT 1`
-      ) as any[];
+      const existing = (await publicDb.execute(
+        sql`SELECT id FROM users WHERE LOWER(email) = LOWER(${email}) AND (deleted_at IS NULL OR deleted_at::text = '') LIMIT 1`,
+      )) as any[];
 
       if (!existing || existing.length === 0) {
-        const hashedPassword = org.admin_password.startsWith('$2') ? org.admin_password : await bcrypt.hash(org.admin_password, 10);
+        const hashedPassword = org.admin_password.startsWith('$2')
+          ? org.admin_password
+          : await bcrypt.hash(org.admin_password, 10);
         const adminName = `${org.name} Admin`;
-        const userResult = await publicDb.execute(sql`
+        const userResult = (await publicDb.execute(sql`
           INSERT INTO users (name, email, password, type, context_id, created_at, updated_at)
           VALUES (${adminName}, ${email}, ${hashedPassword}, 'Clinicadmin', ${org.id}, NOW(), NOW())
           RETURNING id
-        `) as any[];
+        `)) as any[];
         const userId = userResult[0]?.id;
         if (userId) {
           await publicDb.execute(sql`

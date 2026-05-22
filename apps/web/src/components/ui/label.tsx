@@ -7,11 +7,7 @@ const Label = React.forwardRef<
   React.ComponentRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => (
-  <LabelPrimitive.Root
-    ref={ref}
-    className={cn('ui-label', className)}
-    {...props}
-  />
+  <LabelPrimitive.Root ref={ref} className={cn('ui-label', className)} {...props} />
 ));
 Label.displayName = 'Label';
 

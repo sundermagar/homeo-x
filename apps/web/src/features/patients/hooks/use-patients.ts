@@ -8,11 +8,11 @@ const FAMILY_KEY = 'family-members';
 
 // ─── Patient Queries ───
 
-export function usePatients(params: { 
-  page?: number; 
-  limit?: number; 
-  search?: string; 
-  doctorId?: number; 
+export function usePatients(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  doctorId?: number;
   clinicId?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
@@ -30,9 +30,9 @@ export function usePatients(params: {
         sortOrder: params.sortOrder,
       };
       const res = await apiClient.get('/patients', { params: apiParams });
-      return { 
-        data: res.data.data ?? [], 
-        total: res.data.total ?? 0 
+      return {
+        data: res.data.data ?? [],
+        total: res.data.total ?? 0,
       };
     },
   });
@@ -54,7 +54,9 @@ export function usePatientClinicalRecord(regid: number) {
   return useQuery({
     queryKey: [PATIENTS_KEY, 'clinical-record', regid],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: any }>(`/medical-cases/patient/${regid}/full`);
+      const res = await apiClient.get<{ success: boolean; data: any }>(
+        `/medical-cases/patient/${regid}/full`,
+      );
       return res.data.data ?? null;
     },
     enabled: !!regid,
@@ -65,7 +67,10 @@ export function usePatientLookup(query: string) {
   return useQuery({
     queryKey: [PATIENTS_KEY, 'lookup', query],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: PatientSummary[] }>('/patients/lookup', { params: { query } });
+      const res = await apiClient.get<{ success: boolean; data: PatientSummary[] }>(
+        '/patients/lookup',
+        { params: { query } },
+      );
       return res.data.data ?? [];
     },
     enabled: query.length >= 2,
@@ -76,27 +81,35 @@ export function usePatientFormMeta(clinicId?: number) {
   return useQuery({
     queryKey: [PATIENTS_KEY, 'meta', clinicId],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: PatientFormMeta }>('/patients/meta/form', {
-        params: { clinicId }
-      });
+      const { data } = await apiClient.get<{ success: boolean; data: PatientFormMeta }>(
+        '/patients/meta/form',
+        {
+          params: { clinicId },
+        },
+      );
       return data.data;
     },
     staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useUnregisteredPatients(params: { search?: string; limit?: number; offset?: number; clinicId?: number } = {}) {
+export function useUnregisteredPatients(
+  params: { search?: string; limit?: number; offset?: number; clinicId?: number } = {},
+) {
   return useQuery({
     queryKey: [PATIENTS_KEY, 'unregistered', params],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: any[] }>('/patients/unregistered', {
-        params: { 
-          search: params.search,
-          limit: params.limit,
-          offset: params.offset,
-          clinicId: params.clinicId
-        }
-      });
+      const { data } = await apiClient.get<{ success: boolean; data: any[] }>(
+        '/patients/unregistered',
+        {
+          params: {
+            search: params.search,
+            limit: params.limit,
+            offset: params.offset,
+            clinicId: params.clinicId,
+          },
+        },
+      );
       return data.data;
     },
   });
@@ -108,7 +121,10 @@ export function useCreatePatient() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreatePatientInput) => {
-      const { data } = await apiClient.post<{ success: boolean; data: Patient; regid: number }>('/patients', input);
+      const { data } = await apiClient.post<{ success: boolean; data: Patient; regid: number }>(
+        '/patients',
+        input,
+      );
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: [PATIENTS_KEY] }),
@@ -119,7 +135,10 @@ export function useUpdatePatient() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ regid, ...input }: UpdatePatientInput & { regid: number }) => {
-      const { data } = await apiClient.put<{ success: boolean; data: Patient }>(`/patients/${regid}`, input);
+      const { data } = await apiClient.put<{ success: boolean; data: Patient }>(
+        `/patients/${regid}`,
+        input,
+      );
       return data;
     },
     onSuccess: (_, vars) => {
@@ -147,7 +166,9 @@ export function useFamilyMembers(regid: number) {
   return useQuery({
     queryKey: [FAMILY_KEY, regid],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: FamilyMember[] }>(`/patients/${regid}/family`);
+      const res = await apiClient.get<{ success: boolean; data: FamilyMember[] }>(
+        `/patients/${regid}/family`,
+      );
       return res.data.data ?? [];
     },
     enabled: !!regid,
@@ -159,9 +180,9 @@ export function useFamilyGroups(params: { page?: number; limit?: number; search?
     queryKey: ['family-groups', params],
     queryFn: async () => {
       const res = await apiClient.get('/patients/family-groups', { params });
-      return { 
-        data: res.data.data ?? [], 
-        total: res.data.total ?? 0 
+      return {
+        data: res.data.data ?? [],
+        total: res.data.total ?? 0,
       };
     },
   });
@@ -170,8 +191,19 @@ export function useFamilyGroups(params: { page?: number; limit?: number; search?
 export function useAddFamilyMember() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ regid, memberRegid, relation }: { regid: number; memberRegid: number; relation: string }) => {
-      const { data } = await apiClient.post<{ success: boolean; data: FamilyMember }>(`/patients/${regid}/family`, { memberRegid, relation });
+    mutationFn: async ({
+      regid,
+      memberRegid,
+      relation,
+    }: {
+      regid: number;
+      memberRegid: number;
+      relation: string;
+    }) => {
+      const { data } = await apiClient.post<{ success: boolean; data: FamilyMember }>(
+        `/patients/${regid}/family`,
+        { memberRegid, relation },
+      );
       return data;
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: [FAMILY_KEY, vars.regid] }),

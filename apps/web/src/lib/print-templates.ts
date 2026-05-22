@@ -645,10 +645,11 @@ function renderClinicHeader(clinic: ClinicInfo, docTitle?: string): string {
     <div class="letterhead" style="--lh-accent:${accent};">
       <div class="letterhead-band"></div>
       <div class="letterhead-row">
-        ${clinic.logoUrl
-      ? `<img src="${escapeHtml(clinic.logoUrl)}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
-      : `<div class="letterhead-logo-fallback">${safe((clinic.name || 'C').charAt(0).toUpperCase())}</div>`
-    }
+        ${
+          clinic.logoUrl
+            ? `<img src="${escapeHtml(clinic.logoUrl)}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
+            : `<div class="letterhead-logo-fallback">${safe((clinic.name || 'C').charAt(0).toUpperCase())}</div>`
+        }
         <div class="letterhead-title">
           <div class="clinic-name">${safe(clinic.name)}</div>
           ${clinic.tagline ? `<div class="clinic-tagline">${safe(clinic.tagline)}</div>` : ''}
@@ -664,8 +665,9 @@ function renderClinicHeader(clinic: ClinicInfo, docTitle?: string): string {
 
 /** HTML fragment to inject into the bottom of the printed page (fixed footer). */
 function renderClinicFooter(clinic: ClinicInfo): string {
-  const text = clinic.footer
-    || `${clinic.name}${clinic.phone ? ` · ${clinic.phone}` : ''}${clinic.address ? ` · ${clinic.address}` : ''}`;
+  const text =
+    clinic.footer ||
+    `${clinic.name}${clinic.phone ? ` · ${clinic.phone}` : ''}${clinic.address ? ` · ${clinic.address}` : ''}`;
   return `<div class="letterhead-footer">${escapeHtml(text)}</div>`;
 }
 
@@ -745,7 +747,9 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   const safe = (s?: string) => (s ? escapeHtml(s) : '');
 
   const formattedDate = new Date(data.visit.date || Date.now()).toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
 
   const refNumber = data.visit.visitNumber || '—';
@@ -756,10 +760,13 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   if (data.clinic.email) contactBits.push(safe(data.clinic.email));
   if (data.clinic.website) contactBits.push(safe(data.clinic.website));
 
-  const ageGender = [
-    data.patient.age ? `${safe(data.patient.age)} yrs` : null,
-    data.patient.gender ? safe(data.patient.gender).charAt(0).toUpperCase() : null,
-  ].filter(Boolean).join(' · ') || '—';
+  const ageGender =
+    [
+      data.patient.age ? `${safe(data.patient.age)} yrs` : null,
+      data.patient.gender ? safe(data.patient.gender).charAt(0).toUpperCase() : null,
+    ]
+      .filter(Boolean)
+      .join(' · ') || '—';
 
   // Build SOAP narrative (subjective + objective combined)
   const narrative = [data.soap?.subjective, data.soap?.objective].filter(Boolean).join('\n\n');
@@ -767,24 +774,32 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   const followUpDate = data.followUp
     ? null
     : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric',
-    });
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
 
   const vitalsCells = renderVitalsCells(data.vitals);
   const medsHtml = renderMedicationsLetterhead(data.medications, data.prescriptionStrategy);
-  const labsHtml = data.labOrders && data.labOrders.length > 0
-    ? `
+  const labsHtml =
+    data.labOrders && data.labOrders.length > 0
+      ? `
       <section class="rx-section">
         <h3 class="rx-section-label">Lab Orders</h3>
         <p class="rx-narrative">${data.labOrders.map(escapeHtml).join(', ')}</p>
       </section>`
-    : '';
+      : '';
 
   // ─── Resolve Header ───
   let headerHtml = data.clinic.headerHtml;
 
   // Ignore legacy seed HTML so the new premium default layout activates
-  if (headerHtml && (headerHtml.includes('MMC Clinical Prescription') || headerHtml.includes('HomeoX Clinical Prescription') || headerHtml.includes('Clinical Prescription'))) {
+  if (
+    headerHtml &&
+    (headerHtml.includes('MMC Clinical Prescription') ||
+      headerHtml.includes('HomeoX Clinical Prescription') ||
+      headerHtml.includes('Clinical Prescription'))
+  ) {
     headerHtml = undefined;
   }
 
@@ -820,21 +835,33 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
               ${phoneIcon}
               <span>${safe(data.clinic.phone) || 'Contact'}</span>
             </div>
-            ${data.clinic.timing ? `
+            ${
+              data.clinic.timing
+                ? `
             <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:center; gap:5px; justify-content:flex-end;">
               ${clockIcon}
               <span>${safe(data.clinic.timing)}</span>
-            </div>` : ''}
-            ${data.clinic.email ? `
+            </div>`
+                : ''
+            }
+            ${
+              data.clinic.email
+                ? `
             <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:center; gap:5px; justify-content:flex-end;">
               ${mailIcon}
               <span>${safe(data.clinic.email)}</span>
-            </div>` : ''}
-            ${data.clinic.website ? `
+            </div>`
+                : ''
+            }
+            ${
+              data.clinic.website
+                ? `
             <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:center; gap:5px; justify-content:flex-end;">
               ${globeIcon}
               <span>${safe(data.clinic.website)}</span>
-            </div>` : ''}
+            </div>`
+                : ''
+            }
           </div>
         </div>
       </div>
@@ -908,22 +935,33 @@ ${PRINT_STYLES}
     ${vitalsCells}
   </section>
 
-  ${narrative ? `
+  ${
+    narrative
+      ? `
     <section class="rx-section">
       <h3 class="rx-section-label">Clinical Summary</h3>
       <p class="rx-narrative">${escapeHtml(narrative).replace(/\n/g, '<br>')}</p>
     </section>
-  ` : ''}
+  `
+      : ''
+  }
 
-  ${data.diagnosis && (data.diagnosis.assessment || (data.diagnosis.icdCodes && data.diagnosis.icdCodes.length > 0)) ? `
+  ${
+    data.diagnosis &&
+    (data.diagnosis.assessment || (data.diagnosis.icdCodes && data.diagnosis.icdCodes.length > 0))
+      ? `
     <section class="rx-section">
       <h3 class="rx-section-label">Diagnosis</h3>
       ${data.diagnosis.assessment ? `<p class="rx-diagnosis-text">${safe(data.diagnosis.assessment)}</p>` : ''}
-      ${data.diagnosis.icdCodes && data.diagnosis.icdCodes.length > 0
-        ? `<p class="rx-diagnosis-icd">(ICD-10: ${data.diagnosis.icdCodes.map(escapeHtml).join(', ')})</p>`
-        : ''}
+      ${
+        data.diagnosis.icdCodes && data.diagnosis.icdCodes.length > 0
+          ? `<p class="rx-diagnosis-icd">(ICD-10: ${data.diagnosis.icdCodes.map(escapeHtml).join(', ')})</p>`
+          : ''
+      }
     </section>
-  ` : ''}
+  `
+      : ''
+  }
 
   <section class="rx-section">
     <h3 class="rx-section-label">${data.prescriptionStrategy === 'REMEDY' ? 'Remedies' : 'Medicines'}</h3>
@@ -932,31 +970,47 @@ ${PRINT_STYLES}
 
   ${labsHtml}
 
-  ${(data.advice || data.followUp) ? `
+  ${
+    data.advice || data.followUp
+      ? `
     <div class="rx-twocol">
-      ${data.advice ? `
+      ${
+        data.advice
+          ? `
         <section class="rx-section" style="margin-bottom:0;">
           <h3 class="rx-section-label">Advice / Instructions</h3>
           <p class="rx-prose">${escapeHtml(data.advice).replace(/\n/g, '<br>')}</p>
         </section>
-      ` : '<div></div>'}
+      `
+          : '<div></div>'
+      }
       
-      ${data.followUp ? `
+      ${
+        data.followUp
+          ? `
         <section class="rx-section" style="margin-bottom:0;">
           <h3 class="rx-section-label">Follow-up</h3>
           <p class="rx-prose-em">${safe(data.followUp)}</p>
           ${followUpDate ? `<p class="rx-prose-meta">Suggested: ${followUpDate}</p>` : ''}
         </section>
-      ` : '<div></div>'}
+      `
+          : '<div></div>'
+      }
     </div>
-  ` : ''}
+  `
+      : ''
+  }
 
-  ${data.prescriptionNotes ? `
+  ${
+    data.prescriptionNotes
+      ? `
     <section class="rx-section rx-additional">
       <h3 class="rx-section-label">Additional Advisory</h3>
       <p class="rx-prose">${escapeHtml(data.prescriptionNotes).replace(/\n/g, '<br>')}</p>
     </section>
-  ` : ''}
+  `
+      : ''
+  }
 
   <footer class="rx-signature">
     <p class="rx-sig-name">Dr. ${safe(data.doctor.name)}</p>
@@ -980,7 +1034,8 @@ function renderVitalsCells(vitals?: PrescriptionPrintData['vitals']): string {
   if (vitals.bmi) cells.push({ label: 'BMI', value: vitals.bmi.toFixed(1) });
   if (vitals.temperatureF) cells.push({ label: 'Temp', value: `${vitals.temperatureF}°F` });
   if (vitals.pulseRate) cells.push({ label: 'Pulse', value: `${vitals.pulseRate}/min` });
-  if (vitals.systolicBp && vitals.diastolicBp) cells.push({ label: 'BP', value: `${vitals.systolicBp}/${vitals.diastolicBp}` });
+  if (vitals.systolicBp && vitals.diastolicBp)
+    cells.push({ label: 'BP', value: `${vitals.systolicBp}/${vitals.diastolicBp}` });
   if (vitals.oxygenSaturation) cells.push({ label: 'SpO₂', value: `${vitals.oxygenSaturation}%` });
   if (cells.length === 0) return '';
 
@@ -989,16 +1044,24 @@ function renderVitalsCells(vitals?: PrescriptionPrintData['vitals']): string {
 
   return `
     <div class="rx-vitals-strip">
-      ${cells.slice(0, 7).map(c => `
+      ${cells
+        .slice(0, 7)
+        .map(
+          (c) => `
         <div class="rx-patient-cell">
           ${c.label ? `<span class="rx-cell-label">${escapeHtml(c.label)}</span>` : ''}
           <p class="rx-cell-value" style="font-size:11px;">${escapeHtml(c.value) || '&nbsp;'}</p>
         </div>
-      `).join('')}
+      `,
+        )
+        .join('')}
     </div>`;
 }
 
-function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'], strategy?: string): string {
+function renderMedicationsLetterhead(
+  meds: PrescriptionPrintData['medications'],
+  strategy?: string,
+): string {
   if (meds.length === 0) {
     return `<div class="rx-meds-table"><p class="rx-meds-empty">No medications prescribed.</p></div>`;
   }
@@ -1012,19 +1075,22 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
       ? ['#', 'Date', 'Medication', 'Current Dose', 'Frequency', 'Duration', 'Titration Notes']
       : ['#', 'Date', 'Medicine', 'Dose', 'Frequency', 'Duration', 'Instructions'];
 
-  const rows = meds.map((med, i) => {
-    const numCell = `<td class="rx-md-num">${i + 1}.</td>`;
-    const dateStr = med.date ? new Date(med.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—';
-    const dateCell = `<td style="white-space:nowrap; color:#6B7280; font-size:9.5px; font-weight:700;">${dateStr}</td>`;
-    const nameCell = `
+  const rows = meds
+    .map((med, i) => {
+      const numCell = `<td class="rx-md-num">${i + 1}.</td>`;
+      const dateStr = med.date
+        ? new Date(med.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+        : '—';
+      const dateCell = `<td style="white-space:nowrap; color:#6B7280; font-size:9.5px; font-weight:700;">${dateStr}</td>`;
+      const nameCell = `
       <td class="rx-md-name">
         ${escapeHtml(med.name)}
         ${med.genericName ? `<span class="rx-md-generic">(${escapeHtml(med.genericName)})</span>` : ''}
         ${med.route && !isRemedy ? `<span class="rx-md-generic">via ${escapeHtml(med.route)}</span>` : ''}
       </td>`;
 
-    if (isRemedy) {
-      return `<tr>
+      if (isRemedy) {
+        return `<tr>
         ${numCell}
         ${dateCell}
         ${nameCell}
@@ -1033,9 +1099,9 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
         <td>${escapeHtml(med.duration) || '—'}</td>
         <td>${med.instructions ? escapeHtml(med.instructions) : '—'}</td>
       </tr>`;
-    }
+      }
 
-    return `<tr>
+      return `<tr>
       ${numCell}
       ${dateCell}
       ${nameCell}
@@ -1044,7 +1110,8 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
       <td>${escapeHtml(med.duration) || '—'}</td>
       <td>${med.instructions ? escapeHtml(med.instructions) : '—'}</td>
     </tr>`;
-  }).join('');
+    })
+    .join('');
 
   return `
     <table class="rx-meds-table">
@@ -1066,7 +1133,8 @@ function renderVitals(vitals: NonNullable<PrescriptionPrintData['vitals']>): str
   if (vitals.bmi) items.push(`BMI: ${vitals.bmi.toFixed(1)}`);
   if (vitals.temperatureF) items.push(`Temp: ${vitals.temperatureF}\u00B0F`);
   if (vitals.pulseRate) items.push(`Pulse: ${vitals.pulseRate}/min`);
-  if (vitals.systolicBp && vitals.diastolicBp) items.push(`BP: ${vitals.systolicBp}/${vitals.diastolicBp} mmHg`);
+  if (vitals.systolicBp && vitals.diastolicBp)
+    items.push(`BP: ${vitals.systolicBp}/${vitals.diastolicBp} mmHg`);
   if (vitals.oxygenSaturation) items.push(`SpO\u2082: ${vitals.oxygenSaturation}%`);
 
   if (items.length === 0) return '';
@@ -1119,7 +1187,9 @@ function renderMedications(meds: PrescriptionPrintData['medications'], strategy?
 
   if (strategy === 'REMEDY') {
     // Homeopathy: Potency in dosage field, Form in route field, Dose in instructions
-    const rows = meds.map((med, i) => `
+    const rows = meds
+      .map(
+        (med, i) => `
       <tr>
         <td>${i + 1}</td>
         <td><strong>${escapeHtml(med.name)}</strong></td>
@@ -1129,7 +1199,9 @@ function renderMedications(meds: PrescriptionPrintData['medications'], strategy?
         <td>${escapeHtml(med.frequency)}</td>
         <td>${escapeHtml(med.duration)}</td>
       </tr>
-    `).join('');
+    `,
+      )
+      .join('');
 
     return `
       <div class="section-title" style="margin-top: 10px;">Prescription</div>
@@ -1154,7 +1226,9 @@ function renderMedications(meds: PrescriptionPrintData['medications'], strategy?
 
   if (strategy === 'TITRATION') {
     // Cardiac: includes titration notes in instructions
-    const rows = meds.map((med, i) => `
+    const rows = meds
+      .map(
+        (med, i) => `
       <tr>
         <td>${i + 1}</td>
         <td>
@@ -1167,7 +1241,9 @@ function renderMedications(meds: PrescriptionPrintData['medications'], strategy?
         <td>${med.route ? escapeHtml(med.route) : 'Oral'}</td>
         <td>${med.instructions ? escapeHtml(med.instructions) : '—'}</td>
       </tr>
-    `).join('');
+    `,
+      )
+      .join('');
 
     return `
       <div class="section-title" style="margin-top: 10px;">Prescription</div>
@@ -1191,7 +1267,9 @@ function renderMedications(meds: PrescriptionPrintData['medications'], strategy?
   }
 
   // Default DOSAGE strategy (standard allopathy)
-  const rows = meds.map((med, i) => `
+  const rows = meds
+    .map(
+      (med, i) => `
     <tr>
       <td>${i + 1}</td>
       <td>
@@ -1205,7 +1283,9 @@ function renderMedications(meds: PrescriptionPrintData['medications'], strategy?
       <td>${med.instructions ? escapeHtml(med.instructions) : '—'}</td>
       <td>${med.quantity ?? '—'}</td>
     </tr>
-  `).join('');
+  `,
+    )
+    .join('');
 
   return `
     <div class="section-title" style="margin-top: 10px;">Prescription</div>
@@ -1283,7 +1363,9 @@ export function generateInvoiceHtml(data: InvoicePrintData): string {
   const totalPaid = data.payments?.reduce((sum, p) => sum + p.amount, 0) ?? 0;
   const balanceDue = data.totals.totalAmount - totalPaid;
 
-  const itemRows = data.items.map((item, i) => `
+  const itemRows = data.items
+    .map(
+      (item, i) => `
     <tr>
       <td>${i + 1}</td>
       <td>${escapeHtml(item.description)}</td>
@@ -1292,18 +1374,25 @@ export function generateInvoiceHtml(data: InvoicePrintData): string {
       <td style="text-align:right;">${formatPrintCurrency(item.unitPrice)}</td>
       <td style="text-align:right;">${formatPrintCurrency(item.amount)}</td>
     </tr>
-  `).join('');
+  `,
+    )
+    .join('');
 
-  const paymentRows = data.payments && data.payments.length > 0
-    ? data.payments.map(p => `
+  const paymentRows =
+    data.payments && data.payments.length > 0
+      ? data.payments
+          .map(
+            (p) => `
         <tr>
           <td>${formatPrintDate(p.paidAt)}</td>
           <td style="text-transform:capitalize;">${escapeHtml(p.method.toLowerCase())}</td>
           <td style="text-align:right;">${formatPrintCurrency(p.amount)}</td>
           <td>${p.transactionId ? escapeHtml(p.transactionId) : '—'}</td>
         </tr>
-      `).join('')
-    : '';
+      `,
+          )
+          .join('')
+      : '';
 
   return `
 ${PRINT_STYLES}
@@ -1347,23 +1436,33 @@ ${PRINT_STYLES}
         <td style="text-align:right;">Subtotal:</td>
         <td style="text-align:right;">${formatPrintCurrency(data.totals.subtotal)}</td>
       </tr>
-      ${data.totals.taxAmount > 0 ? `
+      ${
+        data.totals.taxAmount > 0
+          ? `
         <tr>
           <td style="text-align:right;">Tax (${data.totals.taxRate}%):</td>
           <td style="text-align:right;">${formatPrintCurrency(data.totals.taxAmount)}</td>
         </tr>
-      ` : ''}
-      ${data.totals.discountAmount > 0 ? `
+      `
+          : ''
+      }
+      ${
+        data.totals.discountAmount > 0
+          ? `
         <tr>
           <td style="text-align:right;">Discount:</td>
           <td style="text-align:right;">-${formatPrintCurrency(data.totals.discountAmount)}</td>
         </tr>
-      ` : ''}
+      `
+          : ''
+      }
       <tr class="total-row">
         <td style="text-align:right;">Total:</td>
         <td style="text-align:right;">${formatPrintCurrency(data.totals.totalAmount)}</td>
       </tr>
-      ${totalPaid > 0 ? `
+      ${
+        totalPaid > 0
+          ? `
         <tr>
           <td style="text-align:right;">Paid:</td>
           <td style="text-align:right;">${formatPrintCurrency(totalPaid)}</td>
@@ -1372,11 +1471,15 @@ ${PRINT_STYLES}
           <td style="text-align:right;font-weight:600;">Balance Due:</td>
           <td style="text-align:right;font-weight:600;">${formatPrintCurrency(balanceDue)}</td>
         </tr>
-      ` : ''}
+      `
+          : ''
+      }
     </tbody>
   </table>
 
-  ${paymentRows ? `
+  ${
+    paymentRows
+      ? `
     <div class="section-title" style="margin-top:16px;">Payment History</div>
     <table>
       <thead>
@@ -1391,13 +1494,19 @@ ${PRINT_STYLES}
         ${paymentRows}
       </tbody>
     </table>
-  ` : ''}
+  `
+      : ''
+  }
 
-  ${data.invoice.notes ? `
+  ${
+    data.invoice.notes
+      ? `
     <div style="margin-top:12px;font-size:10px;color:#666;">
       <strong>Notes:</strong> ${escapeHtml(data.invoice.notes)}
     </div>
-  ` : ''}
+  `
+      : ''
+  }
 
   <div class="footer">
     <div class="timestamp">
@@ -1415,13 +1524,19 @@ ${PRINT_STYLES}
 
 function getStatusClass(status: string): string {
   switch (status) {
-    case 'PAID': return 'status-paid';
-    case 'PARTIAL_PAID': return 'status-partial';
-    case 'ISSUED': return 'status-issued';
-    case 'DRAFT': return 'status-draft';
+    case 'PAID':
+      return 'status-paid';
+    case 'PARTIAL_PAID':
+      return 'status-partial';
+    case 'ISSUED':
+      return 'status-issued';
+    case 'DRAFT':
+      return 'status-draft';
     case 'CANCELLED':
-    case 'REFUNDED': return 'status-cancelled';
-    default: return 'status-draft';
+    case 'REFUNDED':
+      return 'status-cancelled';
+    default:
+      return 'status-draft';
   }
 }
 
@@ -1477,23 +1592,33 @@ ${PRINT_STYLES}
         <span>Patient</span>
         <span>${escapeHtml(data.patient.name)}</span>
       </div>
-      ${data.patient.mrn ? `
+      ${
+        data.patient.mrn
+          ? `
         <div class="row">
           <span>MRN</span>
           <span>${escapeHtml(data.patient.mrn)}</span>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
       <div class="row">
         <span>Payment Method</span>
         <span style="text-transform:capitalize;">${escapeHtml(data.receipt.method.toLowerCase())}</span>
       </div>
-      ${data.receipt.transactionId ? `
+      ${
+        data.receipt.transactionId
+          ? `
         <div class="row">
           <span>Transaction ID</span>
           <span>${escapeHtml(data.receipt.transactionId)}</span>
         </div>
-      ` : ''}
-      ${data.invoice ? `
+      `
+          : ''
+      }
+      ${
+        data.invoice
+          ? `
         <div class="row">
           <span>Invoice #</span>
           <span>${escapeHtml(data.invoice.invoiceNumber)}</span>
@@ -1502,20 +1627,30 @@ ${PRINT_STYLES}
           <span>Invoice Total</span>
           <span>${formatPrintCurrency(data.invoice.totalAmount)}</span>
         </div>
-        ${data.invoice.balanceDue > 0 ? `
+        ${
+          data.invoice.balanceDue > 0
+            ? `
           <div class="row">
             <span style="font-weight:600;">Balance Due</span>
             <span style="font-weight:600;">${formatPrintCurrency(data.invoice.balanceDue)}</span>
           </div>
-        ` : ''}
-      ` : ''}
+        `
+            : ''
+        }
+      `
+          : ''
+      }
     </div>
 
-    ${data.receipt.notes ? `
+    ${
+      data.receipt.notes
+        ? `
       <div style="margin-top:8px;font-size:10px;color:#666;">
         <strong>Notes:</strong> ${escapeHtml(data.receipt.notes)}
       </div>
-    ` : ''}
+    `
+        : ''
+    }
   </div>
 
   <div class="footer">

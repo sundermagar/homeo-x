@@ -9,6 +9,7 @@ import { useMobile } from '../hooks/use-mobile';
 import { useCallback, useEffect } from 'react';
 import { useAuthStore } from '../stores/auth-store';
 import { AppointmentFormDrawer } from '@/features/appointments/components/appointment-form-drawer';
+import { Role } from '@mmc/types';
 
 export function AppLayout() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -19,6 +20,17 @@ export function AppLayout() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
+  const rawRole = (
+    (user as any)?.type ||
+    (user as any)?.role ||
+    (user as any)?.roleName ||
+    ''
+  ).toLowerCase();
+
+  const isPatient =
+    rawRole === 'patient' ||
+    user?.type === Role.Patient;
+
   // ── Global ⌘K / Ctrl+K shortcut ──
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -28,9 +40,10 @@ export function AppLayout() {
   }, []);
 
   useEffect(() => {
+    if (isPatient) return;
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  }, [handleKeyDown, isPatient]);
 
   return (
     <div className="app-container">
@@ -50,17 +63,16 @@ export function AppLayout() {
               <div className="sidebar-logo" style={{ width: 28, height: 28 }}>
                 <Infinity size={18} strokeWidth={2.5} />
               </div>
-              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>{user?.clinicName || 'MMC'}</span>
+              <span className="sidebar-brand" style={{ fontSize: '1rem' }}>
+                {user?.clinicName || 'MMC'}
+              </span>
             </div>
           </div>
         </header>
       )}
 
       {/* Adaptive Sidebar */}
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="app-main">
         <DashboardHeader
@@ -87,7 +99,9 @@ export function AppLayout() {
         </div>
       </main>
 
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      {!isPatient && (
+        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      )}
 
       <AppointmentFormDrawer
         isOpen={appointmentDrawerOpen}

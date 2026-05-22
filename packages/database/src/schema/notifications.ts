@@ -3,7 +3,9 @@ import { users } from './users';
 
 export const notifications = pgTable('notifications', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id),
   clinicId: integer('clinic_id'),
   type: text('type').notNull(),
   title: text('title').notNull(),

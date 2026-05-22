@@ -50,7 +50,10 @@ export function AdminDashboard() {
         {/* Header Skeleton */}
         <div className="sa-header">
           <div>
-            <div className="skeleton-box skeleton-text title" style={{ width: '240px', marginBottom: '8px' }} />
+            <div
+              className="skeleton-box skeleton-text title"
+              style={{ width: '240px', marginBottom: '8px' }}
+            />
             <div className="skeleton-box skeleton-text" style={{ width: '180px' }} />
           </div>
         </div>
@@ -59,11 +62,23 @@ export function AdminDashboard() {
         <div className="sa-kpi-primary">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="sa-kpi-card" style={{ height: '110px' }}>
-              <div className="skeleton-box" style={{ width: '48px', height: '48px', borderRadius: '12px' }} />
+              <div
+                className="skeleton-box"
+                style={{ width: '48px', height: '48px', borderRadius: '12px' }}
+              />
               <div style={{ flex: 1 }}>
-                <div className="skeleton-box skeleton-text" style={{ width: '40%', marginBottom: '8px' }} />
-                <div className="skeleton-box skeleton-text title" style={{ width: '70%', marginBottom: '8px', height: '24px' }} />
-                <div className="skeleton-box skeleton-text" style={{ width: '30%', marginBottom: 0 }} />
+                <div
+                  className="skeleton-box skeleton-text"
+                  style={{ width: '40%', marginBottom: '8px' }}
+                />
+                <div
+                  className="skeleton-box skeleton-text title"
+                  style={{ width: '70%', marginBottom: '8px', height: '24px' }}
+                />
+                <div
+                  className="skeleton-box skeleton-text"
+                  style={{ width: '30%', marginBottom: 0 }}
+                />
               </div>
             </div>
           ))}
@@ -72,20 +87,35 @@ export function AdminDashboard() {
         <div className="sa-main-grid">
           <div className="sa-chart-card" style={{ height: '320px' }}>
             <div className="sa-chart-header">
-              <div className="skeleton-box skeleton-text" style={{ width: '150px', marginBottom: 0 }} />
+              <div
+                className="skeleton-box skeleton-text"
+                style={{ width: '150px', marginBottom: 0 }}
+              />
             </div>
-            <div className="sa-chart-body" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '24px' }}>
-              <div className="skeleton-box" style={{ width: '100%', height: '80%', borderRadius: '8px 8px 0 0', opacity: 0.1 }} />
+            <div
+              className="sa-chart-body"
+              style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '24px' }}
+            >
+              <div
+                className="skeleton-box"
+                style={{ width: '100%', height: '80%', borderRadius: '8px 8px 0 0', opacity: 0.1 }}
+              />
             </div>
           </div>
           <div className="sa-intel-card" style={{ height: '320px' }}>
             <div className="sa-intel-header">
-              <div className="skeleton-box skeleton-text" style={{ width: '120px', marginBottom: 0 }} />
+              <div
+                className="skeleton-box skeleton-text"
+                style={{ width: '120px', marginBottom: 0 }}
+              />
             </div>
             <div className="sa-intel-list">
-              {[1, 2, 3].map(i => (
+              {[1, 2, 3].map((i) => (
                 <div key={i} className="sa-intel-item">
-                  <div className="skeleton-box skeleton-circle" style={{ width: '8px', height: '8px' }} />
+                  <div
+                    className="skeleton-box skeleton-circle"
+                    style={{ width: '8px', height: '8px' }}
+                  />
                   <div className="skeleton-box skeleton-text" style={{ width: '100%' }} />
                 </div>
               ))}
@@ -148,9 +178,26 @@ export function AdminDashboard() {
 
       {/* ── Secondary Stats Row ────────────────────────────────────────── */}
       <div className="sa-stats-row">
-        <StatCard label="Active Clinics" value={String(platformStats?.totalClinics ?? 0)} icon={<Building2 size={16} />} color="var(--pp-blue)" onClick={() => navigate('/platform/clinics')} />
-        <StatCard label="Revenue Density" value={fmt(platformStats?.revenueDensity || 0)} icon={<BarChart3 size={16} />} color="var(--pp-success-fg)" />
-        <StatCard label="Pending Dues" value={fmt(platformStats?.pendingDues || 0)} icon={<Activity size={16} />} color="var(--pp-danger-fg)" onClick={() => navigate('/billing')} />
+        <StatCard
+          label="Active Clinics"
+          value={String(platformStats?.totalClinics ?? 0)}
+          icon={<Building2 size={16} />}
+          color="var(--pp-blue)"
+          onClick={() => navigate('/platform/clinics')}
+        />
+        <StatCard
+          label="Revenue Density"
+          value={fmt(platformStats?.revenueDensity || 0)}
+          icon={<BarChart3 size={16} />}
+          color="var(--pp-success-fg)"
+        />
+        <StatCard
+          label="Pending Dues"
+          value={fmt(platformStats?.pendingDues || 0)}
+          icon={<Activity size={16} />}
+          color="var(--pp-danger-fg)"
+          onClick={() => navigate('/billing')}
+        />
       </div>
 
       <div className="sa-main-grid">
@@ -166,7 +213,10 @@ export function AdminDashboard() {
           <div className="sa-chart-body">
             {revenueSeries.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueSeries} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+                <AreaChart
+                  data={revenueSeries}
+                  margin={{ top: 10, right: 10, bottom: 0, left: -10 }}
+                >
                   <defs>
                     <linearGradient id="saRevGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="var(--pp-blue)" stopOpacity={0.2} />
@@ -190,7 +240,7 @@ export function AdminDashboard() {
                       background: '#fff',
                       fontSize: 12,
                       fontWeight: 700,
-                      boxShadow: '0 10px 25px rgba(0,0,0,0.05)'
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
                     }}
                     formatter={(v: any) => [fmt(Number(v)), 'Revenue']}
                   />
@@ -222,13 +272,21 @@ export function AdminDashboard() {
               <Zap size={14} fill="#f59e0b" color="#f59e0b" />
               INTELLIGENCE HUB
             </div>
-            <span className="sa-badge sa-badge-warning" style={{ background: '#fffbeb', color: '#d97706' }}>LIVE INSIGHTS</span>
+            <span
+              className="sa-badge sa-badge-warning"
+              style={{ background: '#fffbeb', color: '#d97706' }}
+            >
+              LIVE INSIGHTS
+            </span>
           </div>
           <div className="sa-intel-list">
             {dashData?.intelligenceInsights?.length ? (
               dashData.intelligenceInsights.map((insight: any, idx: number) => (
                 <div key={idx} className="sa-intel-item">
-                  <div className="sa-intel-dot" style={{ background: insight.color || 'var(--pp-blue)' }} />
+                  <div
+                    className="sa-intel-dot"
+                    style={{ background: insight.color || 'var(--pp-blue)' }}
+                  />
                   <div className="sa-intel-content">{insight.text}</div>
                 </div>
               ))
@@ -236,8 +294,14 @@ export function AdminDashboard() {
               <>
                 <IntelItem color="#10b981" text="Revenue is up 12% this month. Keep it up!" />
                 <IntelItem color="var(--pp-blue)" text="Collection rate has stabilized at 98.5%." />
-                <IntelItem color="#f59e0b" text="Wait times are slightly higher in the evening shift." />
-                <IntelItem color="var(--pp-danger-fg)" text="2 clinics are reporting pending invoice dues > 15 days." />
+                <IntelItem
+                  color="#f59e0b"
+                  text="Wait times are slightly higher in the evening shift."
+                />
+                <IntelItem
+                  color="var(--pp-danger-fg)"
+                  text="2 clinics are reporting pending invoice dues > 15 days."
+                />
               </>
             )}
           </div>
@@ -246,11 +310,25 @@ export function AdminDashboard() {
 
       {/* ── Quick Actions ─────────────────────────────────────────────── */}
       <div className="sa-actions-grid">
-        <QuickAction icon={<Package size={18} />} label="Package Tracking" sub="Logistics & shipments" onClick={() => navigate('/packages/tracking')} />
-        <QuickAction icon={<CreditCard size={18} />} label="Financials" sub="Ledger, payments & dues" onClick={() => navigate('/billing')} />
-        <QuickAction icon={<BarChart3 size={18} />} label="Performance" sub="Registry & revenue insights" onClick={() => navigate('/analytics')} />
+        <QuickAction
+          icon={<Package size={18} />}
+          label="Package Tracking"
+          sub="Logistics & shipments"
+          onClick={() => navigate('/packages/tracking')}
+        />
+        <QuickAction
+          icon={<CreditCard size={18} />}
+          label="Financials"
+          sub="Ledger, payments & dues"
+          onClick={() => navigate('/billing')}
+        />
+        <QuickAction
+          icon={<BarChart3 size={18} />}
+          label="Performance"
+          sub="Registry & revenue insights"
+          onClick={() => navigate('/analytics')}
+        />
       </div>
-
     </div>
   );
 }
@@ -290,7 +368,11 @@ function KPIItem({ label, value, trend, positive, icon, iconBg, iconColor }: any
 }
 
 function StatCard({
-  label, value, icon, color, onClick
+  label,
+  value,
+  icon,
+  color,
+  onClick,
 }: {
   label: string;
   value: string;
@@ -300,7 +382,9 @@ function StatCard({
 }) {
   return (
     <div className={`sa-stat-card ${onClick ? 'sa-stat-clickable' : ''}`} onClick={onClick}>
-      <div className="sa-stat-icon" style={{ color }}>{icon}</div>
+      <div className="sa-stat-icon" style={{ color }}>
+        {icon}
+      </div>
       <div className="sa-stat-body">
         <div className="sa-stat-value">{value}</div>
         <div className="sa-stat-label">{label}</div>
@@ -311,7 +395,10 @@ function StatCard({
 }
 
 function QuickAction({
-  icon, label, sub, onClick
+  icon,
+  label,
+  sub,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;

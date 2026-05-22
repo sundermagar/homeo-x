@@ -130,12 +130,14 @@ export function createTerminologyRouter(): Router {
   });
 
   // Ensure tables on every request (cached after first success per tenant)
-  router.use(asyncHandler(async (req: Request, _res: Response, next: any) => {
-    const db = (req as any).tenantDb;
-    const tenantId = (req as any).tenantId || (req as any).user?.contextId || 'default';
-    if (db) await ensureTablesExist(db, tenantId);
-    next();
-  }));
+  router.use(
+    asyncHandler(async (req: Request, _res: Response, next: any) => {
+      const db = (req as any).tenantDb;
+      const tenantId = (req as any).tenantId || (req as any).user?.contextId || 'default';
+      if (db) await ensureTablesExist(db, tenantId);
+      next();
+    }),
+  );
 
   const getService = (req: any): TerminologyService => {
     const repo = new TerminologyRepositoryPg(req.tenantDb || req.db);
@@ -143,90 +145,117 @@ export function createTerminologyRouter(): Router {
   };
 
   // ─── ICD ──────────────────────────────────────────────────────────────────
-  router.get('/icd/search', asyncHandler(async (req: Request, res: Response) => {
-    const query = req.query.q as string;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-    const results = await getService(req).searchIcd(query, limit);
-    res.json({ success: true, data: results });
-  }));
+  router.get(
+    '/icd/search',
+    asyncHandler(async (req: Request, res: Response) => {
+      const query = req.query.q as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const results = await getService(req).searchIcd(query, limit);
+      res.json({ success: true, data: results });
+    }),
+  );
 
-  router.get('/icd/:code', asyncHandler(async (req: Request, res: Response) => {
-    const result = await getService(req).getIcdDetails(req.params.code as string);
-    if (!result) {
-      res.status(404).json({ success: false, error: 'ICD code not found' });
-      return;
-    }
-    res.json({ success: true, data: result });
-  }));
+  router.get(
+    '/icd/:code',
+    asyncHandler(async (req: Request, res: Response) => {
+      const result = await getService(req).getIcdDetails(req.params.code as string);
+      if (!result) {
+        res.status(404).json({ success: false, error: 'ICD code not found' });
+        return;
+      }
+      res.json({ success: true, data: result });
+    }),
+  );
 
   // ─── LOINC ────────────────────────────────────────────────────────────────
-  router.get('/loinc/search', asyncHandler(async (req: Request, res: Response) => {
-    const query = req.query.q as string;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-    const results = await getService(req).searchLoinc(query, limit);
-    res.json({ success: true, data: results });
-  }));
+  router.get(
+    '/loinc/search',
+    asyncHandler(async (req: Request, res: Response) => {
+      const query = req.query.q as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const results = await getService(req).searchLoinc(query, limit);
+      res.json({ success: true, data: results });
+    }),
+  );
 
-  router.get('/loinc/:loincNum', asyncHandler(async (req: Request, res: Response) => {
-    const result = await getService(req).getLoincDetails(req.params.loincNum as string);
-    if (!result) {
-      res.status(404).json({ success: false, error: 'LOINC code not found' });
-      return;
-    }
-    res.json({ success: true, data: result });
-  }));
+  router.get(
+    '/loinc/:loincNum',
+    asyncHandler(async (req: Request, res: Response) => {
+      const result = await getService(req).getLoincDetails(req.params.loincNum as string);
+      if (!result) {
+        res.status(404).json({ success: false, error: 'LOINC code not found' });
+        return;
+      }
+      res.json({ success: true, data: result });
+    }),
+  );
 
   // ─── Procedure Codes ──────────────────────────────────────────────────────
-  router.get('/procedures/search', asyncHandler(async (req: Request, res: Response) => {
-    const query = req.query.q as string;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-    const results = await getService(req).searchProcedure(query, limit);
-    res.json({ success: true, data: results });
-  }));
+  router.get(
+    '/procedures/search',
+    asyncHandler(async (req: Request, res: Response) => {
+      const query = req.query.q as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const results = await getService(req).searchProcedure(query, limit);
+      res.json({ success: true, data: results });
+    }),
+  );
 
-  router.get('/procedures/:code', asyncHandler(async (req: Request, res: Response) => {
-    const result = await getService(req).getProcedureDetails(req.params.code as string);
-    if (!result) {
-      res.status(404).json({ success: false, error: 'Procedure code not found' });
-      return;
-    }
-    res.json({ success: true, data: result });
-  }));
+  router.get(
+    '/procedures/:code',
+    asyncHandler(async (req: Request, res: Response) => {
+      const result = await getService(req).getProcedureDetails(req.params.code as string);
+      if (!result) {
+        res.status(404).json({ success: false, error: 'Procedure code not found' });
+        return;
+      }
+      res.json({ success: true, data: result });
+    }),
+  );
 
   // ─── SNOMED ───────────────────────────────────────────────────────────────
-  router.get('/snomed/search', asyncHandler(async (req: Request, res: Response) => {
-    const query = req.query.q as string;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-    const results = await getService(req).searchSnomed(query, limit);
-    res.json({ success: true, data: results });
-  }));
+  router.get(
+    '/snomed/search',
+    asyncHandler(async (req: Request, res: Response) => {
+      const query = req.query.q as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const results = await getService(req).searchSnomed(query, limit);
+      res.json({ success: true, data: results });
+    }),
+  );
 
-  router.get('/snomed/:conceptId', asyncHandler(async (req: Request, res: Response) => {
-    const result = await getService(req).getSnomedDetails(req.params.conceptId as string);
-    if (!result) {
-      res.status(404).json({ success: false, error: 'SNOMED concept not found' });
-      return;
-    }
-    res.json({ success: true, data: result });
-  }));
+  router.get(
+    '/snomed/:conceptId',
+    asyncHandler(async (req: Request, res: Response) => {
+      const result = await getService(req).getSnomedDetails(req.params.conceptId as string);
+      if (!result) {
+        res.status(404).json({ success: false, error: 'SNOMED concept not found' });
+        return;
+      }
+      res.json({ success: true, data: result });
+    }),
+  );
 
   // ─── Seed endpoint (POST /api/terminology/seed) ──────────────────────────
-  router.post('/seed', asyncHandler(async (req: Request, res: Response) => {
-    const db = (req as any).tenantDb;
-    if (!db) {
-      res.status(400).json({ success: false, error: 'No tenant database available' });
-      return;
-    }
+  router.post(
+    '/seed',
+    asyncHandler(async (req: Request, res: Response) => {
+      const db = (req as any).tenantDb;
+      if (!db) {
+        res.status(400).json({ success: false, error: 'No tenant database available' });
+        return;
+      }
 
-    try {
-      const { seedClinicalCodes } = await import('@mmc/database/seeds/clinical-codes-seed');
-      await seedClinicalCodes(db);
-      res.json({ success: true, message: 'Clinical codes seeded successfully' });
-    } catch (err: any) {
-      logger.error({ err: err.message }, 'Seed failed');
-      res.status(500).json({ success: false, error: 'Seed failed: ' + err.message });
-    }
-  }));
+      try {
+        const { seedClinicalCodes } = await import('@mmc/database/seeds/clinical-codes-seed');
+        await seedClinicalCodes(db);
+        res.json({ success: true, message: 'Clinical codes seeded successfully' });
+      } catch (err: any) {
+        logger.error({ err: err.message }, 'Seed failed');
+        res.status(500).json({ success: false, error: 'Seed failed: ' + err.message });
+      }
+    }),
+  );
 
   return router;
 }

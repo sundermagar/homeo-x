@@ -18,14 +18,17 @@ export class BillingRepositoryPg implements BillingRepository {
     return row ? this.toDomain(row) : null;
   }
 
-  async findAll(params: ListBillsQuery, clinicId?: number): Promise<{ data: BillWithPatient[]; total: number }> {
+  async findAll(
+    params: ListBillsQuery,
+    clinicId?: number,
+  ): Promise<{ data: BillWithPatient[]; total: number }> {
     const { page, limit, regid, date } = params;
     const offset = (page - 1) * limit;
 
     // Build where conditions
     const conditions = [isNull(bills.deletedAt)];
     if (regid) conditions.push(eq(bills.regid, regid));
-    
+
     // Filter by clinicId on patients table safely
     if (clinicId) {
       conditions.push(eq(patients.clinicId, clinicId));
@@ -54,12 +57,20 @@ export class BillingRepositoryPg implements BillingRepository {
           .orderBy(desc(bills.id))
           .limit(limit)
           .offset(offset),
-        this.db.select({ count: sql<number>`count(*)` }).from(bills).leftJoin(patients, eq(patients.regid, bills.regid)).where(where),
+        this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(bills)
+          .leftJoin(patients, eq(patients.regid, bills.regid))
+          .where(where),
       ]);
 
       const total = Number(countRows[0]?.count ?? 0);
       return {
-        data: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
+        data: rows.map((r) => ({
+          ...this.toDomain(r.bill),
+          patientName: r.patientName ?? '',
+          phone: r.phone ?? null,
+        })),
         total,
       };
     } catch (err) {
@@ -75,7 +86,9 @@ export class BillingRepositoryPg implements BillingRepository {
       .where(and(eq(bills.regid, regid), isNull(bills.deletedAt)))
       .orderBy(desc(bills.id));
 
-    const allBills = modernRows.map(this.toDomain.bind(this)).sort((a, b) => (b.id || 0) - (a.id || 0));
+    const allBills = modernRows
+      .map(this.toDomain.bind(this))
+      .sort((a, b) => (b.id || 0) - (a.id || 0));
 
     const totalCharges = allBills.reduce((s, r) => s + (r.charges ?? 0), 0);
     const totalReceived = allBills.reduce((s, r) => s + (r.received ?? 0), 0);
@@ -92,7 +105,11 @@ export class BillingRepositoryPg implements BillingRepository {
     const end = new Date(date);
     end.setDate(end.getDate() + 1);
 
-    const conditions = [isNull(bills.deletedAt), gte(bills.createdAt, start), lt(bills.createdAt, end)];
+    const conditions = [
+      isNull(bills.deletedAt),
+      gte(bills.createdAt, start),
+      lt(bills.createdAt, end),
+    ];
     if (clinicId) {
       conditions.push(eq(patients.clinicId, clinicId));
     }
@@ -120,7 +137,11 @@ export class BillingRepositoryPg implements BillingRepository {
         totalReceived,
         totalBalance,
         recordCount: rows.length,
-        records: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
+        records: rows.map((r) => ({
+          ...this.toDomain(r.bill),
+          patientName: r.patientName ?? '',
+          phone: r.phone ?? null,
+        })),
       };
     } catch (err) {
       console.error('[BillingRepositoryPg] Error in findDailyCollection:', err);
@@ -142,8 +163,8 @@ export class BillingRepositoryPg implements BillingRepository {
         paymentMode: data.paymentMode ?? 'Cash',
         treatment: data.treatment || undefined,
         disease: data.disease || undefined,
-        fromDate: data.fromDate === '' ? undefined : (data.fromDate || undefined),
-        toDate: data.toDate === '' ? undefined : (data.toDate || undefined),
+        fromDate: data.fromDate === '' ? undefined : data.fromDate || undefined,
+        toDate: data.toDate === '' ? undefined : data.toDate || undefined,
         chargeId: data.chargeId,
         doctorId: data.doctorId,
         notes: data.notes || undefined,
@@ -196,7 +217,11 @@ export class BillingRepositoryPg implements BillingRepository {
   }
 
   async softDelete(id: number): Promise<boolean> {
-    const [row] = await this.db.update(bills).set({ deletedAt: new Date() }).where(eq(bills.id, id)).returning();
+    const [row] = await this.db
+      .update(bills)
+      .set({ deletedAt: new Date() })
+      .where(eq(bills.id, id))
+      .returning();
     return !!row;
   }
 
@@ -230,7 +255,8 @@ export class BillingRepositoryPg implements BillingRepository {
       id: row.id,
       regid: row.regid ?? 0,
       billNo: row.BillNo || row.id,
-      billDate: row.BillDate || (row.createdAt ? row.createdAt.toISOString() : new Date().toISOString()),
+      billDate:
+        row.BillDate || (row.createdAt ? row.createdAt.toISOString() : new Date().toISOString()),
       charges: row.charges || 0,
       received: row.received || 0,
       balance: row.Balance || 0,

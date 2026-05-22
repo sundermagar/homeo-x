@@ -14,7 +14,10 @@ import { FollowUpAssessmentEngine } from './engines/followup-assessment.engine.j
 import type { FollowUpAssessment } from './engines/followup-assessment.engine.js';
 import type { SoapSuggestion } from './engines/soap-structuring.engine.js';
 import type { ClinicalExtractionResult } from './engines/clinical-extraction.engine.js';
-import type { RubricExtractionResult, RepertorizationResult } from './engines/repertorization.engine.js';
+import type {
+  RubricExtractionResult,
+  RepertorizationResult,
+} from './engines/repertorization.engine.js';
 import type { HomeopathyPrescriptionDraft } from './engines/homeopathy-prescription.engine.js';
 import type { CaseSummary } from './engines/case-summary.engine.js';
 
@@ -95,7 +98,11 @@ export class ConsultationUseCase {
     // Phase 1: Translate transcript
     let phaseStart = Date.now();
     logger.info({ tenantId }, 'Phase 1: Translation — STARTED');
-    const englishTranscript = await this.translator.translateToEnglish(tenantId, userId, input.transcript);
+    const englishTranscript = await this.translator.translateToEnglish(
+      tenantId,
+      userId,
+      input.transcript,
+    );
     phasesCompleted++;
     logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 1: Translation — DONE');
 
@@ -104,7 +111,10 @@ export class ConsultationUseCase {
     // and prevents nonsense remedies from being suggested for non-medical input.
     const isMedical = this.checkMedicalIntent(englishTranscript, input.chiefComplaint);
     if (!isMedical) {
-      logger.info({ tenantId, transcriptLength: englishTranscript.length }, 'Pipeline short-circuited: no medical content detected');
+      logger.info(
+        { tenantId, transcriptLength: englishTranscript.length },
+        'Pipeline short-circuited: no medical content detected',
+      );
       return this.buildEmptyConsultResult(start, phasesCompleted);
     }
 
@@ -112,7 +122,14 @@ export class ConsultationUseCase {
     // If the consultation mode is 'followup', run a specialized shorter pipeline
     // that evaluates remedy response instead of doing full repertorization.
     if (input.consultationMode === 'followup') {
-      return this.consultFollowUp(tenantId, userId, input, englishTranscript, start, phasesCompleted);
+      return this.consultFollowUp(
+        tenantId,
+        userId,
+        input,
+        englishTranscript,
+        start,
+        phasesCompleted,
+      );
     }
 
     // Phase 2: Clinical extraction
@@ -127,7 +144,10 @@ export class ConsultationUseCase {
       specialty: input.specialty || 'HOMEOPATHY',
     });
     phasesCompleted++;
-    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 2: Clinical extraction — DONE');
+    logger.info(
+      { tenantId, elapsedMs: Date.now() - phaseStart },
+      'Phase 2: Clinical extraction — DONE',
+    );
 
     // Phase 3: SOAP generation
     phaseStart = Date.now();
@@ -140,11 +160,17 @@ export class ConsultationUseCase {
       patientGender: input.patientGender,
     });
     phasesCompleted++;
-    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 3: SOAP structuring — DONE');
+    logger.info(
+      { tenantId, elapsedMs: Date.now() - phaseStart },
+      'Phase 3: SOAP structuring — DONE',
+    );
 
     // Phase 4: Rubric extraction
     phaseStart = Date.now();
-    logger.info({ tenantId, consultationMode: input.consultationMode }, 'Phase 4: Rubric extraction — STARTED');
+    logger.info(
+      { tenantId, consultationMode: input.consultationMode },
+      'Phase 4: Rubric extraction — STARTED',
+    );
     const rubrics = await this.repertorizationEngine.extractRubrics(tenantId, userId, {
       chiefComplaint: input.chiefComplaint,
       subjective: soap.subjective,
@@ -159,13 +185,16 @@ export class ConsultationUseCase {
       consultationMode: input.consultationMode,
     });
     phasesCompleted++;
-    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 4: Rubric extraction — DONE');
+    logger.info(
+      { tenantId, elapsedMs: Date.now() - phaseStart },
+      'Phase 4: Rubric extraction — DONE',
+    );
 
     // Phase 5: Remedy scoring
     phaseStart = Date.now();
     logger.info({ tenantId }, 'Phase 5: Repertorization scoring — STARTED');
     const repertorization = await this.repertorizationEngine.scoreRemedies(tenantId, userId, {
-      selectedRubrics: rubrics.suggestedRubrics.map(r => ({
+      selectedRubrics: rubrics.suggestedRubrics.map((r) => ({
         rubricId: r.rubricId,
         description: r.description,
         category: r.category,
@@ -180,29 +209,31 @@ export class ConsultationUseCase {
       doctorNotes: input.doctorNotes,
     });
     phasesCompleted++;
-    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 5: Repertorization scoring — DONE');
+    logger.info(
+      { tenantId, elapsedMs: Date.now() - phaseStart },
+      'Phase 5: Repertorization scoring — DONE',
+    );
 
     // Phase 6: Prescription
     phaseStart = Date.now();
     logger.info({ tenantId }, 'Phase 6: Prescription generation — STARTED');
-    const prescription = await this.prescriptionEngine.generatePrescription(
-      tenantId,
-      userId,
-      {
-        transcript: englishTranscript,
-        clinicalData: extraction,
-        diagnosisData: {
-          primaryDiagnosis: rubrics.provisionalDiagnosis,
-          differentials: rubrics.differentials,
-          redFlags: rubrics.redFlags || [],
-          suggestedInvestigations: rubrics.suggestedInvestigations || [],
-        },
-        selectedRubrics: rubrics.suggestedRubrics,
-        remedyScores: repertorization,
-      }
-    );
+    const prescription = await this.prescriptionEngine.generatePrescription(tenantId, userId, {
+      transcript: englishTranscript,
+      clinicalData: extraction,
+      diagnosisData: {
+        primaryDiagnosis: rubrics.provisionalDiagnosis,
+        differentials: rubrics.differentials,
+        redFlags: rubrics.redFlags || [],
+        suggestedInvestigations: rubrics.suggestedInvestigations || [],
+      },
+      selectedRubrics: rubrics.suggestedRubrics,
+      remedyScores: repertorization,
+    });
     phasesCompleted++;
-    logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 6: Prescription generation — DONE');
+    logger.info(
+      { tenantId, elapsedMs: Date.now() - phaseStart },
+      'Phase 6: Prescription generation — DONE',
+    );
 
     // Phase 7: Summary
     phaseStart = Date.now();
@@ -214,7 +245,12 @@ export class ConsultationUseCase {
         name: r.remedyName,
         score: r.normalizedScore,
       })),
-      soapData: { subjective: soap.subjective, objective: soap.objective, assessment: soap.assessment, plan: soap.plan },
+      soapData: {
+        subjective: soap.subjective,
+        objective: soap.objective,
+        assessment: soap.assessment,
+        plan: soap.plan,
+      },
     });
     phasesCompleted++;
     logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 7: Case summary — DONE');
@@ -248,7 +284,18 @@ export class ConsultationUseCase {
 
   // ─── Individual endpoint methods ───
 
-  async suggestSoap(tenantId: string, userId: string, input: { transcript: string; specialty?: string; patientAge?: number; patientGender?: string; allergies?: string[]; vitals?: Record<string, unknown> }) {
+  async suggestSoap(
+    tenantId: string,
+    userId: string,
+    input: {
+      transcript: string;
+      specialty?: string;
+      patientAge?: number;
+      patientGender?: string;
+      allergies?: string[];
+      vitals?: Record<string, unknown>;
+    },
+  ) {
     return this.soapEngine.generateSoap(tenantId, userId, input);
   }
 
@@ -269,7 +316,9 @@ export class ConsultationUseCase {
   }
 
   async translateText(tenantId: string, userId: string, input: { text: string }) {
-    return { translatedText: await this.translator.translateToEnglish(tenantId, userId, input.text) };
+    return {
+      translatedText: await this.translator.translateToEnglish(tenantId, userId, input.text),
+    };
   }
 
   async searchKentRubrics(query: string) {
@@ -279,7 +328,7 @@ export class ConsultationUseCase {
   async generateQuestions(tenantId: string, userId: string, input: { transcript: string }) {
     if (!input.transcript) return { questions: [] };
     const chain = this.providerChain || getAiProviderChain();
-    
+
     try {
       const response = await chain.complete({
         systemPrompt: `You are an expert homeopathic doctor assisting a clinician. Based on the conversation transcript, suggest 3-4 short follow-up questions the doctor should ask the patient.
@@ -299,14 +348,18 @@ Respond ONLY with a JSON array in this exact format, no other text:
         maxTokens: 500,
         responseFormat: 'json' as any,
       });
-      
+
       try {
         const parsed = JSON.parse(response.content);
-        return { questions: Array.isArray(parsed) ? parsed : (parsed.questions || parsed.data || []) };
+        return {
+          questions: Array.isArray(parsed) ? parsed : parsed.questions || parsed.data || [],
+        };
       } catch (parseErr) {
         const match = response.content.match(/\[[\s\S]*\]/);
         if (match) {
-          try { return { questions: JSON.parse(match[0]) }; } catch {}
+          try {
+            return { questions: JSON.parse(match[0]) };
+          } catch {}
         }
         return { questions: [] };
       }
@@ -361,9 +414,10 @@ Respond ONLY with a JSON array in this exact format, no other text:
     const summary = await this.summaryEngine.generateSummary(tenantId, userId, {
       observations: [],
       clinicalFindings: [],
-      selectedRemedies: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
-        ? [{ name: assessment.alternativeRemedy.name, score: assessment.confidence }]
-        : [],
+      selectedRemedies:
+        assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+          ? [{ name: assessment.alternativeRemedy.name, score: assessment.confidence }]
+          : [],
       soapData: {
         subjective: soap.subjective,
         objective: soap.objective,
@@ -376,7 +430,7 @@ Respond ONLY with a JSON array in this exact format, no other text:
     const totalLatencyMs = Date.now() - start;
     logger.info(
       { tenantId, totalLatencyMs, phasesCompleted, decision: assessment.decision },
-      'Follow-up pipeline complete'
+      'Follow-up pipeline complete',
     );
 
     // Build a prescription draft from the follow-up assessment
@@ -384,28 +438,31 @@ Respond ONLY with a JSON array in this exact format, no other text:
       consultationSummary: assessment.clinicalNotes,
       diagnosis: assessment.chiefComplaintStatus,
       materiaMedicaValidation: assessment.currentRemedyReview,
-      suggestedRemedy: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
-        ? assessment.alternativeRemedy.name
-        : '',
-      suggestedRemedies: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
-        ? [{
-            remedyName: assessment.alternativeRemedy.name,
-            potency: assessment.alternativeRemedy.potency,
-            dosage: assessment.alternativeRemedy.dosage,
-          }]
-        : [],
-      potency: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
-        ? assessment.alternativeRemedy.potency
-        : assessment.potencyAdjustment || '',
-      dosage: assessment.decision === 'CHANGE' && assessment.alternativeRemedy
-        ? assessment.alternativeRemedy.dosage
-        : '',
+      suggestedRemedy:
+        assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+          ? assessment.alternativeRemedy.name
+          : '',
+      suggestedRemedies:
+        assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+          ? [
+              {
+                remedyName: assessment.alternativeRemedy.name,
+                potency: assessment.alternativeRemedy.potency,
+                dosage: assessment.alternativeRemedy.dosage,
+              },
+            ]
+          : [],
+      potency:
+        assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+          ? assessment.alternativeRemedy.potency
+          : assessment.potencyAdjustment || '',
+      dosage:
+        assessment.decision === 'CHANGE' && assessment.alternativeRemedy
+          ? assessment.alternativeRemedy.dosage
+          : '',
       safetyWarnings: [],
       missingInformation: [],
-      advice: [
-        ...assessment.dietaryAdvice,
-        ...assessment.lifestyleAdvice,
-      ],
+      advice: [...assessment.dietaryAdvice, ...assessment.lifestyleAdvice],
       followUp: assessment.followUpTimeline,
       confidence: assessment.confidence,
       gnmAnalysis: null,
@@ -450,7 +507,11 @@ Respond ONLY with a JSON array in this exact format, no other text:
     };
   }
 
-  async parseLabReport(tenantId: string, userId: string, input: { filename: string; mimeType: string; base64: string }) {
+  async parseLabReport(
+    tenantId: string,
+    userId: string,
+    input: { filename: string; mimeType: string; base64: string },
+  ) {
     if (!input.base64) throw new Error('No document data provided');
 
     // Step 1 — extract real text from the PDF on the server.
@@ -458,16 +519,20 @@ Respond ONLY with a JSON array in this exact format, no other text:
     // attachment was making it hallucinate generic lab findings (hypertension,
     // hyperlipidemia, diabetes — the textbook "metabolic syndrome" trio).
     // Use pdf-parse to pull the actual text first.
-    const isPdf = (input.mimeType || '').toLowerCase().includes('pdf')
-      || input.filename?.toLowerCase().endsWith('.pdf');
+    const isPdf =
+      (input.mimeType || '').toLowerCase().includes('pdf') ||
+      input.filename?.toLowerCase().endsWith('.pdf');
 
     let extractedText = '';
     let pdfParseError: string | null = null;
     if (isPdf) {
       try {
         const buffer = Buffer.from(input.base64, 'base64');
-        logger.info({ filename: input.filename, bufferLength: buffer.length }, '[parseLabReport] Attempting PDF extraction');
-        
+        logger.info(
+          { filename: input.filename, bufferLength: buffer.length },
+          '[parseLabReport] Attempting PDF extraction',
+        );
+
         if (!buffer || buffer.length === 0) {
           throw new Error('PDF buffer is empty');
         }
@@ -476,27 +541,43 @@ Respond ONLY with a JSON array in this exact format, no other text:
         // @ts-ignore — no types for the inner module path
         const pdfParseModule: any = await import('pdf-parse/lib/pdf-parse.js');
         const pdfParse = pdfParseModule.default || pdfParseModule;
-        
+
         if (typeof pdfParse !== 'function') {
           throw new Error('pdf-parse module imported but did not export a function');
         }
 
         const result = await pdfParse(buffer);
         extractedText = (result?.text || '').trim();
-        logger.info({ filename: input.filename, textLength: extractedText.length, numPages: result?.numpages }, '[parseLabReport] PDF extraction successful');
+        logger.info(
+          {
+            filename: input.filename,
+            textLength: extractedText.length,
+            numPages: result?.numpages,
+          },
+          '[parseLabReport] PDF extraction successful',
+        );
       } catch (err: any) {
         pdfParseError = err?.message || String(err);
-        logger.error({ err: pdfParseError, filename: input.filename, stack: err?.stack }, 'PDF text extraction failed');
+        logger.error(
+          { err: pdfParseError, filename: input.filename, stack: err?.stack },
+          'PDF text extraction failed',
+        );
         extractedText = '';
       }
     }
 
     if (!extractedText) {
-      logger.warn({ filename: input.filename, pdfParseError }, 'No text extractable from PDF — returning empty');
+      logger.warn(
+        { filename: input.filename, pdfParseError },
+        'No text extractable from PDF — returning empty',
+      );
       // Return success with empty parsedText (the UI handles this gracefully)
       // rather than a 500. Include the parse error in metadata so a doctor
       // can see why the file didn't yield text.
-      return { parsedText: '', parseError: pdfParseError ?? 'No text found in PDF (likely scanned/image-only)' } as any;
+      return {
+        parsedText: '',
+        parseError: pdfParseError ?? 'No text found in PDF (likely scanned/image-only)',
+      } as any;
     }
 
     // Step 2 — normalize the raw PDF text into clean markdown.
@@ -506,7 +587,10 @@ Respond ONLY with a JSON array in this exact format, no other text:
     let cleaned = '';
     try {
       const chain = this.providerChain || getAiProviderChain();
-      logger.info({ filename: input.filename, textPreview: extractedText.slice(0, 100) }, '[parseLabReport] Attempting AI normalization');
+      logger.info(
+        { filename: input.filename, textPreview: extractedText.slice(0, 100) },
+        '[parseLabReport] Attempting AI normalization',
+      );
       const response = await chain.complete({
         systemPrompt: `You are a lab-report normalizer. You will be given the RAW TEXT extracted from a lab PDF (possibly with broken layout, OCR artifacts, repeated headers).
 
@@ -538,7 +622,10 @@ Output the cleaned markdown summary now. If the text contains no actual lab data
         temperature: 0.1,
       });
       cleaned = (response.content || '').trim();
-      logger.info({ filename: input.filename, responseLength: cleaned.length }, '[parseLabReport] AI normalization successful');
+      logger.info(
+        { filename: input.filename, responseLength: cleaned.length },
+        '[parseLabReport] AI normalization successful',
+      );
     } catch (aiErr: any) {
       logger.warn(
         { err: aiErr?.message, filename: input.filename, stack: aiErr?.stack },
@@ -568,11 +655,13 @@ Output the cleaned markdown summary now. If the text contains no actual lab data
     // Too short to act on.
     if (cleaned.length < 30) return false;
 
-    const medicalRegex = /\b(pain|ache|fever|cough|headache|migraine|nausea|vomit|diarrhea|constipat|cold|flu|symptom|complaint|rash|allergy|allergic|itch|swell|injury|wound|burn|bp|blood\s*pressure|sleep|insomnia|appetite|chest|stomach|abdomen|head|throat|skin|eye|ear|nose|fatigue|weak|dizz|anxious|depress|sad|angry|stress|menstrual|period|pregnan|sick|ill|disease|medicat|treatment|dose|tablet|drug|hospital|clinic|doctor|patient|chronic|acute|symptom|since|started|onset|hurts|hurting|sore|burning|tingling|numb|pressure|tight|cramp|spasm|pulse|breath|shortness|cough|sneeze|wheez)\b/i;
+    const medicalRegex =
+      /\b(pain|ache|fever|cough|headache|migraine|nausea|vomit|diarrhea|constipat|cold|flu|symptom|complaint|rash|allergy|allergic|itch|swell|injury|wound|burn|bp|blood\s*pressure|sleep|insomnia|appetite|chest|stomach|abdomen|head|throat|skin|eye|ear|nose|fatigue|weak|dizz|anxious|depress|sad|angry|stress|menstrual|period|pregnan|sick|ill|disease|medicat|treatment|dose|tablet|drug|hospital|clinic|doctor|patient|chronic|acute|symptom|since|started|onset|hurts|hurting|sore|burning|tingling|numb|pressure|tight|cramp|spasm|pulse|breath|shortness|cough|sneeze|wheez)\b/i;
     if (medicalRegex.test(cleaned)) return true;
 
     // Hindi/Hinglish medical keywords (transcripts come translated, but be safe)
-    const hindiMedRegex = /\b(dard|bukhar|dawai|dawaai|ilaaj|illness|takleef|tabiyat|sar|pet|bimari|saans|nazla|khansi|jukam)\b/i;
+    const hindiMedRegex =
+      /\b(dard|bukhar|dawai|dawaai|ilaaj|illness|takleef|tabiyat|sar|pet|bimari|saans|nazla|khansi|jukam)\b/i;
     if (hindiMedRegex.test(cleaned)) return true;
 
     return false;
@@ -581,7 +670,8 @@ Output the cleaned markdown summary now. If the text contains no actual lab data
   // Build a zero-state result so the frontend's handleHomeopathyConsultGenerated
   // doesn't crash when the gate short-circuits.
   private buildEmptyConsultResult(start: number, phasesCompleted: number): HomeopathyConsultResult {
-    const message = 'No medical content was detected in the conversation. Continue speaking with the patient and try again.';
+    const message =
+      'No medical content was detected in the conversation. Continue speaking with the patient and try again.';
     return {
       soap: {
         subjective: '',

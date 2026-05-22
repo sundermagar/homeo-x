@@ -8,13 +8,13 @@ dotenv.config({ path: path.join(process.cwd(), '../../.env') });
 const connectionString = process.env['DATABASE_URL'];
 
 if (!connectionString) {
-  console.error("No DATABASE_URL found.");
+  console.error('No DATABASE_URL found.');
   process.exit(1);
 }
 
 async function fixTenant(schemaName: string) {
   console.log(`\n--- Fixing Payments Schema for: ${schemaName} ---`);
-  
+
   const sqlClient = postgres(connectionString!);
 
   try {
@@ -40,7 +40,7 @@ async function fixTenant(schemaName: string) {
         ELSE NULL 
       END;
     `;
-    
+
     console.log(`✅ fixed regid and payment_date in ${schemaName}`);
   } catch (error: any) {
     console.error(`❌ Error fixing ${schemaName}:`);
@@ -58,7 +58,7 @@ async function main() {
     await fixTenant(tenant.schemaName);
   }
 
-  console.log("\n--- Fix Complete ---");
+  console.log('\n--- Fix Complete ---');
   process.exit(0);
 }
 

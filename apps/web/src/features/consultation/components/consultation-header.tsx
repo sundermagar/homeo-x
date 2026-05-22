@@ -39,19 +39,19 @@ const STAGE_CONFIG: { key: ConsultStage; number: number; label: string }[] = [
 ];
 
 function getStageIndex(stage: ConsultStage): number {
-  return STAGE_CONFIG.findIndex(s => s.key === stage);
+  return STAGE_CONFIG.findIndex((s) => s.key === stage);
 }
 
-export function ConsultationHeader({ 
-  visit, 
-  patient, 
-  onStartVideoCall, 
+export function ConsultationHeader({
+  visit,
+  patient,
+  onStartVideoCall,
   onLeaveCall,
-  callMode = 'IN_PERSON', 
+  callMode = 'IN_PERSON',
   onCallModeChange,
-  consultStage, 
+  consultStage,
   onStageChange,
-  isTranscribing = false
+  isTranscribing = false,
 }: ConsultationHeaderProps) {
   const navigate = useNavigate();
   const videoCallToken = useVideoCallToken();
@@ -62,24 +62,33 @@ export function ConsultationHeader({
 
   const age = patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : null;
   const gender = visit.patient?.gender;
-  const initials = patientName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const initials = patientName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   const handleModeClick = async (targetMode: CallMode) => {
     if (!onCallModeChange) return;
     if (targetMode === callMode) return;
-    
+
     // If going from IN_PERSON to VIDEO/AUDIO, we must connect to Agora if not already.
     if ((targetMode === 'AUDIO' || targetMode === 'VIDEO') && callMode === 'IN_PERSON') {
       if (!onStartVideoCall || !visit.id) return;
       try {
         const result = await videoCallToken.mutateAsync({ visitId: visit.id, role: 'host' });
         const rawLink = result.patientJoinLink;
-        const dynamicLink = rawLink?.includes('?') ? `${rawLink}&mode=${targetMode.toLowerCase()}` : `${rawLink}?mode=${targetMode.toLowerCase()}`;
+        const dynamicLink = rawLink?.includes('?')
+          ? `${rawLink}&mode=${targetMode.toLowerCase()}`
+          : `${rawLink}?mode=${targetMode.toLowerCase()}`;
         const patientJoinLink = dynamicLink?.startsWith('http')
           ? dynamicLink
-          : `${window.location.origin.includes('localhost') 
-              ? `https://${import.meta.env['VITE_FRONTEND_URL'] || 'frying-deviancy-rocklike.ngrok-free.dev'}`
-              : window.location.origin}${dynamicLink || `/meet/${visit.id}?mode=${targetMode.toLowerCase()}`}`;
+          : `${
+              window.location.origin.includes('localhost')
+                ? `https://${import.meta.env['VITE_FRONTEND_URL'] || 'frying-deviancy-rocklike.ngrok-free.dev'}`
+                : window.location.origin
+            }${dynamicLink || `/meet/${visit.id}?mode=${targetMode.toLowerCase()}`}`;
         onStartVideoCall({
           appId: result.appId,
           channel: result.channel,
@@ -88,17 +97,29 @@ export function ConsultationHeader({
           visitId: visit.id,
           patientJoinLink,
         });
-        toast({ title: 'Call started', description: 'Share the link with the patient.', variant: 'success' });
+        toast({
+          title: 'Call started',
+          description: 'Share the link with the patient.',
+          variant: 'success',
+        });
         onCallModeChange(targetMode);
       } catch (err) {
-        toast({ title: 'Failed to start call', description: err instanceof Error ? err.message : 'Unknown error', variant: 'error' });
+        toast({
+          title: 'Failed to start call',
+          description: err instanceof Error ? err.message : 'Unknown error',
+          variant: 'error',
+        });
       }
-    } 
+    }
     // If going from VIDEO/AUDIO to IN_PERSON, we leave the call
     else if (targetMode === 'IN_PERSON') {
       onLeaveCall?.();
       onCallModeChange('IN_PERSON');
-      toast({ title: 'Switched to In-person', description: 'Remote link disconnected.', variant: 'default' });
+      toast({
+        title: 'Switched to In-person',
+        description: 'Remote link disconnected.',
+        variant: 'default',
+      });
     }
     // Switching between AUDIO and VIDEO (requires Agora to toggle cam, layout will handle it)
     else {
@@ -153,7 +174,12 @@ export function ConsultationHeader({
           <div className="min-w-0">
             <h1 className="text-sm font-bold text-gray-900 truncate">{patientName}</h1>
             <p className="text-[10px] text-gray-500 truncate">
-              {[age != null ? `${age} yr` : null, gender === 'MALE' ? 'Male' : gender === 'FEMALE' ? 'Female' : gender].filter(Boolean).join(' · ')}
+              {[
+                age != null ? `${age} yr` : null,
+                gender === 'MALE' ? 'Male' : gender === 'FEMALE' ? 'Female' : gender,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </p>
           </div>
         </div>
@@ -162,7 +188,9 @@ export function ConsultationHeader({
         {consultStage && onStageChange && (
           <div className="flex items-center gap-1 ml-4">
             {STAGE_CONFIG.map((stage, i) => {
-              const isActive = consultStage === stage.key || (stage.key === 'TOTALITY' && consultStage === 'REPERTORY');
+              const isActive =
+                consultStage === stage.key ||
+                (stage.key === 'TOTALITY' && consultStage === 'REPERTORY');
               const isCompleted = currentStageIndex > i;
               return (
                 <button
@@ -173,14 +201,16 @@ export function ConsultationHeader({
                     isActive
                       ? 'bg-teal-500 text-white shadow-sm'
                       : isCompleted
-                      ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                      : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                        ? 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                   }`}
                 >
                   {isCompleted && !isActive && (
                     <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                   )}
-                  <span>{stage.number} {stage.label}</span>
+                  <span>
+                    {stage.number} {stage.label}
+                  </span>
                 </button>
               );
             })}
@@ -213,8 +243,8 @@ export function ConsultationHeader({
                     isCompletedDot
                       ? 'bg-emerald-500 text-white'
                       : isActiveDot
-                      ? 'bg-teal-500 text-white ring-2 ring-teal-400/30'
-                      : 'bg-gray-200 text-gray-500'
+                        ? 'bg-teal-500 text-white ring-2 ring-teal-400/30'
+                        : 'bg-gray-200 text-gray-500'
                   }`}
                 >
                   {isCompletedDot ? <CheckCircle2 className="h-3 w-3" /> : n}
@@ -230,12 +260,12 @@ export function ConsultationHeader({
         {/* Right Controls */}
         <div className="flex items-center gap-2">
           {/* Audio Toggle */}
-          <button 
+          <button
             type="button"
             onClick={() => handleModeClick('AUDIO')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
-              callMode === 'AUDIO' 
-                ? 'bg-amber-50 text-amber-600 border-amber-200 shadow-sm' 
+              callMode === 'AUDIO'
+                ? 'bg-amber-50 text-amber-600 border-amber-200 shadow-sm'
                 : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-100'
             }`}
           >
@@ -248,8 +278,8 @@ export function ConsultationHeader({
             type="button"
             onClick={() => handleModeClick('VIDEO')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
-              callMode === 'VIDEO' 
-                ? 'bg-indigo-50 text-indigo-600 border-indigo-200 shadow-sm' 
+              callMode === 'VIDEO'
+                ? 'bg-indigo-50 text-indigo-600 border-indigo-200 shadow-sm'
                 : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-100'
             }`}
           >
@@ -266,8 +296,8 @@ export function ConsultationHeader({
             type="button"
             onClick={() => handleModeClick('IN_PERSON')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
-              callMode === 'IN_PERSON' 
-                ? 'bg-teal-50 text-teal-700 border-teal-200 shadow-sm' 
+              callMode === 'IN_PERSON'
+                ? 'bg-teal-50 text-teal-700 border-teal-200 shadow-sm'
                 : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-100'
             }`}
           >
@@ -276,30 +306,42 @@ export function ConsultationHeader({
           </button>
 
           {/* Dynamic Transcribing Indicator */}
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-colors ${
-            isTranscribing 
-              ? 'bg-emerald-50 border-emerald-200' 
-              : 'bg-gray-100 border-gray-200'
-          }`}>
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-colors ${
+              isTranscribing ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-100 border-gray-200'
+            }`}
+          >
             <span className="relative flex h-2 w-2">
               {isTranscribing && (
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-emerald-500" />
               )}
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${isTranscribing ? 'bg-emerald-600' : 'bg-gray-400'}`} />
+              <span
+                className={`relative inline-flex rounded-full h-2 w-2 ${isTranscribing ? 'bg-emerald-600' : 'bg-gray-400'}`}
+              />
             </span>
-            <span className={`text-[10px] font-bold ${isTranscribing ? 'text-emerald-700' : 'text-gray-500'}`}>
-              {isTranscribing 
-                ? (callMode === 'IN_PERSON' ? 'Room mic active' : 'Transcribing call') 
-                : (callMode === 'VIDEO' ? 'Camera active, Mic off' : 'Mic off')}
+            <span
+              className={`text-[10px] font-bold ${isTranscribing ? 'text-emerald-700' : 'text-gray-500'}`}
+            >
+              {isTranscribing
+                ? callMode === 'IN_PERSON'
+                  ? 'Room mic active'
+                  : 'Transcribing call'
+                : callMode === 'VIDEO'
+                  ? 'Camera active, Mic off'
+                  : 'Mic off'}
             </span>
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1 transition-colors ${
-              isTranscribing ? 'text-emerald-700 bg-emerald-100' : 'text-gray-500 bg-gray-200'
-            }`}>
-              {callMode === 'VIDEO' && !isTranscribing ? <Video className="h-2 w-2" /> : <Mic className="h-2 w-2" />}
+            <span
+              className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1 transition-colors ${
+                isTranscribing ? 'text-emerald-700 bg-emerald-100' : 'text-gray-500 bg-gray-200'
+              }`}
+            >
+              {callMode === 'VIDEO' && !isTranscribing ? (
+                <Video className="h-2 w-2" />
+              ) : (
+                <Mic className="h-2 w-2" />
+              )}
             </span>
           </div>
-
-
         </div>
       </div>
     </header>

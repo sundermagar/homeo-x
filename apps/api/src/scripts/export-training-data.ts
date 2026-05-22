@@ -95,9 +95,15 @@ function asArray<T = any>(v: any): T[] {
 
 function formatSymptoms(s: any): string {
   if (!s) return '(none recorded)';
-  const mental = asArray(s.mental).map((x: any) => `  - ${typeof x === 'string' ? x : x?.description || JSON.stringify(x)}`).join('\n');
-  const physical = asArray(s.physical).map((x: any) => `  - ${typeof x === 'string' ? x : x?.description || JSON.stringify(x)}`).join('\n');
-  const particular = asArray(s.particular).map((x: any) => `  - ${typeof x === 'string' ? x : x?.description || JSON.stringify(x)}`).join('\n');
+  const mental = asArray(s.mental)
+    .map((x: any) => `  - ${typeof x === 'string' ? x : x?.description || JSON.stringify(x)}`)
+    .join('\n');
+  const physical = asArray(s.physical)
+    .map((x: any) => `  - ${typeof x === 'string' ? x : x?.description || JSON.stringify(x)}`)
+    .join('\n');
+  const particular = asArray(s.particular)
+    .map((x: any) => `  - ${typeof x === 'string' ? x : x?.description || JSON.stringify(x)}`)
+    .join('\n');
   return [
     `MIND / MENTAL:\n${mental || '  (none)'}`,
     `PHYSICAL GENERALS:\n${physical || '  (none)'}`,
@@ -115,7 +121,12 @@ function formatPatientContext(pc: any): string {
   return parts.length ? `Patient: ${parts.join(' | ')}` : '';
 }
 
-function extractDoctorRemedy(dfr: any): { name: string; potency: string; dosage: string; reasoning: string } {
+function extractDoctorRemedy(dfr: any): {
+  name: string;
+  potency: string;
+  dosage: string;
+  reasoning: string;
+} {
   // doctor_final_remedy is stored as an ARRAY of { remedyName, potency, frequency, duration, instructions }.
   // Fallback: support legacy single-object shape as well.
   const first = Array.isArray(dfr) ? dfr[0] : dfr;
@@ -138,7 +149,10 @@ function formatSimilarCase(c: SimilarCase, idx: number): string {
     .join('; ');
   return [
     `[Past Case ${idx + 1}] (similarity ${(1 - c.distance).toFixed(3)})`,
-    formatSymptoms(c.extracted_symptoms).split('\n').map((l) => '  ' + l).join('\n'),
+    formatSymptoms(c.extracted_symptoms)
+      .split('\n')
+      .map((l) => '  ' + l)
+      .join('\n'),
     `  Key rubrics: ${rubricList || '(none)'}`,
     `  Doctor prescribed: ${remedyName || 'Unknown'} ${potency}`.trim(),
   ].join('\n');
@@ -221,7 +235,10 @@ function buildAssistantMessage(row: TrainingRow): string {
   });
 }
 
-function stratifiedSplit<T extends { remedyKey: string }>(rows: T[], valRatio: number): { train: T[]; val: T[] } {
+function stratifiedSplit<T extends { remedyKey: string }>(
+  rows: T[],
+  valRatio: number,
+): { train: T[]; val: T[] } {
   const byClass = new Map<string, T[]>();
   for (const r of rows) {
     const arr = byClass.get(r.remedyKey) || [];
@@ -293,7 +310,9 @@ async function main() {
 
   for (let i = 0; i < trainingRows.length; i++) {
     const row = trainingRows[i]!;
-    process.stdout.write(`\r[export] processing ${i + 1}/${trainingRows.length} (visit ${row.visit_id})…    `);
+    process.stdout.write(
+      `\r[export] processing ${i + 1}/${trainingRows.length} (visit ${row.visit_id})…    `,
+    );
 
     const simResult = await db.execute(sql`
       WITH self AS (
@@ -363,7 +382,7 @@ async function main() {
     valRows: val.length,
     uniqueRemedies: Object.keys(distribution).length,
     topRemedies: Object.entries(distribution)
-      .sort((a, b) => (b[1].train + b[1].val) - (a[1].train + a[1].val))
+      .sort((a, b) => b[1].train + b[1].val - (a[1].train + a[1].val))
       .slice(0, 20)
       .map(([name, c]) => ({ name, ...c })),
     sinceTimestamp: sinceTs,
@@ -381,7 +400,12 @@ async function main() {
   console.log(`[export] wrote ${VAL_FILE}`);
   console.log(`[export] wrote ${CARD_FILE}`);
   console.log(`[export] unique remedies: ${card.uniqueRemedies}`);
-  console.log(`[export] top 5: ${card.topRemedies.slice(0, 5).map((r) => `${r.name}(${r.train + r.val})`).join(', ')}`);
+  console.log(
+    `[export] top 5: ${card.topRemedies
+      .slice(0, 5)
+      .map((r) => `${r.name}(${r.train + r.val})`)
+      .join(', ')}`,
+  );
 
   await (db as any).$client?.end?.();
 }

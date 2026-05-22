@@ -30,7 +30,14 @@ interface SoapEditorProps {
   onExternalSuggestionHandled?: () => void;
 }
 
-export function SoapEditor({ data, onChange, specialtyFields = [], aiContext, externalSuggestion, onExternalSuggestionHandled }: SoapEditorProps) {
+export function SoapEditor({
+  data,
+  onChange,
+  specialtyFields = [],
+  aiContext,
+  externalSuggestion,
+  onExternalSuggestionHandled,
+}: SoapEditorProps) {
   const [activeTab, setActiveTab] = useState('subjective');
   const [soapSuggestion, setSoapSuggestion] = useState<SoapSuggestion | null>(null);
 
@@ -76,7 +83,12 @@ export function SoapEditor({ data, onChange, specialtyFields = [], aiContext, ex
   };
 
   const handleIcd10Select = (code: string) => {
-    const existing = data.icdCodes ? data.icdCodes.split(',').map((c) => c.trim()).filter(Boolean) : [];
+    const existing = data.icdCodes
+      ? data.icdCodes
+          .split(',')
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : [];
     if (!existing.includes(code)) {
       update('icdCodes', [...existing, code].join(', '));
     }
@@ -99,7 +111,6 @@ export function SoapEditor({ data, onChange, specialtyFields = [], aiContext, ex
               label="AI Suggest SOAP"
             />
           )}
-
         </CardHeader>
         <CardContent>
           {activeSuggestion && (
@@ -115,10 +126,18 @@ export function SoapEditor({ data, onChange, specialtyFields = [], aiContext, ex
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full">
-              <TabsTrigger value="subjective" className="flex-1">Subjective</TabsTrigger>
-              <TabsTrigger value="objective" className="flex-1">Objective</TabsTrigger>
-              <TabsTrigger value="assessment" className="flex-1">Assessment</TabsTrigger>
-              <TabsTrigger value="plan" className="flex-1">Plan</TabsTrigger>
+              <TabsTrigger value="subjective" className="flex-1">
+                Subjective
+              </TabsTrigger>
+              <TabsTrigger value="objective" className="flex-1">
+                Objective
+              </TabsTrigger>
+              <TabsTrigger value="assessment" className="flex-1">
+                Assessment
+              </TabsTrigger>
+              <TabsTrigger value="plan" className="flex-1">
+                Plan
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="subjective" className="space-y-4">

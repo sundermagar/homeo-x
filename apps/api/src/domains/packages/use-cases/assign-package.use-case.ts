@@ -13,7 +13,9 @@ export class AssignPackageUseCase {
     private readonly smsUseCase?: SendSmsUseCase,
   ) {}
 
-  async execute(dto: AssignPackageDto & { patientId: number }): Promise<Result<{ subscriptionId: number; expiryDate: string; billId: number }>> {
+  async execute(
+    dto: AssignPackageDto & { patientId: number },
+  ): Promise<Result<{ subscriptionId: number; expiryDate: string; billId: number }>> {
     const { regid, packageId, startDate, patientId, notes } = dto;
 
     if (!patientId) return fail('patientId is required', 'VALIDATION');
@@ -43,9 +45,8 @@ export class AssignPackageUseCase {
     }
 
     const fmt = (d: Date) => d.toISOString().split('T')[0]!;
-    const startDateStr  = fmt(start);
+    const startDateStr = fmt(start);
     const expiryDateStr = fmt(expiry);
-
 
     // Step 1: Create the billing record for this package
     const billNo = await this.billingRepo.nextBillNo();

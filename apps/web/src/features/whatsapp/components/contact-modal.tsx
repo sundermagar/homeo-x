@@ -22,7 +22,12 @@ interface ContactFormInput {
 
 export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) => {
   const { useCreateContact } = useWhatsApp();
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ContactFormInput>();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ContactFormInput>();
   const createContactMutation = useCreateContact();
 
   React.useEffect(() => {
@@ -30,7 +35,7 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
       // Basic extraction of country code for edit mode
       let cc = '91';
       let localPhone = contact.phone || '';
-      
+
       if (localPhone.startsWith('91') && localPhone.length > 10) {
         cc = '91';
         localPhone = localPhone.substring(2);
@@ -47,7 +52,7 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
         countryCode: cc,
         phone: localPhone,
         email: contact.email || '',
-        tags: contact.tags ? contact.tags.join(', ') : ''
+        tags: contact.tags ? contact.tags.join(', ') : '',
       });
     } else {
       reset({
@@ -55,7 +60,7 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
         countryCode: '91',
         phone: '',
         email: '',
-        tags: ''
+        tags: '',
       });
     }
   }, [contact, reset, isOpen]);
@@ -70,22 +75,28 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
       phone: fullPhone,
       id: contact?.id ? Number(contact.id) : undefined,
       clinicId: 1, // Hardcoded for now
-      tags: data.tags?.split(',').map((t: string) => t.trim()).filter(Boolean) || [],
-      status: 'active'
+      tags:
+        data.tags
+          ?.split(',')
+          .map((t: string) => t.trim())
+          .filter(Boolean) || [],
+      status: 'active',
     };
 
     createContactMutation.mutate(payload, {
       onSuccess: () => {
-        toast({ 
-          title: contact ? 'Contact Updated' : 'Contact Registered', 
-          description: contact ? 'Patient has been updated in the WhatsApp CRM.' : 'Patient has been added to the WhatsApp CRM.' 
+        toast({
+          title: contact ? 'Contact Updated' : 'Contact Registered',
+          description: contact
+            ? 'Patient has been updated in the WhatsApp CRM.'
+            : 'Patient has been added to the WhatsApp CRM.',
         });
         reset();
         onClose();
       },
       onError: (err: any) => {
         toast({ title: 'Registration Failed', description: err.message, variant: 'error' });
-      }
+      },
     });
   };
 
@@ -96,7 +107,9 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
       <div className="appt-drawer-overlay" onClick={onClose} />
       <div className="appt-drawer-panel" style={{ maxWidth: '500px' }}>
         <div className="appt-drawer-header">
-          <h2 className="appt-drawer-title">{contact ? 'Edit Patient Contact' : 'Add Patient Contact'}</h2>
+          <h2 className="appt-drawer-title">
+            {contact ? 'Edit Patient Contact' : 'Add Patient Contact'}
+          </h2>
           <button className="appt-drawer-close" onClick={onClose}>
             <X size={20} />
           </button>
@@ -104,17 +117,16 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
 
         <div className="appt-drawer-body">
           <form onSubmit={handleSubmit(onSubmit)} className="appt-form">
-            
             {/* Patient Name */}
             <div className="appt-form-group">
               <label className="appt-form-label">
                 <User size={13} strokeWidth={1.6} />
                 Full Legal Name
               </label>
-              <input 
-                placeholder="e.g. Johnathan Doe" 
+              <input
+                placeholder="e.g. Johnathan Doe"
                 className={`appt-form-input ${errors.name ? 'border-error' : ''}`}
-                {...register('name', { required: true })} 
+                {...register('name', { required: true })}
               />
             </div>
 
@@ -125,7 +137,7 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
                 WhatsApp Number
               </label>
               <div className="flex gap-2">
-                <select 
+                <select
                   className="appt-form-input w-[100px] shrink-0"
                   {...register('countryCode')}
                   defaultValue="91"
@@ -138,21 +150,27 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
                   <option value="65">+65 (SG)</option>
                   {/* Can add more as needed */}
                 </select>
-                <input 
+                <input
                   type="text"
-                  placeholder="e.g. 9876543210" 
+                  placeholder="e.g. 9876543210"
                   className={`appt-form-input flex-1 ${errors.phone ? 'border-error' : ''}`}
-                  {...register('phone', { 
+                  {...register('phone', {
                     required: true,
                     pattern: {
                       value: /^[0-9]{8,15}$/,
-                      message: "Please enter a valid phone number without country code"
-                    }
-                  })} 
+                      message: 'Please enter a valid phone number without country code',
+                    },
+                  })}
                 />
               </div>
-              {errors.phone && <p className="text-[10px] text-red-500 mt-1 px-1">{errors.phone.message as string}</p>}
-              <p className="text-[10px] text-muted mt-1 px-1">Select country code and enter the local number.</p>
+              {errors.phone && (
+                <p className="text-[10px] text-red-500 mt-1 px-1">
+                  {errors.phone.message as string}
+                </p>
+              )}
+              <p className="text-[10px] text-muted mt-1 px-1">
+                Select country code and enter the local number.
+              </p>
             </div>
 
             {/* Email */}
@@ -161,11 +179,11 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
                 <Mail size={13} strokeWidth={1.6} />
                 Medical Correspondence Email
               </label>
-              <input 
+              <input
                 type="email"
-                placeholder="e.g. john.doe@example.com" 
-                className="appt-form-input" 
-                {...register('email')} 
+                placeholder="e.g. john.doe@example.com"
+                className="appt-form-input"
+                {...register('email')}
               />
             </div>
 
@@ -175,20 +193,25 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
                 <Tag size={13} strokeWidth={1.6} />
                 Clinical Segmentation Tags
               </label>
-              <input 
-                placeholder="e.g. Hypertension, Chronic, VIP, Follow-up" 
-                className="appt-form-input" 
-                {...register('tags')} 
+              <input
+                placeholder="e.g. Hypertension, Chronic, VIP, Follow-up"
+                className="appt-form-input"
+                {...register('tags')}
               />
-              <p className="text-[10px] text-muted mt-1 px-1">Comma-separated values for patient grouping.</p>
+              <p className="text-[10px] text-muted mt-1 px-1">
+                Comma-separated values for patient grouping.
+              </p>
             </div>
 
             <div className="bg-pp-blue/5 border border-pp-blue/10 rounded-xl p-4 flex gap-3 mt-4">
               <Target size={16} className="text-pp-blue shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="text-[11px] font-bold text-pp-blue uppercase tracking-wider">CRM Integration</p>
+                <p className="text-[11px] font-bold text-pp-blue uppercase tracking-wider">
+                  CRM Integration
+                </p>
                 <p className="text-[11px] text-secondary leading-relaxed">
-                  Registering this contact allows you to target them in medical broadcast campaigns and automated journeys.
+                  Registering this contact allows you to target them in medical broadcast campaigns
+                  and automated journeys.
                 </p>
               </div>
             </div>
@@ -197,13 +220,15 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
               <button type="button" className="btn-secondary" onClick={onClose}>
                 Cancel
               </button>
-              <button 
-                type="submit" 
-                className="btn-primary" 
+              <button
+                type="submit"
+                className="btn-primary"
                 disabled={createContactMutation.isPending}
               >
                 {createContactMutation.isPending ? (
-                  <><Loader2 size={15} className="animate-spin" /> Saving…</>
+                  <>
+                    <Loader2 size={15} className="animate-spin" /> Saving…
+                  </>
                 ) : contact ? (
                   'Save Changes'
                 ) : (
@@ -215,6 +240,6 @@ export const ContactModal = ({ isOpen, onClose, contact }: ContactModalProps) =>
         </div>
       </div>
     </>,
-    document.body
+    document.body,
   );
 };

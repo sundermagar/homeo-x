@@ -16,16 +16,17 @@ export interface WhatsAppTemplateOptions {
 export class SendWhatsAppTemplateUseCase {
   constructor(
     private readonly gateway: WhatsAppGateway,
-    private readonly waRepo: WhatsAppRepository
+    private readonly waRepo: WhatsAppRepository,
   ) {}
 
   async execute(options: WhatsAppTemplateOptions): Promise<{ success: boolean; error?: string }> {
     try {
       let channelId = options.channelId;
-      
+
       if (!channelId && options.clinicId) {
         const defaultChannel = await this.waRepo.findDefaultChannel(options.clinicId);
-        if (!defaultChannel) throw new Error(`No active WhatsApp channel found for clinic ${options.clinicId}`);
+        if (!defaultChannel)
+          throw new Error(`No active WhatsApp channel found for clinic ${options.clinicId}`);
         channelId = defaultChannel.id;
       }
 
@@ -36,25 +37,30 @@ export class SendWhatsAppTemplateUseCase {
         options.phone,
         options.templateName,
         options.language,
-        options.components
+        options.components,
       );
 
       // If the template does not exist on Meta WABA, fall back to sending it as a direct text message
-      if (!result.success && (result.error?.includes('132001') || result.error?.toLowerCase().includes('not exist') || result.error?.toLowerCase().includes('translation'))) {
-        logger.info(`Template "${options.templateName}" not found on Meta. Interpolating database body and falling back to sendText...`);
-        
+      if (
+        !result.success &&
+        (result.error?.includes('132001') ||
+          result.error?.toLowerCase().includes('not exist') ||
+          result.error?.toLowerCase().includes('translation'))
+      ) {
+        logger.info(
+          `Template "${options.templateName}" not found on Meta. Interpolating database body and falling back to sendText...`,
+        );
+
         let templateBody = `Template: ${options.templateName}`;
         try {
           const { eq, and } = await import('drizzle-orm');
           const { waTemplates } = await import('@mmc/database');
-          
-          const templateRows = await (this.waRepo as any).db.select()
+
+          const templateRows = await (this.waRepo as any).db
+            .select()
             .from(waTemplates)
             .where(
-              and(
-                eq(waTemplates.name, options.templateName),
-                eq(waTemplates.channelId, channelId)
-              )
+              and(eq(waTemplates.name, options.templateName), eq(waTemplates.channelId, channelId)),
             )
             .limit(1);
 
@@ -90,7 +96,7 @@ export class SendWhatsAppTemplateUseCase {
             contactPhone: options.phone,
             status: 'open',
             lastMessageAt: new Date(),
-            lastMessageText: `Template: ${options.templateName}`
+            lastMessageText: `Template: ${options.templateName}`,
           });
         }
 
@@ -102,7 +108,7 @@ export class SendWhatsAppTemplateUseCase {
           content: `Template: ${options.templateName}`,
           type: 'template',
           status: 'sent',
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
@@ -114,7 +120,14 @@ export class SendWhatsAppTemplateUseCase {
   }
 
   // Convenience method for appointment confirmations
-  async sendAppointmentConfirmation(options: { clinicId: number; phone: string; patientName: string; date: string; time: string; clinicName: string }) {
+  async sendAppointmentConfirmation(options: {
+    clinicId: number;
+    phone: string;
+    patientName: string;
+    date: string;
+    time: string;
+    clinicName: string;
+  }) {
     return this.execute({
       clinicId: options.clinicId,
       phone: options.phone,
@@ -127,10 +140,10 @@ export class SendWhatsAppTemplateUseCase {
             { type: 'text', text: options.patientName },
             { type: 'text', text: options.date },
             { type: 'text', text: options.time },
-            { type: 'text', text: options.clinicName }
-          ]
-        }
-      ]
+            { type: 'text', text: options.clinicName },
+          ],
+        },
+      ],
     });
   }
 }

@@ -17,8 +17,8 @@
 
 // AutomationFlowBuilder.tsx - Main Component
 
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { GitBranch, MessageCircle, Settings } from "lucide-react";
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { GitBranch, MessageCircle, Settings } from 'lucide-react';
 import {
   ReactFlow,
   Background,
@@ -32,27 +32,21 @@ import {
   Node,
   ReactFlowInstance,
   NodeMouseHandler,
-} from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
-import { apiClient } from "@/infrastructure/api-client";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/shared/stores/auth-store";
+import { apiClient } from '@/infrastructure/api-client';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '@/shared/stores/auth-store';
 
-import {
-  AutomationFlowBuilderProps,
-  BuilderNodeData,
-  NodeKind,
-  Template,
-  Member,
-} from "./types";
-import { uid, defaultsByKind, transformAutomationToFlow } from "./utils";
-import { nodeTypes } from "./NodeComponents";
-import { CustomEdge } from "./CustomEdge";
-import { ConfigPanel } from "./ConfigPanel";
-import { Sidebar } from "./Sidebar";
-import { Header } from "./Header";
+import { AutomationFlowBuilderProps, BuilderNodeData, NodeKind, Template, Member } from './types';
+import { uid, defaultsByKind, transformAutomationToFlow } from './utils';
+import { nodeTypes } from './NodeComponents';
+import { CustomEdge } from './CustomEdge';
+import { ConfigPanel } from './ConfigPanel';
+import { Sidebar } from './Sidebar';
+import { Header } from './Header';
 
 function getDraftStorageKey(channelId: string) {
   return `automation_drafts_${channelId}`;
@@ -71,7 +65,7 @@ function saveDraftToStorage(channelId: string, draft: any) {
     const trimmed = drafts.slice(0, 10);
     localStorage.setItem(getDraftStorageKey(channelId), JSON.stringify(trimmed));
   } catch (e) {
-    console.error("Failed to save automation draft:", e);
+    console.error('Failed to save automation draft:', e);
   }
 }
 
@@ -81,10 +75,10 @@ function removeDraftFromStorage(channelId: string, draftId: string) {
     const drafts = raw ? JSON.parse(raw) : [];
     localStorage.setItem(
       getDraftStorageKey(channelId),
-      JSON.stringify(drafts.filter((d: any) => d.id !== draftId))
+      JSON.stringify(drafts.filter((d: any) => d.id !== draftId)),
     );
   } catch (e) {
-    console.error("Failed to remove automation draft:", e);
+    console.error('Failed to remove automation draft:', e);
   }
 }
 
@@ -100,24 +94,20 @@ export default function AutomationFlowBuilder({
 
   const [activeTab, setActiveTab] = useState<'canvas' | 'nodes' | 'config'>('canvas');
 
-  const draftIdRef = useRef<string>(automation?._draftId || `draft_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const draftIdRef = useRef<string>(
+    automation?._draftId || `draft_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  );
   const savedSuccessRef = useRef(false);
   const onDraftSavedRef = useRef(onDraftSaved);
   const nodesRef = useRef<Node<BuilderNodeData>[]>([]);
   const edgesRef = useRef<Edge[]>([]);
-  const nameRef = useRef<string>(automation?.name || "Send a message");
-  const descriptionRef = useRef<string>(automation?.description || "");
-  const triggerRef = useRef<string>(automation?.trigger || "new_conversation");
+  const nameRef = useRef<string>(automation?.name || 'Send a message');
+  const descriptionRef = useRef<string>(automation?.description || '');
+  const triggerRef = useRef<string>(automation?.trigger || 'new_conversation');
 
-  const [name, setName] = useState<string>(
-    automation?.name || "Send a message"
-  );
-  const [description, setDescription] = useState<string>(
-    automation?.description || ""
-  );
-  const [trigger, setTrigger] = useState<string>(
-    automation?.trigger || "new_conversation"
-  );
+  const [name, setName] = useState<string>(automation?.name || 'Send a message');
+  const [description, setDescription] = useState<string>(automation?.description || '');
+  const [trigger, setTrigger] = useState<string>(automation?.trigger || 'new_conversation');
 
   const initialFlowRef = useRef<{
     nodes: Node<BuilderNodeData>[];
@@ -128,25 +118,19 @@ export default function AutomationFlowBuilder({
     initialFlowRef.current = transformAutomationToFlow(automation);
   }
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(
-    initialFlowRef.current?.nodes || []
-  );
-  const [edges, setEdges, onEdgesChange] = useEdgesState(
-    initialFlowRef.current.edges
-  );
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialFlowRef.current?.nodes || []);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlowRef.current.edges);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedId) || null,
-    [nodes, selectedId]
+    [nodes, selectedId],
   );
 
   const onConnect = useCallback(
     (params: Edge | Connection) =>
-      setEdges((eds) =>
-        addEdge({ ...params, animated: true, type: "custom" }, eds)
-      ),
-    [setEdges]
+      setEdges((eds) => addEdge({ ...params, animated: true, type: 'custom' }, eds)),
+    [setEdges],
   );
 
   const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
@@ -158,20 +142,24 @@ export default function AutomationFlowBuilder({
   }, []);
 
   const { data: templates = [] } = useQuery({
-    queryKey: ["whatsapp", "templates", channelId],
+    queryKey: ['whatsapp', 'templates', channelId],
     queryFn: async () => {
       if (!channelId) return [];
-      const { data } = await apiClient.get<{ data: any[] }>('/whatsapp/templates', { params: { channelId } });
+      const { data } = await apiClient.get<{ data: any[] }>('/whatsapp/templates', {
+        params: { channelId },
+      });
       const list = data.data || [];
-      return list.filter((t: any) => t.status?.toUpperCase() === "APPROVED");
+      return list.filter((t: any) => t.status?.toUpperCase() === 'APPROVED');
     },
     enabled: !!channelId,
   });
 
   const { data: members = [] } = useQuery({
-    queryKey: ["staff", "employee"],
+    queryKey: ['staff', 'employee'],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ data: any[] }>('/staff', { params: { category: 'employee' } });
+      const { data } = await apiClient.get<{ data: any[] }>('/staff', {
+        params: { category: 'employee' },
+      });
       return data.data || [];
     },
   });
@@ -195,21 +183,17 @@ export default function AutomationFlowBuilder({
   };
 
   const deleteNode = () => {
-    if (!selectedId || selectedId === "start") return;
+    if (!selectedId || selectedId === 'start') return;
 
     setNodes((nds) => nds.filter((n) => n.id !== selectedId));
-    setEdges((eds) =>
-      eds.filter((e) => e.source !== selectedId && e.target !== selectedId)
-    );
+    setEdges((eds) => eds.filter((e) => e.source !== selectedId && e.target !== selectedId));
     setSelectedId(null);
   };
 
   const patchSelected = (patch: Partial<BuilderNodeData>) => {
     if (!selectedId) return;
     setNodes((nds) =>
-      nds.map((n) =>
-        n.id === selectedId ? { ...n, data: { ...n.data, ...patch } } : n
-      )
+      nds.map((n) => (n.id === selectedId ? { ...n, data: { ...n.data, ...patch } } : n)),
     );
   };
 
@@ -238,18 +222,19 @@ export default function AutomationFlowBuilder({
         removeDraftFromStorage(channelId, draftIdRef.current);
       }
       toast({
-        title: automation?.id ? "Automation updated" : "Automation created",
-        description: "Your automation flow has been saved successfully.",
+        title: automation?.id ? 'Automation updated' : 'Automation created',
+        description: 'Your automation flow has been saved successfully.',
       });
-      queryClient.invalidateQueries({ queryKey: ["wa-automations"] });
+      queryClient.invalidateQueries({ queryKey: ['wa-automations'] });
       onClose();
     },
     onError: (error: any) => {
-      console.error("Save mutation error:", error);
+      console.error('Save mutation error:', error);
       toast({
-        title: "Failed to save automation",
-        description: error?.response?.data?.message || error?.message || "An error occurred while saving.",
-        variant: "error",
+        title: 'Failed to save automation',
+        description:
+          error?.response?.data?.message || error?.message || 'An error occurred while saving.',
+        variant: 'error',
       });
     },
   });
@@ -257,15 +242,15 @@ export default function AutomationFlowBuilder({
   const handleSave = () => {
     if (!name.trim()) {
       toast({
-        title: "Name required",
-        description: "Please enter a name for your automation.",
-        variant: "error",
+        title: 'Name required',
+        description: 'Please enter a name for your automation.',
+        variant: 'error',
       });
       return;
     }
 
     const backendNodes = nodes
-      .filter((n) => n.id !== "start")
+      .filter((n) => n.id !== 'start')
       .map((node) => ({
         ...node,
         position: {
@@ -278,7 +263,7 @@ export default function AutomationFlowBuilder({
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      type: edge.type || "custom",
+      type: edge.type || 'custom',
       animated: edge.animated || true,
     }));
 
@@ -293,7 +278,7 @@ export default function AutomationFlowBuilder({
       }
     });
 
-    const mainEdges = uniqueEdges.filter((e) => e.source !== "start");
+    const mainEdges = uniqueEdges.filter((e) => e.source !== 'start');
 
     const payload = {
       name,
@@ -344,14 +329,12 @@ export default function AutomationFlowBuilder({
       if (!hasContent) return;
 
       const serializableNodes = currentNodes
-        .filter((n) => n.id !== "start")
+        .filter((n) => n.id !== 'start')
         .map((n) => ({
           nodeId: n.id,
           type: n.type,
           position: n.position,
-          data: Object.fromEntries(
-            Object.entries(n.data).filter(([_, v]) => !(v instanceof File))
-          ),
+          data: Object.fromEntries(Object.entries(n.data).filter(([_, v]) => !(v instanceof File))),
         }));
 
       const serializableEdges = currentEdges.map((e) => ({
@@ -362,7 +345,7 @@ export default function AutomationFlowBuilder({
 
       saveDraftToStorage(channelId, {
         id: draftIdRef.current,
-        name: nameRef.current || "Untitled Draft",
+        name: nameRef.current || 'Untitled Draft',
         description: descriptionRef.current,
         trigger: triggerRef.current,
         nodes: serializableNodes,
@@ -399,29 +382,36 @@ export default function AutomationFlowBuilder({
   }, [edges.length, nodes.length, cleanupEdges]);
 
   const onInit = useCallback((reactFlowInstance: any) => {
-    (
-      reactFlowInstance as ReactFlowInstance<Node<BuilderNodeData>, Edge>
-    ).setViewport({ x: 0, y: 0, zoom: 1 });
+    (reactFlowInstance as ReactFlowInstance<Node<BuilderNodeData>, Edge>).setViewport({
+      x: 0,
+      y: 0,
+      zoom: 1,
+    });
   }, []);
 
-  const edgeTypes = useMemo(() => ({
-    custom: (props: any) => <CustomEdge {...props} setEdges={setEdges} />,
-  }), [setEdges]);
+  const edgeTypes = useMemo(
+    () => ({
+      custom: (props: any) => <CustomEdge {...props} setEdges={setEdges} />,
+    }),
+    [setEdges],
+  );
 
   return (
     <div className="flex h-screen w-full bg-slate-50/50 dark:bg-slate-500/5 overflow-hidden font-sans relative">
       {/* Mobile Responsive Overlay Backdrops */}
       {(activeTab === 'nodes' || activeTab === 'config') && (
-        <div 
+        <div
           onClick={() => setActiveTab('canvas')}
           className="fixed inset-0 bg-slate-900/15 backdrop-blur-[2px] z-20 md:hidden transition-all duration-300"
         />
       )}
 
       {/* Sidebar - Flow Nodes */}
-      <div className={`fixed md:relative inset-y-0 left-0 z-30 h-full transition-transform duration-300 md:translate-x-0 shrink-0 md:flex ${
-        activeTab === 'nodes' ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      }`}>
+      <div
+        className={`fixed md:relative inset-y-0 left-0 z-30 h-full transition-transform duration-300 md:translate-x-0 shrink-0 md:flex ${
+          activeTab === 'nodes' ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
         <Sidebar onAddNode={addNode} />
       </div>
 
@@ -437,7 +427,7 @@ export default function AutomationFlowBuilder({
           onClose={onClose}
           onSave={handleSave}
           isSaving={saveMutation.isPending}
-          isDemo={(user as any)?.username === "demouser"}
+          isDemo={(user as any)?.username === 'demouser'}
         />
 
         <div className="flex-1 relative bg-slate-50/40">
@@ -455,7 +445,6 @@ export default function AutomationFlowBuilder({
             minZoom={0.2}
             maxZoom={2}
           >
-
             <Controls className="!bg-[var(--bg-card)]/90 !backdrop-blur-md !border !border-gray-100 !rounded-xl !shadow-md !left-4 !bottom-16 md:!bottom-4 overflow-hidden !m-0 !flex !flex-row" />
             <Background color="#cbd5e1" gap={16} size={1} variant={BackgroundVariant.Dots} />
           </ReactFlow>
@@ -463,9 +452,11 @@ export default function AutomationFlowBuilder({
       </div>
 
       {/* Config Panel - Properties */}
-      <div className={`fixed md:relative inset-y-0 right-0 z-30 h-full transition-transform duration-300 md:translate-x-0 shrink-0 md:flex ${
-        activeTab === 'config' ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
-      }`}>
+      <div
+        className={`fixed md:relative inset-y-0 right-0 z-30 h-full transition-transform duration-300 md:translate-x-0 shrink-0 md:flex ${
+          activeTab === 'config' ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
+        }`}
+      >
         <div className="w-[320px] shrink-0 h-full overflow-hidden bg-[var(--bg-card)] flex flex-col border-l border-gray-100">
           <ConfigPanel
             selected={selectedNode}
@@ -491,7 +482,7 @@ export default function AutomationFlowBuilder({
           <GitBranch size={12} />
           Nodes
         </button>
-        
+
         <button
           onClick={() => setActiveTab('canvas')}
           className={`px-3.5 py-2 rounded-full text-[11px] font-bold transition-all flex items-center gap-1.5 ${
@@ -503,15 +494,15 @@ export default function AutomationFlowBuilder({
           <MessageCircle size={12} />
           Canvas
         </button>
-        
+
         <button
           onClick={() => {
             if (selectedId) {
               setActiveTab('config');
             } else {
               toast({
-                title: "Select a node",
-                description: "Tap any node on the canvas to configure it.",
+                title: 'Select a node',
+                description: 'Tap any node on the canvas to configure it.',
               });
             }
           }}
@@ -519,8 +510,8 @@ export default function AutomationFlowBuilder({
             activeTab === 'config'
               ? 'bg-blue-600 text-white shadow-sm'
               : !selectedId
-              ? 'text-slate-300 cursor-not-allowed'
-              : 'text-slate-600 hover:text-slate-900'
+                ? 'text-slate-300 cursor-not-allowed'
+                : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <Settings size={12} />

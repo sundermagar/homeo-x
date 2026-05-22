@@ -72,7 +72,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   private getCached<T>(key: string, ttlMs: number, fetch: () => Promise<T>): Promise<T> {
     const entry = DashboardRepositoryPg.cache.get(key);
     if (entry && entry.expires > Date.now()) return Promise.resolve(entry.data as T);
-    return fetch().then(data => {
+    return fetch().then((data) => {
       DashboardRepositoryPg.cache.set(key, { data, expires: Date.now() + ttlMs });
       return data;
     });
@@ -86,11 +86,16 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     }
   }
 
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
-  private async getRevenueTableInfo(): Promise<{ name: string; amountCol: string; hasMode: boolean } | null> {
+  private async getRevenueTableInfo(): Promise<{
+    name: string;
+    amountCol: string;
+    hasMode: boolean;
+  } | null> {
     const schemaName = (this.db as any).session?.client?.options?.search_path || 'public';
-    if (DashboardRepositoryPg.cachedRevInfo[schemaName]) return DashboardRepositoryPg.cachedRevInfo[schemaName];
+    if (DashboardRepositoryPg.cachedRevInfo[schemaName])
+      return DashboardRepositoryPg.cachedRevInfo[schemaName];
 
     const res = await this.db.execute(sql`
       SELECT table_name FROM information_schema.tables 
@@ -106,14 +111,19 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       LIMIT 1
     `);
 
-    const info = { name, amountCol: name === 'receipt' ? 'amount' : 'charges', hasMode: !!modeRes[0] };
+    const info = {
+      name,
+      amountCol: name === 'receipt' ? 'amount' : 'charges',
+      hasMode: !!modeRes[0],
+    };
     DashboardRepositoryPg.cachedRevInfo[schemaName] = info;
     return info;
   }
 
   private async getDoctorColumn(): Promise<string> {
     const schemaName = (this.db as any).session?.client?.options?.search_path || 'public';
-    if (DashboardRepositoryPg.cachedDocCol[schemaName]) return DashboardRepositoryPg.cachedDocCol[schemaName];
+    if (DashboardRepositoryPg.cachedDocCol[schemaName])
+      return DashboardRepositoryPg.cachedDocCol[schemaName];
 
     // Prefer 'doctor_id' (modern) over 'assistant_doctor' (legacy). Use explicit schema to avoid public schema interference.
     const res = await this.db.execute(sql`
@@ -135,7 +145,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   private getPeriodDates(p: string) {
     const now = new Date();
-    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
     const istDate = new Date(istString);
     const y = istDate.getFullYear();
     const mm = String(istDate.getMonth() + 1).padStart(2, '0');
@@ -165,7 +175,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       default: // month
         range = {
           start: `${year}-${month}-01`,
-          end: new Date(year, now.getMonth() + 1, 0).toISOString().split('T')[0] || ''
+          end: new Date(year, now.getMonth() + 1, 0).toISOString().split('T')[0] || '',
         };
     }
 
@@ -186,16 +196,19 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       end,
       boundary: endDateBoundary.toISOString().split('T')[0],
       prevStart: prevStartDate.toISOString().split('T')[0],
-      prevBoundary: prevEndDateBoundary.toISOString().split('T')[0]
+      prevBoundary: prevEndDateBoundary.toISOString().split('T')[0],
     };
   }
 
   async getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis> {
     return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 5 * 60_000, async () => {
       const sp = await this.getSearchPath();
-      const isPlatformView = (sp.includes('public') && !sp.includes('tenant_')) || !contextId || contextId === 0;
+      const isPlatformView =
+        (sp.includes('public') && !sp.includes('tenant_')) || !contextId || contextId === 0;
 
-      console.log(`[Dashboard] Context: ${contextId} (${typeof contextId}), Path: ${sp}, Platform: ${isPlatformView}`);
+      console.log(
+        `[Dashboard] Context: ${contextId} (${typeof contextId}), Path: ${sp}, Platform: ${isPlatformView}`,
+      );
 
       if (isPlatformView && !doctorId) {
         console.log(`[Dashboard] Calling getPlatformKpis for period: ${period}`);
@@ -205,9 +218,15 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
       const docCol = await this.getDoctorColumn();
 
-      const docApptFilter = doctorId ? sql` AND (${sql.identifier(docCol)} = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = ${sql.identifier(docCol)} UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = ${sql.identifier(docCol)}))` : sql``;
-      const docWaitFilter = doctorId ? sql` AND (doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = doctor_id))` : sql``;
-      const docBillFilter = doctorId ? sql` AND (b.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = b.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = b.doctor_id))` : sql``;
+      const docApptFilter = doctorId
+        ? sql` AND (${sql.identifier(docCol)} = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = ${sql.identifier(docCol)} UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = ${sql.identifier(docCol)}))`
+        : sql``;
+      const docWaitFilter = doctorId
+        ? sql` AND (doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = doctor_id))`
+        : sql``;
+      const docBillFilter = doctorId
+        ? sql` AND (b.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = b.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = b.doctor_id))`
+        : sql``;
 
       // ── Single round-trip combining counts + finance + wait + followup ──
       // Previously this was 4 parallel sub-queries via Promise.all, but each
@@ -327,16 +346,24 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const currP = counts.curr_patients || 0;
       const prevP = counts.prev_patients || 0;
 
-      const revTrend = prevE > 0 ? ((currE - prevE) / prevE * 100).toFixed(1) : '0.0';
-      const patTrend = prevP > 0 ? ((currP - prevP) / prevP * 100).toFixed(1) : '0.0';
+      const revTrend = prevE > 0 ? (((currE - prevE) / prevE) * 100).toFixed(1) : '0.0';
+      const patTrend = prevP > 0 ? (((currP - prevP) / prevP) * 100).toFixed(1) : '0.0';
 
-      const currRate = Number(finance.curr_charges) > 0 ? Math.round((Number(finance.curr_received) / Number(finance.curr_charges)) * 100) : 0;
-      const prevRate = Number(finance.prev_charges) > 0 ? Math.round((Number(finance.prev_received) / Number(finance.prev_charges)) * 100) : 0;
-      const collTrend = prevRate > 0 ? ((currRate - prevRate) / prevRate * 100).toFixed(1) : '0.0';
+      const currRate =
+        Number(finance.curr_charges) > 0
+          ? Math.round((Number(finance.curr_received) / Number(finance.curr_charges)) * 100)
+          : 0;
+      const prevRate =
+        Number(finance.prev_charges) > 0
+          ? Math.round((Number(finance.prev_received) / Number(finance.prev_charges)) * 100)
+          : 0;
+      const collTrend =
+        prevRate > 0 ? (((currRate - prevRate) / prevRate) * 100).toFixed(1) : '0.0';
 
       const currWait = Number(wait.curr_wait) || 0;
       const prevWait = Number(wait.prev_wait) || 0;
-      const waitTrend = prevWait > 0 ? ((currWait - prevWait) / prevWait * 100).toFixed(1) : '0.0';
+      const waitTrend =
+        prevWait > 0 ? (((currWait - prevWait) / prevWait) * 100).toFixed(1) : '0.0';
 
       const currA = counts.curr_appts || 0;
       const prevA = counts.prev_appts || 0;
@@ -354,22 +381,26 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         collectionRate: currRate,
         collectionRateTrend: collTrend,
         avgWaitTime: currWait,
-        avgWaitTimeTrend: waitTrend
+        avgWaitTimeTrend: waitTrend,
       } as DashboardKpis;
     });
   }
 
   async getTodayQueue(contextId: number, doctorId?: number): Promise<QueueItem[]> {
     const now = new Date();
-    const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
     const istDate = new Date(istString);
     const y = istDate.getFullYear();
     const mm = String(istDate.getMonth() + 1).padStart(2, '0');
     const dd = String(istDate.getDate()).padStart(2, '0');
     const today = `${y}-${mm}-${dd}`;
     return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 5_000, async () => {
-      const waitlistDocFilter = doctorId ? sql` AND (w.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = w.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = w.doctor_id))` : sql``;
-      const apptDocFilter = doctorId ? sql` AND (a.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = a.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = a.doctor_id))` : sql``;
+      const waitlistDocFilter = doctorId
+        ? sql` AND (w.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = w.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = w.doctor_id))`
+        : sql``;
+      const apptDocFilter = doctorId
+        ? sql` AND (a.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = a.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = a.doctor_id))`
+        : sql``;
 
       // Robust date filtering that handles both YYYY-MM-DD and DD/MM/YYYY formats
       const dateCond = sql`(
@@ -481,7 +512,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
       allRows.sort((a, b) => {
         const order: Record<string, number> = {
-          Consultation: 1, Confirmed: 2, Waitlist: 2, Pending: 3, Completed: 4,
+          Consultation: 1,
+          Confirmed: 2,
+          Waitlist: 2,
+          Pending: 3,
+          Completed: 4,
         };
         const aOrd = order[a.status] ?? 5;
         const bOrd = order[b.status] ?? 5;
@@ -489,7 +524,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         return (Number(a.token_no) || 999) - (Number(b.token_no) || 999);
       });
 
-      return allRows.map(r => ({
+      return allRows.map((r) => ({
         id: r.id,
         wlId: r.wl_id,
         patientId: r.patient_id,
@@ -506,68 +541,74 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         updatedAt: r.updated_at,
         visitId: r.visit_id,
         notes: r.notes,
-        vitals: r.systolic_bp || r.weight_kg || r.temperature_f ? {
-          bp: r.systolic_bp && r.diastolic_bp ? `${r.systolic_bp}/${r.diastolic_bp}` : undefined,
-          weight: r.weight_kg,
-          temp: r.temperature_f,
-          // Full fields for VitalsFormModal
-          systolicBp: r.systolic_bp,
-          diastolicBp: r.diastolic_bp,
-          weightKg: r.weight_kg,
-          temperatureF: r.temperature_f,
-          heightCm: r.height_cm,
-          pulseRate: r.pulse_rate,
-          respiratoryRate: r.respiratory_rate,
-          oxygenSaturation: r.oxygen_saturation,
-          notes: r.vital_notes
-        } : undefined,
+        vitals:
+          r.systolic_bp || r.weight_kg || r.temperature_f
+            ? {
+                bp:
+                  r.systolic_bp && r.diastolic_bp
+                    ? `${r.systolic_bp}/${r.diastolic_bp}`
+                    : undefined,
+                weight: r.weight_kg,
+                temp: r.temperature_f,
+                // Full fields for VitalsFormModal
+                systolicBp: r.systolic_bp,
+                diastolicBp: r.diastolic_bp,
+                weightKg: r.weight_kg,
+                temperatureF: r.temperature_f,
+                heightCm: r.height_cm,
+                pulseRate: r.pulse_rate,
+                respiratoryRate: r.respiratory_rate,
+                oxygenSaturation: r.oxygen_saturation,
+                notes: r.vital_notes,
+              }
+            : undefined,
       }));
     });
   }
-
-
-
 
   async getRecentActivity(contextId: number, limit: number): Promise<ActivityItem[]> {
     return this.getCached(`activity:${contextId}:${limit}`, 5 * 60_000, async () => {
       const revInfo = await this.getRevenueTableInfo();
 
-
       const queries: any[] = [];
 
       // Always query appointments
-      queries.push(this.db.execute(sql`
+      queries.push(
+        this.db.execute(sql`
       SELECT 'appointment' as type, 'Appointment - ' || COALESCE(p.first_name, 'Unknown') as title, a.booking_date::text as subtitle, a.created_at
       FROM appointments a LEFT JOIN case_datas p ON a.patient_id = p.id
       WHERE (a.deleted_at IS NULL OR a.deleted_at::text = '')
       AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL OR a.clinic_id = 0 OR a.clinic_id = 1)
       ORDER BY a.id DESC LIMIT ${limit}
-    `));
+    `),
+      );
 
       // Conditionally query revenue table
       if (revInfo) {
-        queries.push(this.db.execute(sql`
+        queries.push(
+          this.db.execute(sql`
         SELECT 'payment' as type, 'Invoice paid - ' || p.first_name as title, 'Rs.' || r.${sql.identifier(revInfo.amountCol)} as subtitle, r.created_at, p.regid
         FROM ${sql.identifier(revInfo.name)} r 
         JOIN case_datas p ON r.regid = p.regid
         WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
         AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL OR r.clinic_id = 0 OR r.clinic_id = 1)
         ORDER BY r.id DESC LIMIT ${limit}
-      `));
+      `),
+        );
       }
 
       const results = await Promise.all(queries);
-      const combined = results.flatMap(res => res as any[]);
+      const combined = results.flatMap((res) => res as any[]);
 
       // Sort combined results by created_at desc
       combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      return combined.slice(0, limit).map(a => ({
+      return combined.slice(0, limit).map((a) => ({
         type: a.type,
         title: a.title,
         subtitle: a.subtitle,
         createdAt: a.created_at,
-        regid: a.regid
+        regid: a.regid,
       }));
     });
   }
@@ -589,7 +630,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getBirthdays(contextId: number): Promise<BirthdayPatient[]> {
     return this.getCached(`birthdays:${contextId}`, 5 * 60_000, async () => {
       const now = new Date();
-      const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+      const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
       const istDate = new Date(istString);
       const mmdd = `${String(istDate.getMonth() + 1).padStart(2, '0')}-${String(istDate.getDate()).padStart(2, '0')}`;
 
@@ -603,23 +644,33 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     });
   }
 
-  async getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]> {
-    return this.getCached(`revSeries:${contextId}:${period}:${paymentMode ?? ''}`, 60_000, async () => {
-      const isPlatformView = (this.db as any).session?.client?.options?.search_path?.includes('public') &&
-        !(this.db as any).session?.client?.options?.search_path?.includes('tenant_');
+  async getRevenueSeries(
+    period: string,
+    contextId: number,
+    paymentMode?: string,
+  ): Promise<RevenueSeries[]> {
+    return this.getCached(
+      `revSeries:${contextId}:${period}:${paymentMode ?? ''}`,
+      60_000,
+      async () => {
+        const isPlatformView =
+          (this.db as any).session?.client?.options?.search_path?.includes('public') &&
+          !(this.db as any).session?.client?.options?.search_path?.includes('tenant_');
 
-      if (isPlatformView) {
-        return this.getPlatformRevenueSeries(period);
-      }
+        if (isPlatformView) {
+          return this.getPlatformRevenueSeries(period);
+        }
 
-      let modeFilter = '';
-      if (paymentMode === 'Cash') {
-        modeFilter = "AND (LOWER(COALESCE(payment_mode, '')) = 'cash' OR payment_mode IS NULL OR payment_mode = '')";
-      } else if (paymentMode === 'UPI/Card') {
-        modeFilter = "AND LOWER(COALESCE(payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')";
-      }
+        let modeFilter = '';
+        if (paymentMode === 'Cash') {
+          modeFilter =
+            "AND (LOWER(COALESCE(payment_mode, '')) = 'cash' OR payment_mode IS NULL OR payment_mode = '')";
+        } else if (paymentMode === 'UPI/Card') {
+          modeFilter =
+            "AND LOWER(COALESCE(payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')";
+        }
 
-      const results = await this.db.execute(sql`
+        const results = await this.db.execute(sql`
       WITH months AS (
         SELECT (date_trunc('month', NOW()) - (m || ' months')::interval)::date as m
         FROM generate_series(0, 5) m
@@ -630,7 +681,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         FROM bills b
         JOIN case_datas pb ON pb.regid = b.regid
         WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months' 
-          ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'b.payment_mode') : "")}
+          ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'b.payment_mode') : '')}
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
           AND pb.regid = b.regid
           AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL OR b.clinic_id = 0 OR b.clinic_id = 1)
@@ -643,7 +694,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         FROM receipt r
         JOIN case_datas pr ON pr.regid = r.regid
         WHERE r.created_at >= date_trunc('month', NOW()) - interval '6 months'
-          ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'r.mode') : "")}
+          ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'r.mode') : '')}
           AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
           AND pr.regid = r.regid
           AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL OR r.clinic_id = 0 OR r.clinic_id = 1)
@@ -657,14 +708,18 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       ORDER BY months.m ASC
     `);
 
-      return (results as any[]).map(r => ({
-        month: r.month,
-        revenue: r.revenue
-      }));
-    });
+        return (results as any[]).map((r) => ({
+          month: r.month,
+          revenue: r.revenue,
+        }));
+      },
+    );
   }
 
-  async getMultiRevenueSeries(period: string, contextId: number): Promise<{ total: RevenueSeries[]; cash: RevenueSeries[]; upi: RevenueSeries[] }> {
+  async getMultiRevenueSeries(
+    period: string,
+    contextId: number,
+  ): Promise<{ total: RevenueSeries[]; cash: RevenueSeries[]; upi: RevenueSeries[] }> {
     return this.getCached(`multiRevSeries:${contextId}:${period}`, 60_000, async () => {
       const { start, end } = this.getPeriodDates(period);
 
@@ -738,15 +793,16 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
       const data = results as any[];
       return {
-        total: data.map(r => ({ month: r.month, revenue: r.total })),
-        cash: data.map(r => ({ month: r.month, revenue: r.cash })),
-        upi: data.map(r => ({ month: r.month, revenue: r.upi })),
+        total: data.map((r) => ({ month: r.month, revenue: r.total })),
+        cash: data.map((r) => ({ month: r.month, revenue: r.cash })),
+        upi: data.map((r) => ({ month: r.month, revenue: r.upi })),
       };
     });
   }
 
   async markReminderDone(id: number): Promise<void> {
-    await this.db.update(schema.caseReminders)
+    await this.db
+      .update(schema.caseReminders)
       .set({ status: 'done' })
       .where(eq(schema.caseReminders.id, id));
   }
@@ -795,7 +851,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           ORDER BY c.created_at DESC
           LIMIT ${limit}
         `);
-        return (results as any[]).map(r => ({
+        return (results as any[]).map((r) => ({
           id: r.id,
           patientName: r.patient_name || 'Patient',
           invoiceNo: r.invoice_no,
@@ -809,7 +865,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     });
   }
 
-
   async getIntelligenceInsights(kpis: DashboardKpis): Promise<IntelligenceInsight[]> {
     const insights: IntelligenceInsight[] = [];
 
@@ -820,36 +875,62 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const collection = Number(kpis?.todaysCollection || 0);
 
     if (revTrend > 0) {
-      insights.push({ color: '#22c55e', text: `Revenue is up ${revTrend}% vs yesterday — clinic is performing well.` });
+      insights.push({
+        color: '#22c55e',
+        text: `Revenue is up ${revTrend}% vs yesterday — clinic is performing well.`,
+      });
     } else if (revTrend < -10) {
-      insights.push({ color: '#ef4444', text: `Revenue dropped ${Math.abs(revTrend)}% vs yesterday. Review billing pipeline.` });
+      insights.push({
+        color: '#ef4444',
+        text: `Revenue dropped ${Math.abs(revTrend)}% vs yesterday. Review billing pipeline.`,
+      });
     } else {
-      insights.push({ color: '#22c55e', text: 'Clinic is running smoothly. Revenue on track with yesterday.' });
+      insights.push({
+        color: '#22c55e',
+        text: 'Clinic is running smoothly. Revenue on track with yesterday.',
+      });
     }
 
     if (collRate > 0 && collRate < 90) {
-      insights.push({ color: '#f59e0b', text: `Collection rate at ${collRate}% — follow up on pending dues to improve cash flow.` });
+      insights.push({
+        color: '#f59e0b',
+        text: `Collection rate at ${collRate}% — follow up on pending dues to improve cash flow.`,
+      });
     } else if (collRate >= 95) {
-      insights.push({ color: '#22c55e', text: `Excellent collection rate of ${collRate}%. Keep it up!` });
+      insights.push({
+        color: '#22c55e',
+        text: `Excellent collection rate of ${collRate}%. Keep it up!`,
+      });
     }
 
     if (avgWait > 20) {
-      insights.push({ color: '#f59e0b', text: `Average wait time is ${avgWait} min — consider calling extra staff or adjusting scheduling.` });
+      insights.push({
+        color: '#f59e0b',
+        text: `Average wait time is ${avgWait} min — consider calling extra staff or adjusting scheduling.`,
+      });
     } else if (avgWait > 0) {
-      insights.push({ color: '#22c55e', text: `Average wait time of ${avgWait} min is within target range.` });
+      insights.push({
+        color: '#22c55e',
+        text: `Average wait time of ${avgWait} min is within target range.`,
+      });
     }
 
     if (patTrend > 0) {
-      insights.push({ color: '#3b82f6', text: `Patient visits up ${patTrend}% today — ensure adequate staffing.` });
+      insights.push({
+        color: '#3b82f6',
+        text: `Patient visits up ${patTrend}% today — ensure adequate staffing.`,
+      });
     }
 
     if (collection === 0) {
-      insights.push({ color: '#94a3b8', text: 'No collections recorded yet today. Start seeing patients to track revenue.' });
+      insights.push({
+        color: '#94a3b8',
+        text: 'No collections recorded yet today. Start seeing patients to track revenue.',
+      });
     }
 
     return insights.slice(0, 3);
   }
-
 
   // ─── Clinic Admin Dashboard ──────────────────────────────────────────────────
 
@@ -860,7 +941,15 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const revInfo = await this.getRevenueTableInfo();
 
       if (!revInfo) {
-        return { physicalCurrency: 0, physicalCurrencyPct: 0, upiCard: 0, upiCardPct: 0, pending: 0, pendingCount: 0, perPatient: 0 };
+        return {
+          physicalCurrency: 0,
+          physicalCurrencyPct: 0,
+          upiCard: 0,
+          upiCardPct: 0,
+          pending: 0,
+          pendingCount: 0,
+          perPatient: 0,
+        };
       }
 
       const amountCol = revInfo.amountCol;
@@ -905,13 +994,16 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           SELECT count(*)::int as cnt FROM case_datas
           WHERE created_at::date BETWEEN ${start} AND ${boundary}
             AND (deleted_at IS NULL OR deleted_at::text = '')
-        `)
+        `),
       ]);
 
       const combined = (combinedRes as any[])[0] || {};
       const cashTotal = Number(combined.cash_total) || 0;
       const upiCardTotal = Number(combined.upi_total) || 0;
-      const pendingTotal = Math.max(0, (Number(combined.pending_charges) || 0) - (Number(combined.pending_received) || 0));
+      const pendingTotal = Math.max(
+        0,
+        (Number(combined.pending_charges) || 0) - (Number(combined.pending_received) || 0),
+      );
       const pendingCount = Number(combined.pending_count) || 0;
 
       const grandTotal = cashTotal + upiCardTotal || 1;
@@ -934,7 +1026,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     return this.getCached(`topBilling:${contextId}:${period}:${limit}`, 60_000, async () => {
       const { start, boundary } = this.getPeriodDates(period);
 
-      const results = await this.db.execute(sql`
+      const results = (await this.db.execute(sql`
         SELECT b.id, NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.surname, '')), '') as patient_name,
                p.regid,
                b.charges as total,
@@ -950,9 +1042,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           AND (p.clinic_id = ${contextId} OR p.clinic_id IS NULL)
         ORDER BY b.charges DESC NULLS LAST
         LIMIT ${limit}
-      `) as any[];
+      `)) as any[];
 
-      return (results as any[]).map(r => ({
+      return (results as any[]).map((r) => ({
         id: r.id,
         patientName: r.patient_name || 'Unknown',
         regid: r.regid,
@@ -1015,13 +1107,20 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const totalCharges = Number(combined.curr_charges) || 0;
       const totalReceived = Number(combined.curr_received) || 0;
       const avgWaitTime = ((waitRes as any[])[0] as any)?.avg_wait || 0;
-      const collectionRate = totalCharges > 0 ? Math.round((totalReceived / totalCharges) * 100) : 0;
+      const collectionRate =
+        totalCharges > 0 ? Math.round((totalReceived / totalCharges) * 100) : 0;
 
       const prevRevenue = Number(combined.prev_revenue) || 0;
       const prevPatients = Number(combined.prev_patients) || 0;
 
-      const revenueTarget = Math.max(Math.round((prevRevenue > 0 ? prevRevenue : revenue > 0 ? revenue : 1000) * 1.15), 5000);
-      const patientsTarget = Math.max(Math.round((prevPatients > 0 ? prevPatients : patients > 0 ? patients : 5) * 1.15), 10);
+      const revenueTarget = Math.max(
+        Math.round((prevRevenue > 0 ? prevRevenue : revenue > 0 ? revenue : 1000) * 1.15),
+        5000,
+      );
+      const patientsTarget = Math.max(
+        Math.round((prevPatients > 0 ? prevPatients : patients > 0 ? patients : 5) * 1.15),
+        10,
+      );
       const collectionTarget = 95;
       const waitTimeTarget = 20;
 
@@ -1031,21 +1130,36 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           current: revenue,
           target: revenueTarget,
           unit: '₹',
-          status: revenue >= revenueTarget ? 'success' : revenue >= revenueTarget * 0.7 ? 'warning' : 'danger',
+          status:
+            revenue >= revenueTarget
+              ? 'success'
+              : revenue >= revenueTarget * 0.7
+                ? 'warning'
+                : 'danger',
         },
         {
           label: 'Patients seen',
           current: patients,
           target: patientsTarget,
           unit: '',
-          status: patients >= patientsTarget ? 'success' : patients >= patientsTarget * 0.7 ? 'warning' : 'danger',
+          status:
+            patients >= patientsTarget
+              ? 'success'
+              : patients >= patientsTarget * 0.7
+                ? 'warning'
+                : 'danger',
         },
         {
           label: 'Collection rate',
           current: collectionRate,
           target: collectionTarget,
           unit: '%',
-          status: collectionRate >= collectionTarget ? 'success' : collectionRate >= collectionTarget - 5 ? 'warning' : 'danger',
+          status:
+            collectionRate >= collectionTarget
+              ? 'success'
+              : collectionRate >= collectionTarget - 5
+                ? 'warning'
+                : 'danger',
         },
         {
           label: 'Avg wait time',
@@ -1058,13 +1172,17 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     });
   }
 
-  async getStaffOnDuty(contextId: number): Promise<{ name: string; role: string; count?: number }[]> {
+  async getStaffOnDuty(
+    contextId: number,
+  ): Promise<{ name: string; role: string; count?: number }[]> {
     return this.getCached(`staff:${contextId}`, 60_000, async () => {
       const docCol = await this.getDoctorColumn();
       const today = new Date().toISOString().split('T')[0]!;
 
       const [uRes, dRes] = await Promise.all([
-        this.db.execute(sql`
+        this.db
+          .execute(
+            sql`
         SELECT u.name, u.type as specialty, count(a.id)::int as visit_count
         FROM users u
         LEFT JOIN appointments a ON a.${sql.identifier(docCol)} = u.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
@@ -1072,25 +1190,32 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           AND u.type IN ('Doctor', 'Staff', 'Receptionist', 'Clinicadmin')
         GROUP BY u.name, u.type
         LIMIT 20
-      `).catch(() => []),
-        this.db.execute(sql`
+      `,
+          )
+          .catch(() => []),
+        this.db
+          .execute(
+            sql`
         SELECT d.name, d.designation as specialty, count(a.id)::int as visit_count
         FROM doctors d
         LEFT JOIN appointments a ON a.${sql.identifier(docCol)} = d.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
         WHERE (d.deleted_at IS NULL OR d.deleted_at::text = '')
         GROUP BY d.name, d.designation
         LIMIT 20
-      `).catch(() => [])
+      `,
+          )
+          .catch(() => []),
       ]);
-
-
 
       const combined = [...(uRes as any[]), ...(dRes as any[])];
 
       // Sort and de-duplicate by name
       const uniqueMap = new Map();
-      combined.forEach(r => {
-        if (!uniqueMap.has(r.name) || (Number(r.visit_count) > Number(uniqueMap.get(r.name).visit_count))) {
+      combined.forEach((r) => {
+        if (
+          !uniqueMap.has(r.name) ||
+          Number(r.visit_count) > Number(uniqueMap.get(r.name).visit_count)
+        ) {
           uniqueMap.set(r.name, r);
         }
       });
@@ -1098,7 +1223,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const result = Array.from(uniqueMap.values());
       result.sort((a, b) => (Number(b.visit_count) || 0) - (Number(a.visit_count) || 0));
 
-      return result.map(r => ({
+      return result.map((r) => ({
         name: r.name || 'Unknown',
         role: r.specialty || 'Doctor',
         count: r.visit_count,
@@ -1109,9 +1234,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getPlatformStats(): Promise<PlatformStats> {
     return this.getCached('platformStats', 30_000, async () => {
       // 1. Get all tenant schemas directly from the database catalog
-      const schemas = await this.db.execute(sql`
+      const schemas = (await this.db.execute(sql`
         SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
-      `) as any[];
+      `)) as any[];
 
       let totalPlatformRev = 0;
       let totalPlatformDues = 0;
@@ -1120,13 +1245,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       for (const s of schemas) {
         const schema = s.schema_name;
         try {
-          const stats = await this.db.execute(sql`
+          const stats = (await this.db.execute(sql`
             SELECT 
               COALESCE(sum(received), 0)::numeric as rev,
               COALESCE(sum(charges - received), 0)::numeric as dues
             FROM ${sql.identifier(schema)}.bills
             WHERE (deleted_at IS NULL OR deleted_at::text = '')
-          `) as any[];
+          `)) as any[];
 
           if (stats[0]) {
             totalPlatformRev += Number(stats[0].rev) || 0;
@@ -1138,11 +1263,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         }
       }
 
-      const userStats = await this.db.execute(sql`
+      const userStats = (await this.db.execute(sql`
         SELECT
           (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true) as user_count,
           (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true AND type = 'Clinicadmin') as admin_count
-      `) as any[];
+      `)) as any[];
 
       const res = userStats[0] || {};
       const clinicCount = schemas.length || 1;
@@ -1159,20 +1284,27 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getPlatformKpis(period: string): Promise<DashboardKpis> {
     return this.getCached(`platformKpis:${period}`, 30_000, async () => {
-      const schemas = await this.db.execute(sql`
+      const schemas = (await this.db.execute(sql`
         SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
-      `) as any[];
+      `)) as any[];
 
-      let totalP = 0, prevP = 0, totalA = 0, prevA = 0, totalRev = 0, prevRev = 0;
-      let totalWait = 0, waitCount = 0;
+      let totalP = 0,
+        prevP = 0,
+        totalA = 0,
+        prevA = 0,
+        totalRev = 0,
+        prevRev = 0;
+      let totalWait = 0,
+        waitCount = 0;
 
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
 
-      const schemaResults = await Promise.all(schemas.map(async (s) => {
-        const schema = s.schema_name;
-        try {
-          const results = await Promise.all([
-            this.db.execute(sql`
+      const schemaResults = await Promise.all(
+        schemas.map(async (s) => {
+          const schema = s.schema_name;
+          try {
+            const results = await Promise.all([
+              this.db.execute(sql`
               SELECT
                 count(*) FILTER (WHERE type = 'P' AND created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp)::int as curr_p,
                 count(*) FILTER (WHERE type = 'P' AND created_at >= ${prevStart}::timestamp AND created_at < ${prevBoundary}::timestamp)::int as prev_p,
@@ -1190,7 +1322,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
                 WHERE (deleted_at IS NULL OR deleted_at::text = '')
               ) t
             `),
-            this.db.execute(sql`
+              this.db.execute(sql`
               SELECT 
                 COALESCE(sum(amount), 0)::numeric as curr_rev
               FROM (
@@ -1199,19 +1331,20 @@ export class DashboardRepositoryPg implements IDashboardRepository {
                 SELECT CAST(NULLIF(amount::text, '') AS numeric) FROM ${sql.identifier(schema)}.receipt WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp AND (deleted_at IS NULL OR deleted_at::text = '')
               ) r
             `),
-            this.db.execute(sql`
+              this.db.execute(sql`
               SELECT COALESCE(avg(extract(epoch from (called_at - checked_in_at))/60), 0)::int as wait_time
               FROM ${sql.identifier(schema)}.waitlist
               WHERE date >= ${start}::date AND date < ${boundary}::date AND called_at IS NOT NULL
-            `)
-          ]);
+            `),
+            ]);
 
-          return { schema, results };
-        } catch (e: any) {
-          console.error(`[Platform KPI] Schema ${schema} failed:`, e?.message);
-          return null;
-        }
-      }));
+            return { schema, results };
+          } catch (e: any) {
+            console.error(`[Platform KPI] Schema ${schema} failed:`, e?.message);
+            return null;
+          }
+        }),
+      );
 
       for (const res of schemaResults) {
         if (!res) continue;
@@ -1220,11 +1353,15 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         const rev = Number(f[0]?.curr_rev) || 0;
 
         if (c0.curr_p > 0 || rev > 0) {
-          console.log(`[Platform KPI] Schema ${res.schema} - Patients: ${c0.curr_p}, Revenue: ${rev}`);
+          console.log(
+            `[Platform KPI] Schema ${res.schema} - Patients: ${c0.curr_p}, Revenue: ${rev}`,
+          );
         }
 
-        totalP += c0.curr_p || 0; prevP += c0.prev_p || 0;
-        totalA += c0.curr_a || 0; prevA += c0.prev_a || 0;
+        totalP += c0.curr_p || 0;
+        prevP += c0.prev_p || 0;
+        totalA += c0.curr_a || 0;
+        prevA += c0.prev_a || 0;
         totalRev += rev;
 
         const w0: any = w[0] || {};
@@ -1236,9 +1373,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
       return {
         newPatientsCount: totalP,
-        patientTrend: prevP > 0 ? ((totalP - prevP) / prevP * 100).toFixed(1) : '0.0',
+        patientTrend: prevP > 0 ? (((totalP - prevP) / prevP) * 100).toFixed(1) : '0.0',
         casesCount: totalA,
-        casesTrend: prevA > 0 ? ((totalA - prevA) / prevA * 100).toFixed(1) : '0.0',
+        casesTrend: prevA > 0 ? (((totalA - prevA) / prevA) * 100).toFixed(1) : '0.0',
         todaysCollection: totalRev,
         revenueTrend: '0.0', // Complex to calculate platform-wide prev period revenue in a loop
         followUpsCount: 0,
@@ -1246,16 +1383,16 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         collectionRate: 100,
         collectionRateTrend: '0.0',
         avgWaitTime: waitCount > 0 ? Math.round(totalWait / waitCount) : 0,
-        avgWaitTimeTrend: '0.0'
+        avgWaitTimeTrend: '0.0',
       };
     });
   }
 
   async getPlatformRevenueSeries(period: string): Promise<RevenueSeries[]> {
     return this.getCached(`platformRevSeries:${period}`, 60_000, async () => {
-      const schemas = await this.db.execute(sql`
+      const schemas = (await this.db.execute(sql`
         SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
-      `) as any[];
+      `)) as any[];
 
       const months = Array.from({ length: 6 }, (_, i) => {
         const d = new Date();
@@ -1263,14 +1400,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         return {
           month: d.toLocaleString('default', { month: 'short' }),
           revenue: 0,
-          date: d
+          date: d,
         };
       });
 
       for (const s of schemas) {
         const schema = s.schema_name;
         try {
-          const results = await this.db.execute(sql`
+          const results = (await this.db.execute(sql`
             SELECT to_char(date_trunc('month', r.date), 'Mon') as month, sum(r.amount)::int as revenue
             FROM (
               SELECT bill_date as date, received as amount FROM ${sql.identifier(schema)}.bills WHERE bill_date >= date_trunc('month', NOW()) - interval '6 months' AND (deleted_at IS NULL OR deleted_at::text = '')
@@ -1278,16 +1415,18 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               SELECT created_at::date as date, CAST(NULLIF(amount::text, '') AS numeric) as amount FROM ${sql.identifier(schema)}.receipt WHERE created_at >= date_trunc('month', NOW()) - interval '6 months' AND (deleted_at IS NULL OR deleted_at::text = '')
             ) r
             GROUP BY 1
-          `) as any[];
+          `)) as any[];
 
           for (const r of results) {
-            const m = months.find(m => m.month === r.month);
+            const m = months.find((m) => m.month === r.month);
             if (m) m.revenue += r.revenue || 0;
           }
-        } catch (e) { continue; }
+        } catch (e) {
+          continue;
+        }
       }
 
-      return months.map(m => ({ month: m.month, revenue: m.revenue }));
+      return months.map((m) => ({ month: m.month, revenue: m.revenue }));
     });
   }
 }

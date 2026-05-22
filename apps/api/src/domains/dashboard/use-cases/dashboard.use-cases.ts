@@ -1,10 +1,5 @@
-import type {
-  IDashboardRepository
-} from '../ports/dashboard.repository.js';
-import type {
-  UnifiedDashboardData,
-  ClinicAdminDashboardData,
-} from '@mmc/types';
+import type { IDashboardRepository } from '../ports/dashboard.repository.js';
+import type { UnifiedDashboardData, ClinicAdminDashboardData } from '@mmc/types';
 import { type Result } from '../../../shared/result.js';
 
 export class DashboardUseCases {
@@ -13,7 +8,7 @@ export class DashboardUseCases {
   async getUnifiedDashboard(
     period: string,
     contextId: number,
-    user: { type: string; contextId: number; id: number }
+    user: { type: string; contextId: number; id: number },
   ): Promise<Result<UnifiedDashboardData>> {
     const safe = async <T>(fn: () => Promise<T>, label: string, fallback: T): Promise<T> => {
       const start = Date.now();
@@ -29,14 +24,16 @@ export class DashboardUseCases {
     };
 
     try {
-      const isAdmin = ['superadmin', 'admin', 'clinicadmin'].includes((user.type || '').toLowerCase());
+      const isAdmin = ['superadmin', 'admin', 'clinicadmin'].includes(
+        (user.type || '').toLowerCase(),
+      );
       const isDoctor = !isAdmin && (user.type || '').toLowerCase() === 'doctor';
       // Appointments store the legacy doctors.id, which doesn't always match the logged-in users.id.
       // Resolve to the correct id so queries return real data instead of empty results.
       const doctorId = isDoctor
-        ? (this.repository.resolveDoctorIdForUser
-            ? await this.repository.resolveDoctorIdForUser(user.id)
-            : user.id)
+        ? this.repository.resolveDoctorIdForUser
+          ? await this.repository.resolveDoctorIdForUser(user.id)
+          : user.id
         : undefined;
 
       const parallelStart = Date.now();
@@ -69,19 +66,23 @@ export class DashboardUseCases {
         safe(() => this.repository.getPendingReminders(contextId, 5), 'getPendingReminders', []),
         safe(() => this.repository.getBirthdays(contextId), 'getBirthdays', []),
         safe(() => this.repository.getRevenueSeries(period, contextId), 'getRevenueSeries', []),
-        (['superadmin', 'admin'].includes(user.type.toLowerCase()))
+        ['superadmin', 'admin'].includes(user.type.toLowerCase())
           ? safe(() => this.repository.getPlatformStats(), 'getPlatformStats', undefined)
           : Promise.resolve(undefined),
-        safe(() => this.repository.getRecentTransactions(5, contextId), 'getRecentTransactions', []),
+        safe(
+          () => this.repository.getRecentTransactions(5, contextId),
+          'getRecentTransactions',
+          [],
+        ),
       ]);
       console.log(`[Dashboard] all parallel queries finished in ${Date.now() - parallelStart}ms`);
 
       const intelligenceInsights = await safe(
         () => this.repository.getIntelligenceInsights(kpis),
         'getIntelligenceInsights',
-        [{ color: '#22c55e', text: 'Clinic is running smoothly.' }]
+        [{ color: '#22c55e', text: 'Clinic is running smoothly.' }],
       );
- 
+
       return {
         success: true,
         data: {
@@ -95,7 +96,7 @@ export class DashboardUseCases {
           platformStats,
           recentTransactions,
           intelligenceInsights,
-        }
+        },
       };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -113,7 +114,7 @@ export class DashboardUseCases {
 
   async getClinicAdminDashboard(
     period: string,
-    contextId: number
+    contextId: number,
   ): Promise<Result<ClinicAdminDashboardData>> {
     try {
       const safe = async <T>(fn: () => Promise<T>, label: string, fallback: T): Promise<T> => {
@@ -130,40 +131,64 @@ export class DashboardUseCases {
       };
 
       const parallelStart = Date.now();
-      const [kpis, revenueBreakdown, topBilling, targets, staffOnDuty, recentActivity, queue, multiSeries] =
-        await Promise.all([
-          safe(() => this.repository.getKpis(period, contextId), 'getKpis', {
-            newPatientsCount: 0, followUpsCount: 0, todaysCollection: 0,
-            todaysExpenses: 0, revenueTrend: 0, patientTrend: 0,
-            collectionRate: 0, collectionRateTrend: 0,
-            avgWaitTime: 0, avgWaitTimeTrend: 0,
-            casesCount: 0, casesTrend: 0,
-          }),
-          safe(() => this.repository.getRevenueBreakdown(period, contextId), 'getRevenueBreakdown', {
-            physicalCurrency: 0, physicalCurrencyPct: 0, upiCard: 0,
-            upiCardPct: 0, pending: 0, pendingCount: 0, perPatient: 0,
-          }),
-          safe(() => this.repository.getTopBilling(period, 5, contextId), 'getTopBilling', []),
-          safe(() => this.repository.getMonthlyTargets(period, contextId), 'getMonthlyTargets', []),
-          safe(() => this.repository.getStaffOnDuty(contextId), 'getStaffOnDuty', []),
-          safe(() => this.repository.getRecentActivity(contextId, 5), 'getRecentActivity', []),
-          safe(() => this.repository.getTodayQueue(contextId), 'getTodayQueue', []),
-          safe(() => this.repository.getMultiRevenueSeries(period, contextId), 'getMultiRevenueSeries', { total: [], cash: [], upi: [] }),
-        ]);
+      const [
+        kpis,
+        revenueBreakdown,
+        topBilling,
+        targets,
+        staffOnDuty,
+        recentActivity,
+        queue,
+        multiSeries,
+      ] = await Promise.all([
+        safe(() => this.repository.getKpis(period, contextId), 'getKpis', {
+          newPatientsCount: 0,
+          followUpsCount: 0,
+          todaysCollection: 0,
+          todaysExpenses: 0,
+          revenueTrend: 0,
+          patientTrend: 0,
+          collectionRate: 0,
+          collectionRateTrend: 0,
+          avgWaitTime: 0,
+          avgWaitTimeTrend: 0,
+          casesCount: 0,
+          casesTrend: 0,
+        }),
+        safe(() => this.repository.getRevenueBreakdown(period, contextId), 'getRevenueBreakdown', {
+          physicalCurrency: 0,
+          physicalCurrencyPct: 0,
+          upiCard: 0,
+          upiCardPct: 0,
+          pending: 0,
+          pendingCount: 0,
+          perPatient: 0,
+        }),
+        safe(() => this.repository.getTopBilling(period, 5, contextId), 'getTopBilling', []),
+        safe(() => this.repository.getMonthlyTargets(period, contextId), 'getMonthlyTargets', []),
+        safe(() => this.repository.getStaffOnDuty(contextId), 'getStaffOnDuty', []),
+        safe(() => this.repository.getRecentActivity(contextId, 5), 'getRecentActivity', []),
+        safe(() => this.repository.getTodayQueue(contextId), 'getTodayQueue', []),
+        safe(
+          () => this.repository.getMultiRevenueSeries(period, contextId),
+          'getMultiRevenueSeries',
+          { total: [], cash: [], upi: [] },
+        ),
+      ]);
       console.log(`[ClinicAdmin] all parallel queries finished in ${Date.now() - parallelStart}ms`);
- 
+
       const { total: revenueSeries, cash: cashSeries, upi: upiSeries } = multiSeries;
- 
+
       const now = new Date();
       let weekLabel = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-      
+
       if (period === 'year') weekLabel = `Year ${now.getFullYear()}`;
       if (period === 'day') weekLabel = `Today, ${now.toLocaleDateString()}`;
       if (period === 'week') {
-        const weekNum = Math.ceil((now.getDate()) / 7);
+        const weekNum = Math.ceil(now.getDate() / 7);
         weekLabel = `${now.toLocaleString('default', { month: 'long' })} · Week ${weekNum}`;
       }
- 
+
       return {
         success: true,
         data: {
@@ -185,7 +210,7 @@ export class DashboardUseCases {
           queue,
           staffOnDuty,
           weekLabel,
-        }
+        },
       };
     } catch (err: any) {
       return { success: false, error: err.message };

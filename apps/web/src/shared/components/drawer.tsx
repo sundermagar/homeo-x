@@ -11,13 +11,7 @@ interface DrawerProps {
   maxWidth?: string;
 }
 
-export function Drawer({
-  isOpen,
-  onClose,
-  title,
-  children,
-  maxWidth = '500px',
-}: DrawerProps) {
+export function Drawer({ isOpen, onClose, title, children, maxWidth = '500px' }: DrawerProps) {
   // Prevent body scroll when drawer is open
   useEffect(() => {
     if (isOpen) {
@@ -43,22 +37,16 @@ export function Drawer({
 
   return createPortal(
     <div className="drawer-overlay" onClick={onClose}>
-      <div 
-        className="drawer-content" 
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth }}
-      >
+      <div className="drawer-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth }}>
         <div className="drawer-header">
           <h2 className="drawer-title">{title}</h2>
           <button className="drawer-close-btn" onClick={onClose} aria-label="Close drawer">
             <X size={20} />
           </button>
         </div>
-        <div className="drawer-body">
-          {children}
-        </div>
+        <div className="drawer-body">{children}</div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

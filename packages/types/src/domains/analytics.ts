@@ -15,7 +15,7 @@ export interface MonthWiseResult {
   displaydate: string;
   new_cases: number;
   followups: number;
-  collection: number;   
+  collection: number;
   cash: number;
   cheque: number;
   online: number;

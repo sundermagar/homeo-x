@@ -1,5 +1,11 @@
 import type { DepositRepository } from '../ports/accounts.repository.js';
-import type { CreateBankDepositInput, CreateCashDepositInput, UpdateBankDepositInput, UpdateCashDepositInput, ListDepositsQuery } from '@mmc/validation';
+import type {
+  CreateBankDepositInput,
+  CreateCashDepositInput,
+  UpdateBankDepositInput,
+  UpdateCashDepositInput,
+  ListDepositsQuery,
+} from '@mmc/validation';
 import type { BankDeposit, CashDeposit } from '@mmc/types';
 
 export interface DepositResult {

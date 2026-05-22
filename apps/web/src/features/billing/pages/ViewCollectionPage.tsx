@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  TrendingUp, TrendingDown, DollarSign, CreditCard, Building2,
-  Calendar, Search, Filter, Download, RefreshCw, Target, ChevronRight
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  CreditCard,
+  Building2,
+  Calendar,
+  Search,
+  Filter,
+  Download,
+  RefreshCw,
+  Target,
+  ChevronRight,
 } from 'lucide-react';
 import { useCollectionSummary, useDailyCollection } from '../hooks/use-billing';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -11,14 +21,12 @@ import '../styles/billing.css';
 
 export default function ViewCollectionPage() {
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState(
-    () => new Date().toISOString().split('T')[0]
-  );
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [activeView, setActiveView] = useState<'collection' | 'deposit' | 'expense'>('collection');
 
   const { data: collection, isLoading, refetch } = useDailyCollection(selectedDate);
   const { data: summary } = useCollectionSummary(selectedDate);
-  const user = useAuthStore(s => s.user);
+  const user = useAuthStore((s) => s.user);
 
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
@@ -42,11 +50,26 @@ export default function ViewCollectionPage() {
 
   // Calculate payment mode breakdown
   const paymentBreakdown = {
-    cash: collection?.records?.filter(r => r.paymentMode === 'Cash').reduce((s, r) => s + (r.received || 0), 0) || 0,
-    card: collection?.records?.filter(r => r.paymentMode === 'Card').reduce((s, r) => s + (r.received || 0), 0) || 0,
-    cheque: collection?.records?.filter(r => r.paymentMode === 'Cheque').reduce((s, r) => s + (r.received || 0), 0) || 0,
-    online: collection?.records?.filter(r => r.paymentMode === 'Online').reduce((s, r) => s + (r.received || 0), 0) || 0,
-    other: collection?.records?.filter(r => !['Cash', 'Card', 'Cheque', 'Online'].includes(r.paymentMode || '')).reduce((s, r) => s + (r.received || 0), 0) || 0,
+    cash:
+      collection?.records
+        ?.filter((r) => r.paymentMode === 'Cash')
+        .reduce((s, r) => s + (r.received || 0), 0) || 0,
+    card:
+      collection?.records
+        ?.filter((r) => r.paymentMode === 'Card')
+        .reduce((s, r) => s + (r.received || 0), 0) || 0,
+    cheque:
+      collection?.records
+        ?.filter((r) => r.paymentMode === 'Cheque')
+        .reduce((s, r) => s + (r.received || 0), 0) || 0,
+    online:
+      collection?.records
+        ?.filter((r) => r.paymentMode === 'Online')
+        .reduce((s, r) => s + (r.received || 0), 0) || 0,
+    other:
+      collection?.records
+        ?.filter((r) => !['Cash', 'Card', 'Cheque', 'Online'].includes(r.paymentMode || ''))
+        .reduce((s, r) => s + (r.received || 0), 0) || 0,
   };
 
   return (
@@ -157,15 +180,21 @@ export default function ViewCollectionPage() {
       <div className="quick-stats-row">
         <div className="quick-stat">
           <span className="quick-stat-label">Total Charges</span>
-          <span className="quick-stat-value">₹{(collection?.totalCharges || 0).toLocaleString('en-IN')}</span>
+          <span className="quick-stat-value">
+            ₹{(collection?.totalCharges || 0).toLocaleString('en-IN')}
+          </span>
         </div>
         <div className="quick-stat">
           <span className="quick-stat-label">Received</span>
-          <span className="quick-stat-value success">₹{(collection?.totalReceived || 0).toLocaleString('en-IN')}</span>
+          <span className="quick-stat-value success">
+            ₹{(collection?.totalReceived || 0).toLocaleString('en-IN')}
+          </span>
         </div>
         <div className="quick-stat">
           <span className="quick-stat-label">Balance Pending</span>
-          <span className="quick-stat-value danger">₹{(collection?.totalBalance || 0).toLocaleString('en-IN')}</span>
+          <span className="quick-stat-value danger">
+            ₹{(collection?.totalBalance || 0).toLocaleString('en-IN')}
+          </span>
         </div>
         <div className="quick-stat">
           <span className="quick-stat-label">Transactions</span>
@@ -234,30 +263,45 @@ export default function ViewCollectionPage() {
                       <div>{record.phone || '—'}</div>
                     </td>
                     <td data-label="Charges" className="charges">
-                      <div className="plat-cell-val">₹{(record.charges || 0).toLocaleString('en-IN')}</div>
+                      <div className="plat-cell-val">
+                        ₹{(record.charges || 0).toLocaleString('en-IN')}
+                      </div>
                     </td>
                     <td data-label="Received" className="received success">
-                      <div className="plat-cell-val">₹{(record.received || 0).toLocaleString('en-IN')}</div>
+                      <div className="plat-cell-val">
+                        ₹{(record.received || 0).toLocaleString('en-IN')}
+                      </div>
                     </td>
-                    <td data-label="Balance" className={`balance ${(record.balance || 0) > 0 ? 'pending' : 'paid'}`}>
-                      <div className="plat-cell-val">₹{(record.balance || 0).toLocaleString('en-IN')}</div>
+                    <td
+                      data-label="Balance"
+                      className={`balance ${(record.balance || 0) > 0 ? 'pending' : 'paid'}`}
+                    >
+                      <div className="plat-cell-val">
+                        ₹{(record.balance || 0).toLocaleString('en-IN')}
+                      </div>
                     </td>
                     <td data-label="Mode">
                       <div className="plat-cell-val">
-                        <span className={`payment-badge ${record.paymentMode?.toLowerCase() || 'cash'}`}>
+                        <span
+                          className={`payment-badge ${record.paymentMode?.toLowerCase() || 'cash'}`}
+                        >
                           {record.paymentMode || 'Cash'}
                         </span>
                       </div>
                     </td>
                     <td data-label="Date" className="date">
-                      <div>{record.billDate ? new Date(record.billDate).toLocaleDateString('en-GB') : '—'}</div>
+                      <div>
+                        {record.billDate
+                          ? new Date(record.billDate).toLocaleDateString('en-GB')
+                          : '—'}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : (
-            <EmptyState 
+            <EmptyState
               icon={DollarSign}
               title="No collection records"
               description={`No billing records were found for ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}.`}

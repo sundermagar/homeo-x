@@ -18,7 +18,7 @@ export class JobScheduler {
     private readonly smsUseCase: SendSmsUseCase,
     private readonly waRepo?: WhatsAppRepository,
     private readonly waGateway?: WhatsAppGateway,
-  ) { }
+  ) {}
 
   public start() {
     logger.info('Starting internal job scheduler...');
@@ -47,7 +47,7 @@ export class JobScheduler {
     try {
       logger.info('[Job] Running Appointment Reminders...');
       const now = new Date();
-      const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+      const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
       const istDate = new Date(istString);
 
       // Calculate tomorrow in IST
@@ -59,14 +59,14 @@ export class JobScheduler {
       const dd = String(tomorrow.getDate()).padStart(2, '0');
       const dateStr = `${y}-${mm}-${dd}`;
 
-      // Assuming findMany is available on repo. 
+      // Assuming findMany is available on repo.
       // For now, let's use the execute method pattern if available.
       // We'll peek at the appointments for tomorrow.
       const res = await this.appointmentRepo.findMany({
         date: dateStr,
         page: 1,
         limit: 100,
-        status: 'Scheduled'
+        status: 'Scheduled',
       });
 
       for (const appt of res.data) {
@@ -81,7 +81,9 @@ export class JobScheduler {
             clinicName: 'MMC Clinic'
           });
           */
-          logger.info(`[Job] Reminder (SMS) skipped for ${appt.patientName} (${appt.phone}) — decommissioning in progress`);
+          logger.info(
+            `[Job] Reminder (SMS) skipped for ${appt.patientName} (${appt.phone}) — decommissioning in progress`,
+          );
         }
       }
     } catch (err: any) {
@@ -92,7 +94,7 @@ export class JobScheduler {
   private async runBirthdayGreetings() {
     try {
       const now = new Date();
-      const istString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+      const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
       const istDate = new Date(istString);
 
       const y = istDate.getFullYear();
@@ -120,7 +122,9 @@ export class JobScheduler {
             patientName: p.fullName
           });
           */
-          logger.info(`[Job] Birthday greeting (SMS) skipped for ${p.fullName} (${p.phone}) — decommissioning in progress`);
+          logger.info(
+            `[Job] Birthday greeting (SMS) skipped for ${p.fullName} (${p.phone}) — decommissioning in progress`,
+          );
         }
       }
 
@@ -152,7 +156,7 @@ export class JobScheduler {
           const result = await syncUseCase.execute(channel.id);
           logger.info(
             `[Job] Template sync for "${channel.name}": ` +
-            `${result.created} new, ${result.updated} updated, ${result.unchanged} unchanged`
+              `${result.created} new, ${result.updated} updated, ${result.unchanged} unchanged`,
           );
         } catch (err: any) {
           logger.warn(`[Job] Template sync failed for channel ${channel.id}: ${err.message}`);

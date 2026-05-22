@@ -1,5 +1,9 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { usePatientPrescriptions, useSavePrescription, useDeletePrescription } from './use-remedy-chart';
+import {
+  usePatientPrescriptions,
+  useSavePrescription,
+  useDeletePrescription,
+} from './use-remedy-chart';
 
 export interface RxForm {
   remedyName: string;
@@ -24,7 +28,7 @@ export function usePrescriptionWorkflow(
   regid: number,
   visitId?: number,
   selectedDate?: string | null,
-  onSelectDate?: (date: string | null) => void
+  onSelectDate?: (date: string | null) => void,
 ) {
   const { data: history, isLoading } = usePatientPrescriptions(regid);
   const saveMutation = useSavePrescription();
@@ -40,7 +44,7 @@ export function usePrescriptionWorkflow(
     frequencyName: '',
     days: 0,
     instructions: '',
-    notes: ''
+    notes: '',
   });
 
   // Keep a ref of delivery so the auto-save can read the latest value
@@ -49,7 +53,7 @@ export function usePrescriptionWorkflow(
   deliveryRef.current = delivery;
 
   const isRxToday = useMemo(() => {
-    return (history || []).some(rx => {
+    return (history || []).some((rx) => {
       const dateVal = rx.created_at || rx.dateval;
       if (!dateVal) return false;
       return new Date(dateVal).toDateString() === new Date().toDateString();
@@ -57,7 +61,7 @@ export function usePrescriptionWorkflow(
   }, [history]);
 
   const firstRxOfToday = useMemo(() => {
-    const todayRxs = (history || []).filter(rx => {
+    const todayRxs = (history || []).filter((rx) => {
       const dateVal = rx.created_at || rx.dateval;
       if (!dateVal) return false;
       return new Date(dateVal).toDateString() === new Date().toDateString();
@@ -69,7 +73,9 @@ export function usePrescriptionWorkflow(
 
   // Auto-open rx tab for the current date if we revisit the page
   const hasAutoOpenedRef = useRef(false);
-  const selectedDateStr = selectedDate ? new Date(selectedDate).toDateString() : new Date().toDateString();
+  const selectedDateStr = selectedDate
+    ? new Date(selectedDate).toDateString()
+    : new Date().toDateString();
 
   useEffect(() => {
     hasAutoOpenedRef.current = false;
@@ -80,24 +86,31 @@ export function usePrescriptionWorkflow(
     if (!regid) return;
     setEditingId(null); // Clear editing ID first to prevent auto-saving form changes to the previous Rx!
     const initialDays = firstRxOfToday ? Number(firstRxOfToday.days) || 0 : 0;
-    const initialForm = { remedyName: '', potencyName: '', frequencyName: '', days: initialDays, instructions: '', notes: '' };
+    const initialForm = {
+      remedyName: '',
+      potencyName: '',
+      frequencyName: '',
+      days: initialDays,
+      instructions: '',
+      notes: '',
+    };
     setForm(initialForm);
     setActiveTab('rx');
-    
+
     // Auto-select today's date immediately to update other tabs without delay
     const todayIso = new Date().toISOString();
     onSelectDate?.(todayIso);
-    
+
     try {
       const res = await saveMutation.mutateAsync({
         regid,
         visitId,
         deliveryMode: deliveryRef.current,
-        ...initialForm
+        ...initialForm,
       });
       if (res && typeof res === 'object' && 'id' in res) {
         setEditingId(Number(res.id));
-        
+
         // Auto-select with exact timestamp from server response if available
         const rxDate = res.created_at || res.dateval || res.createdAt || todayIso;
         onSelectDate?.(rxDate);
@@ -110,11 +123,11 @@ export function usePrescriptionWorkflow(
   useEffect(() => {
     if (!isLoading && history && !hasAutoOpenedRef.current) {
       hasAutoOpenedRef.current = true;
-      
+
       const isToday = selectedDateStr === new Date().toDateString();
       if (!isToday) return;
 
-      const dateRxs = history.filter(rx => {
+      const dateRxs = history.filter((rx) => {
         const dateVal = rx.created_at || rx.dateval;
         return dateVal && new Date(dateVal).toDateString() === selectedDateStr;
       });
@@ -130,7 +143,7 @@ export function usePrescriptionWorkflow(
           frequencyName: latestRx.frequency_name || '',
           days: Number(latestRx.days) || 0,
           instructions: latestRx.prescription || latestRx.notes || '',
-          notes: latestRx.notes || ''
+          notes: latestRx.notes || '',
         });
         setActiveTab('rx');
       }
@@ -145,9 +158,11 @@ export function usePrescriptionWorkflow(
 
     // If we have a selected date, find the delivery mode for that date
     if (selectedDate) {
-      const selectedRxs = history.filter(rx => {
+      const selectedRxs = history.filter((rx) => {
         const dateVal = rx.created_at || rx.dateval;
-        return dateVal && new Date(dateVal).toDateString() === new Date(selectedDate).toDateString();
+        return (
+          dateVal && new Date(dateVal).toDateString() === new Date(selectedDate).toDateString()
+        );
       });
       if (selectedRxs.length > 0) {
         const mode = getRowDeliveryMode(selectedRxs[0]);
@@ -173,7 +188,7 @@ export function usePrescriptionWorkflow(
         visitId,
         id: editingId,
         deliveryMode: deliveryRef.current,
-        ...form
+        ...form,
       });
     }, 800);
 
@@ -198,6 +213,6 @@ export function usePrescriptionWorkflow(
     saveMutation,
     deleteMutation,
     activeTab,
-    setActiveTab
+    setActiveTab,
   };
 }

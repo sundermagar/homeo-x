@@ -59,7 +59,10 @@ export interface DayChargeRepository {
  */
 export interface DepositRepository {
   findById(id: number, type: 'Bank' | 'Cash'): Promise<BankDeposit | CashDeposit | null>;
-  findAllByType(type: 'Bank' | 'Cash', params: ListDepositsQuery): Promise<{
+  findAllByType(
+    type: 'Bank' | 'Cash',
+    params: ListDepositsQuery,
+  ): Promise<{
     data: (BankDeposit | CashDeposit)[];
     total: number;
   }>;

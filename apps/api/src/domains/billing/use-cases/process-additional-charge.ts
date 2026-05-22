@@ -9,7 +9,7 @@ export class ProcessAdditionalChargeUseCase {
   constructor(
     private readonly additionalChargeRepo: AdditionalChargeRepository,
     private readonly billingRepo: BillingRepository,
-    private readonly medicalCaseRepo: MedicalCaseRepository
+    private readonly medicalCaseRepo: MedicalCaseRepository,
   ) {}
 
   async execute(input: CreateAdditionalChargeInput): Promise<AdditionalChargeResult> {
@@ -22,7 +22,7 @@ export class ProcessAdditionalChargeUseCase {
 
       // 2. Create a custom bill for this charge
       const billNo = await this.billingRepo.nextBillNo();
-      
+
       const today = new Date().toISOString().split('T')[0];
 
       await this.billingRepo.create({

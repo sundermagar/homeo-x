@@ -35,8 +35,10 @@ export function useAnalyzeCase() {
 
 export function useGenerateSummary() {
   return useMutation({
-    mutationFn: (input: { observations: string[]; clinicalFindings: string[]; selectedRemedies: Array<{ name: string; score: number }> }) =>
-      api.post<SummaryOutput>(API.AI.CASE_SUMMARY, input),
+    mutationFn: (input: {
+      observations: string[];
+      clinicalFindings: string[];
+      selectedRemedies: Array<{ name: string; score: number }>;
+    }) => api.post<SummaryOutput>(API.AI.CASE_SUMMARY, input),
   });
 }
-

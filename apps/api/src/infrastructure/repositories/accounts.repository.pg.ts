@@ -47,7 +47,7 @@ import type {
  * PostgreSQL adapter for AdditionalChargeRepository.
  */
 export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: number): Promise<AdditionalChargeWithPatient | null> {
     const [row] = await this.db
@@ -62,7 +62,11 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
       .limit(1);
 
     if (!row) return null;
-    return { ...this.toDomain(row.charge), patientName: row.patientName ?? '', phone: row.phone ?? null };
+    return {
+      ...this.toDomain(row.charge),
+      patientName: row.patientName ?? '',
+      phone: row.phone ?? null,
+    };
   }
 
   async findAll(params: ListAdditionalChargesQuery): Promise<{
@@ -100,7 +104,11 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
 
       const total = Number(countRows[0]?.count ?? 0);
       return {
-        data: rows.map(r => ({ ...this.toDomain(r.charge), patientName: r.patientName ?? '', phone: r.phone ?? null })),
+        data: rows.map((r) => ({
+          ...this.toDomain(r.charge),
+          patientName: r.patientName ?? '',
+          phone: r.phone ?? null,
+        })),
         total,
       };
     } catch (err) {
@@ -115,7 +123,9 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
       .insert(additionalChargesLegacy)
       .values({
         regid: data.regid,
-        randId: data.randId || `AC_${Date.now()}_${Math.random().toString(36).substring(7).toUpperCase()}`,
+        randId:
+          data.randId ||
+          `AC_${Date.now()}_${Math.random().toString(36).substring(7).toUpperCase()}`,
         dateval: data.dateval || today,
         additionalName: data.additionalName,
         additionalPrice: data.additionalPrice ?? 0,
@@ -132,11 +142,20 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
         const [matchingCharge] = await this.db
           .select()
           .from(chargesLegacy)
-          .where(and(eq(chargesLegacy.charges, data.additionalName), eq(chargesLegacy.type, 'Product'), isNull(chargesLegacy.deletedAt)))
+          .where(
+            and(
+              eq(chargesLegacy.charges, data.additionalName),
+              eq(chargesLegacy.type, 'Product'),
+              isNull(chargesLegacy.deletedAt),
+            ),
+          )
           .limit(1);
 
         if (matchingCharge && matchingCharge.quantity !== null) {
-          const newQty = Math.max(0, (matchingCharge.quantity || 0) - (data.additionalQuantity ?? 1));
+          const newQty = Math.max(
+            0,
+            (matchingCharge.quantity || 0) - (data.additionalQuantity ?? 1),
+          );
           await this.db
             .update(chargesLegacy)
             .set({ quantity: newQty, updatedAt: new Date() })
@@ -164,7 +183,9 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
       .set({
         ...(data.additionalName !== undefined && { additionalName: data.additionalName }),
         ...(data.additionalPrice !== undefined && { additionalPrice: data.additionalPrice }),
-        ...(data.additionalQuantity !== undefined && { additionalQuantity: data.additionalQuantity }),
+        ...(data.additionalQuantity !== undefined && {
+          additionalQuantity: data.additionalQuantity,
+        }),
         ...(data.receivedPrice !== undefined && { receivedPrice: data.receivedPrice }),
         updatedAt: new Date(),
       })
@@ -178,11 +199,18 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
           const [oldMatchingCharge] = await this.db
             .select()
             .from(chargesLegacy)
-            .where(and(eq(chargesLegacy.charges, existing.additionalName), eq(chargesLegacy.type, 'Product'), isNull(chargesLegacy.deletedAt)))
+            .where(
+              and(
+                eq(chargesLegacy.charges, existing.additionalName),
+                eq(chargesLegacy.type, 'Product'),
+                isNull(chargesLegacy.deletedAt),
+              ),
+            )
             .limit(1);
 
           if (oldMatchingCharge && oldMatchingCharge.quantity !== null) {
-            const restoredQty = (oldMatchingCharge.quantity || 0) + (existing.additionalQuantity ?? 1);
+            const restoredQty =
+              (oldMatchingCharge.quantity || 0) + (existing.additionalQuantity ?? 1);
             await this.db
               .update(chargesLegacy)
               .set({ quantity: restoredQty, updatedAt: new Date() })
@@ -195,11 +223,20 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
           const [newMatchingCharge] = await this.db
             .select()
             .from(chargesLegacy)
-            .where(and(eq(chargesLegacy.charges, row.additionalName), eq(chargesLegacy.type, 'Product'), isNull(chargesLegacy.deletedAt)))
+            .where(
+              and(
+                eq(chargesLegacy.charges, row.additionalName),
+                eq(chargesLegacy.type, 'Product'),
+                isNull(chargesLegacy.deletedAt),
+              ),
+            )
             .limit(1);
 
           if (newMatchingCharge && newMatchingCharge.quantity !== null) {
-            const newQty = Math.max(0, (newMatchingCharge.quantity || 0) - (row.additionalQuantity ?? 1));
+            const newQty = Math.max(
+              0,
+              (newMatchingCharge.quantity || 0) - (row.additionalQuantity ?? 1),
+            );
             await this.db
               .update(chargesLegacy)
               .set({ quantity: newQty, updatedAt: new Date() })
@@ -225,7 +262,13 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
         const [matchingCharge] = await this.db
           .select()
           .from(chargesLegacy)
-          .where(and(eq(chargesLegacy.charges, row.additionalName), eq(chargesLegacy.type, 'Product'), isNull(chargesLegacy.deletedAt)))
+          .where(
+            and(
+              eq(chargesLegacy.charges, row.additionalName),
+              eq(chargesLegacy.type, 'Product'),
+              isNull(chargesLegacy.deletedAt),
+            ),
+          )
           .limit(1);
 
         if (matchingCharge && matchingCharge.quantity !== null) {
@@ -236,7 +279,10 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
             .where(eq(chargesLegacy.id, matchingCharge.id));
         }
       } catch (err) {
-        console.warn('[ACCOUNTS_REPO] Failed to restore product quantity to catalog on delete:', err);
+        console.warn(
+          '[ACCOUNTS_REPO] Failed to restore product quantity to catalog on delete:',
+          err,
+        );
       }
     }
 
@@ -264,7 +310,7 @@ export class AdditionalChargeRepositoryPg implements AdditionalChargeRepository 
  * PostgreSQL adapter for DayChargeRepository.
  */
 export class DayChargeRepositoryPg implements DayChargeRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: number): Promise<DayCharge | null> {
     const [row] = await this.db
@@ -338,7 +384,7 @@ export class DayChargeRepositoryPg implements DayChargeRepository {
  * PostgreSQL adapter for DepositRepository (Bank + Cash).
  */
 export class DepositRepositoryPg implements DepositRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: number, type: 'Bank' | 'Cash'): Promise<BankDeposit | CashDeposit | null> {
     const table = type === 'Bank' ? bankDepositLegacy : cashDepositLegacy;
@@ -378,7 +424,7 @@ export class DepositRepositoryPg implements DepositRepository {
 
       const total = Number(countRows[0]?.count ?? 0);
       return {
-        data: rows.map(r => this.toDomain(r, type) as BankDeposit | CashDeposit),
+        data: rows.map((r) => this.toDomain(r, type) as BankDeposit | CashDeposit),
         total,
       };
     } catch {
@@ -426,7 +472,10 @@ export class DepositRepositoryPg implements DepositRepository {
     const [row] = await this.db
       .update(bankDepositLegacy)
       .set({
-        ...(data.depositDate !== undefined && { depositDate: data.depositDate, dateval: data.depositDate }),
+        ...(data.depositDate !== undefined && {
+          depositDate: data.depositDate,
+          dateval: data.depositDate,
+        }),
         ...(data.amount !== undefined && { amount: data.amount }),
         ...(data.remark !== undefined && { remark: data.remark }),
         ...(data.bankdeposit !== undefined && { bankdeposit: data.bankdeposit }),
@@ -443,7 +492,10 @@ export class DepositRepositoryPg implements DepositRepository {
     const [row] = await this.db
       .update(cashDepositLegacy)
       .set({
-        ...(data.depositDate !== undefined && { depositDate: data.depositDate, dateval: data.depositDate }),
+        ...(data.depositDate !== undefined && {
+          depositDate: data.depositDate,
+          dateval: data.depositDate,
+        }),
         ...(data.amount !== undefined && { amount: data.amount }),
         ...(data.remark !== undefined && { remark: data.remark }),
         ...(data.bankdeposit !== undefined && { bankdeposit: data.bankdeposit }),
@@ -487,7 +539,7 @@ export class DepositRepositoryPg implements DepositRepository {
  * PostgreSQL adapter for ExpenseRepository.
  */
 export class ExpenseRepositoryPg implements ExpenseRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: number): Promise<ExpenseWithHead | null> {
     const [row] = await this.db
@@ -502,7 +554,11 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
       .limit(1);
 
     if (!row) return null;
-    return { ...this.toDomain(row.expense), headName: row.headName ?? null, shortName: row.shortName ?? null };
+    return {
+      ...this.toDomain(row.expense),
+      headName: row.headName ?? null,
+      shortName: row.shortName ?? null,
+    };
   }
 
   async findAll(params: ListExpensesQuery): Promise<{ data: ExpenseWithHead[]; total: number }> {
@@ -536,7 +592,11 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
 
       const total = Number(countRows[0]?.count ?? 0);
       return {
-        data: rows.map(r => ({ ...this.toDomain(r.expense), headName: r.headName ?? null, shortName: r.shortName ?? null })),
+        data: rows.map((r) => ({
+          ...this.toDomain(r.expense),
+          headName: r.headName ?? null,
+          shortName: r.shortName ?? null,
+        })),
         total,
       };
     } catch {
@@ -563,13 +623,17 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
     }
 
     const headId = row.head as number | null;
-    const headRow = headId != null
-      ? await this.db
-        .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
-        .from(expensesheadLegacy)
-        .where(eq(expensesheadLegacy.id, headId))
-        .limit(1)
-      : null;
+    const headRow =
+      headId != null
+        ? await this.db
+            .select({
+              headName: expensesheadLegacy.expenseshead,
+              shortName: expensesheadLegacy.shortName,
+            })
+            .from(expensesheadLegacy)
+            .where(eq(expensesheadLegacy.id, headId))
+            .limit(1)
+        : null;
 
     return {
       ...this.toDomain(row),
@@ -596,10 +660,13 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
 
     const headRow = row.head
       ? await this.db
-        .select({ headName: expensesheadLegacy.expenseshead, shortName: expensesheadLegacy.shortName })
-        .from(expensesheadLegacy)
-        .where(eq(expensesheadLegacy.id, row.head))
-        .limit(1)
+          .select({
+            headName: expensesheadLegacy.expenseshead,
+            shortName: expensesheadLegacy.shortName,
+          })
+          .from(expensesheadLegacy)
+          .where(eq(expensesheadLegacy.id, row.head))
+          .limit(1)
       : null;
 
     return {
@@ -610,10 +677,7 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
   }
 
   async softDelete(id: number): Promise<boolean> {
-    const [row] = await this.db
-      .delete(expensesLegacy)
-      .where(eq(expensesLegacy.id, id))
-      .returning();
+    const [row] = await this.db.delete(expensesLegacy).where(eq(expensesLegacy.id, id)).returning();
     return !!row;
   }
 
@@ -625,7 +689,7 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
         .select()
         .from(expensesheadLegacy)
         .orderBy(desc(expensesheadLegacy.id));
-      return rows.map(r => this.headToDomain(r));
+      return rows.map((r) => this.headToDomain(r));
     } catch (err) {
       console.warn('[ACCOUNTS_REPO] expenseshead table missing or query failed:', err);
       return [];
@@ -711,7 +775,7 @@ import type { Charge } from '@mmc/types';
 import type { CreateChargeInput, UpdateChargeInput } from '@mmc/validation';
 
 export class ChargeRepositoryPg implements ChargeRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: number): Promise<Charge | null> {
     const [row] = await this.db

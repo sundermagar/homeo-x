@@ -14,7 +14,9 @@ export function PageHeader({ icon: Icon, title, description, actions }: PageHead
     <div className="page-header">
       <div>
         <h1 className="page-header__title">
-          {Icon && <Icon size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)', flexShrink: 0 }} />}
+          {Icon && (
+            <Icon size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)', flexShrink: 0 }} />
+          )}
           {title}
         </h1>
         {description && <p className="page-header__description">{description}</p>}

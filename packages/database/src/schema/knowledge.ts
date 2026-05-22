@@ -1,6 +1,4 @@
-import {
-  pgTable, serial, varchar, text, timestamp
-} from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, timestamp } from 'drizzle-orm/pg-core';
 
 // ─── Dictionary (matches legacy `dictionary` table exactly) ───────────────────
 export const dictionary = pgTable('dictionary', {

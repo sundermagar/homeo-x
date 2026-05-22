@@ -7,9 +7,9 @@ export class GetPatientUseCase {
 
   async execute(regid: number): Promise<Result<Patient>> {
     let patient = await this.patientRepo.findByRegid(regid);
-    
+
     // Fallback: If not found by regid, try searching by internal ID
-    // This is crucial for patients whose regid/id mismatch was caused by 
+    // This is crucial for patients whose regid/id mismatch was caused by
     // older logic, ensuring the "View" button still works.
     if (!patient) {
       patient = await this.patientRepo.findById(regid);

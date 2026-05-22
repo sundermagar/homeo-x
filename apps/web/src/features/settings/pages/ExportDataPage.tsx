@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { Download, FileText, Users, CreditCard, Calendar, Loader2, CheckCircle2 } from 'lucide-react';
+import {
+  Download,
+  FileText,
+  Users,
+  CreditCard,
+  Calendar,
+  Loader2,
+  CheckCircle2,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -18,9 +26,7 @@ function ExportCard({ title, description, icon, onExport, isExporting }: ExportC
   return (
     <div className="export-card">
       <div className="flex items-center gap-4">
-        <div className="export-icon-wrap">
-          {icon}
-        </div>
+        <div className="export-icon-wrap">{icon}</div>
         <div>
           <h3 className="settings-nav-title">{title}</h3>
           <p className="settings-nav-desc">{description}</p>
@@ -53,9 +59,9 @@ export default function ExportDataPage() {
     try {
       // Pass the token as a query parameter since window.location.href doesn't send headers
       window.location.href = `/api/export/${endpoint}?token=${token}`;
-      
+
       // We wait a bit to clear the loading state as the browser handles the download
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 2000));
     } catch (err) {
       console.error('Export failed:', err);
       alert('Failed to generate export. Please try again.');
@@ -66,15 +72,19 @@ export default function ExportDataPage() {
 
   return (
     <div className="plat-page fade-in">
-
       <div className="settings-header">
         <h1 className="settings-title">
-          <div className="export-icon-wrap" style={{ width: 36, height: 36, background: 'var(--pp-blue)', color: 'white' }}>
+          <div
+            className="export-icon-wrap"
+            style={{ width: 36, height: 36, background: 'var(--pp-blue)', color: 'white' }}
+          >
             <Download size={20} />
           </div>
           Clinical Data Archival
         </h1>
-        <p className="settings-subtitle">Generate porting-ready CSV archives for clinical and financial auditing.</p>
+        <p className="settings-subtitle">
+          Generate porting-ready CSV archives for clinical and financial auditing.
+        </p>
       </div>
 
       <div className="export-grid">
@@ -109,15 +119,26 @@ export default function ExportDataPage() {
       </div>
 
       <div className="security-box">
-        <div style={{ padding: '8px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', borderRadius: '8px', border: '1px solid var(--pp-success-border)', flexShrink: 0 }}>
+        <div
+          style={{
+            padding: '8px',
+            background: 'var(--pp-success-bg)',
+            color: 'var(--pp-success-fg)',
+            borderRadius: '8px',
+            border: '1px solid var(--pp-success-border)',
+            flexShrink: 0,
+          }}
+        >
           <CheckCircle2 size={24} />
         </div>
         <div>
-          <h4 className="font-bold text-[14px]" style={{ color: 'var(--text-main)' }}>Data Privacy & Security</h4>
+          <h4 className="font-bold text-[14px]" style={{ color: 'var(--text-main)' }}>
+            Data Privacy & Security
+          </h4>
           <p className="text-[12px] color-muted mt-0.5 leading-relaxed">
-            Exported files contain sensitive health information. Ensure you handle these
-            downloads according to your clinic's data protection policy.
-            All export actions are logged in the system audit trail.
+            Exported files contain sensitive health information. Ensure you handle these downloads
+            according to your clinic's data protection policy. All export actions are logged in the
+            system audit trail.
           </p>
         </div>
       </div>

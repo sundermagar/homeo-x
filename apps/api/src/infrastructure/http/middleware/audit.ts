@@ -4,24 +4,104 @@ import { AuditLogger, AuditAction } from '../../../shared/audit/audit-logger.js'
 const auditLogger = new AuditLogger();
 
 // Map HTTP method + path patterns to audit actions
-const AUDIT_ROUTES: Array<{ method: string; pattern: RegExp; action: AuditAction; resourceType: string }> = [
-  { method: 'POST', pattern: /^\/api\/auth\/login$/, action: AuditAction.LOGIN, resourceType: 'auth' },
-  { method: 'POST', pattern: /^\/api\/auth\/logout$/, action: AuditAction.LOGOUT, resourceType: 'auth' },
-  { method: 'POST', pattern: /^\/api\/patients$/, action: AuditAction.PATIENT_CREATE, resourceType: 'patient' },
-  { method: 'PUT', pattern: /^\/api\/patients\//, action: AuditAction.PATIENT_UPDATE, resourceType: 'patient' },
-  { method: 'DELETE', pattern: /^\/api\/patients\//, action: AuditAction.PATIENT_DELETE, resourceType: 'patient' },
-  { method: 'POST', pattern: /^\/api\/consultations\/start$/, action: AuditAction.CONSULTATION_START, resourceType: 'consultation' },
-  { method: 'POST', pattern: /^\/api\/consultations\/complete$/, action: AuditAction.CONSULTATION_COMPLETE, resourceType: 'consultation' },
-  { method: 'POST', pattern: /^\/api\/ai\/consult-homeopathy$/, action: AuditAction.AI_PIPELINE_RUN, resourceType: 'ai' },
-  { method: 'POST', pattern: /^\/api\/medicalcases$/, action: AuditAction.CASE_CREATE, resourceType: 'case' },
-  { method: 'POST', pattern: /^\/api\/medicalcases\/.*\/finalize$/, action: AuditAction.CASE_FINALIZE, resourceType: 'case' },
-  { method: 'POST', pattern: /^\/api\/billing$/, action: AuditAction.BILL_CREATE, resourceType: 'billing' },
-  { method: 'POST', pattern: /^\/api\/appointments$/, action: AuditAction.APPOINTMENT_CREATE, resourceType: 'appointment' },
+const AUDIT_ROUTES: Array<{
+  method: string;
+  pattern: RegExp;
+  action: AuditAction;
+  resourceType: string;
+}> = [
+  {
+    method: 'POST',
+    pattern: /^\/api\/auth\/login$/,
+    action: AuditAction.LOGIN,
+    resourceType: 'auth',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/auth\/logout$/,
+    action: AuditAction.LOGOUT,
+    resourceType: 'auth',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/patients$/,
+    action: AuditAction.PATIENT_CREATE,
+    resourceType: 'patient',
+  },
+  {
+    method: 'PUT',
+    pattern: /^\/api\/patients\//,
+    action: AuditAction.PATIENT_UPDATE,
+    resourceType: 'patient',
+  },
+  {
+    method: 'DELETE',
+    pattern: /^\/api\/patients\//,
+    action: AuditAction.PATIENT_DELETE,
+    resourceType: 'patient',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/consultations\/start$/,
+    action: AuditAction.CONSULTATION_START,
+    resourceType: 'consultation',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/consultations\/complete$/,
+    action: AuditAction.CONSULTATION_COMPLETE,
+    resourceType: 'consultation',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/ai\/consult-homeopathy$/,
+    action: AuditAction.AI_PIPELINE_RUN,
+    resourceType: 'ai',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/medicalcases$/,
+    action: AuditAction.CASE_CREATE,
+    resourceType: 'case',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/medicalcases\/.*\/finalize$/,
+    action: AuditAction.CASE_FINALIZE,
+    resourceType: 'case',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/billing$/,
+    action: AuditAction.BILL_CREATE,
+    resourceType: 'billing',
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/appointments$/,
+    action: AuditAction.APPOINTMENT_CREATE,
+    resourceType: 'appointment',
+  },
 
   // Settings & Configuration
-  { method: 'POST',   pattern: /^\/api\/settings\//, action: AuditAction.SETTINGS_CREATE, resourceType: 'settings' },
-  { method: 'PUT',    pattern: /^\/api\/settings\//, action: AuditAction.SETTINGS_UPDATE, resourceType: 'settings' },
-  { method: 'DELETE', pattern: /^\/api\/settings\//, action: AuditAction.SETTINGS_DELETE, resourceType: 'settings' },
+  {
+    method: 'POST',
+    pattern: /^\/api\/settings\//,
+    action: AuditAction.SETTINGS_CREATE,
+    resourceType: 'settings',
+  },
+  {
+    method: 'PUT',
+    pattern: /^\/api\/settings\//,
+    action: AuditAction.SETTINGS_UPDATE,
+    resourceType: 'settings',
+  },
+  {
+    method: 'DELETE',
+    pattern: /^\/api\/settings\//,
+    action: AuditAction.SETTINGS_DELETE,
+    resourceType: 'settings',
+  },
 ];
 
 /**
@@ -33,12 +113,11 @@ export function auditMiddleware(req: Request, res: Response, next: NextFunction)
     // Only audit successful state-changing operations
     if (res.statusCode >= 400) return;
 
-    const match = AUDIT_ROUTES.find(
-      (r) => r.method === req.method && r.pattern.test(req.path),
-    );
+    const match = AUDIT_ROUTES.find((r) => r.method === req.method && r.pattern.test(req.path));
 
     if (match) {
-      const resourceId = req.params?.regid || req.params?.id || req.body?.visitId || req.body?.regid || 'unknown';
+      const resourceId =
+        req.params?.regid || req.params?.id || req.body?.visitId || req.body?.regid || 'unknown';
       auditLogger.log({
         action: match.action,
         tenantId: req.tenantSlug || 'unknown',

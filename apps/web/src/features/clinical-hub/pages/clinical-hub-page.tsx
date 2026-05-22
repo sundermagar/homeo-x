@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Stethoscope, Activity, BellDot, BrainCircuit,
-  Scale, TrendingUp, Users, CalendarCheck,
-  ChevronRight, Clock, AlertCircle
+  Stethoscope,
+  Activity,
+  BellDot,
+  BrainCircuit,
+  Scale,
+  TrendingUp,
+  Users,
+  CalendarCheck,
+  ChevronRight,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 import '../styles/clinical-hub.css';
 
@@ -52,7 +60,11 @@ const STATS = [
 ];
 
 const ACTIVITIES = [
-  { text: 'No recent clinical activity to display.', time: 'Start by capturing a patient vitals or reviewing a case', type: 'default' },
+  {
+    text: 'No recent clinical activity to display.',
+    time: 'Start by capturing a patient vitals or reviewing a case',
+    type: 'default',
+  },
 ];
 export default function ClinicalHubPage() {
   const [loading, setLoading] = useState(true);
@@ -96,31 +108,35 @@ export default function ClinicalHubPage() {
 
       {/* ─── Stats Row ─── */}
       <div className="chub-stats-row">
-        {loading ? (
-          STATS.map((_, i) => (
-            <div key={i} className="chub-stat-card">
-              <div className="chub-stat-icon" style={{ background: 'var(--pp-warm-2)' }}>
-                <div className="skeleton-box" style={{ width: 18, height: 18 }} />
+        {loading
+          ? STATS.map((_, i) => (
+              <div key={i} className="chub-stat-card">
+                <div className="chub-stat-icon" style={{ background: 'var(--pp-warm-2)' }}>
+                  <div className="skeleton-box" style={{ width: 18, height: 18 }} />
+                </div>
+                <div className="chub-stat-body" style={{ flex: 1 }}>
+                  <div
+                    className="skeleton-box skeleton-text"
+                    style={{ width: '60%', height: 24, marginBottom: 4 }}
+                  />
+                  <div
+                    className="skeleton-box skeleton-text"
+                    style={{ width: '40%', height: 10 }}
+                  />
+                </div>
               </div>
-              <div className="chub-stat-body" style={{ flex: 1 }}>
-                <div className="skeleton-box skeleton-text" style={{ width: '60%', height: 24, marginBottom: 4 }} />
-                <div className="skeleton-box skeleton-text" style={{ width: '40%', height: 10 }} />
+            ))
+          : STATS.map((stat, i) => (
+              <div key={i} className="chub-stat-card">
+                <div className={`chub-stat-icon ${stat.style}`}>
+                  <stat.icon size={18} />
+                </div>
+                <div className="chub-stat-body">
+                  <div className="chub-stat-value">{stat.value}</div>
+                  <div className="chub-stat-label">{stat.label}</div>
+                </div>
               </div>
-            </div>
-          ))
-        ) : (
-          STATS.map((stat, i) => (
-            <div key={i} className="chub-stat-card">
-              <div className={`chub-stat-icon ${stat.style}`}>
-                <stat.icon size={18} />
-              </div>
-              <div className="chub-stat-body">
-                <div className="chub-stat-value">{stat.value}</div>
-                <div className="chub-stat-label">{stat.label}</div>
-              </div>
-            </div>
-          ))
-        )}
+            ))}
       </div>
 
       {/* ─── Feature Cards ─── */}
@@ -143,9 +159,7 @@ export default function ClinicalHubPage() {
               </div>
               <div className="chub-feature-meta">
                 {feature.badge && (
-                  <span className={`chub-feature-badge ${feature.badge}`}>
-                    {feature.badge}
-                  </span>
+                  <span className={`chub-feature-badge ${feature.badge}`}>{feature.badge}</span>
                 )}
                 <span className="chub-feature-link">
                   Open <ChevronRight size={14} />
@@ -169,8 +183,14 @@ export default function ClinicalHubPage() {
                 <div key={i} className="chub-activity-item">
                   <div className="chub-activity-dot" style={{ background: 'var(--pp-warm-3)' }} />
                   <div className="chub-activity-content">
-                    <div className="skeleton-box skeleton-text" style={{ width: '80%', height: 14, marginBottom: 8 }} />
-                    <div className="skeleton-box skeleton-text" style={{ width: '30%', height: 10 }} />
+                    <div
+                      className="skeleton-box skeleton-text"
+                      style={{ width: '80%', height: 14, marginBottom: 8 }}
+                    />
+                    <div
+                      className="skeleton-box skeleton-text"
+                      style={{ width: '30%', height: 10 }}
+                    />
                   </div>
                 </div>
               ))}

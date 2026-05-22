@@ -3439,9 +3439,9 @@ END $$`,
 export async function provisionTenant(dbUrl: string, schemaName: string): Promise<void> {
   log.info(`🏗️  Provisioning tenant database schema: [${schemaName}]`);
 
-  const sql = postgres(dbUrl, { 
+  const sql = postgres(dbUrl, {
     max: 1,
-    onnotice: () => {} // Silence notice logs so Railway doesn't rate-limit us
+    onnotice: () => {}, // Silence notice logs so Railway doesn't rate-limit us
   });
 
   try {
@@ -3459,7 +3459,9 @@ export async function provisionTenant(dbUrl: string, schemaName: string): Promis
         const ddl = table.ddl.replace(/\{\{SCHEMA\}\}/g, schemaName);
         await sql.unsafe(ddl);
       } catch (tableErr: any) {
-        log.error(`    ⚠️  Failed to provision table [${table.name}] in ${schemaName}: ${tableErr.message}`);
+        log.error(
+          `    ⚠️  Failed to provision table [${table.name}] in ${schemaName}: ${tableErr.message}`,
+        );
         // Continue to next table
       }
     }

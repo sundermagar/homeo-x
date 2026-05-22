@@ -11,18 +11,21 @@ export interface LoginResult {
 }
 
 export class PatientLoginUseCase {
-  constructor(private readonly patientRepo: PatientRepositoryPg) { }
+  constructor(private readonly patientRepo: PatientRepositoryPg) {}
 
   async execute(email: string, password: string): Promise<Result<LoginResult>> {
+    console.log(`[PatientLogin] Executing login for email: ${email}`);
     const passwordHash = await this.patientRepo.getPatientPassword(email);
 
     if (!passwordHash) {
+      console.log(`[PatientLogin] No password hash found for email: ${email}`);
       return fail('Invalid credentials', 'UNAUTHORIZED');
     }
 
     const isMatch = await bcrypt.compare(password, passwordHash);
 
     if (!isMatch) {
+      console.log(`[PatientLogin] Password mismatch for email: ${email}`);
       return fail('Invalid credentials', 'UNAUTHORIZED');
     }
 
@@ -39,6 +42,7 @@ export class PatientLoginUseCase {
       contextId: 0,
       roleId: 0,
       roleName: 'Patient',
+      regid: patient.regid,
     };
 
     const token = jwt.sign(payload, appConfig.jwt.secret as jwt.Secret, {

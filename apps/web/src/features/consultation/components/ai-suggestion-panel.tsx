@@ -29,9 +29,7 @@ export function AiSuggestionPanel(props: AiSuggestionPanelProps) {
       <CardHeader className="flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-purple-600" />
-          <CardTitle className="text-sm text-purple-800">
-            AI Suggestion
-          </CardTitle>
+          <CardTitle className="text-sm text-purple-800">AI Suggestion</CardTitle>
         </div>
         <AiConfidenceBadge
           confidence={type === 'soap' ? props.suggestion.confidence : props.suggestion.confidence}
@@ -42,25 +40,15 @@ export function AiSuggestionPanel(props: AiSuggestionPanelProps) {
         {type === 'prescription' && <PrescriptionContent suggestion={props.suggestion} />}
 
         <div className="flex items-center gap-2 border-t border-purple-200 pt-3">
-          <Button
-            size="sm"
-            onClick={onApply}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
+          <Button size="sm" onClick={onApply} className="bg-purple-600 hover:bg-purple-700">
             <Check className="h-3.5 w-3.5" />
             Apply
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={onDismiss}
-          >
+          <Button size="sm" variant="outline" onClick={onDismiss}>
             <X className="h-3.5 w-3.5" />
             Dismiss
           </Button>
-          <span className="ml-auto text-xs text-gray-500">
-            Doctor approval required
-          </span>
+          <span className="ml-auto text-xs text-gray-500">Doctor approval required</span>
         </div>
       </CardContent>
     </Card>
@@ -119,17 +107,13 @@ function PrescriptionContent({ suggestion }: { suggestion: PrescriptionSuggestio
       {suggestion.medications.map((med, idx) => (
         <div key={idx} className="rounded border border-gray-200 bg-white p-2">
           <div className="font-medium text-gray-800">{med.medicationName}</div>
-          {med.genericName && (
-            <div className="text-xs text-gray-500">{med.genericName}</div>
-          )}
+          {med.genericName && <div className="text-xs text-gray-500">{med.genericName}</div>}
           <div className="mt-1 grid grid-cols-3 gap-1 text-xs text-gray-600">
             <span>Dosage: {med.dosage}</span>
             <span>Freq: {med.frequency}</span>
             <span>Duration: {med.duration}</span>
           </div>
-          {med.instructions && (
-            <div className="mt-1 text-xs text-gray-500">{med.instructions}</div>
-          )}
+          {med.instructions && <div className="mt-1 text-xs text-gray-500">{med.instructions}</div>}
         </div>
       ))}
 

@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { Sparkles, Plus, X, RefreshCw, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { usePotencies, useCreatePotency, useUpdatePotency, useDeletePotency } from '../hooks/use-settings';
+import {
+  usePotencies,
+  useCreatePotency,
+  useUpdatePotency,
+  useDeletePotency,
+} from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -30,19 +35,14 @@ export default function PotenciesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
 
-  const filtered = potencies.filter((p: Potency) =>
-    p.name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.detail?.toLowerCase().includes(search.toLowerCase())
+  const filtered = potencies.filter(
+    (p: Potency) =>
+      p.name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.detail?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filtered);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filtered);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -73,8 +73,6 @@ export default function PotenciesPage() {
 
   return (
     <div className="plat-page fade-in">
-
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
@@ -98,16 +96,14 @@ export default function PotenciesPage() {
         </div>
         <div className="plat-stat-card">
           <p className="plat-stat-label">Filtered View</p>
-          <p className="plat-stat-value plat-stat-value-success">
-            {filtered.length}
-          </p>
+          <p className="plat-stat-value plat-stat-value-success">{filtered.length}</p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
           <Search size={14} className="plat-search-icon" />
-          <input 
+          <input
             className="plat-form-input plat-search-input"
             placeholder="Search potencies..."
             value={search}
@@ -120,57 +116,73 @@ export default function PotenciesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : filtered.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Sparkles}
-            title={search ? "No matches found" : "No potencies defined"}
-            description={search ? `No potencies matching "${search}" were found in your clinic settings.` : "Add your first medicine potency (e.g. 30C, 200C) to begin organizing your catalog."}
-            actionLabel={search ? "Clear Search" : "Add Potency"}
+            title={search ? 'No matches found' : 'No potencies defined'}
+            description={
+              search
+                ? `No potencies matching "${search}" were found in your clinic settings.`
+                : 'Add your first medicine potency (e.g. 30C, 200C) to begin organizing your catalog.'
+            }
+            actionLabel={search ? 'Clear Search' : 'Add Potency'}
             onAction={search ? () => setSearch('') : handleOpenCreate}
             variant="card"
             className="my-8"
           />
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '60px' }}>ID</th>
-                  <th>Potency Name</th>
-                  <th>Description / Detail</th>
-                  <th style={{ width: '120px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((pot: Potency, idx: number) => (
-                  <tr key={pot.id} className="plat-table-row">
-                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                    <td data-label="Potency Name" className="plat-table-cell font-semibold">{pot.name}</td>
-                    <td data-label="Detail" className="plat-table-cell text-secondary">{pot.detail || '—'}</td>
-                    <td className="plat-table-cell">
-                      <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(pot)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(pot.id, pot.name)}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px' }}>ID</th>
+                    <th>Potency Name</th>
+                    <th>Description / Detail</th>
+                    <th style={{ width: '120px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((pot: Potency, idx: number) => (
+                    <tr key={pot.id} className="plat-table-row">
+                      <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">
+                        {(currentPage - 1) * itemsPerPage + idx + 1}
+                      </td>
+                      <td data-label="Potency Name" className="plat-table-cell font-semibold">
+                        {pot.name}
+                      </td>
+                      <td data-label="Detail" className="plat-table-cell text-secondary">
+                        {pot.detail || '—'}
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="flex justify-end gap-3">
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon"
+                            onClick={() => handleOpenEdit(pot)}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(pot.id, pot.name)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
@@ -183,7 +195,10 @@ export default function PotenciesPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
                 <div className="plat-form-group">
                   <label className="plat-form-label">Potency Name *</label>
@@ -191,7 +206,7 @@ export default function PotenciesPage() {
                     className="plat-form-input"
                     required
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="e.g. 30C"
                   />
                 </div>
@@ -202,7 +217,7 @@ export default function PotenciesPage() {
                     rows={4}
                     style={{ minHeight: '120px' }}
                     value={form.detail}
-                    onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, detail: e.target.value }))}
                     placeholder="Optional description..."
                   />
                 </div>
@@ -210,14 +225,19 @@ export default function PotenciesPage() {
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={createPot.isPending || updatePot.isPending}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
+              disabled={createPot.isPending || updatePot.isPending}
+            >
               {editingId ? 'Save Changes' : 'Add Potency'}
             </button>
           </div>
         </form>
       </Drawer>
-
     </div>
   );
 }

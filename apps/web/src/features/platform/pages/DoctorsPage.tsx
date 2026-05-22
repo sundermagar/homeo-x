@@ -1,9 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Edit2, Trash2, X, GraduationCap, Building2, Stethoscope, Mail, Phone, MapPin, Users, UserCheck, LayoutGrid, Award, Landmark, Upload, Image as ImageIcon, FileText } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  X,
+  GraduationCap,
+  Building2,
+  Stethoscope,
+  Mail,
+  Phone,
+  MapPin,
+  Users,
+  UserCheck,
+  LayoutGrid,
+  Award,
+  Landmark,
+  Upload,
+  Image as ImageIcon,
+  FileText,
+} from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
-import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
+import {
+  useStaffList,
+  useDeleteStaff,
+  useCreateStaff,
+  useUpdateStaff,
+  useStaffMember,
+} from '@/features/staff/hooks/use-staff';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
@@ -15,7 +41,10 @@ import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
 const CATEGORY = 'doctor' as const;
-const META = { label: 'Doctors', description: 'Manage clinical practitioners and specialized doctor profiles.' };
+const META = {
+  label: 'Doctors',
+  description: 'Manage clinical practitioners and specialized doctor profiles.',
+};
 const PAGE_SIZE = 10;
 function getDefaultStaffForm(): CreateStaffInput {
   return {
@@ -61,7 +90,10 @@ function getDefaultStaffForm(): CreateStaffInput {
   };
 }
 function staffMemberToForm(staff: StaffMember): CreateStaffInput {
-  const gender = staff.gender === 'Female' || staff.gender === 'Other' ? (staff.gender as "Female" | "Other") : 'Male';
+  const gender =
+    staff.gender === 'Female' || staff.gender === 'Other'
+      ? (staff.gender as 'Female' | 'Other')
+      : 'Male';
   return {
     category: CATEGORY,
     name: staff.name,
@@ -88,7 +120,7 @@ function staffMemberToForm(staff: StaffMember): CreateStaffInput {
     consultationFee: Number(staff.consultationFee) || 0,
     permanentAddress: staff.permanentAddress || '',
     password: '',
-    clinicId: (staff.clinicId && staff.clinicId !== 1) ? staff.clinicId : null,
+    clinicId: staff.clinicId && staff.clinicId !== 1 ? staff.clinicId : null,
     registrationCertificate: staff.registrationCertificate || '',
     aadharCard: staff.aadharCard || '',
     panCard: staff.panCard || '',
@@ -111,9 +143,9 @@ function FileInputRow({
   onChange,
   onRemove,
   error,
-  accept = "image/*,application/pdf",
-  className = "",
-  style = {}
+  accept = 'image/*,application/pdf',
+  className = '',
+  style = {},
 }: {
   label: string;
   field: string;
@@ -132,16 +164,17 @@ function FileInputRow({
         <div className="plat-file-trigger">
           <Upload size={14} /> Upload {label}
         </div>
-        <input
-          type="file"
-          accept={accept}
-          onChange={(e) => onChange(field, e)}
-        />
+        <input type="file" accept={accept} onChange={(e) => onChange(field, e)} />
       </div>
       {value && (
-        <div className="plat-file-preview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div
+          className="plat-file-preview"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-            <span className="plat-file-preview-name" title={value}>{value.split('/').pop() || 'Uploaded File'}</span>
+            <span className="plat-file-preview-name" title={value}>
+              {value.split('/').pop() || 'Uploaded File'}
+            </span>
             {value.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
               <img src={value} alt="Preview" className="plat-file-preview-image" />
             ) : (
@@ -151,7 +184,13 @@ function FileInputRow({
           {onRemove && (
             <button
               type="button"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--pp-danger-fg)' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                color: 'var(--pp-danger-fg)',
+              }}
               onClick={() => onRemove(field)}
               title="Remove file"
             >
@@ -202,7 +241,9 @@ function StaffModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    const fullName = `${form.firstname} ${form.middlename || ''} ${form.surname}`.replace(/\s+/g, ' ').trim();
+    const fullName = `${form.firstname} ${form.middlename || ''} ${form.surname}`
+      .replace(/\s+/g, ' ')
+      .trim();
     const finalForm = { ...form, name: fullName };
     const schema = mode === 'create' ? createStaffSchema : updateStaffSchema;
     const result = schema.safeParse(finalForm);
@@ -223,7 +264,7 @@ function StaffModal({
         await updateMutation.mutateAsync({
           category: CATEGORY,
           id: (staff as StaffMember).id,
-          ...(finalForm as UpdateStaffInput)
+          ...(finalForm as UpdateStaffInput),
         });
       }
       qc.invalidateQueries({ queryKey: ['staff'] });
@@ -231,7 +272,12 @@ function StaffModal({
       onClose();
     } catch (err: any) {
       const serverMsg = err.response?.data?.message || err.response?.data?.errors || err.message;
-      setErrors({ general: typeof serverMsg === 'object' ? JSON.stringify(serverMsg) : (serverMsg || 'An error occurred during submission') });
+      setErrors({
+        general:
+          typeof serverMsg === 'object'
+            ? JSON.stringify(serverMsg)
+            : serverMsg || 'An error occurred during submission',
+      });
     }
   };
   const updateForm = (field: string, value: any) => {
@@ -273,11 +319,12 @@ function StaffModal({
       title={isEdit ? 'Update Practitioner Record' : 'Register New Practitioner'}
       maxWidth="600px"
     >
-      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
+      <div
+        className="plat-modal-content"
+        style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}
+      >
         <form onSubmit={handleSubmit} className="plat-modal-body">
-          {errors['general'] && (
-            <div className="plat-error-banner mb-4">{errors['general']}</div>
-          )}
+          {errors['general'] && <div className="plat-error-banner mb-4">{errors['general']}</div>}
           {/* Section 1: Personal Details */}
           <div className="plat-form-section">
             <h4 className="plat-form-section-title">Personal Details</h4>
@@ -302,7 +349,9 @@ function StaffModal({
                   onChange={(e) => updateForm('firstname', e.target.value)}
                   disabled={isLoading}
                 />
-                {errors['firstname'] && <span className="plat-form-error">{errors['firstname']}</span>}
+                {errors['firstname'] && (
+                  <span className="plat-form-error">{errors['firstname']}</span>
+                )}
               </div>
               <div className="plat-form-group" style={{ gridColumn: 'span 1' }}>
                 <label className="plat-form-label">Middle Name</label>
@@ -397,7 +446,9 @@ function StaffModal({
                 {errors['email'] && <span className="plat-form-error">{errors['email']}</span>}
               </div>
               <div className="plat-form-group">
-                <label className="plat-form-label">Login Password {isEdit && '(leave blank to keep current)'}</label>
+                <label className="plat-form-label">
+                  Login Password {isEdit && '(leave blank to keep current)'}
+                </label>
                 <input
                   type="password"
                   className="plat-form-input"
@@ -406,7 +457,9 @@ function StaffModal({
                   disabled={isLoading}
                   placeholder={isEdit ? '••••••••' : 'Setup password'}
                 />
-                {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
+                {errors['password'] && (
+                  <span className="plat-form-error">{errors['password']}</span>
+                )}
               </div>
               {mode === 'create' && (
                 <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
@@ -416,9 +469,7 @@ function StaffModal({
                       checked={!!form.sendWelcomeEmail}
                       onChange={(e) => updateForm('sendWelcomeEmail', e.target.checked)}
                     />
-                    <span className="plat-checkbox-label">
-                      Send welcome email with credentials
-                    </span>
+                    <span className="plat-checkbox-label">Send welcome email with credentials</span>
                   </label>
                 </div>
               )}
@@ -599,17 +650,51 @@ function StaffModal({
                 onRemove={handleFileRemove}
                 error={errors['appointmentLetter']}
               />
-              <FileInputRow label="10th Marksheet" field="col10Document" value={form.col10Document} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['col10Document']} />
-              <FileInputRow label="12th Marksheet" field="col12Document" value={form.col12Document} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['col12Document']} />
-              <FileInputRow label="BHMS Document" field="bhmsDocument" value={form.bhmsDocument} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['bhmsDocument']} style={{ gridColumn: 'span 2' }} />
-              <FileInputRow label="MD Document" field="mdDocument" value={form.mdDocument} onChange={handleFileUpload} onRemove={handleFileRemove} error={errors['mdDocument']} style={{ gridColumn: 'span 2' }} />
+              <FileInputRow
+                label="10th Marksheet"
+                field="col10Document"
+                value={form.col10Document}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['col10Document']}
+              />
+              <FileInputRow
+                label="12th Marksheet"
+                field="col12Document"
+                value={form.col12Document}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['col12Document']}
+              />
+              <FileInputRow
+                label="BHMS Document"
+                field="bhmsDocument"
+                value={form.bhmsDocument}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['bhmsDocument']}
+                style={{ gridColumn: 'span 2' }}
+              />
+              <FileInputRow
+                label="MD Document"
+                field="mdDocument"
+                value={form.mdDocument}
+                onChange={handleFileUpload}
+                onRemove={handleFileRemove}
+                error={errors['mdDocument']}
+                style={{ gridColumn: 'span 2' }}
+              />
             </div>
           </div>
           <div className="plat-modal-footer">
             <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
               Discard
             </button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending || isLoading}>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
+              disabled={isPending || isLoading}
+            >
               {isPending ? 'Processing…' : isEdit ? 'Save Changes' : 'Register Practitioner'}
             </button>
           </div>
@@ -633,10 +718,13 @@ export default function DoctorsPage() {
     limit: itemsPerPage,
     search: debouncedSearch,
     sortBy,
-    sortOrder
+    sortOrder,
   });
   const deleteMutation = useDeleteStaff();
-  const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(CATEGORY, editingId ?? 0);
+  const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(
+    CATEGORY,
+    editingId ?? 0,
+  );
   const staffArray = Array.isArray(data?.data) ? data.data : [];
   const staff = staffArray;
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
@@ -701,7 +789,9 @@ export default function DoctorsPage() {
         </div>
         <div className="pp-filter-controls">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
+            <span className="text-[11px] font-bold color-muted uppercase tracking-wider">
+              Sort:
+            </span>
             <select
               className="pp-filter-select"
               style={{ minWidth: '140px' }}
@@ -749,85 +839,120 @@ export default function DoctorsPage() {
         ) : (
           <>
             <div className="pp-table-container-enhanced">
-            <table className="pp-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '50px' }}>#</th>
-                  <th>Clinical Practitioner</th>
-                  <th style={{ width: '220px' }}>Contact Details</th>
-                  <th style={{ width: '180px' }}>Credentials</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '110px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staff.map((s: StaffSummary, index: number) => (
-                  <tr key={s.id} className="pp-hover-row" onClick={() => openEdit(s)} style={{ cursor: 'pointer' }}>
-                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
-                      <div>{(page - 1) * PAGE_SIZE + index + 1}</div>
-                    </td>
-                    <td data-label="Profile">
-                      <div className="plat-cell-val" onClick={(e) => e.stopPropagation()}>
-                        <Link to={`/platform/doctors/${s.id}`} className="font-semibold pp-clickable-name plat-capitalize">
-                          {s.name}
-                        </Link>
-                        <div className="text-[11px] color-muted font-medium">{s.email || '—'}</div>
-                      </div>
-                    </td>
-                    <td data-label="Contact">
-                      <div className="plat-cell-val">
-                        <div className="plat-mono-data">{s.mobile || '—'}</div>
-                        <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
-                          <MapPin size={10} /> {s.city || 'Location N/A'}
-                        </div>
-                      </div>
-                    </td>
-                    <td data-label="Credentials">
-                      <div className="plat-cell-val">
-                        <div className="text-xs font-semibold flex items-center gap-1 plat-capitalize">
-                          <GraduationCap size={12} className="color-muted" />
-                          {s.qualification || 'General'}
-                        </div>
-                        <div className="text-[10px] color-muted font-medium italic plat-capitalize">
-                          {s.designation || 'Practitioner'}
-                        </div>
-                      </div>
-                    </td>
-                    <td data-label="Status">
-                      <div className="plat-cell-val">
-                        <span className={s.isActive ? 'pp-status-pill is-success' : 'pp-status-pill is-default'}>
-                          {s.isActive ? (
-                            <span className="flex items-center gap-1"><UserCheck size={10} /> Active</span>
-                          ) : 'Inactive'}
-                        </span>
-                      </div>
-                    </td>
-                    <td data-label="Actions">
-                      <div className="plat-cell-val">
-                        <div className="flex justify-end gap-2" style={{ width: '100%' }}>
-                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} title="Edit" onClick={(e) => { e.stopPropagation(); openEdit(s); }}>
-                            <Edit2 size={13} />
-                          </button>
-                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} title="Delete" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }} disabled={deleteMutation.isPending}>
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    </td>
+              <table className="pp-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '50px' }}>#</th>
+                    <th>Clinical Practitioner</th>
+                    <th style={{ width: '220px' }}>Contact Details</th>
+                    <th style={{ width: '180px' }}>Credentials</th>
+                    <th style={{ width: '100px' }}>Status</th>
+                    <th style={{ width: '110px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            currentPage={page}
-            totalPages={Math.ceil((data?.total || 0) / itemsPerPage)}
-            pageSize={itemsPerPage}
-            totalItems={data?.total || 0}
-            onPageChange={setPage}
-            onPageSizeChange={setItemsPerPage}
-          />
-        </>
+                </thead>
+                <tbody>
+                  {staff.map((s: StaffSummary, index: number) => (
+                    <tr
+                      key={s.id}
+                      className="pp-hover-row"
+                      onClick={() => openEdit(s)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                        <div>{(page - 1) * PAGE_SIZE + index + 1}</div>
+                      </td>
+                      <td data-label="Profile">
+                        <div className="plat-cell-val" onClick={(e) => e.stopPropagation()}>
+                          <Link
+                            to={`/platform/doctors/${s.id}`}
+                            className="font-semibold pp-clickable-name plat-capitalize"
+                          >
+                            {s.name}
+                          </Link>
+                          <div className="text-[11px] color-muted font-medium">
+                            {s.email || '—'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Contact">
+                        <div className="plat-cell-val">
+                          <div className="plat-mono-data">{s.mobile || '—'}</div>
+                          <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
+                            <MapPin size={10} /> {s.city || 'Location N/A'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Credentials">
+                        <div className="plat-cell-val">
+                          <div className="text-xs font-semibold flex items-center gap-1 plat-capitalize">
+                            <GraduationCap size={12} className="color-muted" />
+                            {s.qualification || 'General'}
+                          </div>
+                          <div className="text-[10px] color-muted font-medium italic plat-capitalize">
+                            {s.designation || 'Practitioner'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Status">
+                        <div className="plat-cell-val">
+                          <span
+                            className={
+                              s.isActive ? 'pp-status-pill is-success' : 'pp-status-pill is-default'
+                            }
+                          >
+                            {s.isActive ? (
+                              <span className="flex items-center gap-1">
+                                <UserCheck size={10} /> Active
+                              </span>
+                            ) : (
+                              'Inactive'
+                            )}
+                          </span>
+                        </div>
+                      </td>
+                      <td data-label="Actions">
+                        <div className="plat-cell-val">
+                          <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                            <button
+                              className="plat-btn plat-btn-icon plat-btn-ghost"
+                              style={{ width: 36, height: 36, borderRadius: 10 }}
+                              title="Edit"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEdit(s);
+                              }}
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              className="plat-btn plat-btn-icon plat-btn-danger"
+                              style={{ width: 36, height: 36, borderRadius: 10 }}
+                              title="Delete"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(s.id);
+                              }}
+                              disabled={deleteMutation.isPending}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              currentPage={page}
+              totalPages={Math.ceil((data?.total || 0) / itemsPerPage)}
+              pageSize={itemsPerPage}
+              totalItems={data?.total || 0}
+              onPageChange={setPage}
+              onPageSizeChange={setItemsPerPage}
+            />
+          </>
         )}
       </div>
       {modalOpen && (
@@ -835,8 +960,13 @@ export default function DoctorsPage() {
           mode={modalMode}
           staff={editingStaff}
           isLoading={modalMode === 'edit' ? isLoadingStaff : false}
-          onClose={() => { setModalOpen(false); setEditingId(null); }}
-          onSuccess={() => { setEditingId(null); }}
+          onClose={() => {
+            setModalOpen(false);
+            setEditingId(null);
+          }}
+          onSuccess={() => {
+            setEditingId(null);
+          }}
         />
       )}
     </div>

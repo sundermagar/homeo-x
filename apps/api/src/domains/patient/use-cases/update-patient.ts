@@ -7,7 +7,7 @@ import type { UpdatePatientInput } from '@mmc/validation';
 export class UpdatePatientUseCase {
   constructor(
     private readonly patientRepo: PatientRepository,
-    private readonly billingRepo?: BillingRepository
+    private readonly billingRepo?: BillingRepository,
   ) {}
 
   async execute(regid: number, input: UpdatePatientInput): Promise<Result<Patient>> {
@@ -18,7 +18,7 @@ export class UpdatePatientUseCase {
     if (this.billingRepo && input.consultationFee !== undefined) {
       try {
         const summary = await this.billingRepo.findByRegid(regid);
-        
+
         // Update the most recent bill for this patient
         const mostRecentBill = summary.bills[0];
 

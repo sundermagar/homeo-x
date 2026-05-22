@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Printer, Share2, X, Download } from 'lucide-react';
 
 interface PaymentReceiptModalProps {
@@ -42,8 +37,24 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   });
 
   const rows = [
-    { label: 'Registration Charge', value: billingData.regular, isCovered: billingData.hasActivePackage && (billingData.originalRegular || 0) > 0 && billingData.regular === 0, originalValue: billingData.originalRegular },
-    { label: 'Medicine Days Charge', value: billingData.daysCharge, isCovered: billingData.hasActivePackage && (billingData.originalDaysCharge || 0) > 0 && billingData.daysCharge === 0, originalValue: billingData.originalDaysCharge },
+    {
+      label: 'Registration Charge',
+      value: billingData.regular,
+      isCovered:
+        billingData.hasActivePackage &&
+        (billingData.originalRegular || 0) > 0 &&
+        billingData.regular === 0,
+      originalValue: billingData.originalRegular,
+    },
+    {
+      label: 'Medicine Days Charge',
+      value: billingData.daysCharge,
+      isCovered:
+        billingData.hasActivePackage &&
+        (billingData.originalDaysCharge || 0) > 0 &&
+        billingData.daysCharge === 0,
+      originalValue: billingData.originalDaysCharge,
+    },
     { label: 'Additional Charge', value: billingData.additional },
   ];
 
@@ -61,7 +72,9 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
           <div className="mb-6 bg-gray-50 p-4 rounded-lg">
             <div className="flex justify-between mb-1">
               <span className="text-gray-600">Patient:</span>
-              <span className="font-semibold text-gray-900">{patientData?.patientName || 'N/A'}</span>
+              <span className="font-semibold text-gray-900">
+                {patientData?.patientName || 'N/A'}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Reg ID:</span>
@@ -75,14 +88,19 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
               <div className="mb-4 bg-blue-50 border border-blue-200 p-3 rounded-lg flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">💎</span>
-                  <span className="font-bold text-blue-800">Active Plan: {billingData.activePackageName}</span>
+                  <span className="font-bold text-blue-800">
+                    Active Plan: {billingData.activePackageName}
+                  </span>
                 </div>
                 <span className="text-xs font-bold text-gray-500 uppercase">Charges Waived</span>
               </div>
             )}
             <div className="space-y-4 border rounded-xl p-6 bg-white shadow-sm">
               {rows.map((row, idx) => (
-                <div key={idx} className={`flex justify-between items-center text-gray-600 ${idx > 0 ? 'border-t pt-4' : ''}`}>
+                <div
+                  key={idx}
+                  className={`flex justify-between items-center text-gray-600 ${idx > 0 ? 'border-t pt-4' : ''}`}
+                >
                   <span className="text-base font-medium">{row.label}</span>
                   <span className="text-base font-bold text-gray-900">
                     {row.isCovered ? (
@@ -96,7 +114,7 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
                   </span>
                 </div>
               ))}
-              
+
               <div className="flex justify-between items-center border-t border-blue-100 pt-4 bg-blue-50/30 -mx-6 px-6 pb-4">
                 <span className="text-lg font-bold text-gray-900">Total Bill Amount</span>
                 <span className="text-xl font-black text-blue-600">₹{billingData.total}</span>

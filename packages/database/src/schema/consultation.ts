@@ -1,4 +1,14 @@
-import { pgTable, serial, integer, varchar, text, boolean, real, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  serial,
+  integer,
+  varchar,
+  text,
+  boolean,
+  real,
+  timestamp,
+  jsonb,
+} from 'drizzle-orm/pg-core';
 
 export const scribingSessions = pgTable('scribing_sessions', {
   id: serial('id').primaryKey(),

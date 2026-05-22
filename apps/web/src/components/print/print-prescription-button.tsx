@@ -68,21 +68,22 @@ export function PrintPrescriptionButton({
   const { data: summary, isLoading } = useConsultationSummary(visitId);
   const { data: orgs = [] } = useOrganizations();
   const { data: pdfSettings = [] } = usePdfSettings();
-  const user = useAuthStore(s => s.user);
+  const user = useAuthStore((s) => s.user);
 
   const handlePrint = () => {
     // Determine data source: inline (in-memory) data takes priority over API data
-    const useInline = inlineData && (
-      (inlineData.soapData?.subjective || inlineData.soapData?.assessment) ||
-      (inlineData.rxItems && inlineData.rxItems.length > 0)
-    );
+    const useInline =
+      inlineData &&
+      (inlineData.soapData?.subjective ||
+        inlineData.soapData?.assessment ||
+        (inlineData.rxItems && inlineData.rxItems.length > 0));
 
     if (!useInline && !summary) return;
 
     // Retrieve active organization and pdf settings
-    const myOrg: any = orgs.find(o => o.id === user?.contextId) || orgs[0];
+    const myOrg: any = orgs.find((o) => o.id === user?.contextId) || orgs[0];
     const defaultTemplate = pdfSettings.find((s: any) => s.isDefault) || pdfSettings[0];
-    
+
     // Merge latest org data into clinic letterhead
     const baseClinic = getClinicLetterhead();
     const clinic = {
@@ -106,7 +107,8 @@ export function PrintPrescriptionButton({
     if (useInline) {
       // ─── Build from in-memory consultation state ───
       const patientName = inlineData.patient
-        ? `${inlineData.patient.firstName || ''} ${inlineData.patient.lastName || ''}`.trim() || 'Patient'
+        ? `${inlineData.patient.firstName || ''} ${inlineData.patient.lastName || ''}`.trim() ||
+          'Patient'
         : 'Patient';
 
       const patientAge = inlineData.patient?.dateOfBirth
@@ -126,8 +128,15 @@ export function PrintPrescriptionButton({
           phone: inlineData.patient?.phone,
         },
         visit: {
-          visitNumber: (visit as any).visitNumber || visit.id?.slice(-6).toUpperCase() || visitId.slice(-6).toUpperCase(),
-          date: (visit as any).completedAt || (visit as any).startedAt || (visit as any).checkedInAt || new Date().toISOString(),
+          visitNumber:
+            (visit as any).visitNumber ||
+            visit.id?.slice(-6).toUpperCase() ||
+            visitId.slice(-6).toUpperCase(),
+          date:
+            (visit as any).completedAt ||
+            (visit as any).startedAt ||
+            (visit as any).checkedInAt ||
+            new Date().toISOString(),
           specialty: (visit as any).specialty,
           chiefComplaint: (visit as any).chiefComplaint,
         },
@@ -142,7 +151,7 @@ export function PrintPrescriptionButton({
         diagnosis: inlineData.soapData?.assessment
           ? { assessment: inlineData.soapData.assessment }
           : undefined,
-        medications: (inlineData.rxItems || []).map(item => ({
+        medications: (inlineData.rxItems || []).map((item) => ({
           name: item.medicationName,
           genericName: item.genericName,
           dosage: item.dosage,
@@ -194,22 +203,24 @@ export function PrintPrescriptionButton({
       if (summary!.soap?.plan) {
         const plan = summary!.soap.plan;
         const labMatch = plan.match(/Lab Orders:\s*(.+)/);
-        if (labMatch && labMatch[1]) labOrders = labMatch[1].split(',').map((s: string) => s.trim());
+        if (labMatch && labMatch[1])
+          labOrders = labMatch[1].split(',').map((s: string) => s.trim());
       }
 
       // Get medications from prescriptions
-      const medications = summary!.prescriptions?.flatMap((rx: any) =>
-        (rx.items || []).map((item: any) => ({
-          name: item.medicationName,
-          genericName: item.genericName,
-          dosage: item.dosage,
-          frequency: item.frequency,
-          duration: item.duration,
-          route: item.route,
-          instructions: item.instructions,
-          quantity: item.quantity,
-        })),
-      ) ?? [];
+      const medications =
+        summary!.prescriptions?.flatMap((rx: any) =>
+          (rx.items || []).map((item: any) => ({
+            name: item.medicationName,
+            genericName: item.genericName,
+            dosage: item.dosage,
+            frequency: item.frequency,
+            duration: item.duration,
+            route: item.route,
+            instructions: item.instructions,
+            quantity: item.quantity,
+          })),
+        ) ?? [];
 
       printData = {
         clinic: clinic as any,
@@ -217,7 +228,8 @@ export function PrintPrescriptionButton({
         patient,
         visit: {
           visitNumber: summary!.visit.visitNumber || summary!.visit.id.slice(-6).toUpperCase(),
-          date: summary!.visit.completedAt || summary!.visit.startedAt || summary!.visit.checkedInAt,
+          date:
+            summary!.visit.completedAt || summary!.visit.startedAt || summary!.visit.checkedInAt,
           specialty: summary!.visit.specialty,
           chiefComplaint: summary!.visit.chiefComplaint,
         },
@@ -252,7 +264,9 @@ export function PrintPrescriptionButton({
         advice,
         followUp,
         prescriptionNotes: summary!.prescriptions?.[0]?.notes ?? undefined,
-        prescriptionStrategy: (summary!.prescriptionStrategy as PrescriptionPrintData['prescriptionStrategy']) ?? undefined,
+        prescriptionStrategy:
+          (summary!.prescriptionStrategy as PrescriptionPrintData['prescriptionStrategy']) ??
+          undefined,
       };
     }
 
@@ -261,10 +275,13 @@ export function PrintPrescriptionButton({
   };
 
   // Enable button if we have inline data OR API summary
-  const hasData = !!(inlineData && (
-    (inlineData.soapData?.subjective || inlineData.soapData?.assessment) ||
-    (inlineData.rxItems && inlineData.rxItems.length > 0)
-  )) || !!summary;
+  const hasData =
+    !!(
+      inlineData &&
+      (inlineData.soapData?.subjective ||
+        inlineData.soapData?.assessment ||
+        (inlineData.rxItems && inlineData.rxItems.length > 0))
+    ) || !!summary;
 
   return (
     <Button

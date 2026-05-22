@@ -16,7 +16,9 @@ export interface PackageRepository {
   deletePlan(id: number): Promise<void>;
 
   // ─── Patient Subscriptions ───────────────────────────────────────────────
-  assignPackage(dto: AssignPackageDto & { patientId: number; expiryDate: string; billId?: number }): Promise<number>;
+  assignPackage(
+    dto: AssignPackageDto & { patientId: number; expiryDate: string; billId?: number },
+  ): Promise<number>;
   getPatientPackages(regid: number): Promise<PatientPackage[]>;
   getActivePackage(regid: number): Promise<PatientPackage | null>;
   cancelSubscription(subscriptionId: number): Promise<void>;

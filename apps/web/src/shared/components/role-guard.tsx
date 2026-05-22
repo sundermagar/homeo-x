@@ -13,6 +13,7 @@ function normalizeRole(raw: string | null | undefined): string {
   if (r === 'clinicadmin') return 'Clinicadmin';
   if (r === 'doctor' || r === 'hmis_doctor') return 'Doctor';
   if (r === 'receptionist') return 'Receptionist';
+  if (r === 'patient') return 'Patient';
   return raw; // pass through for unknown roles
 }
 
@@ -21,13 +22,7 @@ function normalizeRole(raw: string | null | undefined): string {
  * is not in the `allowed` list. Role comparison is case-insensitive
  * and handles legacy role name variants.
  */
-export function RoleGuard({
-  allowed,
-  children,
-}: {
-  allowed: string[];
-  children: React.ReactNode;
-}) {
+export function RoleGuard({ allowed, children }: { allowed: string[]; children: React.ReactNode }) {
   const rawType = useAuthStore((s) => (s.user as any)?.type || (s.user as any)?.role);
   const userRole = normalizeRole(rawType);
 

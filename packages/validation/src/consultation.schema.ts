@@ -16,16 +16,21 @@ export const consultHomeopathySchema = z.object({
 });
 
 export const addSegmentsSchema = z.object({
-  segments: z.array(z.object({
-    sequenceNumber: z.number().int(),
-    text: z.string().min(1),
-    speaker: z.enum(['DOCTOR', 'PATIENT', 'SYSTEM']),
-    confidence: z.number().min(0).max(1).default(1.0),
-    startTimeMs: z.number().optional(),
-    endTimeMs: z.number().optional(),
-    isFinal: z.boolean().default(true),
-    source: z.enum(['WEB_SPEECH_API', 'GROQ_WHISPER', 'MANUAL']).default('WEB_SPEECH_API'),
-  })).min(1).max(100),
+  segments: z
+    .array(
+      z.object({
+        sequenceNumber: z.number().int(),
+        text: z.string().min(1),
+        speaker: z.enum(['DOCTOR', 'PATIENT', 'SYSTEM']),
+        confidence: z.number().min(0).max(1).default(1.0),
+        startTimeMs: z.number().optional(),
+        endTimeMs: z.number().optional(),
+        isFinal: z.boolean().default(true),
+        source: z.enum(['WEB_SPEECH_API', 'GROQ_WHISPER', 'MANUAL']).default('WEB_SPEECH_API'),
+      }),
+    )
+    .min(1)
+    .max(100),
 });
 
 export const vitalsSchema = z.object({

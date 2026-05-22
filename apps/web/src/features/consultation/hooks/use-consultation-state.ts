@@ -2,7 +2,12 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useCompleteConsultation } from '../../../hooks/use-consultations';
 import { toast } from '../../../hooks/use-toast';
 import { calculateAge } from '../../../lib/format';
-import { SoapSuggestion, HomeopathyConsultResult, SuggestedRubric, GnmAnalysis } from '../../../types/ai';
+import {
+  SoapSuggestion,
+  HomeopathyConsultResult,
+  SuggestedRubric,
+  GnmAnalysis,
+} from '../../../types/ai';
 import type { ScoredRemedy, ConsultationMode, CategorizedSymptoms } from '../../../types/ai';
 import type { CreatePrescriptionItemInput } from '../../../types/prescription';
 import type { UiHints } from '../../../types/consultation';
@@ -10,7 +15,12 @@ import type { Visit } from '../../../types/visit';
 import type { Patient } from '../../../types/patient';
 
 // ─── Stage Type ───
-export type ConsultStage = 'PATIENT_INFO' | 'CONSULTATION' | 'TOTALITY' | 'REPERTORY' | 'PRESCRIPTION';
+export type ConsultStage =
+  | 'PATIENT_INFO'
+  | 'CONSULTATION'
+  | 'TOTALITY'
+  | 'REPERTORY'
+  | 'PRESCRIPTION';
 
 // ─── Types ───
 
@@ -90,7 +100,6 @@ export interface UseConsultationStateReturn {
   // caseSummary: string; // Removed as it was unused and we are using clinicalSummary
   // setCaseSummary: (s: string) => void;
 
-
   // Diagnosis
   selectedDiagnoses: string[];
   suggestedRubrics: SuggestedRubric[];
@@ -122,7 +131,11 @@ export interface UseConsultationStateReturn {
 
   handleSaveDraft: () => Promise<void>;
   handleComplete: () => Promise<void>;
-  handleCompleteWithData: (overrideRxItems: CreatePrescriptionItemInput[], overrideAdvice: string, overrideFollowUp: string) => Promise<void>;
+  handleCompleteWithData: (
+    overrideRxItems: CreatePrescriptionItemInput[],
+    overrideAdvice: string,
+    overrideFollowUp: string,
+  ) => Promise<void>;
   handleVoiceUsed: () => void;
   sttLanguage: 'en-IN' | 'hi-IN';
   handleTemplateUsed: () => void;
@@ -197,10 +210,7 @@ export function useConsultationState({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLInputElement
-      ) {
+      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) {
         if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
           metricsRef.current.textInputEvents++;
         }
@@ -224,7 +234,6 @@ export function useConsultationState({
   // AI suggestion from voice
   const [scribeSuggestion, setScribeSuggestion] = useState<SoapSuggestion | null>(null);
   const [ongoingTranscript, setOngoingTranscript] = useState('');
-
 
   // ─── Prescription ───
   const [rxItems, setRxItems] = useState<CreatePrescriptionItemInput[]>([]);
@@ -251,14 +260,22 @@ export function useConsultationState({
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   // ─── Stage Navigation ───
-  const STAGE_ORDER: ConsultStage[] = ['PATIENT_INFO', 'CONSULTATION', 'TOTALITY', 'REPERTORY', 'PRESCRIPTION'];
+  const STAGE_ORDER: ConsultStage[] = [
+    'PATIENT_INFO',
+    'CONSULTATION',
+    'TOTALITY',
+    'REPERTORY',
+    'PRESCRIPTION',
+  ];
   const [consultStage, setConsultStage] = useState<ConsultStage>('PATIENT_INFO');
   const [scoredRemedies, setScoredRemedies] = useState<ScoredRemedy[]>([]);
 
   // ─── Consultation Mode & Categorized Symptoms ───
   const [consultationMode, setConsultationMode] = useState<ConsultationMode>('acute');
   const [categorizedSymptoms, setCategorizedSymptoms] = useState<CategorizedSymptoms>({
-    mental: [], physical: [], particular: [],
+    mental: [],
+    physical: [],
+    particular: [],
   });
 
   const handleSymptomsExtracted = useCallback((newSymptoms: CategorizedSymptoms) => {
@@ -270,14 +287,14 @@ export function useConsultationState({
   const handleNextStage = useCallback(() => {
     setConsultStage((prev) => {
       const idx = STAGE_ORDER.indexOf(prev);
-      return idx < STAGE_ORDER.length - 1 ? STAGE_ORDER[idx + 1] as ConsultStage : prev;
+      return idx < STAGE_ORDER.length - 1 ? (STAGE_ORDER[idx + 1] as ConsultStage) : prev;
     });
   }, []);
 
   const handlePrevStage = useCallback(() => {
     setConsultStage((prev) => {
       const idx = STAGE_ORDER.indexOf(prev);
-      return idx > 0 ? STAGE_ORDER[idx - 1] as ConsultStage : prev;
+      return idx > 0 ? (STAGE_ORDER[idx - 1] as ConsultStage) : prev;
     });
   }, []);
 
@@ -289,7 +306,9 @@ export function useConsultationState({
   const [selectedDiagnoses, setSelectedDiagnoses] = useState<string[]>([]);
   const [suggestedRubrics, setSuggestedRubrics] = useState<SuggestedRubric[]>([]);
   const [gnmAnalysis, setGnmAnalysis] = useState<GnmAnalysis | null>(null);
-  const [pendingConsultResult, setPendingConsultResult] = useState<HomeopathyConsultResult | null>(null);
+  const [pendingConsultResult, setPendingConsultResult] = useState<HomeopathyConsultResult | null>(
+    null,
+  );
   const [isSelectingDirection, setIsSelectingDirection] = useState(false);
   const lastAutoRemedyRef = useRef<string | null>(null);
 
@@ -330,32 +349,32 @@ export function useConsultationState({
   const aiContext: AiContext | undefined =
     visitId && visit.chiefComplaint
       ? {
-        visitId,
-        chiefComplaint: visit.chiefComplaint,
-        specialty: visit.specialty,
-        vitals: visit.vitals
-          ? {
-            heightCm: visit.vitals.heightCm,
-            weightKg: visit.vitals.weightKg,
-            temperatureF: visit.vitals.temperatureF,
-            pulseRate: visit.vitals.pulseRate,
-            systolicBp: visit.vitals.systolicBp,
-            diastolicBp: visit.vitals.diastolicBp,
-            // heightCm: visit.vitals.heightCm,
-          }
-          : undefined,
-        patientAge,
-        patientGender: patient?.gender,
-        thermalReaction,
-        miasm,
-        thirstPattern,
-        sleepPosition,
-        perspiration,
-        doctorNotes,
-        allergies: patient?.allergies,
-        transcript: ongoingTranscript,
-        consultationMode,
-      }
+          visitId,
+          chiefComplaint: visit.chiefComplaint,
+          specialty: visit.specialty,
+          vitals: visit.vitals
+            ? {
+                heightCm: visit.vitals.heightCm,
+                weightKg: visit.vitals.weightKg,
+                temperatureF: visit.vitals.temperatureF,
+                pulseRate: visit.vitals.pulseRate,
+                systolicBp: visit.vitals.systolicBp,
+                diastolicBp: visit.vitals.diastolicBp,
+                // heightCm: visit.vitals.heightCm,
+              }
+            : undefined,
+          patientAge,
+          patientGender: patient?.gender,
+          thermalReaction,
+          miasm,
+          thirstPattern,
+          sleepPosition,
+          perspiration,
+          doctorNotes,
+          allergies: patient?.allergies,
+          transcript: ongoingTranscript,
+          consultationMode,
+        }
       : undefined;
 
   // ─── Payload builder ───
@@ -382,17 +401,12 @@ export function useConsultationState({
         followUp: followUp.trim() || undefined,
         clinicalSummary: soapData.clinicalSummary || undefined,
         icdCodes: parsedIcdCodes.length > 0 ? parsedIcdCodes : undefined,
-        specialtyData:
-          Object.keys(specialtyData).length > 0 ? specialtyData : undefined,
+        specialtyData: Object.keys(specialtyData).length > 0 ? specialtyData : undefined,
       },
       prescriptionStrategy: 'REMEDY' as const,
       prescription: (() => {
         const filledItems = rxItems.filter(
-          (item) =>
-            item.medicationName &&
-            item.dosage &&
-            item.frequency &&
-            item.duration,
+          (item) => item.medicationName && item.dosage && item.frequency && item.duration,
         );
         return filledItems.length > 0
           ? { notes: rxNotes || undefined, items: filledItems }
@@ -401,12 +415,22 @@ export function useConsultationState({
       labOrders:
         labTests.length > 0
           ? labTests.map((test) => ({
-            testName: test,
-            aiSuggested: aiSuggestedLabs.includes(test),
-          }))
+              testName: test,
+              aiSuggested: aiSuggestedLabs.includes(test),
+            }))
           : undefined,
     };
-  }, [soapData, icdCodes, specialtyData, labTests, followUp, advice, rxItems, rxNotes, aiSuggestedLabs]);
+  }, [
+    soapData,
+    icdCodes,
+    specialtyData,
+    labTests,
+    followUp,
+    advice,
+    rxItems,
+    rxNotes,
+    aiSuggestedLabs,
+  ]);
 
   // ─── Metrics logger ───
   const logMetrics = useCallback(() => {
@@ -414,11 +438,19 @@ export function useConsultationState({
     const durationMs = Date.now() - m.consultationStartTime;
     const durationMin = Math.round(durationMs / 60000);
     const voicePct = m.voiceUsed
-      ? Math.min(100, Math.round((m.voiceSegmentCount / Math.max(1, m.textInputEvents + m.voiceSegmentCount)) * 100))
+      ? Math.min(
+          100,
+          Math.round(
+            (m.voiceSegmentCount / Math.max(1, m.textInputEvents + m.voiceSegmentCount)) * 100,
+          ),
+        )
       : 0;
-    const templatePct = m.templateUsageCount > 0
-      ? Math.round((m.templateUsageCount / Math.max(1, m.templateUsageCount + m.textInputEvents)) * 100)
-      : 0;
+    const templatePct =
+      m.templateUsageCount > 0
+        ? Math.round(
+            (m.templateUsageCount / Math.max(1, m.templateUsageCount + m.textInputEvents)) * 100,
+          )
+        : 0;
 
     console.info('[Clinical Focus Metrics]', {
       visitId,
@@ -453,7 +485,11 @@ export function useConsultationState({
     if (diagText.includes('hypertension') || diagText.includes('cardiac')) {
       labSuggestions.push('ECG', 'Lipid Panel', 'KFT');
     }
-    if (diagText.includes('anemia') || diagText.includes('infection') || diagText.includes('fever')) {
+    if (
+      diagText.includes('anemia') ||
+      diagText.includes('infection') ||
+      diagText.includes('fever')
+    ) {
       labSuggestions.push('CBC', 'CRP', 'ESR');
     }
     if (diagText.includes('thyroid')) {
@@ -470,7 +506,10 @@ export function useConsultationState({
 
   const handleApplyDiagnosis = useCallback((name: string, code: string) => {
     setIcdCodes((prev) => {
-      const existing = prev.split(',').map(c => c.trim()).filter(Boolean);
+      const existing = prev
+        .split(',')
+        .map((c) => c.trim())
+        .filter(Boolean);
       if (existing.includes(code)) return prev;
       return [...existing, code].join(', ');
     });
@@ -479,7 +518,6 @@ export function useConsultationState({
       return [...prev, name];
     });
   }, []);
-
 
   const handleSaveDraft = useCallback(async () => {
     if (!visitId) return;
@@ -518,7 +556,8 @@ export function useConsultationState({
     } catch (err) {
       let errorMsg = err instanceof Error ? err.message : '';
       if (err && typeof (err as any).details === 'object' && Array.isArray((err as any).details)) {
-        errorMsg += ': ' + (err as any).details.map((d: any) => `${d.field} - ${d.message}`).join(', ');
+        errorMsg +=
+          ': ' + (err as any).details.map((d: any) => `${d.field} - ${d.message}`).join(', ');
       }
       toast({
         title: 'Failed to complete consultation',
@@ -529,52 +568,57 @@ export function useConsultationState({
   }, [visitId, buildPayload, completeConsultation, logMetrics]);
 
   // Bypass stale-closure: accepts rx data directly without relying on React state flush
-  const handleCompleteWithData = useCallback(async (
-    overrideRxItems: typeof rxItems,
-    overrideAdvice: string,
-    overrideFollowUp: string,
-  ) => {
-    if (!visitId) return;
-    const base = buildPayload();
+  const handleCompleteWithData = useCallback(
+    async (overrideRxItems: typeof rxItems, overrideAdvice: string, overrideFollowUp: string) => {
+      if (!visitId) return;
+      const base = buildPayload();
 
-    const filledItems = overrideRxItems.filter(
-      (item) => item.medicationName && item.dosage && item.frequency && item.duration,
-    );
+      const filledItems = overrideRxItems.filter(
+        (item) => item.medicationName && item.dosage && item.frequency && item.duration,
+      );
 
-    const payload = {
-      ...base,
-      prescriptionStrategy: 'REMEDY' as const,
-      soap: {
-        ...base.soap,
-        advice: overrideAdvice.trim() || base.soap.advice,
-        followUp: overrideFollowUp.trim() || base.soap.followUp,
-      },
-      prescription: filledItems.length > 0
-        ? { notes: rxNotes || undefined, items: filledItems }
-        : base.prescription,
-    };
+      const payload = {
+        ...base,
+        prescriptionStrategy: 'REMEDY' as const,
+        soap: {
+          ...base.soap,
+          advice: overrideAdvice.trim() || base.soap.advice,
+          followUp: overrideFollowUp.trim() || base.soap.followUp,
+        },
+        prescription:
+          filledItems.length > 0
+            ? { notes: rxNotes || undefined, items: filledItems }
+            : base.prescription,
+      };
 
-    try {
-      await completeConsultation.mutateAsync({
-        visitId,
-        ...payload,
-        autoApprove: true,
-      });
-      logMetrics();
-      toast({ title: 'Consultation completed', variant: 'success' });
-      setShowCompleted(true);
-    } catch (err) {
-      let errorMsg = err instanceof Error ? err.message : '';
-      if (err && typeof (err as any).details === 'object' && Array.isArray((err as any).details)) {
-        errorMsg += ': ' + (err as any).details.map((d: any) => `${d.field} - ${d.message}`).join(', ');
+      try {
+        await completeConsultation.mutateAsync({
+          visitId,
+          ...payload,
+          autoApprove: true,
+        });
+        logMetrics();
+        toast({ title: 'Consultation completed', variant: 'success' });
+        setShowCompleted(true);
+      } catch (err) {
+        let errorMsg = err instanceof Error ? err.message : '';
+        if (
+          err &&
+          typeof (err as any).details === 'object' &&
+          Array.isArray((err as any).details)
+        ) {
+          errorMsg +=
+            ': ' + (err as any).details.map((d: any) => `${d.field} - ${d.message}`).join(', ');
+        }
+        toast({
+          title: 'Failed to complete consultation',
+          description: errorMsg,
+          variant: 'error',
+        });
       }
-      toast({
-        title: 'Failed to complete consultation',
-        description: errorMsg,
-        variant: 'error',
-      });
-    }
-  }, [visitId, buildPayload, rxNotes, completeConsultation, logMetrics]);
+    },
+    [visitId, buildPayload, rxNotes, completeConsultation, logMetrics],
+  );
 
   const handleVoiceUsed = useCallback(() => {
     metricsRef.current.voiceUsed = true;
@@ -653,200 +697,234 @@ export function useConsultationState({
     ]);
   }, []);
 
-  const handleHomeopathyConsultGenerated = useCallback((result: HomeopathyConsultResult) => {
-    console.log('[useConsultationState] Homeopathy consult generated:', result);
+  const handleHomeopathyConsultGenerated = useCallback(
+    (result: HomeopathyConsultResult) => {
+      console.log('[useConsultationState] Homeopathy consult generated:', result);
 
-    if (result.followUpAssessment) {
-      const assessment = result.followUpAssessment;
+      if (result.followUpAssessment) {
+        const assessment = result.followUpAssessment;
+
+        // 1. Update SOAP
+        const heringLaw = assessment.heringLawObservations?.length
+          ? assessment.heringLawObservations.join(', ')
+          : 'None observed';
+        const newSymptoms = assessment.newSymptoms?.length
+          ? assessment.newSymptoms.join(', ')
+          : 'None reported';
+
+        const objectiveText = [
+          `Improvement: ${assessment.improvementPercent}%`,
+          `Status of Chief Complaint: ${assessment.chiefComplaintStatus}`,
+          `General Wellbeing: ${assessment.generalWellbeing}`,
+          `Hering's Law: ${heringLaw}`,
+          `New Symptoms: ${newSymptoms}`,
+        ].join('\n');
+
+        setSoapData({
+          subjective: assessment.clinicalNotes || result.caseSummary || '',
+          objective: objectiveText,
+          assessment: assessment.decision,
+          plan: assessment.suggestedAction || assessment.currentRemedyReview || '',
+          clinicalSummary: result.caseSummary || assessment.clinicalNotes || '',
+        });
+
+        // 2. Update Advice & Follow-up
+        const dietary = assessment.dietaryAdvice || [];
+        const lifestyle = assessment.lifestyleAdvice || [];
+        const combinedAdvice = [...dietary, ...lifestyle].join('\n');
+        setAdvice(combinedAdvice);
+
+        const followUpText = assessment.followUpTimeline || '';
+        if (followUpText) {
+          const date = new Date();
+          const daysMatch = followUpText.match(/(\d+)\s*day/i);
+          const weeksMatch = followUpText.match(/(\d+)\s*week/i);
+          const monthsMatch = followUpText.match(/(\d+)\s*month/i);
+          if (daysMatch) date.setDate(date.getDate() + parseInt(daysMatch[1] ?? '0'));
+          else if (weeksMatch) date.setDate(date.getDate() + parseInt(weeksMatch[1] ?? '0') * 7);
+          else if (monthsMatch) date.setMonth(date.getMonth() + parseInt(monthsMatch[1] ?? '0'));
+          else date.setDate(date.getDate() + 15);
+
+          const yyyy = date.getFullYear();
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          const dd = String(date.getDate()).padStart(2, '0');
+          setFollowUp(`${yyyy}-${mm}-${dd}`);
+        }
+
+        // 3. Update Remedy/Prescription
+        if (assessment.decision === 'CHANGE' && assessment.alternativeRemedy) {
+          setRxItems([
+            {
+              medicationName: assessment.alternativeRemedy.name,
+              genericName: '',
+              dosage: assessment.alternativeRemedy.potency || '30C',
+              frequency: 'Stat',
+              duration: '1 day',
+              route: 'Globules',
+              instructions: assessment.alternativeRemedy.dosage || '',
+            },
+          ]);
+        } else if (result.prescriptionDraft?.suggestedRemedies?.length) {
+          setRxItems(
+            result.prescriptionDraft.suggestedRemedies.map((r) => ({
+              medicationName: r.remedyName,
+              genericName: '',
+              dosage: r.potency || '30C',
+              frequency: r.dosage || 'Stat',
+              duration: '1 day',
+              route: 'Globules',
+              instructions: '',
+            })),
+          );
+        } else if (result.prescriptionDraft?.suggestedRemedy) {
+          setRxItems([
+            {
+              medicationName: result.prescriptionDraft.suggestedRemedy,
+              genericName: '',
+              dosage: result.prescriptionDraft.potency || '30C',
+              frequency: result.prescriptionDraft.dosage || 'Stat',
+              duration: '1 day',
+              route: 'Globules',
+              instructions: '',
+            },
+          ]);
+        } else {
+          setRxItems([]);
+        }
+      } else {
+        setPendingConsultResult(result);
+        if (result.diagnosisData?.differentials?.length || result.diagnosisData?.primaryDiagnosis) {
+          setIsSelectingDirection(true);
+        }
+      }
+    },
+    [
+      setSoapData,
+      setAdvice,
+      setFollowUp,
+      setRxItems,
+      setPendingConsultResult,
+      setIsSelectingDirection,
+    ],
+  );
+
+  const handleSelectDirection = useCallback(
+    (name: string, icdCode: string) => {
+      if (!pendingConsultResult) return;
+
+      const result = pendingConsultResult;
 
       // 1. Update SOAP
-      const heringLaw = assessment.heringLawObservations?.length
-        ? assessment.heringLawObservations.join(', ')
-        : 'None observed';
-      const newSymptoms = assessment.newSymptoms?.length
-        ? assessment.newSymptoms.join(', ')
-        : 'None reported';
+      const clinicalFindings = result.clinicalData.clinicalFindings || [];
+      const labKeywords = [
+        'count',
+        'level',
+        'mg/dl',
+        'mmo/l',
+        'u/l',
+        'positive',
+        'negative',
+        'reactive',
+        'report',
+        'lab',
+        'blood',
+        'serum',
+        'urine',
+        'test',
+      ];
+      const hasLabFindings = clinicalFindings.some((f) =>
+        labKeywords.some((kw) => f.toLowerCase().includes(kw)),
+      );
 
-      const objectiveText = [
-        `Improvement: ${assessment.improvementPercent}%`,
-        `Status of Chief Complaint: ${assessment.chiefComplaintStatus}`,
-        `General Wellbeing: ${assessment.generalWellbeing}`,
-        `Hering's Law: ${heringLaw}`,
-        `New Symptoms: ${newSymptoms}`
-      ].join('\n');
+      const objectiveText =
+        clinicalFindings.length > 0
+          ? `${hasLabFindings ? 'Clinical/Lab Findings' : 'Clinical Observations'}:\n- ${clinicalFindings.join('\n- ')}`
+          : '';
+
+      const planData =
+        (result.prescriptionDraft as any).caseAnalysis ||
+        result.prescriptionDraft.materiaMedicaValidation;
+      const planText = Array.isArray(planData) ? planData.join('\n') : planData || '';
 
       setSoapData({
-        subjective: assessment.clinicalNotes || result.caseSummary || '',
+        subjective: result.prescriptionDraft.consultationSummary,
         objective: objectiveText,
-        assessment: assessment.decision,
-        plan: assessment.suggestedAction || assessment.currentRemedyReview || '',
-        clinicalSummary: result.caseSummary || assessment.clinicalNotes || '',
+        assessment: name, // Use the selected direction name
+        plan: planText,
+        clinicalSummary: result.caseSummary || '',
       });
 
-      // 2. Update Advice & Follow-up
-      const dietary = assessment.dietaryAdvice || [];
-      const lifestyle = assessment.lifestyleAdvice || [];
-      const combinedAdvice = [...dietary, ...lifestyle].join('\n');
-      setAdvice(combinedAdvice);
+      // 2. Update Diagnosis (Overwrite array to ensure only selected one stays)
+      console.log('[handleSelectDirection] Overwriting diagnoses with:', name);
+      setSelectedDiagnoses([name]);
+      setIcdCodes(icdCode || '');
 
-      const followUpText = assessment.followUpTimeline || '';
+      // 3. Update Remedy/Prescription
+      const suggestedRemedies = result.prescriptionDraft.suggestedRemedies || [];
+
+      if (suggestedRemedies.length > 0) {
+        setRxItems(
+          suggestedRemedies.map((r: { remedyName: string; potency?: string }) => ({
+            medicationName: r.remedyName,
+            genericName: '',
+            dosage: r.potency || '30C',
+            frequency: 'Stat',
+            duration: '1 day',
+            route: 'Globules',
+            instructions: '',
+          })),
+        );
+      } else {
+        const draftRemedy = result.prescriptionDraft.suggestedRemedy;
+        const fallbackRemedy = result.remedyScores.scoredRemedies?.[0]?.remedyName;
+
+        if (draftRemedy || fallbackRemedy) {
+          handleAutoSuggestRemedy(draftRemedy || fallbackRemedy!, [
+            result.prescriptionDraft.potency || '30C',
+          ]);
+        }
+      }
+
+      // 4. Update Advice & Follow-up
+      setAdvice(result.prescriptionDraft.advice?.join('\n') || '');
+      // Convert AI follow-up text to YYYY-MM-DD date
+      const followUpText = result.prescriptionDraft.followUp || '';
       if (followUpText) {
         const date = new Date();
         const daysMatch = followUpText.match(/(\d+)\s*day/i);
         const weeksMatch = followUpText.match(/(\d+)\s*week/i);
         const monthsMatch = followUpText.match(/(\d+)\s*month/i);
-        if (daysMatch) date.setDate(date.getDate() + parseInt(daysMatch[1] ?? '0'));
-        else if (weeksMatch) date.setDate(date.getDate() + parseInt(weeksMatch[1] ?? '0') * 7);
-        else if (monthsMatch) date.setMonth(date.getMonth() + parseInt(monthsMatch[1] ?? '0'));
+        if (daysMatch) date.setDate(date.getDate() + parseInt(daysMatch[1]!));
+        else if (weeksMatch) date.setDate(date.getDate() + parseInt(weeksMatch[1]!) * 7);
+        else if (monthsMatch) date.setMonth(date.getMonth() + parseInt(monthsMatch[1]!));
         else date.setDate(date.getDate() + 15);
-        
         const yyyy = date.getFullYear();
         const mm = String(date.getMonth() + 1).padStart(2, '0');
         const dd = String(date.getDate()).padStart(2, '0');
         setFollowUp(`${yyyy}-${mm}-${dd}`);
       }
 
-      // 3. Update Remedy/Prescription
-      if (assessment.decision === 'CHANGE' && assessment.alternativeRemedy) {
-        setRxItems([
-          {
-            medicationName: assessment.alternativeRemedy.name,
-            genericName: '',
-            dosage: assessment.alternativeRemedy.potency || '30C',
-            frequency: 'Stat',
-            duration: '1 day',
-            route: 'Globules',
-            instructions: assessment.alternativeRemedy.dosage || '',
-          }
-        ]);
-      } else if (result.prescriptionDraft?.suggestedRemedies?.length) {
-        setRxItems(result.prescriptionDraft.suggestedRemedies.map(r => ({
-          medicationName: r.remedyName,
-          genericName: '',
-          dosage: r.potency || '30C',
-          frequency: r.dosage || 'Stat',
-          duration: '1 day',
-          route: 'Globules',
-          instructions: '',
-        })));
-      } else if (result.prescriptionDraft?.suggestedRemedy) {
-        setRxItems([
-          {
-            medicationName: result.prescriptionDraft.suggestedRemedy,
-            genericName: '',
-            dosage: result.prescriptionDraft.potency || '30C',
-            frequency: result.prescriptionDraft.dosage || 'Stat',
-            duration: '1 day',
-            route: 'Globules',
-            instructions: '',
-          }
-        ]);
-      } else {
-        setRxItems([]);
+      // 5. Update Rubrics
+      if (result.rubricsResult?.suggestedRubrics) {
+        setSuggestedRubrics(result.rubricsResult.suggestedRubrics);
       }
-    } else {
-      setPendingConsultResult(result);
-      if (result.diagnosisData?.differentials?.length || result.diagnosisData?.primaryDiagnosis) {
-        setIsSelectingDirection(true);
+
+      // 6. Update GNM Analysis
+      if (result.gnmAnalysis) {
+        setGnmAnalysis(result.gnmAnalysis);
       }
-    }
-  }, [setSoapData, setAdvice, setFollowUp, setRxItems, setPendingConsultResult, setIsSelectingDirection]);
 
-  const handleSelectDirection = useCallback((name: string, icdCode: string) => {
-    if (!pendingConsultResult) return;
-
-    const result = pendingConsultResult;
-
-    // 1. Update SOAP
-    const clinicalFindings = result.clinicalData.clinicalFindings || [];
-    const labKeywords = ['count', 'level', 'mg/dl', 'mmo/l', 'u/l', 'positive', 'negative', 'reactive', 'report', 'lab', 'blood', 'serum', 'urine', 'test'];
-    const hasLabFindings = clinicalFindings.some(f =>
-      labKeywords.some(kw => f.toLowerCase().includes(kw))
-    );
-
-    const objectiveText = clinicalFindings.length > 0
-      ? `${hasLabFindings ? 'Clinical/Lab Findings' : 'Clinical Observations'}:\n- ${clinicalFindings.join('\n- ')}`
-      : '';
-
-    const planData = (result.prescriptionDraft as any).caseAnalysis || result.prescriptionDraft.materiaMedicaValidation;
-    const planText = Array.isArray(planData) ? planData.join('\n') : (planData || '');
-
-    setSoapData({
-      subjective: result.prescriptionDraft.consultationSummary,
-      objective: objectiveText,
-      assessment: name, // Use the selected direction name
-      plan: planText,
-      clinicalSummary: result.caseSummary || '',
-    });
-
-    // 2. Update Diagnosis (Overwrite array to ensure only selected one stays)
-    console.log('[handleSelectDirection] Overwriting diagnoses with:', name);
-    setSelectedDiagnoses([name]);
-    setIcdCodes(icdCode || '');
-
-    // 3. Update Remedy/Prescription
-    const suggestedRemedies = result.prescriptionDraft.suggestedRemedies || [];
-
-    if (suggestedRemedies.length > 0) {
-      setRxItems(suggestedRemedies.map((r: { remedyName: string; potency?: string }) => ({
-        medicationName: r.remedyName,
-        genericName: '',
-        dosage: r.potency || '30C',
-        frequency: 'Stat',
-        duration: '1 day',
-        route: 'Globules',
-        instructions: '',
-      })));
-    } else {
-      const draftRemedy = result.prescriptionDraft.suggestedRemedy;
-      const fallbackRemedy = result.remedyScores.scoredRemedies?.[0]?.remedyName;
-
-      if (draftRemedy || fallbackRemedy) {
-        handleAutoSuggestRemedy(
-          draftRemedy || fallbackRemedy!,
-          [result.prescriptionDraft.potency || '30C'],
-        );
+      // 7. Update Scored Remedies
+      if (result.remedyScores?.scoredRemedies) {
+        setScoredRemedies(result.remedyScores.scoredRemedies);
       }
-    }
 
-    // 4. Update Advice & Follow-up
-    setAdvice(result.prescriptionDraft.advice?.join('\n') || '');
-    // Convert AI follow-up text to YYYY-MM-DD date
-    const followUpText = result.prescriptionDraft.followUp || '';
-    if (followUpText) {
-      const date = new Date();
-      const daysMatch = followUpText.match(/(\d+)\s*day/i);
-      const weeksMatch = followUpText.match(/(\d+)\s*week/i);
-      const monthsMatch = followUpText.match(/(\d+)\s*month/i);
-      if (daysMatch) date.setDate(date.getDate() + parseInt(daysMatch[1]!));
-      else if (weeksMatch) date.setDate(date.getDate() + parseInt(weeksMatch[1]!) * 7);
-      else if (monthsMatch) date.setMonth(date.getMonth() + parseInt(monthsMatch[1]!));
-      else date.setDate(date.getDate() + 15);
-      const yyyy = date.getFullYear();
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const dd = String(date.getDate()).padStart(2, '0');
-      setFollowUp(`${yyyy}-${mm}-${dd}`);
-    }
-
-    // 5. Update Rubrics
-    if (result.rubricsResult?.suggestedRubrics) {
-      setSuggestedRubrics(result.rubricsResult.suggestedRubrics);
-    }
-
-    // 6. Update GNM Analysis
-    if (result.gnmAnalysis) {
-      setGnmAnalysis(result.gnmAnalysis);
-    }
-
-    // 7. Update Scored Remedies
-    if (result.remedyScores?.scoredRemedies) {
-      setScoredRemedies(result.remedyScores.scoredRemedies);
-    }
-
-    // Clear pending state
-    setIsSelectingDirection(false);
-    toast({ title: 'Clinical path locked. Draft updated.', variant: 'success' });
-  }, [pendingConsultResult, handleApplyDiagnosis, handleAutoSuggestRemedy]);
+      // Clear pending state
+      setIsSelectingDirection(false);
+      toast({ title: 'Clinical path locked. Draft updated.', variant: 'success' });
+    },
+    [pendingConsultResult, handleApplyDiagnosis, handleAutoSuggestRemedy],
+  );
 
   const handleReopenDirectionSelector = useCallback(() => {
     if (pendingConsultResult) {

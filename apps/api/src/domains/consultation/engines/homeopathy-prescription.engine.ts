@@ -57,7 +57,7 @@ export interface HomeopathyPrescriptionDraft {
   advice: string[];
   followUp: string;
   confidence: number;
-  gnmAnalysis?: GnmAnalysis | null;   // GNM interpretation
+  gnmAnalysis?: GnmAnalysis | null; // GNM interpretation
 }
 
 export class HomeopathyPrescriptionEngine {
@@ -72,7 +72,7 @@ export class HomeopathyPrescriptionEngine {
       diagnosisData: any;
       selectedRubrics: any[];
       remedyScores: any;
-    }
+    },
   ): Promise<HomeopathyPrescriptionDraft> {
     const topRemedy = input.remedyScores?.scoredRemedies?.[0];
     const otherCandidates = input.remedyScores?.scoredRemedies?.slice(1, 4) || [];
@@ -163,7 +163,10 @@ Task:
 
       let parsed: any = safeJsonParse(response.content);
       if (!parsed) {
-        logger.error({ tenantId, contentPreview: response.content.slice(0, 300) }, 'Homeopathy prescription: JSON unrecoverable even after repair');
+        logger.error(
+          { tenantId, contentPreview: response.content.slice(0, 300) },
+          'Homeopathy prescription: JSON unrecoverable even after repair',
+        );
         throw new Error('Prescription engine returned unparseable JSON');
       }
 
@@ -171,7 +174,7 @@ Task:
       // `suggestedRemedy` as a string but generated stub objects in the array).
       if (Array.isArray(parsed.suggestedRemedies)) {
         parsed.suggestedRemedies = parsed.suggestedRemedies.filter(
-          (r: any) => r && typeof r.remedyName === 'string' && r.remedyName.trim().length > 0
+          (r: any) => r && typeof r.remedyName === 'string' && r.remedyName.trim().length > 0,
         );
       }
 
@@ -181,9 +184,10 @@ Task:
       // this, when Phase 4 fails (no rubrics → no scoredRemedies), the array gets
       // built with an empty remedyName and the prescription UI renders blank.
       if (!Array.isArray(parsed.suggestedRemedies) || parsed.suggestedRemedies.length === 0) {
-        const primaryName = (typeof parsed.suggestedRemedy === 'string' && parsed.suggestedRemedy.trim())
-          || topRemedy?.remedyName
-          || '';
+        const primaryName =
+          (typeof parsed.suggestedRemedy === 'string' && parsed.suggestedRemedy.trim()) ||
+          topRemedy?.remedyName ||
+          '';
 
         parsed.suggestedRemedies = [];
         if (primaryName) {
@@ -206,12 +210,15 @@ Task:
       }
 
       if (!parsed.suggestedRemedy) {
-        parsed.suggestedRemedy = parsed.suggestedRemedies[0]?.remedyName || topRemedy?.remedyName || '';
+        parsed.suggestedRemedy =
+          parsed.suggestedRemedies[0]?.remedyName || topRemedy?.remedyName || '';
       }
 
-      logger.info({ tenantId, primaryRemedy: parsed.suggestedRemedy, hasGnm: !!parsed.gnmAnalysis }, 'Homeopathy prescription drafted');
+      logger.info(
+        { tenantId, primaryRemedy: parsed.suggestedRemedy, hasGnm: !!parsed.gnmAnalysis },
+        'Homeopathy prescription drafted',
+      );
       return parsed;
-
     } catch (error: any) {
       logger.error({ error: error.message }, 'Homeopathy prescription drafting failed');
       return {
@@ -221,7 +228,11 @@ Task:
         suggestedRemedy: topRemedy?.remedyName || 'Consultation required',
         suggestedRemedies: [
           { remedyName: topRemedy?.remedyName || '', potency: '30C', dosage: '2 pills/day' },
-          ...otherCandidates.map((c: any) => ({ remedyName: c.remedyName, potency: '30C', dosage: '2 pills/day' }))
+          ...otherCandidates.map((c: any) => ({
+            remedyName: c.remedyName,
+            potency: '30C',
+            dosage: '2 pills/day',
+          })),
         ],
         potency: '30C',
         dosage: '3 doses/day',

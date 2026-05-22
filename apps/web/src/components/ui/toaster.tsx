@@ -18,7 +18,7 @@ const WhatsAppIcon = ({ size = 14, ...props }: { size?: number; [key: string]: a
 
 const variantIcon: Record<string, ReactNode> = {
   success: <CheckCircle2 size={14} strokeWidth={2.4} />,
-  error:   <AlertTriangle size={14} strokeWidth={2.4} />,
+  error: <AlertTriangle size={14} strokeWidth={2.4} />,
   warning: <AlertCircle size={14} strokeWidth={2.4} />,
   whatsapp: <WhatsAppIcon size={14} />,
   default: <Info size={14} strokeWidth={2.2} />,
@@ -41,7 +41,9 @@ export function Toaster() {
         const mono = looksLikeCode(description);
         return (
           <Toast key={id} variant={variant} {...props}>
-            <span className="toast__icon" aria-hidden="true">{icon}</span>
+            <span className="toast__icon" aria-hidden="true">
+              {icon}
+            </span>
             <div className="toast__body">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (

@@ -12,21 +12,24 @@ export class PdfkitServiceAdapter {
    * @param res The Express response stream (Writable)
    * @param data Any data to inject
    */
-  private async drawHeader(doc: any, data: {
-    clinicName: string;
-    clinicAddress?: string;
-    clinicPhone?: string;
-    clinicEmail?: string;
-    clinicWebsite?: string;
-    clinicLogo?: string;
-    clinicTagline?: string;
-    clinicRegistration?: string;
-    clinicTiming?: string;
-  }) {
+  private async drawHeader(
+    doc: any,
+    data: {
+      clinicName: string;
+      clinicAddress?: string;
+      clinicPhone?: string;
+      clinicEmail?: string;
+      clinicWebsite?: string;
+      clinicLogo?: string;
+      clinicTagline?: string;
+      clinicRegistration?: string;
+      clinicTiming?: string;
+    },
+  ) {
     // User requested "print in letter head", so we skip drawing the header
     // and just leave enough blank space at the top (e.g., 120 points).
     doc.y = 120;
-    
+
     /* ORIGINAL HEADER DRAWING CODE (COMMENTED OUT FOR LETTERHEAD MODE)
     const headerY = doc.y;
     const leftPadding = 40;
@@ -92,27 +95,30 @@ export class PdfkitServiceAdapter {
     */
   }
 
-  async generatePrescription(res: Writable, data: {
-    clinicName: string;
-    clinicAddress?: string;
-    clinicPhone?: string;
-    clinicEmail?: string;
-    clinicWebsite?: string;
-    clinicLogo?: string;
-    clinicTagline?: string;
-    clinicRegistration?: string;
-    clinicTiming?: string;
-    patientName: string;
-    patientAge?: number;
-    patientGender?: string;
-    patientPhone?: string;
-    patientAddress?: string;
-    diagnosis?: string;
-    followUpNote?: string;
-    regid: number;
-    potencies: any[];
-    settings?: any;
-  }): Promise<void> {
+  async generatePrescription(
+    res: Writable,
+    data: {
+      clinicName: string;
+      clinicAddress?: string;
+      clinicPhone?: string;
+      clinicEmail?: string;
+      clinicWebsite?: string;
+      clinicLogo?: string;
+      clinicTagline?: string;
+      clinicRegistration?: string;
+      clinicTiming?: string;
+      patientName: string;
+      patientAge?: number;
+      patientGender?: string;
+      patientPhone?: string;
+      patientAddress?: string;
+      diagnosis?: string;
+      followUpNote?: string;
+      regid: number;
+      potencies: any[];
+      settings?: any;
+    },
+  ): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
@@ -126,22 +132,68 @@ export class PdfkitServiceAdapter {
         const blockY = doc.y;
 
         // Left Block: Patient Details
-        doc.fontSize(7).font('Helvetica-Bold').fillColor('#94A3B8').text('PATIENT DETAILS', leftPadding, blockY);
-        doc.fontSize(10).font('Helvetica-Bold').fillColor('#1E293B').text(data.patientName.toUpperCase(), leftPadding, doc.y + 2);
-        doc.fontSize(8).font('Helvetica').fillColor('#475569').text(`${data.patientAge || '??'} Yrs / ${data.patientGender || 'Unspecified'}`, leftPadding, doc.y + 1);
+        doc
+          .fontSize(7)
+          .font('Helvetica-Bold')
+          .fillColor('#94A3B8')
+          .text('PATIENT DETAILS', leftPadding, blockY);
+        doc
+          .fontSize(10)
+          .font('Helvetica-Bold')
+          .fillColor('#1E293B')
+          .text(data.patientName.toUpperCase(), leftPadding, doc.y + 2);
+        doc
+          .fontSize(8)
+          .font('Helvetica')
+          .fillColor('#475569')
+          .text(
+            `${data.patientAge || '??'} Yrs / ${data.patientGender || 'Unspecified'}`,
+            leftPadding,
+            doc.y + 1,
+          );
 
         // Right Block: Date & Reference
         const refX = 400;
-        doc.fontSize(7).font('Helvetica-Bold').fillColor('#94A3B8').text('DATE & REFERENCE', refX, blockY, { align: 'right', width: 155 });
-        doc.fontSize(9).font('Helvetica-Bold').fillColor('#1E293B').text(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }), refX, doc.y + 2, { align: 'right', width: 155 });
-        doc.fontSize(8).font('Helvetica').fillColor('#475569').text(`REF: #RX-${data.regid}-${new Date().getTime().toString().slice(-4)}`, refX, doc.y + 1, { align: 'right', width: 155 });
+        doc
+          .fontSize(7)
+          .font('Helvetica-Bold')
+          .fillColor('#94A3B8')
+          .text('DATE & REFERENCE', refX, blockY, { align: 'right', width: 155 });
+        doc
+          .fontSize(9)
+          .font('Helvetica-Bold')
+          .fillColor('#1E293B')
+          .text(
+            new Date().toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            }),
+            refX,
+            doc.y + 2,
+            { align: 'right', width: 155 },
+          );
+        doc
+          .fontSize(8)
+          .font('Helvetica')
+          .fillColor('#475569')
+          .text(
+            `REF: #RX-${data.regid}-${new Date().getTime().toString().slice(-4)}`,
+            refX,
+            doc.y + 1,
+            { align: 'right', width: 155 },
+          );
 
         doc.y = Math.max(doc.y, blockY + 45);
         doc.moveDown(2);
 
         // ─── Diagnosis Section (if present) ───
         if (data.diagnosis) {
-          doc.font('Helvetica-Bold').fontSize(9).fillColor('#1E293B').text('DIAGNOSIS:', leftPadding, doc.y, { continued: true });
+          doc
+            .font('Helvetica-Bold')
+            .fontSize(9)
+            .fillColor('#1E293B')
+            .text('DIAGNOSIS:', leftPadding, doc.y, { continued: true });
           doc.font('Helvetica').text(` ${data.diagnosis.toUpperCase()}`);
           doc.moveDown(1);
         }
@@ -189,7 +241,7 @@ export class PdfkitServiceAdapter {
             p.potency || p.potencyName || '—',
             p.frequency || p.frequencyTitle || '—',
             String(p.days || '—'),
-            p.createdAt ? new Date(p.createdAt).toLocaleDateString() : (p.dateval || '—')
+            p.createdAt ? new Date(p.createdAt).toLocaleDateString() : p.dateval || '—',
           ];
 
           rowData.forEach((cell, i) => {
@@ -198,7 +250,12 @@ export class PdfkitServiceAdapter {
           });
 
           y += 20;
-          doc.moveTo(40, y - 4).lineTo(555, y - 4).strokeColor('#F1F5F9').lineWidth(0.5).stroke();
+          doc
+            .moveTo(40, y - 4)
+            .lineTo(555, y - 4)
+            .strokeColor('#F1F5F9')
+            .lineWidth(0.5)
+            .stroke();
         });
 
         // ─── Follow-up & Advice Section ───
@@ -214,7 +271,7 @@ export class PdfkitServiceAdapter {
 
           // Draw a background box
           const boxHeight = doc.heightOfString(data.followUpNote, { width: 495, lineGap: 2 }) + 40;
-          
+
           if (doc.y + boxHeight > 780) {
             doc.addPage();
             doc.y = 50;
@@ -223,16 +280,29 @@ export class PdfkitServiceAdapter {
           doc.roundedRect(40, doc.y, 515, boxHeight, 8).fill('#F8FAFC').stroke('#E2E8F0');
           doc.y += 12; // Internal padding
 
-          doc.font('Helvetica-Bold').fontSize(11).fillColor('#1E293B').text('FOLLOW-UP NOTES / ADVICE:', 55, doc.y);
+          doc
+            .font('Helvetica-Bold')
+            .fontSize(11)
+            .fillColor('#1E293B')
+            .text('FOLLOW-UP NOTES / ADVICE:', 55, doc.y);
           doc.moveDown(0.5);
-          doc.font('Helvetica').fontSize(10).fillColor('#475569').text(data.followUpNote, 55, doc.y, { width: 485, align: 'left', lineGap: 2 });
-          
+          doc
+            .font('Helvetica')
+            .fontSize(10)
+            .fillColor('#475569')
+            .text(data.followUpNote, 55, doc.y, { width: 485, align: 'left', lineGap: 2 });
+
           doc.y += 20; // Margin after box
         }
 
         // ─── Footer ───
         const pageHeight = doc.page.height;
-        doc.fontSize(8).fillColor('#94A3B8').text('This is a computer generated prescription.', 40, pageHeight - 60, { align: 'center' });
+        doc
+          .fontSize(8)
+          .fillColor('#94A3B8')
+          .text('This is a computer generated prescription.', 40, pageHeight - 60, {
+            align: 'center',
+          });
 
         doc.end();
 
@@ -245,23 +315,26 @@ export class PdfkitServiceAdapter {
     });
   }
 
-  async generateClinicalSummary(res: Writable, data: {
-    clinicName: string;
-    clinicAddress?: string;
-    clinicPhone?: string;
-    clinicEmail?: string;
-    clinicWebsite?: string;
-    clinicLogo?: string;
-    clinicTagline?: string;
-    clinicRegistration?: string;
-    clinicTiming?: string;
-    patient: any;
-    vitals: any[];
-    homeo: any;
-    notes: any[];
-    prescriptions: any[];
-    investigations: any[];
-  }): Promise<void> {
+  async generateClinicalSummary(
+    res: Writable,
+    data: {
+      clinicName: string;
+      clinicAddress?: string;
+      clinicPhone?: string;
+      clinicEmail?: string;
+      clinicWebsite?: string;
+      clinicLogo?: string;
+      clinicTagline?: string;
+      clinicRegistration?: string;
+      clinicTiming?: string;
+      patient: any;
+      vitals: any[];
+      homeo: any;
+      notes: any[];
+      prescriptions: any[];
+      investigations: any[];
+    },
+  ): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
@@ -269,8 +342,12 @@ export class PdfkitServiceAdapter {
 
         // Header
         await this.drawHeader(doc, data);
-        
-        doc.fontSize(10).font('Helvetica-Bold').fillColor('#6366F1').text('Clinical Case Summary', { align: 'center' });
+
+        doc
+          .fontSize(10)
+          .font('Helvetica-Bold')
+          .fillColor('#6366F1')
+          .text('Clinical Case Summary', { align: 'center' });
         doc.moveDown(1);
 
         // Patient Info Section
@@ -290,14 +367,22 @@ export class PdfkitServiceAdapter {
           doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
           doc.moveDown(0.5);
           doc.font('Helvetica').fontSize(10).fillColor('#334155');
-          doc.text(`BP: ${v.systolicBp || '-'}/${v.diastolicBp || '-'} mmHg  |  Pulse: ${v.pulseRate || '-'} bpm  |  Temp: ${v.temperatureF || '-'} F`);
-          doc.text(`BMI: ${v.bmi || '-'} (Weight: ${v.weightKg || '-'} kg, Height: ${v.heightCm || '-'} cm)`);
+          doc.text(
+            `BP: ${v.systolicBp || '-'}/${v.diastolicBp || '-'} mmHg  |  Pulse: ${v.pulseRate || '-'} bpm  |  Temp: ${v.temperatureF || '-'} F`,
+          );
+          doc.text(
+            `BMI: ${v.bmi || '-'} (Weight: ${v.weightKg || '-'} kg, Height: ${v.heightCm || '-'} cm)`,
+          );
           doc.moveDown(1);
         }
 
         // Homeo Evaluation
         if (data.homeo) {
-          doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Homeopathic Evaluation');
+          doc
+            .font('Helvetica-Bold')
+            .fontSize(12)
+            .fillColor('#1E293B')
+            .text('Homeopathic Evaluation');
           doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
           doc.moveDown(0.5);
           doc.font('Helvetica').fontSize(10).fillColor('#334155');
@@ -308,11 +393,15 @@ export class PdfkitServiceAdapter {
 
         // Recent Follow-up History
         if (data.notes && data.notes.length > 0) {
-          doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Recent Follow-up Notes');
+          doc
+            .font('Helvetica-Bold')
+            .fontSize(12)
+            .fillColor('#1E293B')
+            .text('Recent Follow-up Notes');
           doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
           doc.moveDown(0.5);
           doc.font('Helvetica').fontSize(9).fillColor('#334155');
-          data.notes.slice(0, 5).forEach(n => {
+          data.notes.slice(0, 5).forEach((n) => {
             doc.font('Helvetica-Bold').text(`${n.dateval || 'N/A'}:`, { continued: true });
             doc.font('Helvetica').text(` ${n.notes}`);
           });
@@ -325,8 +414,10 @@ export class PdfkitServiceAdapter {
           doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
           doc.moveDown(0.5);
           doc.font('Helvetica').fontSize(9).fillColor('#334155');
-          data.prescriptions.slice(0, 10).forEach(p => {
-            doc.text(`${p.medicine || 'Remedy'} ${p.potency || ''} — ${p.frequency || ''} for ${p.days || '0'} days`);
+          data.prescriptions.slice(0, 10).forEach((p) => {
+            doc.text(
+              `${p.medicine || 'Remedy'} ${p.potency || ''} — ${p.frequency || ''} for ${p.days || '0'} days`,
+            );
           });
           doc.moveDown(1);
         }
@@ -341,16 +432,19 @@ export class PdfkitServiceAdapter {
     });
   }
 
-  async generateBill(res: Writable, data: {
-    clinicName: string;
-    patientName: string;
-    regid: number;
-    billNo: string | number;
-    charges: number | string;
-    received: number | string;
-    balance: number | string;
-    paymentMode: string;
-  }): Promise<void> {
+  async generateBill(
+    res: Writable,
+    data: {
+      clinicName: string;
+      patientName: string;
+      regid: number;
+      billNo: string | number;
+      charges: number | string;
+      received: number | string;
+      balance: number | string;
+      paymentMode: string;
+    },
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ size: 'A4', margin: 40 });
@@ -363,7 +457,9 @@ export class PdfkitServiceAdapter {
 
         // Bill Info
         doc.fontSize(10);
-        doc.text(`Bill No: ${data.billNo}          Date: ${new Date().toISOString().split('T')[0]}`);
+        doc.text(
+          `Bill No: ${data.billNo}          Date: ${new Date().toISOString().split('T')[0]}`,
+        );
         doc.moveDown(0.5);
         doc.text(`Patient: ${data.patientName}          RegID: ${data.regid}`);
         doc.moveDown(1.5);
@@ -393,7 +489,10 @@ export class PdfkitServiceAdapter {
         doc.text(`Rs. ${data.balance}`, { align: 'right' });
         doc.moveDown(1);
 
-        doc.font('Helvetica-Oblique').fontSize(9).text(`Payment Mode: ${data.paymentMode}`, 50, doc.y);
+        doc
+          .font('Helvetica-Oblique')
+          .fontSize(9)
+          .text(`Payment Mode: ${data.paymentMode}`, 50, doc.y);
 
         doc.moveDown(4);
         doc.font('Helvetica').fontSize(10).text('Authorized Signatory', { align: 'right' });

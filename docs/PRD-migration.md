@@ -9,22 +9,23 @@ Migrate ManageMyClinic (MMC-javascript) to MMC — an enterprise-grade, modular 
 
 ## Architecture Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Monorepo | Turborepo + pnpm | Task orchestration, caching, parallel builds |
-| Language | Full TypeScript (strict) | Type safety at every boundary |
-| Backend | Express + DDD Hexagonal | Keep Express, add ports/adapters structure |
-| Frontend | React + TanStack Query + Zustand | Server state + client state separation |
-| Database | PostgreSQL + Drizzle ORM | Schema-per-tenant, type-safe queries |
-| Multi-tenancy | Schema-per-tenant | 22 clinics, single DB, isolated schemas |
-| Validation | Zod (shared package) | Same schemas on frontend + backend |
-| Testing | Domain unit tests + API contract tests | 0 → 500 tests |
+| Decision      | Choice                                 | Rationale                                    |
+| ------------- | -------------------------------------- | -------------------------------------------- |
+| Monorepo      | Turborepo + pnpm                       | Task orchestration, caching, parallel builds |
+| Language      | Full TypeScript (strict)               | Type safety at every boundary                |
+| Backend       | Express + DDD Hexagonal                | Keep Express, add ports/adapters structure   |
+| Frontend      | React + TanStack Query + Zustand       | Server state + client state separation       |
+| Database      | PostgreSQL + Drizzle ORM               | Schema-per-tenant, type-safe queries         |
+| Multi-tenancy | Schema-per-tenant                      | 22 clinics, single DB, isolated schemas      |
+| Validation    | Zod (shared package)                   | Same schemas on frontend + backend           |
+| Testing       | Domain unit tests + API contract tests | 0 → 500 tests                                |
 
 ## Enterprise Infrastructure (Cross-Cutting)
 
 These capabilities are built into the architecture foundation and apply to ALL phases:
 
 ### 1. Centralized AI Configuration (`shared/config/ai-config.ts`)
+
 - **Singleton service** validates all AI provider keys on startup
 - Supports **multi-key rotation** (comma-separated GEMINI_API_KEY=key1,key2,key3)
 - **Health check** exposes per-provider status at GET /api/health
@@ -34,6 +35,7 @@ These capabilities are built into the architecture foundation and apply to ALL p
 - Startup validation logs warnings for missing providers (non-blocking)
 
 ### 2. Global Error & Exception Handling
+
 - **Error hierarchy**: `AppError` → `NotFoundError`, `UnauthorizedError`, `ForbiddenError`, `ValidationError`, `ConflictError`
 - **Async handler wrapper**: `asyncHandler()` catches async/await errors in Express routes
 - **Zod integration**: ZodError automatically returns 400 with field-level details
@@ -42,6 +44,7 @@ These capabilities are built into the architecture foundation and apply to ALL p
 - **Production safety**: Stack traces hidden in production, exposed in development
 
 ### 3. Structured Logging & Observability
+
 - **Pino logger** with child contexts (e.g., `createLogger('ai-pipeline')`)
 - **Request logger** captures: correlationId, method, path, status, duration, tenant, userId, IP
 - **Log levels by status**: 5xx → error, 4xx → warn, 2xx → info
@@ -49,6 +52,7 @@ These capabilities are built into the architecture foundation and apply to ALL p
 - **Pretty-print** in development for readability
 
 ### 4. Audit Trail (`shared/audit/audit-logger.ts`)
+
 - **Dual-write**: structured log (stdout) + database persistence (fire-and-forget)
 - **Auto-audit middleware**: matches HTTP method + path to AuditAction enum
 - **22 audit actions** covering: auth, patient, case, consultation, prescription, billing, appointment, settings
@@ -58,11 +62,13 @@ These capabilities are built into the architecture foundation and apply to ALL p
 - **HIPAA-aligned**: who changed what, when, from what IP
 
 ### 5. Rate Limiting
+
 - **Global**: 200 requests/min per IP
 - **Auth**: 5 login attempts per 15 minutes
 - Standard headers (RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset)
 
 ### 6. Circuit Breaker Pattern (`shared/resilience/circuit-breaker.ts`)
+
 - **Per-service breakers**: Gemini, Groq, Deepgram, SMS, WhatsApp, Razorpay
 - **States**: CLOSED → OPEN (after N failures) → HALF_OPEN (test) → CLOSED (recovered)
 - **Configurable thresholds**: AI providers (5 failures, 60s reset), external services (3 failures, 120s reset)
@@ -70,6 +76,7 @@ These capabilities are built into the architecture foundation and apply to ALL p
 - **Prevents cascade failures**: if Gemini is down, requests fail fast instead of hanging
 
 ### 7. Centralized Application Config (`shared/config/app-config.ts`)
+
 - **Single source** for all environment variables (JWT, DB, Redis, CORS, rate limits)
 - **Startup validation**: missing critical vars (JWT_SECRET, DATABASE_URL) logged as errors; production throws
 - **Type-safe**: `appConfig.jwt.secret` instead of `process.env.JWT_SECRET` scattered across codebase
@@ -77,6 +84,7 @@ These capabilities are built into the architecture foundation and apply to ALL p
 ## Migration Phases
 
 ### Phase 0: Foundation (Week 1)
+
 > Get the monorepo building and running end-to-end with zero features
 
 - [ ] Install dependencies, verify Turborepo pipeline builds all packages
@@ -88,6 +96,7 @@ These capabilities are built into the architecture foundation and apply to ALL p
 - [ ] CI pipeline (GitHub Actions): typecheck + lint + test
 
 ### Phase 1: Auth & Multi-Tenancy (Week 2)
+
 > Users can log in and the system routes to the correct tenant schema
 
 - [ ] **Backend: Auth domain** — login, logout, me, password change
@@ -103,6 +112,7 @@ These capabilities are built into the architecture foundation and apply to ALL p
 - [ ] **Contract tests** — auth endpoints request/response shape validation
 
 ### Phase 2: Patient Management (Week 3)
+
 > Core patient CRUD — the most used feature across all roles
 
 - [ ] **Backend: Patient domain** — full ports/adapters (already scaffolded)
@@ -114,28 +124,31 @@ These capabilities are built into the architecture foundation and apply to ALL p
 - [ ] **Contract tests** — patient endpoints
 
 ### Phase 3: Medical Cases & Vitals (Week 4)
+
 > Case lifecycle — the clinical core
 
 - [ ] **Backend: MedicalCase domain**
   - Ports: MedicalCaseRepository, VitalsRepository, HomeoDetailRepository
   - Use cases: CreateCase, GetCaseWithSubtables, UpdateCase, CompleteCase, FinalizeCase
-  - Routes: 15+ endpoints from /medicalcases/*
+  - Routes: 15+ endpoints from /medicalcases/\*
 - [ ] **Frontend: Medical Cases feature** — list, detail page with tabs
   - 12 tabs: Homeo, Vitals, Examination, Investigations, Notes, Images, Billing, Prescription, Communication, Follow-up
 - [ ] **DB Migration** — medicalcases, vitals, soap_notes, homeo_details, case_notes, case_images, case_examination tables
 
 ### Phase 4: Appointments & Queue (Week 5)
+
 > Scheduling and daily queue management
 
 - [ ] **Backend: Appointment domain**
   - Ports: AppointmentRepository, QueueRepository
   - Use cases: BookAppointment, UpdateStatus, GetDailyQueue, CallNextPatient
   - Business rules: double-booking prevention, waitlist management
-  - Routes: /appointments/*, /todayslist, /token
+  - Routes: /appointments/\*, /todayslist, /token
 - [ ] **Frontend: Appointments feature** — calendar view, list view, booking form, queue management
 - [ ] **DB Migration** — appointments, token tables
 
 ### Phase 5: AI Consultation Pipeline (Week 6-7)
+
 > The crown jewel — live transcription + 8-phase AI analysis
 
 - [ ] **Backend: Consultation domain**
@@ -143,7 +156,7 @@ These capabilities are built into the architecture foundation and apply to ALL p
   - Use cases: StartConsultation, ProcessTranscript, RunAiPipeline, CompleteConsultation
   - Adapter: Each AI engine implements its port interface
   - Pipeline: Translate → Extract → Filter → Rubrics → Score → Prescribe → SOAP → Summary
-  - Routes: /consultation/start, /consultation/complete, /ai/consult-homeopathy, /scribing/*, /ai/live-questions, /ai/live-translate
+  - Routes: /consultation/start, /consultation/complete, /ai/consult-homeopathy, /scribing/\*, /ai/live-questions, /ai/live-translate
 - [ ] **Backend: WebSocket gateway** — Socket.io for real-time transcription relay
 - [ ] **Frontend: Consultation feature**
   - Consultation workspace with 4 stages: CONSULTATION → TOTALITY → REPERTORY → PRESCRIPTION
@@ -155,37 +168,41 @@ These capabilities are built into the architecture foundation and apply to ALL p
 - [ ] **DB Migration** — scribing_sessions, transcript_segments, lab_orders, lab_order_items
 
 ### Phase 6: Billing & Finance (Week 8)
+
 > Revenue tracking, payments, and expense management
 
 - [ ] **Backend: Billing domain**
   - Ports: BillRepository, PaymentRepository, ExpenseRepository
   - Use cases: CreateBill, RecordPayment, TrackExpense, DailyCollectionReport
   - Razorpay adapter for online payments
-  - Routes: /billing/*, /payments/*, /collection/*, /expenses/*
+  - Routes: /billing/_, /payments/_, /collection/_, /expenses/_
 - [ ] **Frontend: Billing feature** — billing list, create bill, collection reports, expense tracking
 - [ ] **DB Migration** — bill, receipt, expenses tables
 
 ### Phase 7: Communications & Settings (Week 9)
+
 > SMS, WhatsApp, settings, and admin features
 
 - [ ] **Backend: Communication domain**
   - Ports: SmsProvider, WhatsAppProvider, EmailProvider
   - Adapters: pluggable SMS/WhatsApp/email services
-  - Routes: /sms/*, /whatsapp/*, /otp/*
+  - Routes: /sms/_, /whatsapp/_, /otp/\*
 - [ ] **Backend: Settings domain** — clinic settings, medicines, potencies, frequencies, roles/permissions
 - [ ] **Frontend: Settings feature** — all settings pages migrated
 - [ ] **Frontend: Communication feature** — SMS templates, group messaging, WhatsApp
 
 ### Phase 8: Analytics & Dashboard (Week 10)
+
 > Role-based dashboards and reporting
 
 - [ ] **Backend: Analytics domain**
   - Use cases: DashboardKPIs, CaseMonthwise, MonthlyDue, ReferralAnalytics
-  - Routes: /dashboard, /analytics/*
+  - Routes: /dashboard, /analytics/\*
 - [ ] **Frontend: Dashboard feature** — 5 role-specific dashboards (Admin, ClinicAdmin, Doctor, Receptionist, General)
 - [ ] **Frontend: Analytics feature** — charts, reports, export
 
 ### Phase 9: Remaining Features (Week 11)
+
 > Long-tail features: CRM, logistics, platform admin
 
 - [ ] Leads & referrals domain
@@ -197,6 +214,7 @@ These capabilities are built into the architecture foundation and apply to ALL p
 - [ ] File upload management
 
 ### Phase 10: Testing & Hardening (Week 12)
+
 > Quality gate before production cutover
 
 - [ ] Domain unit tests for all use cases (~200 tests)
@@ -211,6 +229,7 @@ These capabilities are built into the architecture foundation and apply to ALL p
 ## Database Migration Strategy
 
 ### Approach: Parallel Run
+
 1. **Export** MySQL data per tenant using custom migration scripts
 2. **Transform** column names (snake_case), data types (MySQL→PG), and relationships
 3. **Load** into PostgreSQL under tenant-specific schemas (tenant_zirakpur, tenant_chd, etc.)
@@ -219,15 +238,16 @@ These capabilities are built into the architecture foundation and apply to ALL p
 6. **Cutover** once validated
 
 ### Key Transformations
-| MySQL | PostgreSQL |
-|-------|-----------|
-| `INT AUTO_INCREMENT` | `SERIAL` |
-| `TINYINT(1)` | `BOOLEAN` |
-| `DATETIME` | `TIMESTAMP` |
-| `TEXT/LONGTEXT` | `TEXT` |
-| `JSON` | `JSONB` |
-| `ENUM(...)` | `VARCHAR` + CHECK constraint |
-| Per-database isolation | Per-schema isolation |
+
+| MySQL                  | PostgreSQL                   |
+| ---------------------- | ---------------------------- |
+| `INT AUTO_INCREMENT`   | `SERIAL`                     |
+| `TINYINT(1)`           | `BOOLEAN`                    |
+| `DATETIME`             | `TIMESTAMP`                  |
+| `TEXT/LONGTEXT`        | `TEXT`                       |
+| `JSON`                 | `JSONB`                      |
+| `ENUM(...)`            | `VARCHAR` + CHECK constraint |
+| Per-database isolation | Per-schema isolation         |
 
 ## Success Criteria
 

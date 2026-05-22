@@ -7,7 +7,9 @@ import { NotFoundError } from '../../../shared/errors.js';
 export class ForgotPasswordUseCase {
   constructor(private userRepository: UserRepositoryPG) {}
 
-  async execute(email: string): Promise<{ success: boolean; message: string; simulatedOtp?: string }> {
+  async execute(
+    email: string,
+  ): Promise<{ success: boolean; message: string; simulatedOtp?: string }> {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
@@ -17,7 +19,7 @@ export class ForgotPasswordUseCase {
     // Generate a secure random token
     const rawToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = await bcrypt.hash(rawToken, 10);
-    
+
     // Set expiry to 5 minutes from now
     const expiry = new Date();
     expiry.setMinutes(expiry.getMinutes() + 5);
@@ -29,10 +31,10 @@ export class ForgotPasswordUseCase {
 
     // Determine frontend URL based on environment
     const isProduction = process.env.NODE_ENV === 'production';
-    const frontendUrl = isProduction 
-      ? (process.env.APP_URL || 'https://managemyclinic.in') 
+    const frontendUrl = isProduction
+      ? process.env.APP_URL || 'https://managemyclinic.in'
       : 'http://localhost:5173';
-      
+
     const resetLink = `${frontendUrl}/login?token=${rawToken}&email=${encodeURIComponent(email)}`;
 
     // Send the email using the shared service
@@ -68,7 +70,7 @@ export class ForgotPasswordUseCase {
             </div>
           </div>
         </div>
-      `
+      `,
     });
 
     if (!sent) {
@@ -77,13 +79,13 @@ export class ForgotPasswordUseCase {
       // but for debugging purposes here, we'll be explicit.
       return {
         success: false,
-        message: 'Failed to send reset email. Please check server logs for SMTP errors.'
+        message: 'Failed to send reset email. Please check server logs for SMTP errors.',
       };
     }
 
-    return { 
-      success: true, 
-      message: 'If the email exists, a reset link has been sent.', 
+    return {
+      success: true,
+      message: 'If the email exists, a reset link has been sent.',
     };
   }
 }

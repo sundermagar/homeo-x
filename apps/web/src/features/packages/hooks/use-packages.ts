@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApi } from '@/shared/hooks/use-api';
-import type { PackagePlan, PatientPackage, AssignPackageDto, CreatePackagePlanDto } from '@mmc/types';
+import type {
+  PackagePlan,
+  PatientPackage,
+  AssignPackageDto,
+  CreatePackagePlanDto,
+} from '@mmc/types';
 
 // ─── Package Plans ────────────────────────────────────────────────────────────
 
@@ -28,8 +33,13 @@ export function useUpdatePackagePlan() {
   const api = useApi();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<CreatePackagePlanDto> & { isActive?: boolean } }) =>
-      api.put(`/packages/${id}`, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Partial<CreatePackagePlanDto> & { isActive?: boolean };
+    }) => api.put(`/packages/${id}`, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['package-plans'] }),
   });
 }
@@ -71,7 +81,7 @@ export function useActivePackage(regid: number) {
 
 export function useAssignPackage() {
   const api = useApi();
-  const qc  = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (dto: AssignPackageDto & { patientId: number }) =>
       api.post('/packages/assign', dto),
@@ -86,7 +96,7 @@ export function useAssignPackage() {
 
 export function useCancelSubscription() {
   const api = useApi();
-  const qc  = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (subscriptionId: number) => api.delete(`/packages/subscription/${subscriptionId}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['patient-packages'] }),
@@ -99,7 +109,7 @@ export function usePackageExpiryReport(fromDate?: string, toDate?: string) {
   const api = useApi();
   const params = new URLSearchParams();
   if (fromDate) params.set('from_date', fromDate);
-  if (toDate)   params.set('to_date', toDate);
+  if (toDate) params.set('to_date', toDate);
   return useQuery({
     queryKey: ['package-expiry', fromDate, toDate],
     queryFn: async () => {

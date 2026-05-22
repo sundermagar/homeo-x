@@ -38,4 +38,3 @@ export class VideoCallService {
     await this.provider.setVideo(enabled);
   }
 }
-

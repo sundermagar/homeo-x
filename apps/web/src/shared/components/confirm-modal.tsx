@@ -38,13 +38,17 @@ export function ConfirmModal({
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">{title}</h3>
-          <button className="modal-close" onClick={onCancel}><X size={16} /></button>
+          <button className="modal-close" onClick={onCancel}>
+            <X size={16} />
+          </button>
         </div>
         <div className="modal-body">
           <p style={{ color: '#475569', fontSize: 13, lineHeight: 1.6 }}>{message}</p>
         </div>
         <div className="modal-footer">
-          <button className="btn-secondary" onClick={onCancel}>{cancelLabel}</button>
+          <button className="btn-secondary" onClick={onCancel}>
+            {cancelLabel}
+          </button>
           <button
             className={variant === 'danger' ? 'btn-danger' : 'btn-primary'}
             onClick={onConfirm}

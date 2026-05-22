@@ -4,7 +4,11 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger } from '../../shared/logger.js';
-import type { AiProviderPort, AiCompletionRequest, AiCompletionResponse } from '../../domains/consultation/ports/ai-provider.port.js';
+import type {
+  AiProviderPort,
+  AiCompletionRequest,
+  AiCompletionResponse,
+} from '../../domains/consultation/ports/ai-provider.port.js';
 
 const logger = createLogger('gemini-adapter');
 
@@ -16,10 +20,13 @@ export class GeminiAdapter implements AiProviderPort {
     private readonly dailyLimit: number,
   ) {
     const rawKeys = process.env.GEMINI_API_KEY || '';
-    const keys = rawKeys.split(',').map(k => k.trim()).filter(Boolean);
+    const keys = rawKeys
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
 
     if (keys.length > 0) {
-      this.genAIs = keys.map(key => new GoogleGenerativeAI(key));
+      this.genAIs = keys.map((key) => new GoogleGenerativeAI(key));
       logger.info(`Gemini adapter ready: ${model} with ${keys.length} API key(s)`);
     }
   }
@@ -54,7 +61,9 @@ export class GeminiAdapter implements AiProviderPort {
           systemInstruction: request.systemPrompt,
         });
 
-        const promptParts: any[] = [request.userPrompt || 'Extract information from these documents:'];
+        const promptParts: any[] = [
+          request.userPrompt || 'Extract information from these documents:',
+        ];
         if (request.documents && request.documents.length > 0) {
           for (const doc of request.documents) {
             promptParts.push({
@@ -71,7 +80,10 @@ export class GeminiAdapter implements AiProviderPort {
         let content = response.text();
 
         if (request.responseFormat === 'json') {
-          content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          content = content
+            .replace(/```json\n?/g, '')
+            .replace(/```\n?/g, '')
+            .trim();
           const startIndex = content.indexOf('{');
           const endIndex = content.lastIndexOf('}');
           if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
@@ -82,14 +94,17 @@ export class GeminiAdapter implements AiProviderPort {
         const latencyMs = Date.now() - start;
         const usage = response.usageMetadata;
 
-        logger.info({
-          provider: 'gemini',
-          model: this.model,
-          keyIndex: currentIdx,
-          latencyMs,
-          inputTokens: usage?.promptTokenCount,
-          outputTokens: usage?.candidatesTokenCount,
-        }, 'Gemini completion successful');
+        logger.info(
+          {
+            provider: 'gemini',
+            model: this.model,
+            keyIndex: currentIdx,
+            latencyMs,
+            inputTokens: usage?.promptTokenCount,
+            outputTokens: usage?.candidatesTokenCount,
+          },
+          'Gemini completion successful',
+        );
 
         return {
           content,

@@ -133,10 +133,10 @@ export function createBillingRouter(): Router {
         return;
       }
 
-      // We dynamically import the pdf service to avoid tight coupling 
+      // We dynamically import the pdf service to avoid tight coupling
       const { PdfkitServiceAdapter } = await import('../../pdf/pdfkit.service.js');
       const pdfService = new PdfkitServiceAdapter();
-      
+
       const repo = getRepo(req);
       const bills = await repo.findAll({ limit: 100, page: 1 }); // Simplistic lookup since findById is not purely defined in findMany for billing
       const bill = bills.data.find((b: any) => b.id === id);

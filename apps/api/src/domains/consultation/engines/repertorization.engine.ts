@@ -118,15 +118,20 @@ const MATERIA_MEDICA_DB: Record<string, RemedyMetadata> = {
     commonName: 'White oxide of arsenic',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Anxiety', 'Restlessness', 'Burning pains relieved by heat', 'Thirst for small sips'],
+    keynotes: [
+      'Anxiety',
+      'Restlessness',
+      'Burning pains relieved by heat',
+      'Thirst for small sips',
+    ],
   },
-  'pulsatilla': {
+  pulsatilla: {
     commonName: 'Wind flower',
     thermalType: 'Hot',
     miasm: 'Psora',
     keynotes: ['Weeping disposition', 'Thirstless', 'Craves open air', 'Changeable symptoms'],
   },
-  'sulphur': {
+  sulphur: {
     commonName: 'Brimstone',
     thermalType: 'Hot',
     miasm: 'Psora',
@@ -138,7 +143,7 @@ const MATERIA_MEDICA_DB: Record<string, RemedyMetadata> = {
     miasm: 'Psora',
     keynotes: ['Irritability', 'Sedentary habits', 'Ineffectual urging for stool', 'Chilly'],
   },
-  'lycopodium': {
+  lycopodium: {
     commonName: 'Club moss',
     thermalType: 'Hot',
     miasm: 'Psora',
@@ -150,41 +155,61 @@ const MATERIA_MEDICA_DB: Record<string, RemedyMetadata> = {
     miasm: 'Psora',
     keynotes: ['Anticipatory anxiety', 'Flatulence', 'Right-sided symptoms', 'Worse 4-8 PM'],
   },
-  'lachesis': {
+  lachesis: {
     commonName: 'Bushmaster snake',
     thermalType: 'Hot',
     miasm: 'Syphilis',
-    keynotes: ['Loquacity', 'Left-sided symptoms', 'Intolerance to tight collar', 'Worse after sleep'],
+    keynotes: [
+      'Loquacity',
+      'Left-sided symptoms',
+      'Intolerance to tight collar',
+      'Worse after sleep',
+    ],
   },
   'lachesis mutus': {
     commonName: 'Bushmaster snake',
     thermalType: 'Hot',
     miasm: 'Syphilis',
-    keynotes: ['Loquacity', 'Left-sided symptoms', 'Intolerance to tight collar', 'Worse after sleep'],
+    keynotes: [
+      'Loquacity',
+      'Left-sided symptoms',
+      'Intolerance to tight collar',
+      'Worse after sleep',
+    ],
   },
-  'silicea': {
+  silicea: {
     commonName: 'Pure flint',
     thermalType: 'Chilly',
     miasm: 'Psora',
     keynotes: ['Lack of grit', 'Offensive foot sweat', 'Extremely chilly', 'Scrofulous diathesis'],
   },
-  'gelsemium': {
+  gelsemium: {
     commonName: 'Yellow jasmine',
     thermalType: 'Chilly',
     miasm: 'Psora',
     keynotes: ['Dullness', 'Drowsiness', 'Trembling from fright', 'Thirstless'],
   },
-  'bryonia': {
+  bryonia: {
     commonName: 'Wild hops',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Worse from motion', 'Dryness of mucous membranes', 'Great thirst for cold water', 'Irritable'],
+    keynotes: [
+      'Worse from motion',
+      'Dryness of mucous membranes',
+      'Great thirst for cold water',
+      'Irritable',
+    ],
   },
   'bryonia alba': {
     commonName: 'Wild hops',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Worse from motion', 'Dryness of mucous membranes', 'Great thirst for cold water', 'Irritable'],
+    keynotes: [
+      'Worse from motion',
+      'Dryness of mucous membranes',
+      'Great thirst for cold water',
+      'Irritable',
+    ],
   },
   'natrum muriaticum': {
     commonName: 'Common salt',
@@ -198,7 +223,7 @@ const MATERIA_MEDICA_DB: Record<string, RemedyMetadata> = {
     miasm: 'Psora',
     keynotes: ['Silent grief', 'Craving for salt', 'Mapped tongue', 'Worse from sun heat'],
   },
-  'borax': {
+  borax: {
     commonName: 'Sodium tetraborate',
     thermalType: 'Chilly',
     miasm: 'Psora',
@@ -208,193 +233,345 @@ const MATERIA_MEDICA_DB: Record<string, RemedyMetadata> = {
     commonName: 'Potassium carbonate',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Stitching pains', 'Backache and weakness', 'Worse 2-4 AM', 'Fleshy, chilly patients'],
+    keynotes: [
+      'Stitching pains',
+      'Backache and weakness',
+      'Worse 2-4 AM',
+      'Fleshy, chilly patients',
+    ],
   },
   'kali carb': {
     commonName: 'Potassium carbonate',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Stitching pains', 'Backache and weakness', 'Worse 2-4 AM', 'Fleshy, chilly patients'],
+    keynotes: [
+      'Stitching pains',
+      'Backache and weakness',
+      'Worse 2-4 AM',
+      'Fleshy, chilly patients',
+    ],
   },
-  'phosphorus': {
+  phosphorus: {
     commonName: 'Phosphorus',
     thermalType: 'Chilly',
     miasm: 'Tubercular',
     keynotes: ['Craves cold drinks', 'Bleeding tendency', 'Sympathetic and open', 'Fear of dark'],
   },
-  'sepia': {
+  sepia: {
     commonName: 'Inky juice of cuttlefish',
     thermalType: 'Chilly',
     miasm: 'Sycosis',
-    keynotes: ['Indifference to loved ones', 'Bearing down sensation', 'Yellow saddle across nose', 'Amelioration from physical exertion'],
+    keynotes: [
+      'Indifference to loved ones',
+      'Bearing down sensation',
+      'Yellow saddle across nose',
+      'Amelioration from physical exertion',
+    ],
   },
   'calcarea carbonica': {
     commonName: 'Carbonate of lime',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Fair, fat, flabby', 'Sweat on scalp, especially during sleep', 'Craving for eggs', 'Cold damp feet'],
+    keynotes: [
+      'Fair, fat, flabby',
+      'Sweat on scalp, especially during sleep',
+      'Craving for eggs',
+      'Cold damp feet',
+    ],
   },
   'calc carb': {
     commonName: 'Carbonate of lime',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Fair, fat, flabby', 'Sweat on scalp, especially during sleep', 'Craving for eggs', 'Cold damp feet'],
+    keynotes: [
+      'Fair, fat, flabby',
+      'Sweat on scalp, especially during sleep',
+      'Craving for eggs',
+      'Cold damp feet',
+    ],
   },
-  'belladonna': {
+  belladonna: {
     commonName: 'Deadly nightshade',
     thermalType: 'Hot',
     miasm: 'Psora',
-    keynotes: ['Sudden, violent onset', 'Red face, hot skin, throbbing carotids', 'Pupils dilated', 'Thirstless'],
+    keynotes: [
+      'Sudden, violent onset',
+      'Red face, hot skin, throbbing carotids',
+      'Pupils dilated',
+      'Thirstless',
+    ],
   },
   'apis mellifica': {
     commonName: 'Honey bee',
     thermalType: 'Hot',
     miasm: 'Psora',
-    keynotes: ['Stinging, burning pains', 'Edema and puffiness', 'Thirstless', 'Intolerance to heat'],
+    keynotes: [
+      'Stinging, burning pains',
+      'Edema and puffiness',
+      'Thirstless',
+      'Intolerance to heat',
+    ],
   },
-  'apis': {
+  apis: {
     commonName: 'Honey bee',
     thermalType: 'Hot',
     miasm: 'Psora',
-    keynotes: ['Stinging, burning pains', 'Edema and puffiness', 'Thirstless', 'Intolerance to heat'],
+    keynotes: [
+      'Stinging, burning pains',
+      'Edema and puffiness',
+      'Thirstless',
+      'Intolerance to heat',
+    ],
   },
   'hepar sulph': {
-    commonName: 'Hahnemann\'s calcium sulphide',
+    commonName: "Hahnemann's calcium sulphide",
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Extremely sensitive to cold draughts', 'Splinter-like pains', 'Sour sweat', 'Hypersensitive to touch'],
+    keynotes: [
+      'Extremely sensitive to cold draughts',
+      'Splinter-like pains',
+      'Sour sweat',
+      'Hypersensitive to touch',
+    ],
   },
   'hepar sulphuris calcareum': {
-    commonName: 'Hahnemann\'s calcium sulphide',
+    commonName: "Hahnemann's calcium sulphide",
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Extremely sensitive to cold draughts', 'Splinter-like pains', 'Sour sweat', 'Hypersensitive to touch'],
+    keynotes: [
+      'Extremely sensitive to cold draughts',
+      'Splinter-like pains',
+      'Sour sweat',
+      'Hypersensitive to touch',
+    ],
   },
   'mercurius solubilis': {
     commonName: 'Quicksilver',
     thermalType: 'Ambithermal',
     miasm: 'Syphilis',
-    keynotes: ['Profuse offensive sweat without relief', 'Salivation with metallic taste', 'Intolerance to both heat and cold', 'Flabby tongue with imprint of teeth'],
+    keynotes: [
+      'Profuse offensive sweat without relief',
+      'Salivation with metallic taste',
+      'Intolerance to both heat and cold',
+      'Flabby tongue with imprint of teeth',
+    ],
   },
   'merc sol': {
     commonName: 'Quicksilver',
     thermalType: 'Ambithermal',
     miasm: 'Syphilis',
-    keynotes: ['Profuse offensive sweat without relief', 'Salivation with metallic taste', 'Intolerance to both heat and cold', 'Flabby tongue with imprint of teeth'],
+    keynotes: [
+      'Profuse offensive sweat without relief',
+      'Salivation with metallic taste',
+      'Intolerance to both heat and cold',
+      'Flabby tongue with imprint of teeth',
+    ],
   },
   'rhus toxicodendron': {
     commonName: 'Poison ivy',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Restlessness, must move constantly', 'Worse from first motion, better from continuous motion', 'Worse in damp, rainy weather', 'Triangular red tip on tongue'],
+    keynotes: [
+      'Restlessness, must move constantly',
+      'Worse from first motion, better from continuous motion',
+      'Worse in damp, rainy weather',
+      'Triangular red tip on tongue',
+    ],
   },
   'rhus tox': {
     commonName: 'Poison ivy',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Restlessness, must move constantly', 'Worse from first motion, better from continuous motion', 'Worse in damp, rainy weather', 'Triangular red tip on tongue'],
+    keynotes: [
+      'Restlessness, must move constantly',
+      'Worse from first motion, better from continuous motion',
+      'Worse in damp, rainy weather',
+      'Triangular red tip on tongue',
+    ],
   },
   'arnica montana': {
-    commonName: 'Leopard\'s bane',
+    commonName: "Leopard's bane",
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Sore, bruised feeling all over', 'Says she is well when seriously ill', 'Fear of being touched or approached', 'Bed feels too hard'],
+    keynotes: [
+      'Sore, bruised feeling all over',
+      'Says she is well when seriously ill',
+      'Fear of being touched or approached',
+      'Bed feels too hard',
+    ],
   },
-  'arnica': {
-    commonName: 'Leopard\'s bane',
+  arnica: {
+    commonName: "Leopard's bane",
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Sore, bruised feeling all over', 'Says she is well when seriously ill', 'Fear of being touched or approached', 'Bed feels too hard'],
+    keynotes: [
+      'Sore, bruised feeling all over',
+      'Says she is well when seriously ill',
+      'Fear of being touched or approached',
+      'Bed feels too hard',
+    ],
   },
   'ignatia amara': {
     commonName: 'St. Ignatius bean',
     thermalType: 'Ambithermal',
     miasm: 'Psora',
-    keynotes: ['Effects of grief, worry, and disappointed love', 'Sighing and sobbing', 'Paradoxical symptoms (e.g., sore throat relieved by swallowing solids)', 'Extreme emotional variability'],
+    keynotes: [
+      'Effects of grief, worry, and disappointed love',
+      'Sighing and sobbing',
+      'Paradoxical symptoms (e.g., sore throat relieved by swallowing solids)',
+      'Extreme emotional variability',
+    ],
   },
-  'ignatia': {
+  ignatia: {
     commonName: 'St. Ignatius bean',
     thermalType: 'Ambithermal',
     miasm: 'Psora',
-    keynotes: ['Effects of grief, worry, and disappointed love', 'Sighing and sobbing', 'Paradoxical symptoms (e.g., sore throat relieved by swallowing solids)', 'Extreme emotional variability'],
+    keynotes: [
+      'Effects of grief, worry, and disappointed love',
+      'Sighing and sobbing',
+      'Paradoxical symptoms (e.g., sore throat relieved by swallowing solids)',
+      'Extreme emotional variability',
+    ],
   },
   'aconitum napellus': {
     commonName: 'Monkshood',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Sudden, violent onset after exposure to dry cold wind', 'Great fear of death', 'Restless tossing in agony', 'One cheek red and hot, the other pale and cold'],
+    keynotes: [
+      'Sudden, violent onset after exposure to dry cold wind',
+      'Great fear of death',
+      'Restless tossing in agony',
+      'One cheek red and hot, the other pale and cold',
+    ],
   },
-  'aconite': {
+  aconite: {
     commonName: 'Monkshood',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Sudden, violent onset after exposure to dry cold wind', 'Great fear of death', 'Restless tossing in agony', 'One cheek red and hot, the other pale and cold'],
+    keynotes: [
+      'Sudden, violent onset after exposure to dry cold wind',
+      'Great fear of death',
+      'Restless tossing in agony',
+      'One cheek red and hot, the other pale and cold',
+    ],
   },
   'cinchona officinalis': {
     commonName: 'Peruvian bark',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Debility from loss of vital fluids', 'Periodicity of symptoms', 'Extreme flatulence with bloating, not relieved by passing gas', 'Hypersensitive to light touch but relieved by hard pressure'],
+    keynotes: [
+      'Debility from loss of vital fluids',
+      'Periodicity of symptoms',
+      'Extreme flatulence with bloating, not relieved by passing gas',
+      'Hypersensitive to light touch but relieved by hard pressure',
+    ],
   },
-  'china': {
+  china: {
     commonName: 'Peruvian bark',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Debility from loss of vital fluids', 'Periodicity of symptoms', 'Extreme flatulence with bloating, not relieved by passing gas', 'Hypersensitive to light touch but relieved by hard pressure'],
+    keynotes: [
+      'Debility from loss of vital fluids',
+      'Periodicity of symptoms',
+      'Extreme flatulence with bloating, not relieved by passing gas',
+      'Hypersensitive to light touch but relieved by hard pressure',
+    ],
   },
   'ferrum metallicum': {
     commonName: 'Iron',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Extreme paleness of skin and mucous membranes', 'Red face from least emotion or exertion', 'Amelioration from gentle motion', 'Aversion to meat'],
+    keynotes: [
+      'Extreme paleness of skin and mucous membranes',
+      'Red face from least emotion or exertion',
+      'Amelioration from gentle motion',
+      'Aversion to meat',
+    ],
   },
   'ferrum met': {
     commonName: 'Iron',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Extreme paleness of skin and mucous membranes', 'Red face from least emotion or exertion', 'Amelioration from gentle motion', 'Aversion to meat'],
+    keynotes: [
+      'Extreme paleness of skin and mucous membranes',
+      'Red face from least emotion or exertion',
+      'Amelioration from gentle motion',
+      'Aversion to meat',
+    ],
   },
   'kali phosphoricum': {
     commonName: 'Phosphate of potassium',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Mental and physical depression from overwork or worry', 'Offensive secretions (breath, stool, perspiration)', 'Sensation of emptiness in stomach', 'Dread of solitude'],
+    keynotes: [
+      'Mental and physical depression from overwork or worry',
+      'Offensive secretions (breath, stool, perspiration)',
+      'Sensation of emptiness in stomach',
+      'Dread of solitude',
+    ],
   },
   'kali phos': {
     commonName: 'Phosphate of potassium',
     thermalType: 'Chilly',
     miasm: 'Psora',
-    keynotes: ['Mental and physical depression from overwork or worry', 'Offensive secretions (breath, stool, perspiration)', 'Sensation of emptiness in stomach', 'Dread of solitude'],
+    keynotes: [
+      'Mental and physical depression from overwork or worry',
+      'Offensive secretions (breath, stool, perspiration)',
+      'Sensation of emptiness in stomach',
+      'Dread of solitude',
+    ],
   },
   'thuja occidentalis': {
     commonName: 'Arbor vitae',
     thermalType: 'Chilly',
     miasm: 'Sycosis',
-    keynotes: ['Fixed ideas (something alive in abdomen, soul and body separated)', 'Warts and condylomata', 'Worse from damp air and cold water', 'Sweat only on uncovered parts'],
+    keynotes: [
+      'Fixed ideas (something alive in abdomen, soul and body separated)',
+      'Warts and condylomata',
+      'Worse from damp air and cold water',
+      'Sweat only on uncovered parts',
+    ],
   },
-  'thuja': {
+  thuja: {
     commonName: 'Arbor vitae',
     thermalType: 'Chilly',
     miasm: 'Sycosis',
-    keynotes: ['Fixed ideas (something alive in abdomen, soul and body separated)', 'Warts and condylomata', 'Worse from damp air and cold water', 'Sweat only on uncovered parts'],
+    keynotes: [
+      'Fixed ideas (something alive in abdomen, soul and body separated)',
+      'Warts and condylomata',
+      'Worse from damp air and cold water',
+      'Sweat only on uncovered parts',
+    ],
   },
-  'medorrhinum': {
+  medorrhinum: {
     commonName: 'Gonorrheal virus',
     thermalType: 'Hot',
     miasm: 'Sycosis',
-    keynotes: ['Extreme memory weakness, forgets names or words', 'Amelioration at the seashore or damp air', 'Craves ice, cold water, sweet and sour things', 'Sleeps in knee-chest position'],
+    keynotes: [
+      'Extreme memory weakness, forgets names or words',
+      'Amelioration at the seashore or damp air',
+      'Craves ice, cold water, sweet and sour things',
+      'Sleeps in knee-chest position',
+    ],
   },
-  'syphilinum': {
+  syphilinum: {
     commonName: 'Syphilitic virus',
     thermalType: 'Chilly',
     miasm: 'Syphilis',
-    keynotes: ['Utter hopelessness and despair of recovery', 'Terrible dread of night (all pains worse sunset to sunrise)', 'Craving for alcohol', 'Sensation as if memory is blank'],
-  }
+    keynotes: [
+      'Utter hopelessness and despair of recovery',
+      'Terrible dread of night (all pains worse sunset to sunrise)',
+      'Craving for alcohol',
+      'Sensation as if memory is blank',
+    ],
+  },
 };
 
 function normalizeRemedyName(name: string): string {
   if (!name) return 'unknown';
-  const clean = name.toLowerCase().trim()
+  const clean = name
+    .toLowerCase()
+    .trim()
     .replace(/\s+/g, ' ')
     .replace(/[^a-z0-9 ]/g, ''); // strip punctuation
 
@@ -413,7 +590,12 @@ function normalizeRemedyName(name: string): string {
   if (clean.startsWith('calcarea carbonica') || clean === 'calc carb' || clean === 'calc') {
     return 'calcarea carbonica';
   }
-  if (clean === 'china' || clean === 'cinchona' || clean.startsWith('cinchona off') || clean.startsWith('china off')) {
+  if (
+    clean === 'china' ||
+    clean === 'cinchona' ||
+    clean.startsWith('cinchona off') ||
+    clean.startsWith('china off')
+  ) {
     return 'cinchona officinalis';
   }
   if (clean.startsWith('ferrum met') || clean.startsWith('ferrum metall')) {
@@ -443,7 +625,11 @@ function normalizeRemedyName(name: string): string {
   if (clean === 'merc sol' || clean.startsWith('mercurius sol')) {
     return 'mercurius solubilis';
   }
-  if (clean.startsWith('natrum mur') || clean.startsWith('nat mur') || clean === 'natrum muriaticum') {
+  if (
+    clean.startsWith('natrum mur') ||
+    clean.startsWith('nat mur') ||
+    clean === 'natrum muriaticum'
+  ) {
     return 'natrum muriaticum';
   }
   if (clean === 'nux vom' || clean.startsWith('nux vomica') || clean === 'nux') {
@@ -483,7 +669,11 @@ export class RepertorizationEngine {
   /**
    * Phase A: Extract rubrics from symptoms using AI Kent's Pattern Matcher
    */
-  async extractRubrics(tenantId: string, userId: string, input: RepertorizeExtractInput): Promise<RubricExtractionResult> {
+  async extractRubrics(
+    tenantId: string,
+    userId: string,
+    input: RepertorizeExtractInput,
+  ): Promise<RubricExtractionResult> {
     try {
       const symptomText = [
         input.chiefComplaint,
@@ -587,20 +777,26 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
 
       const parsed: any = safeJsonParse(res.content);
       if (!parsed) {
-        logger.error({ contentPreview: res.content.slice(0, 300) }, 'Rubric extraction: JSON unrecoverable even after repair');
+        logger.error(
+          { contentPreview: res.content.slice(0, 300) },
+          'Rubric extraction: JSON unrecoverable even after repair',
+        );
         return this.emptyExtractionResult();
       }
 
-      const suggestedRubrics: SuggestedRubric[] = (parsed.suggestedRubrics || []).map((r: any, i: number) => ({
-        rubricId: `ai-rubric-${Date.now()}-${i}`,
-        description: r.description,
-        category: r.category || (r.description?.toLowerCase().includes('mind') ? 'MIND' : 'PARTICULAR'),
-        chapter: r.chapter || 'Unknown',
-        importance: r.importance || 2,
-        source: 'ai' as const,
-        confidence: 0.95,
-        remedyCount: r.remedyCount || 50,
-      }));
+      const suggestedRubrics: SuggestedRubric[] = (parsed.suggestedRubrics || []).map(
+        (r: any, i: number) => ({
+          rubricId: `ai-rubric-${Date.now()}-${i}`,
+          description: r.description,
+          category:
+            r.category || (r.description?.toLowerCase().includes('mind') ? 'MIND' : 'PARTICULAR'),
+          chapter: r.chapter || 'Unknown',
+          importance: r.importance || 2,
+          source: 'ai' as const,
+          confidence: 0.95,
+          remedyCount: r.remedyCount || 50,
+        }),
+      );
 
       return {
         suggestedRubrics,
@@ -610,7 +806,9 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
         provisionalDiagnosis: parsed.provisionalDiagnosis,
         differentials: Array.isArray(parsed.differentials) ? parsed.differentials : [],
         redFlags: Array.isArray(parsed.redFlags) ? parsed.redFlags : [],
-        suggestedInvestigations: Array.isArray(parsed.suggestedInvestigations) ? parsed.suggestedInvestigations : [],
+        suggestedInvestigations: Array.isArray(parsed.suggestedInvestigations)
+          ? parsed.suggestedInvestigations
+          : [],
       };
     } catch (error: any) {
       logger.error({ error: error.message }, 'Rubric extraction failed');
@@ -621,7 +819,11 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
   /**
    * Phase B: AI Repertorization Scoring (Materia Medica Grid)
    */
-  async scoreRemedies(tenantId: string, userId: string, input: RepertorizeScoreInput): Promise<RepertorizationResult> {
+  async scoreRemedies(
+    tenantId: string,
+    userId: string,
+    input: RepertorizeScoreInput,
+  ): Promise<RepertorizationResult> {
     if (!input.selectedRubrics || input.selectedRubrics.length === 0) {
       return { scoredRemedies: [], maxPossibleScore: 0, totalRubricsUsed: 0, confidence: 0 };
     }
@@ -683,16 +885,21 @@ JSON Output Template:
 }`;
 
     const constitutionalContext = [
-      input.thermalReaction ? `Thermal Reaction: ${input.thermalReaction.toUpperCase()} (MUST prefer ${input.thermalReaction} remedies)` : '',
-      input.miasm ? `Dominant Miasm: ${input.miasm.toUpperCase()} (MUST prefer ${input.miasm} remedies)` : '',
+      input.thermalReaction
+        ? `Thermal Reaction: ${input.thermalReaction.toUpperCase()} (MUST prefer ${input.thermalReaction} remedies)`
+        : '',
+      input.miasm
+        ? `Dominant Miasm: ${input.miasm.toUpperCase()} (MUST prefer ${input.miasm} remedies)`
+        : '',
       input.thirstPattern ? `Thirst Pattern: ${input.thirstPattern}` : '',
       input.sleepPosition ? `Sleep Position: ${input.sleepPosition}` : '',
       input.perspiration ? `Perspiration: ${input.perspiration}` : '',
       input.doctorNotes ? `Doctor's Observations: ${input.doctorNotes}` : '',
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const userPrompt = `Target Patient Rubrics to cover:\n${input.selectedRubrics.map((r, idx) => `[R${idx}] ${r.description}`).join('\n')}${constitutionalContext ? `\n\nPATIENT'S CONSTITUTIONAL PROFILE (CRITICAL — use for remedy selection and ranking):\n${constitutionalContext}\n\nIMPORTANT: Prioritize remedies matching this constitutional profile. Place matching-thermal + matching-miasm remedies at the TOP of the list.` : ''}\n\nGenerate the Matrix:`;
-
 
     const res = await this.providerChain.complete({
       systemPrompt,
@@ -703,178 +910,210 @@ JSON Output Template:
 
     const parsed: any = safeJsonParse(res.content);
     if (!parsed) {
-      logger.error({ contentPreview: res.content.slice(0, 300) }, 'Remedy scoring: JSON unrecoverable even after repair');
-      return { scoredRemedies: [], totalRubrics: input.selectedRubrics.length, totalRemediesScored: 0 } as any;
+      logger.error(
+        { contentPreview: res.content.slice(0, 300) },
+        'Remedy scoring: JSON unrecoverable even after repair',
+      );
+      return {
+        scoredRemedies: [],
+        totalRubrics: input.selectedRubrics.length,
+        totalRemediesScored: 0,
+      } as any;
     }
 
-    const maxPossibleScore = input.selectedRubrics.reduce((sum, r) => {
-      let catWeight = 1;
-      if (r.category === 'MIND') catWeight = 3;
-      else if (r.category === 'GENERAL') catWeight = 2;
-      return sum + (4 * r.importance * catWeight);
-    }, 0) || 1;
-
-    let scoredRemedies: ScoredRemedy[] = (parsed.scoredRemedies || []).map((rem: any, i: number) => {
-      let totalScore = 0;
-      let hasThermalBonus = false;
-      let hasMiasmBonus = false;
-
-      // Extract raw values from LLM response
-      const remName = rem.remedyName || 'Unknown';
-      const cleanName = normalizeRemedyName(remName);
-      const localData = MATERIA_MEDICA_DB[cleanName];
-
-      // Enrich with Materia Medica local lookup if matching, otherwise fallback to LLM values
-      const finalCommonName = localData ? localData.commonName : (rem.commonName || null);
-      const finalThermalType = localData ? localData.thermalType : (rem.thermalType || 'Chilly');
-      const finalMiasm = localData ? localData.miasm : (rem.miasm || 'Psora');
-      const finalKeynotes = localData ? localData.keynotes : (Array.isArray(rem.keynotes) ? rem.keynotes : []);
-
-      // ─── Constitutional Factor Scoring ─────────────────────────────────
-      // Bonuses are proportional to maxPossibleScore so they meaningfully
-      // shift remedy rankings (not just +1 or +2 on a 200-point scale).
-      // A full constitutional match can add ~25% to the score; mismatches
-      // penalize by ~10%, creating a significant differentiation swing.
-      const baseUnit = Math.max(maxPossibleScore * 0.06, 4); // ~6% of max per factor
-
-      // Thermal reaction: strongest constitutional signal
-      if (typeof input.thermalReaction === 'string' && input.thermalReaction && finalThermalType) {
-        const patientThermal = input.thermalReaction.toLowerCase();
-        const remedyThermal = finalThermalType.toLowerCase();
-        if (patientThermal === remedyThermal) {
-          totalScore += baseUnit * 1.8; // ~10.8% of max
-          hasThermalBonus = true;
-        } else if (remedyThermal === 'ambithermal') {
-          // Ambithermal remedies partially match any patient thermal
-          totalScore += baseUnit * 0.5;
-        } else {
-          // Mismatch penalty: Hot patient → Chilly remedy is wrong
-          totalScore -= baseUnit * 1.0;
-        }
-      }
-
-      // Dominant miasm: second strongest
-      if (typeof input.miasm === 'string' && input.miasm && finalMiasm) {
-        const patientMiasm = input.miasm.toLowerCase();
-        const remedyMiasm = finalMiasm.toLowerCase();
-        if (patientMiasm === remedyMiasm) {
-          totalScore += baseUnit * 1.5; // ~9% of max
-          hasMiasmBonus = true;
-        } else {
-          // Mismatch penalty
-          totalScore -= baseUnit * 0.6;
-        }
-      }
-
-      // Constitutional factor bonuses: thirst, sleep position, perspiration
-      // These match against known remedy profiles in MATERIA_MEDICA_DB keynotes.
-      if (input.thirstPattern && localData) {
-        const keynoteStr = localData.keynotes.join(' ').toLowerCase();
-        const thirst = input.thirstPattern.toLowerCase();
-        if (
-          (thirst === 'thirsty' && (keynoteStr.includes('great thirst') || keynoteStr.includes('thirst for') || keynoteStr.includes('craves cold drinks'))) ||
-          (thirst === 'thirstless' && keynoteStr.includes('thirstless')) ||
-          (thirst === 'sips' && keynoteStr.includes('small sips'))
-        ) {
-          totalScore += baseUnit * 1.2; // ~7.2% of max
-        }
-      }
-      if (input.sleepPosition && localData) {
-        const keynoteStr = localData.keynotes.join(' ').toLowerCase();
-        if (
-          (input.sleepPosition === 'knees' && keynoteStr.includes('knee-chest')) ||
-          (input.sleepPosition === 'abdomen' && keynoteStr.includes('abdomen')) ||
-          (input.sleepPosition === 'left' && keynoteStr.includes('left side')) ||
-          (input.sleepPosition === 'right' && keynoteStr.includes('right'))
-        ) {
-          totalScore += baseUnit * 0.8; // ~4.8% of max
-        }
-      }
-      if (input.perspiration && localData) {
-        const keynoteStr = localData.keynotes.join(' ').toLowerCase();
-        if (
-          (input.perspiration === 'offensive' && (keynoteStr.includes('offensive') || keynoteStr.includes('sour sweat'))) ||
-          (input.perspiration === 'profuse' && (keynoteStr.includes('profuse') || keynoteStr.includes('sweat'))) ||
-          (input.perspiration === 'head' && keynoteStr.includes('sweat on scalp')) ||
-          (input.perspiration === 'staining' && keynoteStr.includes('staining'))
-        ) {
-          totalScore += baseUnit * 0.8; // ~4.8% of max
-        }
-      }
-
-      const mappedCoverage = (rem.coverage || []).map((cov: any) => {
-        // 1. Try matching by index parsed from ID (e.g. 'R0', 'r0', '0')
-        let originalRubric = null;
-        const idMatch = typeof cov.id === 'string' ? cov.id.match(/\d+/) : null;
-        if (idMatch) {
-          const idx = parseInt(idMatch[0], 10);
-          if (idx >= 0 && idx < input.selectedRubrics.length) {
-            originalRubric = input.selectedRubrics[idx];
-          }
-        }
-
-        // 2. Try raw index number matching
-        if (!originalRubric && typeof cov.id === 'number') {
-          if (cov.id >= 0 && cov.id < input.selectedRubrics.length) {
-            originalRubric = input.selectedRubrics[cov.id];
-          }
-        }
-
-        // 3. Try exact or loose description match to prevent minor string variation failures
-        if (!originalRubric && cov.rubricDescription) {
-          const cleanCovDesc = cov.rubricDescription.toLowerCase().trim();
-          originalRubric = input.selectedRubrics.find(r => {
-            const cleanOrigDesc = r.description.toLowerCase().trim();
-            return cleanOrigDesc === cleanCovDesc ||
-                   cleanOrigDesc.includes(cleanCovDesc) ||
-                   cleanCovDesc.includes(cleanOrigDesc);
-          });
-        }
-
-        if (!originalRubric) return null;
-
-        const grade = cov.grade || 1;
-        const importance = originalRubric.importance || 2;
+    const maxPossibleScore =
+      input.selectedRubrics.reduce((sum, r) => {
         let catWeight = 1;
-        if (originalRubric.category === 'MIND') catWeight = 3;
-        else if (originalRubric.category === 'GENERAL') catWeight = 2;
+        if (r.category === 'MIND') catWeight = 3;
+        else if (r.category === 'GENERAL') catWeight = 2;
+        return sum + 4 * r.importance * catWeight;
+      }, 0) || 1;
 
-        let gradePoints = 1;
-        if (grade === 2) gradePoints = 2;
-        else if (grade === 3) gradePoints = 4;
+    let scoredRemedies: ScoredRemedy[] = (parsed.scoredRemedies || []).map(
+      (rem: any, i: number) => {
+        let totalScore = 0;
+        let hasThermalBonus = false;
+        let hasMiasmBonus = false;
 
-        const contribution = gradePoints * importance * catWeight;
-        totalScore += contribution;
+        // Extract raw values from LLM response
+        const remName = rem.remedyName || 'Unknown';
+        const cleanName = normalizeRemedyName(remName);
+        const localData = MATERIA_MEDICA_DB[cleanName];
+
+        // Enrich with Materia Medica local lookup if matching, otherwise fallback to LLM values
+        const finalCommonName = localData ? localData.commonName : rem.commonName || null;
+        const finalThermalType = localData ? localData.thermalType : rem.thermalType || 'Chilly';
+        const finalMiasm = localData ? localData.miasm : rem.miasm || 'Psora';
+        const finalKeynotes = localData
+          ? localData.keynotes
+          : Array.isArray(rem.keynotes)
+            ? rem.keynotes
+            : [];
+
+        // ─── Constitutional Factor Scoring ─────────────────────────────────
+        // Bonuses are proportional to maxPossibleScore so they meaningfully
+        // shift remedy rankings (not just +1 or +2 on a 200-point scale).
+        // A full constitutional match can add ~25% to the score; mismatches
+        // penalize by ~10%, creating a significant differentiation swing.
+        const baseUnit = Math.max(maxPossibleScore * 0.06, 4); // ~6% of max per factor
+
+        // Thermal reaction: strongest constitutional signal
+        if (
+          typeof input.thermalReaction === 'string' &&
+          input.thermalReaction &&
+          finalThermalType
+        ) {
+          const patientThermal = input.thermalReaction.toLowerCase();
+          const remedyThermal = finalThermalType.toLowerCase();
+          if (patientThermal === remedyThermal) {
+            totalScore += baseUnit * 1.8; // ~10.8% of max
+            hasThermalBonus = true;
+          } else if (remedyThermal === 'ambithermal') {
+            // Ambithermal remedies partially match any patient thermal
+            totalScore += baseUnit * 0.5;
+          } else {
+            // Mismatch penalty: Hot patient → Chilly remedy is wrong
+            totalScore -= baseUnit * 1.0;
+          }
+        }
+
+        // Dominant miasm: second strongest
+        if (typeof input.miasm === 'string' && input.miasm && finalMiasm) {
+          const patientMiasm = input.miasm.toLowerCase();
+          const remedyMiasm = finalMiasm.toLowerCase();
+          if (patientMiasm === remedyMiasm) {
+            totalScore += baseUnit * 1.5; // ~9% of max
+            hasMiasmBonus = true;
+          } else {
+            // Mismatch penalty
+            totalScore -= baseUnit * 0.6;
+          }
+        }
+
+        // Constitutional factor bonuses: thirst, sleep position, perspiration
+        // These match against known remedy profiles in MATERIA_MEDICA_DB keynotes.
+        if (input.thirstPattern && localData) {
+          const keynoteStr = localData.keynotes.join(' ').toLowerCase();
+          const thirst = input.thirstPattern.toLowerCase();
+          if (
+            (thirst === 'thirsty' &&
+              (keynoteStr.includes('great thirst') ||
+                keynoteStr.includes('thirst for') ||
+                keynoteStr.includes('craves cold drinks'))) ||
+            (thirst === 'thirstless' && keynoteStr.includes('thirstless')) ||
+            (thirst === 'sips' && keynoteStr.includes('small sips'))
+          ) {
+            totalScore += baseUnit * 1.2; // ~7.2% of max
+          }
+        }
+        if (input.sleepPosition && localData) {
+          const keynoteStr = localData.keynotes.join(' ').toLowerCase();
+          if (
+            (input.sleepPosition === 'knees' && keynoteStr.includes('knee-chest')) ||
+            (input.sleepPosition === 'abdomen' && keynoteStr.includes('abdomen')) ||
+            (input.sleepPosition === 'left' && keynoteStr.includes('left side')) ||
+            (input.sleepPosition === 'right' && keynoteStr.includes('right'))
+          ) {
+            totalScore += baseUnit * 0.8; // ~4.8% of max
+          }
+        }
+        if (input.perspiration && localData) {
+          const keynoteStr = localData.keynotes.join(' ').toLowerCase();
+          if (
+            (input.perspiration === 'offensive' &&
+              (keynoteStr.includes('offensive') || keynoteStr.includes('sour sweat'))) ||
+            (input.perspiration === 'profuse' &&
+              (keynoteStr.includes('profuse') || keynoteStr.includes('sweat'))) ||
+            (input.perspiration === 'head' && keynoteStr.includes('sweat on scalp')) ||
+            (input.perspiration === 'staining' && keynoteStr.includes('staining'))
+          ) {
+            totalScore += baseUnit * 0.8; // ~4.8% of max
+          }
+        }
+
+        const mappedCoverage = (rem.coverage || [])
+          .map((cov: any) => {
+            // 1. Try matching by index parsed from ID (e.g. 'R0', 'r0', '0')
+            let originalRubric = null;
+            const idMatch = typeof cov.id === 'string' ? cov.id.match(/\d+/) : null;
+            if (idMatch) {
+              const idx = parseInt(idMatch[0], 10);
+              if (idx >= 0 && idx < input.selectedRubrics.length) {
+                originalRubric = input.selectedRubrics[idx];
+              }
+            }
+
+            // 2. Try raw index number matching
+            if (!originalRubric && typeof cov.id === 'number') {
+              if (cov.id >= 0 && cov.id < input.selectedRubrics.length) {
+                originalRubric = input.selectedRubrics[cov.id];
+              }
+            }
+
+            // 3. Try exact or loose description match to prevent minor string variation failures
+            if (!originalRubric && cov.rubricDescription) {
+              const cleanCovDesc = cov.rubricDescription.toLowerCase().trim();
+              originalRubric = input.selectedRubrics.find((r) => {
+                const cleanOrigDesc = r.description.toLowerCase().trim();
+                return (
+                  cleanOrigDesc === cleanCovDesc ||
+                  cleanOrigDesc.includes(cleanCovDesc) ||
+                  cleanCovDesc.includes(cleanOrigDesc)
+                );
+              });
+            }
+
+            if (!originalRubric) return null;
+
+            const grade = cov.grade || 1;
+            const importance = originalRubric.importance || 2;
+            let catWeight = 1;
+            if (originalRubric.category === 'MIND') catWeight = 3;
+            else if (originalRubric.category === 'GENERAL') catWeight = 2;
+
+            let gradePoints = 1;
+            if (grade === 2) gradePoints = 2;
+            else if (grade === 3) gradePoints = 4;
+
+            const contribution = gradePoints * importance * catWeight;
+            totalScore += contribution;
+
+            return {
+              rubricId: originalRubric.rubricId,
+              rubricDescription: originalRubric.description,
+              rubricCategory: originalRubric.category,
+              grade,
+              importance,
+              contribution,
+            };
+          })
+          .filter(Boolean);
 
         return {
-          rubricId: originalRubric.rubricId,
-          rubricDescription: originalRubric.description,
-          rubricCategory: originalRubric.category,
-          grade,
-          importance,
-          contribution,
+          remedyId: `ai-remedy-${Date.now()}-${i}`,
+          remedyName: remName,
+          commonName: finalCommonName,
+          totalScore,
+          normalizedScore: Math.max(
+            0,
+            Math.min(100, Math.round((totalScore / maxPossibleScore) * 100)),
+          ),
+          coverage: mappedCoverage,
+          coveredRubricCount: mappedCoverage.length,
+          totalRubricCount: input.selectedRubrics.length,
+          thermalType: finalThermalType,
+          constitutionType: null,
+          miasm: finalMiasm,
+          commonPotencies: Array.isArray(rem.commonPotencies)
+            ? rem.commonPotencies
+            : ['30C', '200C'],
+          keynotes: finalKeynotes,
+          thermalBonus: hasThermalBonus,
+          miasmBonus: hasMiasmBonus,
+          matchExplanation: mappedCoverage.map((c: any) => c.rubricDescription),
         };
-      }).filter(Boolean);
-
-      return {
-        remedyId: `ai-remedy-${Date.now()}-${i}`,
-        remedyName: remName,
-        commonName: finalCommonName,
-        totalScore,
-        normalizedScore: Math.max(0, Math.min(100, Math.round((totalScore / maxPossibleScore) * 100))),
-        coverage: mappedCoverage,
-        coveredRubricCount: mappedCoverage.length,
-        totalRubricCount: input.selectedRubrics.length,
-        thermalType: finalThermalType,
-        constitutionType: null,
-        miasm: finalMiasm,
-        commonPotencies: Array.isArray(rem.commonPotencies) ? rem.commonPotencies : ['30C', '200C'],
-        keynotes: finalKeynotes,
-        thermalBonus: hasThermalBonus,
-        miasmBonus: hasMiasmBonus,
-        matchExplanation: mappedCoverage.map((c: any) => c.rubricDescription),
-      };
-    });
+      },
+    );
 
     scoredRemedies.sort((a, b) => b.totalScore - a.totalScore);
 
@@ -917,7 +1156,10 @@ JSON Output:
 
       const parsed: any = safeJsonParse(res.content);
       if (!parsed) {
-        logger.error({ contentPreview: res.content.slice(0, 300) }, 'Kent rubric search: JSON unrecoverable even after repair');
+        logger.error(
+          { contentPreview: res.content.slice(0, 300) },
+          'Kent rubric search: JSON unrecoverable even after repair',
+        );
         return [];
       }
 

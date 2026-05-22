@@ -1,57 +1,74 @@
 import { eq, sql, desc, and, gte, lte, or, inArray, isNotNull } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
+import type { IAnalyticsRepository } from '../../domains/analytics/ports/analytics.repository.js';
 import type {
-  IAnalyticsRepository
-} from '../../domains/analytics/ports/analytics.repository.js';
-import type {
-  AnalyticsSummary, PatientTrendResult, MonthWiseResult,
-  MonthWiseDueSummary, MonthWiseDueDetail, BirthdayPatient,
-  ReferenceListResult
+  AnalyticsSummary,
+  PatientTrendResult,
+  MonthWiseResult,
+  MonthWiseDueSummary,
+  MonthWiseDueDetail,
+  BirthdayPatient,
+  ReferenceListResult,
 } from '@mmc/types';
 
 export class AnalyticsRepositoryPg implements IAnalyticsRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   async getSummary(clinicId?: number): Promise<AnalyticsSummary> {
     const countPatients = async () => {
       try {
         const conditions = [sql`(deleted_at IS NULL OR deleted_at::text = '')` as any];
         if (clinicId) conditions.push(eq(schema.patients.clinicId, clinicId));
-        const [r] = await this.db.select({ total: sql<number>`count(*)::int` }).from(schema.patients).where(and(...conditions));
+        const [r] = await this.db
+          .select({ total: sql<number>`count(*)::int` })
+          .from(schema.patients)
+          .where(and(...conditions));
         return r?.total ?? 0;
-      } catch { return 0; }
+      } catch {
+        return 0;
+      }
     };
 
     const countAppointments = async () => {
       try {
         const conditions = [sql`(deleted_at IS NULL OR deleted_at::text = '')` as any];
         if (clinicId) conditions.push(eq(schema.appointments.clinicId, clinicId));
-        const [r] = await this.db.select({ total: sql<number>`count(*)::int` }).from(schema.appointments).where(and(...conditions));
+        const [r] = await this.db
+          .select({ total: sql<number>`count(*)::int` })
+          .from(schema.appointments)
+          .where(and(...conditions));
         return r?.total ?? 0;
-      } catch { return 0; }
+      } catch {
+        return 0;
+      }
     };
 
     const sumRevenue = async () => {
       try {
-        const conditions = [sql`(${schema.receiptLegacy.deletedAt} IS NULL OR ${schema.receiptLegacy.deletedAt}::text = '')` as any];
+        const conditions = [
+          sql`(${schema.receiptLegacy.deletedAt} IS NULL OR ${schema.receiptLegacy.deletedAt}::text = '')` as any,
+        ];
         if (clinicId) conditions.push(eq(schema.patients.clinicId, clinicId));
-        
-        const [r] = await this.db.select({ 
-          total: sql<number>`COALESCE(sum(CAST(NULLIF(${schema.receiptLegacy.amount}, '') AS numeric)), 0)::int` 
-        })
+
+        const [r] = await this.db
+          .select({
+            total: sql<number>`COALESCE(sum(CAST(NULLIF(${schema.receiptLegacy.amount}, '') AS numeric)), 0)::int`,
+          })
           .from(schema.receiptLegacy)
           .innerJoin(schema.patients, eq(schema.patients.regid, schema.receiptLegacy.regid))
           .where(and(...conditions));
         return r?.total ?? 0;
-      } catch (err) { 
-        console.error("[sumRevenue] Error:", err);
-        return 0; 
+      } catch (err) {
+        console.error('[sumRevenue] Error:', err);
+        return 0;
       }
     };
 
     const [totalPatients, totalAppointments, totalRevenue] = await Promise.all([
-      countPatients(), countAppointments(), sumRevenue()
+      countPatients(),
+      countAppointments(),
+      sumRevenue(),
     ]);
 
     return { totalPatients, totalAppointments, totalRevenue };
@@ -64,7 +81,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
     // New Patients
     let newPatients: any[] = [];
     try {
-      newPatients = await this.db.execute(sql`
+      newPatients = (await this.db.execute(sql`
         SELECT to_char(created_at, 'Mon YYYY') as month, count(*)::int as count
         FROM case_datas
         WHERE (deleted_at IS NULL OR deleted_at::text = '')
@@ -72,16 +89,16 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
           AND created_at::date BETWEEN ${fromStr} AND ${toStr}
         GROUP BY to_char(created_at, 'YYYY-MM'), to_char(created_at, 'Mon YYYY')
         ORDER BY to_char(created_at, 'YYYY-MM') ASC
-      `) as any[];
-    } catch (err) { 
-      console.error("[getPatientTrends] NewPatients Error:", err);
-      newPatients = []; 
+      `)) as any[];
+    } catch (err) {
+      console.error('[getPatientTrends] NewPatients Error:', err);
+      newPatients = [];
     }
 
     // Revenue
     let revenueByMonth: any[] = [];
     try {
-      revenueByMonth = await this.db.execute(sql`
+      revenueByMonth = (await this.db.execute(sql`
         SELECT to_char(r.created_at, 'Mon YYYY') as month, sum(CAST(NULLIF(r.amount, '') AS numeric))::int as total
         FROM receipt r
         JOIN case_datas p ON p.regid = r.regid
@@ -91,16 +108,16 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
           AND r.created_at::date BETWEEN ${fromStr} AND ${toStr}
         GROUP BY to_char(r.created_at, 'YYYY-MM'), to_char(r.created_at, 'Mon YYYY')
         ORDER BY to_char(r.created_at, 'YYYY-MM') ASC
-      `) as any[];
-    } catch (err) { 
-      console.error("[getPatientTrends] Revenue Error:", err);
-      revenueByMonth = []; 
+      `)) as any[];
+    } catch (err) {
+      console.error('[getPatientTrends] Revenue Error:', err);
+      revenueByMonth = [];
     }
 
     // Top Diagnoses
     let topDiagnoses: any[] = [];
     try {
-      topDiagnoses = await this.db.execute(sql`
+      topDiagnoses = (await this.db.execute(sql`
         SELECT m.condition as diagnosis, count(*)::int as count
         FROM medicalcases m
         JOIN case_datas p ON p.regid = m.regid
@@ -110,16 +127,20 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         GROUP BY m.condition
         ORDER BY count DESC
         LIMIT 10
-      `) as any[];
-    } catch (err) { 
-      console.error("[getPatientTrends] TopDiagnoses Error:", err);
-      topDiagnoses = []; 
+      `)) as any[];
+    } catch (err) {
+      console.error('[getPatientTrends] TopDiagnoses Error:', err);
+      topDiagnoses = [];
     }
 
     return { newPatients, revenueByMonth, topDiagnoses };
   }
 
-  async getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string): Promise<MonthWiseResult[]> {
+  async getMonthWiseBreakdown(
+    clinicId?: number,
+    fromYearMth?: string,
+    toYearMth?: string,
+  ): Promise<MonthWiseResult[]> {
     const firstDay = `${fromYearMth}-01`;
     const lastDayDate = new Date(`${toYearMth}-01`);
     lastDayDate.setMonth(lastDayDate.getMonth() + 1);
@@ -212,8 +233,8 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
     `;
 
     try {
-      const rows = await this.db.execute(query) as any[];
-      return rows.map(r => ({
+      const rows = (await this.db.execute(query)) as any[];
+      return rows.map((r) => ({
         date: r.date,
         displaydate: r.displaydate,
         new_cases: r.new_cases,
@@ -230,7 +251,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         cash_in_hand: 0,
       }));
     } catch (err) {
-      console.error("[MonthWiseBreakdown] Error executing optimized query:", err);
+      console.error('[MonthWiseBreakdown] Error executing optimized query:', err);
       return [];
     }
   }
@@ -248,10 +269,16 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         GROUP BY extract(month from b.created_at)
       `);
       return dues as any as MonthWiseDueSummary[];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 
-  async getDueDetails(clinicId?: number, year?: number, month?: number): Promise<MonthWiseDueDetail[]> {
+  async getDueDetails(
+    clinicId?: number,
+    year?: number,
+    month?: number,
+  ): Promise<MonthWiseDueDetail[]> {
     try {
       const details = await this.db.execute(sql`
         SELECT
@@ -269,10 +296,16 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         ORDER BY total_due DESC
       `);
       return details as any as MonthWiseDueDetail[];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 
-  async getBirthdays(clinicId?: number, fromMonthDay?: string, toMonthDay?: string): Promise<BirthdayPatient[]> {
+  async getBirthdays(
+    clinicId?: number,
+    fromMonthDay?: string,
+    toMonthDay?: string,
+  ): Promise<BirthdayPatient[]> {
     try {
       const res = await this.db.execute(sql`
         SELECT id, regid, first_name, surname, phone, mobile1, dob as date_birth, dob
@@ -307,13 +340,17 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         WHERE s.sms_type = ${smsType} AND s.status = 'sent' AND s.created_at::date = ${dateStr}
         ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
       `);
-      return (res as any[]).map(r => r.regid);
+      return (res as any[]).map((r) => r.regid);
     } catch {
       return [];
     }
   }
 
-  async getReferenceListing(clinicId?: number, from?: Date, to?: Date): Promise<ReferenceListResult[]> {
+  async getReferenceListing(
+    clinicId?: number,
+    from?: Date,
+    to?: Date,
+  ): Promise<ReferenceListResult[]> {
     const f = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const t = to || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
     const fromStr = f.toISOString().split('T')[0];
@@ -329,6 +366,8 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         ORDER BY count DESC
       `);
       return res as any as ReferenceListResult[];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 }

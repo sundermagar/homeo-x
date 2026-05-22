@@ -43,7 +43,7 @@ export function useSearchIcd(query: string, limit = 20) {
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: IcdCodeResult[] }>(
         '/terminology/icd/search',
-        { params: { q: query, limit } }
+        { params: { q: query, limit } },
       );
       return res.data.data;
     },
@@ -60,7 +60,7 @@ export function useSearchLoinc(query: string, limit = 20) {
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: LoincCodeResult[] }>(
         '/terminology/loinc/search',
-        { params: { q: query, limit } }
+        { params: { q: query, limit } },
       );
       return res.data.data;
     },
@@ -77,7 +77,7 @@ export function useSearchProcedures(query: string, limit = 20) {
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: ProcedureCodeResult[] }>(
         '/terminology/procedures/search',
-        { params: { q: query, limit } }
+        { params: { q: query, limit } },
       );
       return res.data.data;
     },
@@ -94,7 +94,7 @@ export function useSearchSnomed(query: string, limit = 20) {
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: SnomedConceptResult[] }>(
         '/terminology/snomed/search',
-        { params: { q: query, limit } }
+        { params: { q: query, limit } },
       );
       return res.data.data;
     },
@@ -110,7 +110,7 @@ export function useGetSnomedDetails(conceptId: string) {
     queryKey: ['terminology', 'snomed', conceptId],
     queryFn: async () => {
       const res = await api.get<{ success: boolean; data: SnomedConceptResult }>(
-        `/terminology/snomed/${conceptId}`
+        `/terminology/snomed/${conceptId}`,
       );
       return res.data.data;
     },

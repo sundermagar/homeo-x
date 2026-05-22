@@ -2,9 +2,9 @@
 
 ## General Instructions
 
-* Follow architecture strictly
-* Work module by module
-* Maintain clean code
+- Follow architecture strictly
+- Work module by module
+- Maintain clean code
 
 ## While Implementing
 
@@ -16,9 +16,9 @@
 
 ## Output Expectation
 
-* Modular code
-* Production-ready
-* Consistent with existing structure
+- Modular code
+- Production-ready
+- Consistent with existing structure
 
 ## Goal
 

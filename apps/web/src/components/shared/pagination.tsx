@@ -17,7 +17,7 @@ export function Pagination({
   pageSize,
   totalItems,
   onPageChange,
-  onPageSizeChange
+  onPageSizeChange,
 }: PaginationProps) {
   const fromEntry = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const toEntry = Math.min(currentPage * pageSize, totalItems);
@@ -55,11 +55,7 @@ export function Pagination({
 
         {Array.from({ length: totalPages }).map((_, i) => {
           const p = i + 1;
-          if (
-            p === 1 ||
-            p === totalPages ||
-            (p >= currentPage - 1 && p <= currentPage + 1)
-          ) {
+          if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
             return (
               <button
                 key={p}
@@ -71,7 +67,19 @@ export function Pagination({
             );
           }
           if (p === currentPage - 2 || p === currentPage + 2) {
-            return <span key={p} style={{ color: 'var(--pp-text-3)', padding: '0 4px', display: 'inline-flex', alignItems: 'center' }}>...</span>;
+            return (
+              <span
+                key={p}
+                style={{
+                  color: 'var(--pp-text-3)',
+                  padding: '0 4px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+              >
+                ...
+              </span>
+            );
           }
           return null;
         })}

@@ -25,7 +25,7 @@ const getWaUseCase = (req: any) => {
     new CommunicationRepositoryPG(req.tenantDb),
     waRepo,
     cloudGateway,
-    new PatientRepositoryPg(req.tenantDb)
+    new PatientRepositoryPg(req.tenantDb),
   );
 };
 
@@ -39,161 +39,208 @@ communicationRouter.use(authMiddleware);
 // ─── SMS Templates ──────────────────────────────────────────────────────────────
 
 // GET /api/communications/templates
-communicationRouter.get('/templates', asyncHandler(async (req, res) => {
-  const uc = new ManageSmsTemplatesUseCase(getRepo(req));
-  const result = await uc.list();
-  if (result.success) sendSuccess(res, result.data);
-}));
+communicationRouter.get(
+  '/templates',
+  asyncHandler(async (req, res) => {
+    const uc = new ManageSmsTemplatesUseCase(getRepo(req));
+    const result = await uc.list();
+    if (result.success) sendSuccess(res, result.data);
+  }),
+);
 
 // GET /api/communications/templates/:id
-communicationRouter.get('/templates/:id', asyncHandler(async (req, res) => {
-  const uc = new ManageSmsTemplatesUseCase(getRepo(req));
-  const result = await uc.getById(Number(req.params.id));
-  if (result.success) sendSuccess(res, result.data);
-  else throw new BadRequestError(String(result.error));
-}));
+communicationRouter.get(
+  '/templates/:id',
+  asyncHandler(async (req, res) => {
+    const uc = new ManageSmsTemplatesUseCase(getRepo(req));
+    const result = await uc.getById(Number(req.params.id));
+    if (result.success) sendSuccess(res, result.data);
+    else throw new BadRequestError(String(result.error));
+  }),
+);
 
 // POST /api/communications/templates
-communicationRouter.post('/templates', asyncHandler(async (req, res) => {
-  const uc = new ManageSmsTemplatesUseCase(getRepo(req));
-  const result = await uc.create(req.body);
-  if (result.success) sendSuccess(res, result.data, 'Template created', 201);
-  else throw new BadRequestError(String(result.error));
-}));
+communicationRouter.post(
+  '/templates',
+  asyncHandler(async (req, res) => {
+    const uc = new ManageSmsTemplatesUseCase(getRepo(req));
+    const result = await uc.create(req.body);
+    if (result.success) sendSuccess(res, result.data, 'Template created', 201);
+    else throw new BadRequestError(String(result.error));
+  }),
+);
 
 // PUT /api/communications/templates/:id
-communicationRouter.put('/templates/:id', asyncHandler(async (req, res) => {
-  const uc = new ManageSmsTemplatesUseCase(getRepo(req));
-  const result = await uc.update(Number(req.params.id), req.body);
-  if (result.success) sendSuccess(res, result.data, 'Template updated');
-  else throw new BadRequestError(String(result.error));
-}));
+communicationRouter.put(
+  '/templates/:id',
+  asyncHandler(async (req, res) => {
+    const uc = new ManageSmsTemplatesUseCase(getRepo(req));
+    const result = await uc.update(Number(req.params.id), req.body);
+    if (result.success) sendSuccess(res, result.data, 'Template updated');
+    else throw new BadRequestError(String(result.error));
+  }),
+);
 
 // DELETE /api/communications/templates/:id
-communicationRouter.delete('/templates/:id', asyncHandler(async (req, res) => {
-  const uc = new ManageSmsTemplatesUseCase(getRepo(req));
-  const result = await uc.delete(Number(req.params.id));
-  if (result.success) sendSuccess(res, undefined, 'Template deleted');
-  else throw new BadRequestError(String(result.error));
-}));
+communicationRouter.delete(
+  '/templates/:id',
+  asyncHandler(async (req, res) => {
+    const uc = new ManageSmsTemplatesUseCase(getRepo(req));
+    const result = await uc.delete(Number(req.params.id));
+    if (result.success) sendSuccess(res, undefined, 'Template deleted');
+    else throw new BadRequestError(String(result.error));
+  }),
+);
 
 // ─── SMS Reports ────────────────────────────────────────────────────────────────
 
 // GET /api/communications/reports
-communicationRouter.get('/reports', asyncHandler(async (req, res) => {
-  const uc = new GetSmsReportsUseCase(getRepo(req));
-  const { regid, sms_type, status, from_date, to_date, phone, search, page, limit } = req.query as Record<string, string>;
-  const result = await uc.execute({
-    regid: regid ? Number(regid) : undefined,
-    smsType: sms_type ? sms_type : undefined,
-    status: status ? status : undefined,
-    fromDate: from_date ? from_date : undefined,
-    toDate: to_date ? to_date : undefined,
-    phone: phone ? phone : undefined,
-    search: search ? search : undefined,
-    page: page ? Number(page) : 1,
-    limit: limit ? Number(limit) : 50,
-  });
-  if (result.success) sendSuccess(res, result.data);
-}));
+communicationRouter.get(
+  '/reports',
+  asyncHandler(async (req, res) => {
+    const uc = new GetSmsReportsUseCase(getRepo(req));
+    const { regid, sms_type, status, from_date, to_date, phone, search, page, limit } =
+      req.query as Record<string, string>;
+    const result = await uc.execute({
+      regid: regid ? Number(regid) : undefined,
+      smsType: sms_type ? sms_type : undefined,
+      status: status ? status : undefined,
+      fromDate: from_date ? from_date : undefined,
+      toDate: to_date ? to_date : undefined,
+      phone: phone ? phone : undefined,
+      search: search ? search : undefined,
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 50,
+    });
+    if (result.success) sendSuccess(res, result.data);
+  }),
+);
 
 // ─── Send SMS ───────────────────────────────────────────────────────────────────
 
 // POST /api/communications/sms/send — single
-communicationRouter.post('/sms/send', asyncHandler(async (req, res) => {
-  const uc = new SendSmsUseCase(getRepo(req), smsGateway);
-  const { phone, message, smsType, regid } = req.body;
-  const result = await uc.sendSingle({ phone, message, smsType, regid });
-  if (result.success) sendSuccess(res, result.data, 'SMS sent');
-  else throw new BadRequestError(String(result.error));
-}));
+communicationRouter.post(
+  '/sms/send',
+  asyncHandler(async (req, res) => {
+    const uc = new SendSmsUseCase(getRepo(req), smsGateway);
+    const { phone, message, smsType, regid } = req.body;
+    const result = await uc.sendSingle({ phone, message, smsType, regid });
+    if (result.success) sendSuccess(res, result.data, 'SMS sent');
+    else throw new BadRequestError(String(result.error));
+  }),
+);
 
 // POST /api/communications/sms/broadcast
-communicationRouter.post('/sms/broadcast', asyncHandler(async (req, res) => {
-  const uc = new SendSmsUseCase(getRepo(req), smsGateway);
-  const { patientIds, doctorId, message, smsType } = req.body;
-  const result = await uc.broadcast({ patientIds, doctorId, message, smsType });
-  if (result.success) {
-    sendSuccess(res, result.data, `Sent: ${result.data?.sent ?? 0}, Failed: ${result.data?.failed ?? 0}`);
-  } else {
-    throw new BadRequestError(String(result.error));
-  }
-}));
+communicationRouter.post(
+  '/sms/broadcast',
+  asyncHandler(async (req, res) => {
+    const uc = new SendSmsUseCase(getRepo(req), smsGateway);
+    const { patientIds, doctorId, message, smsType } = req.body;
+    const result = await uc.broadcast({ patientIds, doctorId, message, smsType });
+    if (result.success) {
+      sendSuccess(
+        res,
+        result.data,
+        `Sent: ${result.data?.sent ?? 0}, Failed: ${result.data?.failed ?? 0}`,
+      );
+    } else {
+      throw new BadRequestError(String(result.error));
+    }
+  }),
+);
 
 // ─── WhatsApp (Meta Cloud API) ─────────────────────────────────────────────────
 // All WhatsApp messaging now goes through the Meta WhatsApp Cloud API.
 // Channel credentials are stored per-tenant in the wa_channels table.
 
 // POST /api/communications/whatsapp/send — single
-communicationRouter.post('/whatsapp/send', asyncHandler(async (req, res) => {
-  const uc: SendWhatsAppUseCase = getWaUseCase(req);
-  const clinicId = (req as any).user?.contextId;
-  const { phone, message, regid } = req.body;
-  const result = await uc.sendSingle({ phone, message, regid, clinicId });
-  if (result.success) sendSuccess(res, result.data, 'WhatsApp sent via Meta Cloud API');
-  else throw new BadRequestError(String(result.error));
-}));
+communicationRouter.post(
+  '/whatsapp/send',
+  asyncHandler(async (req, res) => {
+    const uc: SendWhatsAppUseCase = getWaUseCase(req);
+    const clinicId = (req as any).user?.contextId;
+    const { phone, message, regid } = req.body;
+    const result = await uc.sendSingle({ phone, message, regid, clinicId });
+    if (result.success) sendSuccess(res, result.data, 'WhatsApp sent via Meta Cloud API');
+    else throw new BadRequestError(String(result.error));
+  }),
+);
 
 // POST /api/communications/whatsapp/broadcast
-communicationRouter.post('/whatsapp/broadcast', asyncHandler(async (req, res) => {
-  const uc: SendWhatsAppUseCase = getWaUseCase(req);
-  const clinicId = (req as any).user?.contextId;
-  const { patientIds, phone, message } = req.body;
-  const result = await uc.broadcast({ patientIds, phone, message, clinicId });
-  if (result.success) sendSuccess(res, result.data, `WhatsApp: ${result.data?.sent ?? 0} sent`);
-  else throw new BadRequestError(String(result.error));
-}));
+communicationRouter.post(
+  '/whatsapp/broadcast',
+  asyncHandler(async (req, res) => {
+    const uc: SendWhatsAppUseCase = getWaUseCase(req);
+    const clinicId = (req as any).user?.contextId;
+    const { patientIds, phone, message } = req.body;
+    const result = await uc.broadcast({ patientIds, phone, message, clinicId });
+    if (result.success) sendSuccess(res, result.data, `WhatsApp: ${result.data?.sent ?? 0} sent`);
+    else throw new BadRequestError(String(result.error));
+  }),
+);
 
 // GET /api/communications/whatsapp/logs
-communicationRouter.get('/whatsapp/logs', asyncHandler(async (req, res) => {
-  const repo = getRepo(req);
-  const logs = await repo.listWhatsAppLogs(100);
-  sendSuccess(res, logs);
-}));
+communicationRouter.get(
+  '/whatsapp/logs',
+  asyncHandler(async (req, res) => {
+    const repo = getRepo(req);
+    const logs = await repo.listWhatsAppLogs(100);
+    sendSuccess(res, logs);
+  }),
+);
 
 // ─── OTP ────────────────────────────────────────────────────────────────────────
 
 // POST /api/communications/otp/send
-communicationRouter.post('/otp/send', asyncHandler(async (req, res) => {
-  const { phone } = req.body;
-  if (!phone) throw new BadRequestError('phone is required');
-  const repo = getRepo(req);
-  const { otp, expiresAt } = await repo.createOtp(phone);
+communicationRouter.post(
+  '/otp/send',
+  asyncHandler(async (req, res) => {
+    const { phone } = req.body;
+    if (!phone) throw new BadRequestError('phone is required');
+    const repo = getRepo(req);
+    const { otp, expiresAt } = await repo.createOtp(phone);
 
-  // Send OTP via real gateway (or mock log in dev)
-  const sms = new SendSmsUseCase(getRepo(req), smsGateway);
-  await sms.sendSingle({
-    phone,
-    message: `Your MMC OTP is: ${otp}. Valid for 10 minutes. Do not share.`,
-    smsType: 'OTP',
-  });
+    // Send OTP via real gateway (or mock log in dev)
+    const sms = new SendSmsUseCase(getRepo(req), smsGateway);
+    await sms.sendSingle({
+      phone,
+      message: `Your MMC OTP is: ${otp}. Valid for 10 minutes. Do not share.`,
+      smsType: 'OTP',
+    });
 
-  sendSuccess(res, { expiresAt }, 'OTP sent');
-}));
+    sendSuccess(res, { expiresAt }, 'OTP sent');
+  }),
+);
 
 // POST /api/communications/otp/verify
-communicationRouter.post('/otp/verify', asyncHandler(async (req, res) => {
-  const { phone, otp } = req.body;
-  if (!phone || !otp) throw new BadRequestError('phone and otp are required');
-  const repo = getRepo(req);
-  const result = await repo.verifyOtp(phone, otp);
-  if (result.success) sendSuccess(res, result);
-  else throw new BadRequestError(result.message ?? 'Invalid OTP');
-}));
+communicationRouter.post(
+  '/otp/verify',
+  asyncHandler(async (req, res) => {
+    const { phone, otp } = req.body;
+    if (!phone || !otp) throw new BadRequestError('phone and otp are required');
+    const repo = getRepo(req);
+    const result = await repo.verifyOtp(phone, otp);
+    if (result.success) sendSuccess(res, result);
+    else throw new BadRequestError(result.message ?? 'Invalid OTP');
+  }),
+);
 
 // ─── Email (Nodemailer) ───────────────────────────────────────────────────────
 
 // POST /api/communications/email/send
-communicationRouter.post('/email/send', asyncHandler(async (req, res) => {
-  const { to, subject, text, html } = req.body;
-  if (!to || !subject) throw new BadRequestError('to and subject are required');
+communicationRouter.post(
+  '/email/send',
+  asyncHandler(async (req, res) => {
+    const { to, subject, text, html } = req.body;
+    if (!to || !subject) throw new BadRequestError('to and subject are required');
 
-  const emailService = new NodemailerServiceAdapter();
-  const success = await emailService.sendEmail({ to, subject, text, html });
+    const emailService = new NodemailerServiceAdapter();
+    const success = await emailService.sendEmail({ to, subject, text, html });
 
-  if (success) {
-    sendSuccess(res, null, 'Email sent successfully via Nodemailer');
-  } else {
-    throw new BadRequestError('Failed to send email. Check SMTP logs configuration.');
-  }
-}));
+    if (success) {
+      sendSuccess(res, null, 'Email sent successfully via Nodemailer');
+    } else {
+      throw new BadRequestError('Failed to send email. Check SMTP logs configuration.');
+    }
+  }),
+);

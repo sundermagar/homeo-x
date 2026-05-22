@@ -20,6 +20,6 @@ export function usePagination<T>(data: T[], initialLimit = 10) {
     itemsPerPage,
     setItemsPerPage,
     paginatedData,
-    totalItems: data.length
+    totalItems: data.length,
   };
 }

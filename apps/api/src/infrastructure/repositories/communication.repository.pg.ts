@@ -3,14 +3,17 @@ import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
 import type { ICommunicationRepository } from '../../domains/communication/ports/communication.repository.js';
 import type {
-  SmsTemplate, CreateSmsTemplateDto, UpdateSmsTemplateDto,
-  SmsReport, SmsReportFilters,
+  SmsTemplate,
+  CreateSmsTemplateDto,
+  UpdateSmsTemplateDto,
+  SmsReport,
+  SmsReportFilters,
   WhatsAppLog,
-  OtpResult
+  OtpResult,
 } from '@mmc/types';
 
 export class CommunicationRepositoryPG implements ICommunicationRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   // ─── SMS Templates ─────────────────────────────────────────────────────────
 
@@ -104,8 +107,12 @@ export class CommunicationRepositoryPG implements ICommunicationRepository {
   }
 
   async logSms(params: {
-    regid: number; phone: string; message: string; smsType: string;
-    status?: string; gatewayRef?: string;
+    regid: number;
+    phone: string;
+    message: string;
+    smsType: string;
+    status?: string;
+    gatewayRef?: string;
   }): Promise<SmsReport> {
     const [row] = await this.db
       .insert(schema.smsReports)
@@ -125,7 +132,11 @@ export class CommunicationRepositoryPG implements ICommunicationRepository {
   // ─── WhatsApp Logs ───────────────────────────────────────────────────────────
 
   async logWhatsApp(params: {
-    regid?: number; phone: string; message: string; deepLink: string; status?: string;
+    regid?: number;
+    phone: string;
+    message: string;
+    deepLink: string;
+    status?: string;
   }): Promise<WhatsAppLog> {
     const [row] = await this.db
       .insert(schema.whatsappLogs)
@@ -171,12 +182,14 @@ export class CommunicationRepositoryPG implements ICommunicationRepository {
     const [record] = await this.db
       .select()
       .from(schema.otps)
-      .where(and(
-        eq(schema.otps.phone, phone),
-        eq(schema.otps.otp, otp),
-        eq(schema.otps.verified, false),
-        isNull(schema.otps.deletedAt)
-      ))
+      .where(
+        and(
+          eq(schema.otps.phone, phone),
+          eq(schema.otps.otp, otp),
+          eq(schema.otps.verified, false),
+          isNull(schema.otps.deletedAt),
+        ),
+      )
       .limit(1);
 
     if (!record) return { success: false, message: 'Invalid or expired OTP' };

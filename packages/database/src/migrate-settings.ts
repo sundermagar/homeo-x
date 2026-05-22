@@ -13,7 +13,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const connectionString = process.env['DATABASE_URL'];
 if (!connectionString) {
-  console.error("❌ No DATABASE_URL found in .env");
+  console.error('❌ No DATABASE_URL found in .env');
   process.exit(1);
 }
 
@@ -23,13 +23,15 @@ const migrationsDir = path.resolve(__dirname, './migrations');
 const migrationFiles = [
   'migrate_settings_final.sql',
   'migrate_settings_v2.sql',
-  '20260413_add_dispensary_columns.sql'
+  '20260413_add_dispensary_columns.sql',
 ];
 
 async function run() {
-  const allDatabaseSchemas = await sql`SELECT schema_name FROM information_schema.schemata`.then(rows => rows.map(r => r['schema_name']));
-  
-  const tenants = TenantRegistry.getAll().filter(t => allDatabaseSchemas.includes(t.schemaName));
+  const allDatabaseSchemas = await sql`SELECT schema_name FROM information_schema.schemata`.then(
+    (rows) => rows.map((r) => r['schema_name']),
+  );
+
+  const tenants = TenantRegistry.getAll().filter((t) => allDatabaseSchemas.includes(t.schemaName));
   const publicExists = allDatabaseSchemas.includes('public');
 
   console.log(`🚀 Starting migration for ${tenants.length} existing tenants + public schema...`);
@@ -38,7 +40,7 @@ async function run() {
     for (const file of migrationFiles) {
       const filePath = path.join(migrationsDir, file);
       if (!fs.existsSync(filePath)) continue;
-      
+
       const content = fs.readFileSync(filePath, 'utf8');
       try {
         await sql.unsafe(`SET search_path TO ${schemaName}; ${content}`);
@@ -53,11 +55,11 @@ async function run() {
   // 1. Run on Public Schema
   if (publicExists) {
     try {
-      console.log("\n📦 Migrating: public");
+      console.log('\n📦 Migrating: public');
       await runFiles('public');
-      console.log("✅ Public schema updated.");
+      console.log('✅ Public schema updated.');
     } catch (e: any) {
-      console.error("❌ Error in public schema:", e.message);
+      console.error('❌ Error in public schema:', e.message);
     }
   }
 
@@ -72,7 +74,7 @@ async function run() {
     }
   }
 
-  console.log("\n✨ All migrations finished!");
+  console.log('\n✨ All migrations finished!');
   await sql.end();
 }
 

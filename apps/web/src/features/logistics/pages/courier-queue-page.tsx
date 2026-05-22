@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Truck, Package, MapPin, Search, Calendar, 
-  CheckCircle2, MessageCircle, Clock, History,
-  X, Send, ExternalLink, User, Hash
+import {
+  Truck,
+  Package,
+  MapPin,
+  Search,
+  Calendar,
+  CheckCircle2,
+  MessageCircle,
+  Clock,
+  History,
+  X,
+  Send,
+  ExternalLink,
+  User,
+  Hash,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
@@ -39,11 +50,11 @@ export function CourierQueuePage() {
   const sendText = useSendText();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
+
   // Modal states
   const [assignModal, setAssignModal] = useState<CourierEntry | null>(null);
   const [messageModal, setMessageModal] = useState<{
@@ -53,7 +64,10 @@ export function CourierQueuePage() {
     podNumber: string;
     regid: number;
   } | null>(null);
-  const [historyModal, setHistoryModal] = useState<{ regid: number; entries: CourierEntry[] } | null>(null);
+  const [historyModal, setHistoryModal] = useState<{
+    regid: number;
+    entries: CourierEntry[];
+  } | null>(null);
 
   // Assign form state
   const [assignPcd, setAssignPcd] = useState('');
@@ -65,7 +79,7 @@ export function CourierQueuePage() {
     queryFn: async () => {
       const { data } = await apiClient.get(`/courier/queue?date=${selectedDate}`);
       return data.data as CourierEntry[];
-    }
+    },
   });
 
   // Mark all as read on mount
@@ -81,30 +95,32 @@ export function CourierQueuePage() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['courier-queue'] });
-      
+
       // Auto-send WhatsApp on assign
       if (assignModal?.phone && (variables.pcd || variables.pickup)) {
         const phone = assignModal.phone.replace(/\D/g, '');
         const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
-        
+
         let textMessage = '';
         if (variables.pickup) {
           textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines are ready for pickup at the clinic.\n\nRegards,\nMMC HomeoTech`;
         } else {
           textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines have been dispatched via *${variables.courier || 'DTDC'}* and the POD number is *${variables.pcd || 'N/A'}*.\n\nFor tracking, log on to the courier tracking website.\n\nRegards,\nMMC HomeoTech`;
         }
-        
-        sendText.mutate({
-          phone: finalPhone,
-          message: textMessage,
-        }).catch(err => console.error('Auto WhatsApp failed', err));
+
+        sendText
+          .mutate({
+            phone: finalPhone,
+            message: textMessage,
+          })
+          .catch((err) => console.error('Auto WhatsApp failed', err));
       }
 
       setAssignModal(null);
       setAssignPcd('');
       setAssignCourier('');
       setAssignPickup(false);
-    }
+    },
   });
 
   const handleAssign = () => {
@@ -156,11 +172,11 @@ export function CourierQueuePage() {
         onError: (err: any) => {
           alert('❌ Failed to send: ' + (err.response?.data?.message || err.message));
         },
-      }
+      },
     );
   };
 
-  const filteredQueue = queue.filter(e => {
+  const filteredQueue = queue.filter((e) => {
     if (!searchTerm) return true;
     const s = searchTerm.toLowerCase();
     return (
@@ -170,8 +186,8 @@ export function CourierQueuePage() {
     );
   });
 
-  const pendingCount = queue.filter(e => e.isAssign === 0).length;
-  const assignedCount = queue.filter(e => e.isAssign === 1).length;
+  const pendingCount = queue.filter((e) => e.isAssign === 0).length;
+  const assignedCount = queue.filter((e) => e.isAssign === 1).length;
 
   return (
     <div className="courier-queue-page">
@@ -226,7 +242,14 @@ export function CourierQueuePage() {
           <div className="courier-empty">
             <Package size={48} />
             <h3>No entries for this date</h3>
-            <p>No dispatch entries found for {new Date(selectedDate as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+            <p>
+              No dispatch entries found for{' '}
+              {new Date(selectedDate as string).toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </p>
           </div>
         ) : (
           <>
@@ -249,84 +272,96 @@ export function CourierQueuePage() {
                     {filteredQueue
                       .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                       .map((entry) => (
-                      <tr key={entry.id} className={entry.isAssign === 1 ? 'assigned-row' : ''}>
-                        <td>
-                          <span className="regid-badge">#{entry.caseId}</span>
-                        </td>
-                        <td>
-                          <div className="patient-cell">
-                            <User size={14} />
-                            <span>{entry.patientName || 'Unknown'}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="remedy-cell">
-                            {entry.remedy && <span className="remedy-tag">{entry.remedy}</span>}
-                            {entry.potency && <span className="potency-tag">{entry.potency}</span>}
-                            {entry.days && <span className="days-tag">{entry.days}d</span>}
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`type-badge type-${entry.postType.toLowerCase()}`}>
-                            {entry.postType === 'Courier' ? <Truck size={12} /> : <MapPin size={12} />}
-                            {entry.postType}
-                          </span>
-                        </td>
-                        <td>
-                          {entry.isAssign === 1 ? (
-                            <span className="status-badge status-assigned">
-                              <CheckCircle2 size={12} /> Assigned
+                        <tr key={entry.id} className={entry.isAssign === 1 ? 'assigned-row' : ''}>
+                          <td>
+                            <span className="regid-badge">#{entry.caseId}</span>
+                          </td>
+                          <td>
+                            <div className="patient-cell">
+                              <User size={14} />
+                              <span>{entry.patientName || 'Unknown'}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="remedy-cell">
+                              {entry.remedy && <span className="remedy-tag">{entry.remedy}</span>}
+                              {entry.potency && (
+                                <span className="potency-tag">{entry.potency}</span>
+                              )}
+                              {entry.days && <span className="days-tag">{entry.days}d</span>}
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`type-badge type-${entry.postType.toLowerCase()}`}>
+                              {entry.postType === 'Courier' ? (
+                                <Truck size={12} />
+                              ) : (
+                                <MapPin size={12} />
+                              )}
+                              {entry.postType}
                             </span>
-                          ) : (
-                            <span className="status-badge status-pending">
-                              <Clock size={12} /> Pending
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          {entry.pcd ? (
-                            <span className="pcd-value">{entry.pcd}</span>
-                          ) : (
-                            <span className="pcd-empty">—</span>
-                          )}
-                        </td>
-                        <td>
-                          <span className="date-cell">
-                            {entry.createdAt ? new Date(entry.createdAt as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : entry.currentdate}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="actions-cell">
-                            {entry.isAssign === 0 ? (
-                              <button
-                                className="action-btn action-assign"
-                                onClick={() => {
-                                  setAssignModal(entry);
-                                  setAssignPcd('');
-                                  setAssignCourier('');
-                                  setAssignPickup(false);
-                                }}
-                              >
-                                Assign
-                              </button>
+                          </td>
+                          <td>
+                            {entry.isAssign === 1 ? (
+                              <span className="status-badge status-assigned">
+                                <CheckCircle2 size={12} /> Assigned
+                              </span>
                             ) : (
-                              <button
-                                className="action-btn action-message"
-                                onClick={() => handleOpenMessage(entry)}
-                              >
-                                <MessageCircle size={12} /> Message
-                              </button>
+                              <span className="status-badge status-pending">
+                                <Clock size={12} /> Pending
+                              </span>
                             )}
-                            <button
-                              className="action-btn action-history"
-                              onClick={() => handleOpenHistory(entry.caseId)}
-                            >
-                              <History size={12} /> Previous
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td>
+                            {entry.pcd ? (
+                              <span className="pcd-value">{entry.pcd}</span>
+                            ) : (
+                              <span className="pcd-empty">—</span>
+                            )}
+                          </td>
+                          <td>
+                            <span className="date-cell">
+                              {entry.createdAt
+                                ? new Date(entry.createdAt as string).toLocaleDateString('en-IN', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })
+                                : entry.currentdate}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="actions-cell">
+                              {entry.isAssign === 0 ? (
+                                <button
+                                  className="action-btn action-assign"
+                                  onClick={() => {
+                                    setAssignModal(entry);
+                                    setAssignPcd('');
+                                    setAssignCourier('');
+                                    setAssignPickup(false);
+                                  }}
+                                >
+                                  Assign
+                                </button>
+                              ) : (
+                                <button
+                                  className="action-btn action-message"
+                                  onClick={() => handleOpenMessage(entry)}
+                                >
+                                  <MessageCircle size={12} /> Message
+                                </button>
+                              )}
+                              <button
+                                className="action-btn action-history"
+                                onClick={() => handleOpenHistory(entry.caseId)}
+                              >
+                                <History size={12} /> Previous
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -342,10 +377,7 @@ export function CourierQueuePage() {
             />
           </>
         )}
-
-
       </div>
-
 
       {/* ─── Assign Drawer ─── */}
       {assignModal && (
@@ -354,29 +386,41 @@ export function CourierQueuePage() {
             <div className="courier-modal-header">
               <h3>
                 {assignModal.postType === 'Courier' ? (
-                  <><Truck size={20} /> Assign Dispatch Details</>
+                  <>
+                    <Truck size={20} /> Assign Dispatch Details
+                  </>
                 ) : (
-                  <><MapPin size={20} /> Confirm Pickup</>
+                  <>
+                    <MapPin size={20} /> Confirm Pickup
+                  </>
                 )}
               </h3>
-              <button onClick={() => setAssignModal(null)}><X size={18} /></button>
+              <button onClick={() => setAssignModal(null)}>
+                <X size={18} />
+              </button>
             </div>
             <div className="courier-modal-body">
               <div className="modal-patient-info">
                 <span className="modal-label">Patient:</span>
-                <span className="modal-value">{assignModal.patientName || 'Unknown'} (#{assignModal.caseId})</span>
+                <span className="modal-value">
+                  {assignModal.patientName || 'Unknown'} (#{assignModal.caseId})
+                </span>
               </div>
               {assignModal.remedy && (
                 <div className="modal-patient-info">
                   <span className="modal-label">Remedy:</span>
-                  <span className="modal-value">{assignModal.remedy} {assignModal.potency} — {assignModal.days} days</span>
+                  <span className="modal-value">
+                    {assignModal.remedy} {assignModal.potency} — {assignModal.days} days
+                  </span>
                 </div>
               )}
 
               {assignModal.postType === 'Courier' ? (
                 <>
                   <div className="modal-field">
-                    <label>POD (Tracking Number) <span className="required">*</span></label>
+                    <label>
+                      POD (Tracking Number) <span className="required">*</span>
+                    </label>
                     <input
                       type="text"
                       placeholder="Enter POD / Tracking Number"
@@ -387,7 +431,9 @@ export function CourierQueuePage() {
                     />
                   </div>
                   <div className="modal-field">
-                    <label>Courier Company <span className="required">*</span></label>
+                    <label>
+                      Courier Company <span className="required">*</span>
+                    </label>
                     <input
                       type="text"
                       placeholder="e.g. DTDC, BlueDart, Delhivery"
@@ -409,10 +455,26 @@ export function CourierQueuePage() {
                   </label>
                 </div>
               )}
-              
-              <div style={{ marginTop: '32px', padding: '16px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.05)', border: '1px dashed rgba(59, 130, 246, 0.2)' }}>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                  <strong>Note:</strong> Once assigned, you can send a WhatsApp notification to the patient with these details.
+
+              <div
+                style={{
+                  marginTop: '32px',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: 'rgba(59, 130, 246, 0.05)',
+                  border: '1px dashed rgba(59, 130, 246, 0.2)',
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: '0.8rem',
+                    color: 'var(--text-secondary)',
+                    margin: 0,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <strong>Note:</strong> Once assigned, you can send a WhatsApp notification to the
+                  patient with these details.
                 </p>
               </div>
             </div>
@@ -423,7 +485,10 @@ export function CourierQueuePage() {
               <button
                 className="modal-btn modal-btn-save"
                 onClick={handleAssign}
-                disabled={assignMutation.isPending || (assignModal.postType === 'Courier' && (!assignPcd || !assignCourier))}
+                disabled={
+                  assignMutation.isPending ||
+                  (assignModal.postType === 'Courier' && (!assignPcd || !assignCourier))
+                }
               >
                 {assignMutation.isPending ? 'Saving...' : 'Save & Assign'}
               </button>
@@ -434,11 +499,18 @@ export function CourierQueuePage() {
 
       {/* ─── Message Modal ─── */}
       {messageModal && (
-        <div className="courier-modal-overlay courier-modal-center" onClick={() => setMessageModal(null)}>
+        <div
+          className="courier-modal-overlay courier-modal-center"
+          onClick={() => setMessageModal(null)}
+        >
           <div className="courier-modal" onClick={(e) => e.stopPropagation()}>
             <div className="courier-modal-header">
-              <h3><MessageCircle size={18} /> Send WhatsApp Message</h3>
-              <button onClick={() => setMessageModal(null)}><X size={18} /></button>
+              <h3>
+                <MessageCircle size={18} /> Send WhatsApp Message
+              </h3>
+              <button onClick={() => setMessageModal(null)}>
+                <X size={18} />
+              </button>
             </div>
             <div className="courier-modal-body">
               <div className="modal-field">
@@ -455,7 +527,9 @@ export function CourierQueuePage() {
                 <input
                   type="text"
                   value={messageModal.patientName}
-                  onChange={(e) => setMessageModal({ ...messageModal, patientName: e.target.value })}
+                  onChange={(e) =>
+                    setMessageModal({ ...messageModal, patientName: e.target.value })
+                  }
                   className="modal-input"
                 />
               </div>
@@ -464,7 +538,9 @@ export function CourierQueuePage() {
                 <input
                   type="text"
                   value={messageModal.courierCompany}
-                  onChange={(e) => setMessageModal({ ...messageModal, courierCompany: e.target.value })}
+                  onChange={(e) =>
+                    setMessageModal({ ...messageModal, courierCompany: e.target.value })
+                  }
                   className="modal-input"
                   placeholder="e.g. DTDC"
                 />
@@ -479,9 +555,21 @@ export function CourierQueuePage() {
                   placeholder="Tracking Number"
                 />
               </div>
-              <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', background: 'var(--pp-bg-subtle)', border: '1px solid var(--pp-border)' }}>
+              <div
+                style={{
+                  marginTop: '16px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  background: 'var(--pp-bg-subtle)',
+                  border: '1px solid var(--pp-border)',
+                }}
+              >
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
-                  <strong>Template Preview:</strong> Dear <strong>{messageModal.patientName || '{name}'}</strong> Your medicines has been dispatched via <strong>{messageModal.courierCompany || '{courier}'}</strong> and the POD number is <strong>{messageModal.podNumber || '{pod}'}</strong> For tracking log on www.dtdc.com Regards MMC HomeoTech
+                  <strong>Template Preview:</strong> Dear{' '}
+                  <strong>{messageModal.patientName || '{name}'}</strong> Your medicines has been
+                  dispatched via <strong>{messageModal.courierCompany || '{courier}'}</strong> and
+                  the POD number is <strong>{messageModal.podNumber || '{pod}'}</strong> For
+                  tracking log on www.dtdc.com Regards MMC HomeoTech
                 </p>
               </div>
             </div>
@@ -489,8 +577,8 @@ export function CourierQueuePage() {
               <button className="modal-btn modal-btn-cancel" onClick={() => setMessageModal(null)}>
                 Cancel
               </button>
-              <button 
-                className="modal-btn modal-btn-whatsapp" 
+              <button
+                className="modal-btn modal-btn-whatsapp"
                 onClick={handleSendWhatsApp}
                 disabled={sendText.isPending}
               >
@@ -503,11 +591,18 @@ export function CourierQueuePage() {
 
       {/* ─── History Modal ─── */}
       {historyModal && (
-        <div className="courier-modal-overlay courier-modal-center" onClick={() => setHistoryModal(null)}>
+        <div
+          className="courier-modal-overlay courier-modal-center"
+          onClick={() => setHistoryModal(null)}
+        >
           <div className="courier-modal courier-modal-wide" onClick={(e) => e.stopPropagation()}>
             <div className="courier-modal-header">
-              <h3><History size={18} /> Previous Dispatch Records — #{historyModal.regid}</h3>
-              <button onClick={() => setHistoryModal(null)}><X size={18} /></button>
+              <h3>
+                <History size={18} /> Previous Dispatch Records — #{historyModal.regid}
+              </h3>
+              <button onClick={() => setHistoryModal(null)}>
+                <X size={18} />
+              </button>
             </div>
             <div className="courier-modal-body">
               {historyModal.entries.length === 0 ? (
@@ -527,16 +622,37 @@ export function CourierQueuePage() {
                     <tbody>
                       {historyModal.entries.map((e) => (
                         <tr key={e.id}>
-                          <td>{e.createdAt ? new Date(e.createdAt as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : e.currentdate}</td>
-                          <td><span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{e.pcd || '—'}</span></td>
+                          <td>
+                            {e.createdAt
+                              ? new Date(e.createdAt as string).toLocaleDateString('en-IN', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })
+                              : e.currentdate}
+                          </td>
+                          <td>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                              {e.pcd || '—'}
+                            </span>
+                          </td>
                           <td>{e.courier || '—'}</td>
                           <td>
-                            <span className={`type-badge type-${e.postType.toLowerCase()}`} style={{ padding: '2px 6px', fontSize: '0.65rem' }}>
+                            <span
+                              className={`type-badge type-${e.postType.toLowerCase()}`}
+                              style={{ padding: '2px 6px', fontSize: '0.65rem' }}
+                            >
                               {e.postType}
                             </span>
                           </td>
                           <td>
-                            <span style={{ color: e.isAssign === 1 ? '#22c55e' : 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600 }}>
+                            <span
+                              style={{
+                                color: e.isAssign === 1 ? '#22c55e' : 'var(--text-muted)',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                              }}
+                            >
                               {e.isAssign === 1 ? '✓ Assigned' : 'Pending'}
                             </span>
                           </td>
@@ -555,7 +671,6 @@ export function CourierQueuePage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

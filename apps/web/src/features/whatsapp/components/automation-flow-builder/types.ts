@@ -16,22 +16,22 @@
  */
 
 export type NodeKind =
-  | "start"
-  | "conditions"
-  | "custom_reply"
-  | "user_reply"
-  | "time_gap"
-  | "send_template"
-  | "assign_user"
-  | "webhook"
-  | "end"
-  | "add_to_group"
-  | "update_contact"
-  | "set_variable"
-  | "send_location"
-  | "send_list_message"
-  | "send_media"
-  | "mark_as_read";
+  | 'start'
+  | 'conditions'
+  | 'custom_reply'
+  | 'user_reply'
+  | 'time_gap'
+  | 'send_template'
+  | 'assign_user'
+  | 'webhook'
+  | 'end'
+  | 'add_to_group'
+  | 'update_contact'
+  | 'set_variable'
+  | 'send_location'
+  | 'send_list_message'
+  | 'send_media'
+  | 'mark_as_read';
 
 export interface ListSection {
   title: string;
@@ -59,17 +59,17 @@ export interface BuilderNodeData {
   delay?: number;
   templateId?: string;
   assigneeId?: string;
-  conditionType?: "keyword" | "contains" | "equals" | "starts_with";
+  conditionType?: 'keyword' | 'contains' | 'equals' | 'starts_with';
   keywords?: string[];
-  matchType?: "any" | "all";
+  matchType?: 'any' | 'all';
   buttons?: Array<{
     id: string;
     text: string;
-    action: "next" | "custom";
+    action: 'next' | 'custom';
     value?: string;
   }>;
   webhookUrl?: string;
-  webhookMethod?: "GET" | "POST" | "PUT";
+  webhookMethod?: 'GET' | 'POST' | 'PUT';
   webhookHeaders?: Record<string, string>;
   webhookBody?: string;
   endMessage?: string;
@@ -79,17 +79,17 @@ export interface BuilderNodeData {
   contactFieldValue?: string;
   variableName?: string;
   variableValue?: string;
-  variableSource?: "static" | "from_message" | "from_webhook";
+  variableSource?: 'static' | 'from_message' | 'from_webhook';
   latitude?: string;
   longitude?: string;
   locationName?: string;
   locationAddress?: string;
   listButtonText?: string;
   listSections?: ListSection[];
-  mediaType?: "image" | "video" | "audio" | "document";
+  mediaType?: 'image' | 'video' | 'audio' | 'document';
   mediaUrl?: string;
   mediaId?: string;
-  mediaSourceType?: "url" | "upload";
+  mediaSourceType?: 'url' | 'upload';
   mediaFileName?: string;
   mediaCaption?: string;
   [key: string]: unknown;

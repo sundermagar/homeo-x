@@ -77,7 +77,12 @@ export function DiagnosisSection({
   };
 
   const handleIcd10Select = (code: string) => {
-    const existing = data.icdCodes ? data.icdCodes.split(',').map((c) => c.trim()).filter(Boolean) : [];
+    const existing = data.icdCodes
+      ? data.icdCodes
+          .split(',')
+          .map((c) => c.trim())
+          .filter(Boolean)
+      : [];
     if (!existing.includes(code)) {
       update('icdCodes', [...existing, code].join(', '));
     }
@@ -140,7 +145,9 @@ export function DiagnosisSection({
           <SpecialtyFields
             fields={allSpecialtyFields.filter((f) => f.section === 'subjective')}
             values={data.specialtyData}
-            onChange={(key, value) => update('specialtyData', { ...data.specialtyData, [key]: value })}
+            onChange={(key, value) =>
+              update('specialtyData', { ...data.specialtyData, [key]: value })
+            }
           />
         </div>
         <div className="space-y-1">
@@ -155,7 +162,9 @@ export function DiagnosisSection({
           <SpecialtyFields
             fields={allSpecialtyFields.filter((f) => f.section === 'objective')}
             values={data.specialtyData}
-            onChange={(key, value) => update('specialtyData', { ...data.specialtyData, [key]: value })}
+            onChange={(key, value) =>
+              update('specialtyData', { ...data.specialtyData, [key]: value })
+            }
           />
         </div>
         <div className="space-y-1">
@@ -170,7 +179,9 @@ export function DiagnosisSection({
           <SpecialtyFields
             fields={allSpecialtyFields.filter((f) => f.section === 'assessment')}
             values={data.specialtyData}
-            onChange={(key, value) => update('specialtyData', { ...data.specialtyData, [key]: value })}
+            onChange={(key, value) =>
+              update('specialtyData', { ...data.specialtyData, [key]: value })
+            }
           />
         </div>
         <div className="space-y-1">
@@ -185,7 +196,9 @@ export function DiagnosisSection({
           <SpecialtyFields
             fields={allSpecialtyFields.filter((f) => f.section === 'plan')}
             values={data.specialtyData}
-            onChange={(key, value) => update('specialtyData', { ...data.specialtyData, [key]: value })}
+            onChange={(key, value) =>
+              update('specialtyData', { ...data.specialtyData, [key]: value })
+            }
           />
         </div>
       </div>

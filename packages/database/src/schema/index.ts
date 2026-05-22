@@ -1,6 +1,22 @@
 // ─── Domain Schemas ───
 export * from './patients';
-export { medicalCases, vitals, homeoDetails, caseNotes, caseExamination, caseImages, investigations, growthReferences, vaccineMaster, caseVaccines, caseReminders, soapNotes as legacySoapNotes, prescriptions as legacyPrescriptions } from './medical-cases';
+export {
+  medicalCases,
+  vitals,
+  homeoDetails,
+  caseNotes,
+  caseExamination,
+  caseImages,
+  investigations,
+  growthReferences,
+  vaccineMaster,
+  caseVaccines,
+  caseReminders,
+  soapNotes as legacySoapNotes,
+  prescriptions as legacyPrescriptions,
+  consultationFiles,
+  followUpRequests,
+} from './medical-cases';
 export * from './appointments';
 export * from './users';
 export * from './billing';
@@ -24,13 +40,12 @@ export * from './legacy/index';
 export * from './notifications';
 export * from './whatsapp';
 
-
 // Aliases for legacy tables used in the merged Patient repository
-export { 
+export {
   caseDatasLegacy as patientsLegacy,
-  familygroupsLegacy, 
-  doctorsLegacy, 
-  religionLegacy, 
-  occupationLegacy, 
-  refrencetypeLegacy 
+  familygroupsLegacy,
+  doctorsLegacy,
+  religionLegacy,
+  occupationLegacy,
+  refrencetypeLegacy,
 } from './legacy/index';

@@ -27,7 +27,7 @@ export default function FamilyGroupListPage() {
   const families = (data?.data || []).map((f: any) => ({
     ...f,
     name: f.name ? f.name.replace(/\b\w/g, (c: string) => c.toUpperCase()) : '',
-    surname: f.surname ? f.surname.replace(/\b\w/g, (c: string) => c.toUpperCase()) : ''
+    surname: f.surname ? f.surname.replace(/\b\w/g, (c: string) => c.toUpperCase()) : '',
   }));
   const total = (data as any)?._original?.total ?? (data as any)?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -41,7 +41,9 @@ export default function FamilyGroupListPage() {
             <UsersIcon size={22} strokeWidth={1.8} />
             Family Group Registry
           </h1>
-          <p className="pp-page-hero-sub">View and manage clinical family groups and relationship links.</p>
+          <p className="pp-page-hero-sub">
+            View and manage clinical family groups and relationship links.
+          </p>
         </div>
       </div>
 
@@ -75,7 +77,11 @@ export default function FamilyGroupListPage() {
             </button>
           </div>
           <button
-            onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}
+            onClick={() => {
+              setSearch('');
+              setDebouncedSearch('');
+              setPage(1);
+            }}
             className="btn-secondary"
           >
             Reset
@@ -86,19 +92,27 @@ export default function FamilyGroupListPage() {
       {/* Table Meta */}
       <div className="pp-table-meta-row">
         <div className="pp-table-meta-label">Family Units</div>
-        <div className="pp-table-meta-stats">Showing {families.length} units of {total}</div>
+        <div className="pp-table-meta-stats">
+          Showing {families.length} units of {total}
+        </div>
       </div>
 
       {/* Content */}
       {isLoading ? (
         <TableSkeleton rows={10} cols={4} />
       ) : families.length === 0 ? (
-        <EmptyState 
+        <EmptyState
           icon={UsersIcon}
-          title={debouncedSearch ? "No matches found" : "No family groups"}
-          description={debouncedSearch ? `No family units matching "${debouncedSearch}" were found.` : "Organize your patients into family units to track clinical histories together."}
-          actionLabel={debouncedSearch ? "Clear Search" : "Register Patient"}
-          onAction={debouncedSearch ? () => handleSearchChange('') : () => navigate('/patients/add')}
+          title={debouncedSearch ? 'No matches found' : 'No family groups'}
+          description={
+            debouncedSearch
+              ? `No family units matching "${debouncedSearch}" were found.`
+              : 'Organize your patients into family units to track clinical histories together.'
+          }
+          actionLabel={debouncedSearch ? 'Clear Search' : 'Register Patient'}
+          onAction={
+            debouncedSearch ? () => handleSearchChange('') : () => navigate('/patients/add')
+          }
           variant="card"
           className="my-8"
         />
@@ -123,7 +137,7 @@ export default function FamilyGroupListPage() {
                 </tr>
               </thead>
               <tbody>
-                 {families.map((f: any, idx: number) => (
+                {families.map((f: any, idx: number) => (
                   <tr key={f.id} className="pp-hover-row">
                     <td data-label="#">
                       <div className="font-mono text-[11px] font-bold color-muted opacity-60">
@@ -132,7 +146,9 @@ export default function FamilyGroupListPage() {
                     </td>
                     <td data-label="Family Head">
                       <div className="pat-member-row">
-                        <span className="appt-cell-name">{f.name} {f.surname}</span>
+                        <span className="appt-cell-name">
+                          {f.name} {f.surname}
+                        </span>
                       </div>
                     </td>
                     <td data-label="Head RegID">
@@ -144,7 +160,11 @@ export default function FamilyGroupListPage() {
                       </span>
                     </td>
                     <td data-label="Actions" style={{ textAlign: 'right' }}>
-                      <button onClick={() => navigate(`/patients/${f.regid}`)} className="appt-kebab-btn" aria-label="Manage group">
+                      <button
+                        onClick={() => navigate(`/patients/${f.regid}`)}
+                        className="appt-kebab-btn"
+                        aria-label="Manage group"
+                      >
                         <Settings size={15} />
                       </button>
                     </td>
@@ -160,10 +180,12 @@ export default function FamilyGroupListPage() {
             <div key={f.id} className="pat-mobile-card" style={{ height: '100%' }}>
               <div className="pat-mobile-card-header">
                 <div className="pat-avatar pat-avatar--md" style={{ flexShrink: 0 }}>
-                  {((f.name?.[0] || f.surname?.[0] || 'F')).toUpperCase()}
+                  {(f.name?.[0] || f.surname?.[0] || 'F').toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="pat-mobile-card-name">{f.name} {f.surname}</div>
+                  <div className="pat-mobile-card-name">
+                    {f.name} {f.surname}
+                  </div>
                   <div style={{ marginTop: 4 }}>
                     <span className="pp-regid-pill">#{f.regid}</span>
                   </div>
@@ -180,7 +202,11 @@ export default function FamilyGroupListPage() {
               </div>
 
               <div className="pat-mobile-card-actions">
-                <button onClick={() => navigate(`/patients/${f.regid}`)} className="btn-primary" style={{ flex: 1, height: 42, fontSize: '13px', justifyContent: 'center' }}>
+                <button
+                  onClick={() => navigate(`/patients/${f.regid}`)}
+                  className="btn-primary"
+                  style={{ flex: 1, height: 42, fontSize: '13px', justifyContent: 'center' }}
+                >
                   <Settings size={16} /> Manage
                 </button>
               </div>

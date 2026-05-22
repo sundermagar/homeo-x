@@ -31,7 +31,15 @@ interface PrescriptionStageProps {
 const POTENCIES = ['6C', '30C', '200C', '1M', '10M', 'LM1'];
 const ROUTES = ['Dry on tongue', 'In water', 'Olfaction', 'External application'];
 
-function StepIndicator({ step, currentStep, label }: { step: number; currentStep: number; label: string }) {
+function StepIndicator({
+  step,
+  currentStep,
+  label,
+}: {
+  step: number;
+  currentStep: number;
+  label: string;
+}) {
   const isComplete = currentStep > step;
   const isActive = currentStep === step;
   return (
@@ -41,13 +49,15 @@ function StepIndicator({ step, currentStep, label }: { step: number; currentStep
           isComplete
             ? 'bg-emerald-500 text-white'
             : isActive
-            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-            : 'bg-gray-200 text-gray-500'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+              : 'bg-gray-200 text-gray-500'
         }`}
       >
         {isComplete ? <Check className="h-3.5 w-3.5" /> : step}
       </div>
-      <span className={`text-xs font-bold ${isActive ? 'text-indigo-600' : isComplete ? 'text-emerald-600' : 'text-gray-400'}`}>
+      <span
+        className={`text-xs font-bold ${isActive ? 'text-indigo-600' : isComplete ? 'text-emerald-600' : 'text-gray-400'}`}
+      >
         {label}
       </span>
     </div>
@@ -91,14 +101,17 @@ function ResizablePreview({
   const startX = useRef(0);
   const startWidth = useRef(384);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isDragging.current = true;
-    startX.current = e.clientX;
-    startWidth.current = width;
-    document.body.style.cursor = 'ew-resize';
-    document.body.style.userSelect = 'none';
-  }, [width]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isDragging.current = true;
+      startX.current = e.clientX;
+      startWidth.current = width;
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    },
+    [width],
+  );
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -131,9 +144,11 @@ function ResizablePreview({
         title="Drag to resize"
       >
         {/* Visible drag bar */}
-        <div className={`w-[3px] h-12 rounded-full transition-colors ${
-          isDragging.current ? 'bg-teal-400' : 'bg-gray-300 group-hover:bg-teal-400'
-        }`} />
+        <div
+          className={`w-[3px] h-12 rounded-full transition-colors ${
+            isDragging.current ? 'bg-teal-400' : 'bg-gray-300 group-hover:bg-teal-400'
+          }`}
+        />
         {/* Arrows indicator on hover */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           <span className="text-[8px] text-teal-600 font-black">⟨⟩</span>
@@ -171,7 +186,9 @@ function ResizablePreview({
           {/* Clinical Summary */}
           {soapData && (soapData.subjective || soapData.objective) && (
             <div className="pt-2">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Clinical Summary</span>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                Clinical Summary
+              </span>
               <p className="text-xs text-gray-700 font-medium mt-1 whitespace-pre-wrap">
                 {[soapData.subjective, soapData.objective].filter(Boolean).join('\n\n')}
               </p>
@@ -181,14 +198,18 @@ function ResizablePreview({
           {/* Diagnosis */}
           {diagnoses.length > 0 && (
             <div className="pt-2">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Diagnosis</span>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                Diagnosis
+              </span>
               <p className="text-xs text-gray-700 font-medium mt-1">{diagnoses.join(' — ')}</p>
             </div>
           )}
 
           {/* Rx Items Header */}
           <div className="pt-2">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest block mb-1">Prescription</span>
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest block mb-1">
+              Prescription
+            </span>
           </div>
 
           {/* Rx Items (Editable) */}
@@ -235,7 +256,9 @@ function ResizablePreview({
 
           {/* Advice & Management (Editable) */}
           <div className="pt-2">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Advice & Management</span>
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+              Advice & Management
+            </span>
             <textarea
               value={supportiveTopical}
               onChange={(e) => onSupportiveTopicalChange(e.target.value)}
@@ -247,7 +270,9 @@ function ResizablePreview({
 
           {/* Follow-up (Editable) */}
           <div className="pt-2">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Follow-Up</span>
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+              Follow-Up
+            </span>
             <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3 mt-1 space-y-1.5">
               <input
                 value={followUp}
@@ -266,7 +291,9 @@ function ResizablePreview({
 
           {/* GNM Advisory (Editable) */}
           <div className="pt-2">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Additional Advisory</span>
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+              Additional Advisory
+            </span>
             <textarea
               value={gnmCounselling}
               onChange={(e) => onGnmCounsellingChange(e.target.value)}
@@ -278,7 +305,9 @@ function ResizablePreview({
 
           {/* Doctor signature area */}
           <div className="pt-6 border-t border-gray-200 mt-4">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Consulting Physician</span>
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+              Consulting Physician
+            </span>
             <p className="text-[11px] text-gray-500 mt-0.5">BHMS · CCH · GNM Practitioner</p>
           </div>
         </div>
@@ -307,7 +336,9 @@ export function PrescriptionStage({
 }: PrescriptionStageProps) {
   const [prescriptionStep, setPrescriptionStep] = useState(1);
   const [selectedRemedyNames, setSelectedRemedyNames] = useState<string[]>([]);
-  const [antidoteAvoidance, setAntidoteAvoidance] = useState('No coffee, camphor, strong perfumes, menthol for 4 weeks.');
+  const [antidoteAvoidance, setAntidoteAvoidance] = useState(
+    'No coffee, camphor, strong perfumes, menthol for 4 weeks.',
+  );
   const [supportiveTopical, setSupportiveTopical] = useState('');
   const [gnmCounselling, setGnmCounselling] = useState('');
 
@@ -315,16 +346,20 @@ export function PrescriptionStage({
   // Priority 1 — GNM-ranked remedies (if AI produced a GNM analysis)
   // Priority 2 — Repertorization scored remedies (always available, sorted by score)
   const gnmRemedies = gnmAnalysis?.rankedRemedies || [];
-  const allRemedies = gnmRemedies.length > 0
-    ? gnmRemedies
-    : scoredRemedies.map((r, i) => ({
-        rank: i + 1,
-        name: r.remedyName,
-        matchStrength: (i === 0 ? 'strongest' : i <= 2 ? 'strong' : 'moderate') as 'strongest' | 'strong' | 'moderate',
-        keynotes: r.keynotes || [],
-        suggestedPotency: r.commonPotencies?.[0] || '30C',
-        whenToUse: r.matchExplanation?.[0] || '',
-      }));
+  const allRemedies =
+    gnmRemedies.length > 0
+      ? gnmRemedies
+      : scoredRemedies.map((r, i) => ({
+          rank: i + 1,
+          name: r.remedyName,
+          matchStrength: (i === 0 ? 'strongest' : i <= 2 ? 'strong' : 'moderate') as
+            | 'strongest'
+            | 'strong'
+            | 'moderate',
+          keynotes: r.keynotes || [],
+          suggestedPotency: r.commonPotencies?.[0] || '30C',
+          whenToUse: r.matchExplanation?.[0] || '',
+        }));
   const resolution = gnmAnalysis?.resolutionStrategy;
 
   // Pre-fill GNM counselling from resolution
@@ -337,22 +372,22 @@ export function PrescriptionStage({
   // Sync with existing rxItems on mount
   useEffect(() => {
     if (rxItems.length > 0 && selectedRemedyNames.length === 0) {
-      const names = rxItems.map(item => item.medicationName).filter(Boolean) as string[];
+      const names = rxItems.map((item) => item.medicationName).filter(Boolean) as string[];
       setSelectedRemedyNames(names);
     }
   }, [rxItems]);
 
   const handleToggleRemedy = (name: string) => {
     const isSelected = selectedRemedyNames.includes(name);
-    const nextNames = isSelected 
-      ? selectedRemedyNames.filter(n => n !== name) 
+    const nextNames = isSelected
+      ? selectedRemedyNames.filter((n) => n !== name)
       : [...selectedRemedyNames, name];
-    
+
     setSelectedRemedyNames(nextNames);
 
     if (isSelected) {
       // Remove it
-      onRxItemsChange(rxItems.filter(item => item.medicationName !== name));
+      onRxItemsChange(rxItems.filter((item) => item.medicationName !== name));
     } else {
       // Add it with defaults
       onRxItemsChange([
@@ -364,8 +399,8 @@ export function PrescriptionStage({
           route: 'Dry on tongue',
           instructions: '1 dose dry on tongue. Single.',
           frequency: 'Stat',
-          duration: '1 day'
-        }
+          duration: '1 day',
+        },
       ]);
     }
   };
@@ -386,7 +421,9 @@ export function PrescriptionStage({
   }, [prescriptionStep, handleConfirmPotency, onPrescriptionStepChange]);
 
   const formattedDate = new Date().toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'long', year: 'numeric'
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
   });
 
   return (
@@ -410,9 +447,12 @@ export function PrescriptionStage({
               <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 flex items-start gap-3">
                 <MessageSquare className="h-4 w-4 text-indigo-600 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">Voice Command</p>
+                  <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">
+                    Voice Command
+                  </p>
                   <p className="text-xs text-gray-600 italic mt-0.5">
-                    "Prescribe {allRemedies[0]?.name} 200C single dose, review four weeks, {allRemedies[2]?.name || ''} topical"
+                    "Prescribe {allRemedies[0]?.name} 200C single dose, review four weeks,{' '}
+                    {allRemedies[2]?.name || ''} topical"
                   </p>
                 </div>
               </div>
@@ -423,13 +463,25 @@ export function PrescriptionStage({
               <div className="space-y-2">
                 {allRemedies.map((remedy, i) => {
                   const badges = {
-                    strongest: { label: '1st', cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-                    strong: { label: 'Intercurrent', cls: 'bg-blue-100 text-blue-700 border-blue-200' },
-                    moderate: { label: 'Topical', cls: 'bg-amber-100 text-amber-700 border-amber-200' },
+                    strongest: {
+                      label: '1st',
+                      cls: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                    },
+                    strong: {
+                      label: 'Intercurrent',
+                      cls: 'bg-blue-100 text-blue-700 border-blue-200',
+                    },
+                    moderate: {
+                      label: 'Topical',
+                      cls: 'bg-amber-100 text-amber-700 border-amber-200',
+                    },
                   };
-                  const badge = badges[remedy.matchStrength as keyof typeof badges] || badges['moderate'];
+                  const badge =
+                    badges[remedy.matchStrength as keyof typeof badges] || badges['moderate'];
                   const isSelected = selectedRemedyNames.includes(remedy.name);
-                  const score = scoredRemedies.find(r => r.remedyName === remedy.name)?.totalScore;
+                  const score = scoredRemedies.find(
+                    (r) => r.remedyName === remedy.name,
+                  )?.totalScore;
 
                   return (
                     <button
@@ -443,7 +495,9 @@ export function PrescriptionStage({
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded flex items-center justify-center border-2 ${isSelected ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'}`}>
+                        <div
+                          className={`w-4 h-4 rounded flex items-center justify-center border-2 ${isSelected ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'}`}
+                        >
                           {isSelected && <Check className="h-2.5 w-2.5 text-white stroke-[4]" />}
                         </div>
                         <div className="flex-1">
@@ -459,7 +513,9 @@ export function PrescriptionStage({
                             {remedy.keynotes.slice(0, 2).join(' · ')}
                           </p>
                         </div>
-                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${badge.cls}`}>
+                        <span
+                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${badge.cls}`}
+                        >
                           {badge.label}
                         </span>
                       </div>
@@ -472,23 +528,25 @@ export function PrescriptionStage({
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={() => {
-                    // Sync rxItems immediately when moving to step 2 
+                    // Sync rxItems immediately when moving to step 2
                     // so the preview reflects the current selection
-                    const currentSelection = selectedRemedyNames.map(name => ({
+                    const currentSelection = selectedRemedyNames.map((name) => ({
                       medicationName: name,
                       genericName: '',
                       dosage: '200C',
                       route: 'Dry on tongue',
                       instructions: '1 dose dry on tongue. Single.',
                       frequency: 'Stat',
-                      duration: '1 day'
+                      duration: '1 day',
                     }));
                     onRxItemsChange(currentSelection);
                     setPrescriptionStep(2);
                   }}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
                 >
-                  {selectedRemedyNames.length > 0 ? `Use ${selectedRemedyNames.length} Remedies` : 'Continue Without Remedy'}
+                  {selectedRemedyNames.length > 0
+                    ? `Use ${selectedRemedyNames.length} Remedies`
+                    : 'Continue Without Remedy'}
                   <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -501,64 +559,83 @@ export function PrescriptionStage({
           <div className="space-y-6">
             <div className="space-y-4">
               <span className="section-label text-gray-500 block mb-2">Adjust Remedy Settings</span>
-              {rxItems.length > 0 ? rxItems.map((item, idx) => (
-                <div key={idx} className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm hover:border-teal-200 transition-colors">
-                  <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                    <span className="text-sm font-black text-gray-900 uppercase tracking-tight">{item.medicationName}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Configuration {idx + 1}</span>
-                  </div>
-                  <div className="p-4 space-y-4">
-                    {/* Individual Potency */}
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Potency</label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {POTENCIES.map((pot) => (
-                          <button
-                            key={pot}
-                            type="button"
-                            onClick={() => updateRxItem(idx, { dosage: pot })}
-                            className={`px-3 py-1.5 rounded-lg border text-[10px] font-black transition-all ${
-                              item.dosage === pot
-                                ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
-                                : 'border-gray-200 text-gray-500 hover:border-teal-300 bg-white'
-                            }`}
-                          >
-                            {pot}
-                          </button>
-                        ))}
-                      </div>
+              {rxItems.length > 0 ? (
+                rxItems.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm hover:border-teal-200 transition-colors"
+                  >
+                    <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                      <span className="text-sm font-black text-gray-900 uppercase tracking-tight">
+                        {item.medicationName}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        Configuration {idx + 1}
+                      </span>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Individual Dose */}
+                    <div className="p-4 space-y-4">
+                      {/* Individual Potency */}
                       <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Dose Instructions</label>
-                        <Input
-                          value={item.instructions || ''}
-                          onChange={(e) => updateRxItem(idx, { instructions: e.target.value })}
-                          className="text-xs h-9"
-                          placeholder="e.g. 1 dose now"
-                        />
-                      </div>
-                      {/* Individual Route */}
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Route</label>
-                        <select
-                          value={item.route}
-                          onChange={(e) => updateRxItem(idx, { route: e.target.value })}
-                          className="w-full h-9 rounded-lg border border-gray-200 bg-white text-xs px-2.5 focus:border-teal-500 focus:ring-0"
-                        >
-                          {ROUTES.map((r) => (
-                            <option key={r} value={r}>{r}</option>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">
+                          Potency
+                        </label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {POTENCIES.map((pot) => (
+                            <button
+                              key={pot}
+                              type="button"
+                              onClick={() => updateRxItem(idx, { dosage: pot })}
+                              className={`px-3 py-1.5 rounded-lg border text-[10px] font-black transition-all ${
+                                item.dosage === pot
+                                  ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
+                                  : 'border-gray-200 text-gray-500 hover:border-teal-300 bg-white'
+                              }`}
+                            >
+                              {pot}
+                            </button>
                           ))}
-                        </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Individual Dose */}
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">
+                            Dose Instructions
+                          </label>
+                          <Input
+                            value={item.instructions || ''}
+                            onChange={(e) => updateRxItem(idx, { instructions: e.target.value })}
+                            className="text-xs h-9"
+                            placeholder="e.g. 1 dose now"
+                          />
+                        </div>
+                        {/* Individual Route */}
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">
+                            Route
+                          </label>
+                          <select
+                            value={item.route}
+                            onChange={(e) => updateRxItem(idx, { route: e.target.value })}
+                            className="w-full h-9 rounded-lg border border-gray-200 bg-white text-xs px-2.5 focus:border-teal-500 focus:ring-0"
+                          >
+                            {ROUTES.map((r) => (
+                              <option key={r} value={r}>
+                                {r}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )) : (
+                ))
+              ) : (
                 <div className="py-8 text-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                  <p className="text-xs text-gray-400 italic">No remedies selected. Move direct to advice.</p>
+                  <p className="text-xs text-gray-400 italic">
+                    No remedies selected. Move direct to advice.
+                  </p>
                 </div>
               )}
             </div>
@@ -567,7 +644,9 @@ export function PrescriptionStage({
               <span className="section-label text-gray-500 block mb-2">Global Settings</span>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-gray-400 block mb-1.5">Antidote avoidance</label>
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1.5">
+                    Antidote avoidance
+                  </label>
                   <Input
                     value={antidoteAvoidance}
                     onChange={(e) => setAntidoteAvoidance(e.target.value)}
@@ -576,18 +655,22 @@ export function PrescriptionStage({
                   />
                 </div>
                 <div>
-                   <label className="text-[10px] font-bold text-gray-400 block mb-1.5">Follow-up</label>
-                   <Input
-                     value={followUp}
-                     onChange={(e) => onFollowUpChange(e.target.value)}
-                     className="text-xs h-9 bg-white border-gray-200 px-3"
-                     placeholder="30 April 2026..."
-                   />
+                  <label className="text-[10px] font-bold text-gray-400 block mb-1.5">
+                    Follow-up
+                  </label>
+                  <Input
+                    value={followUp}
+                    onChange={(e) => onFollowUpChange(e.target.value)}
+                    className="text-xs h-9 bg-white border-gray-200 px-3"
+                    placeholder="30 April 2026..."
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-gray-400 block mb-1.5">Supportive / topical</label>
+                <label className="text-[10px] font-bold text-gray-400 block mb-1.5">
+                  Supportive / topical
+                </label>
                 <Input
                   value={supportiveTopical}
                   onChange={(e) => setSupportiveTopical(e.target.value)}
@@ -597,7 +680,9 @@ export function PrescriptionStage({
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-gray-400 block mb-1.5">GNM counselling</label>
+                <label className="text-[10px] font-bold text-gray-400 block mb-1.5">
+                  GNM counselling
+                </label>
                 <Input
                   value={gnmCounselling}
                   onChange={(e) => setGnmCounselling(e.target.value)}
@@ -616,7 +701,9 @@ export function PrescriptionStage({
               <Check className="h-8 w-8 text-emerald-600" />
             </div>
             <h3 className="text-lg font-bold text-gray-900">Prescription Ready</h3>
-            <p className="text-sm text-gray-500">Review the preview. Use the bottom bar to share, print, or complete.</p>
+            <p className="text-sm text-gray-500">
+              Review the preview. Use the bottom bar to share, print, or complete.
+            </p>
           </div>
         )}
       </div>

@@ -13,7 +13,11 @@ import { DrugInteractionAlert } from './drug-interaction-alert';
 import { useAiSuggestPrescription, useAiFeedback } from '../../../hooks/use-ai-suggest';
 import { useCheckInteractions } from '../../../hooks/use-drug-interactions';
 import type { CreatePrescriptionItemInput } from '../../../types/prescription';
-import type { PrescriptionSuggestion, SuggestPrescriptionInput, DrugInteractionWarning } from '../../../types/ai';
+import type {
+  PrescriptionSuggestion,
+  SuggestPrescriptionInput,
+  DrugInteractionWarning,
+} from '../../../types/ai';
 
 export interface PrescriptionFormData {
   notes: string;
@@ -137,13 +141,15 @@ export function PrescriptionBuilder({ control, register, aiContext }: Prescripti
             />
           )}
 
-          {ddiWarnings.length > 0 && (
-            <DrugInteractionAlert interactions={ddiWarnings} />
-          )}
+          {ddiWarnings.length > 0 && <DrugInteractionAlert interactions={ddiWarnings} />}
 
           <div className="space-y-1">
             <Label htmlFor="rxNotes">Prescription Notes</Label>
-            <Textarea id="rxNotes" {...register('notes')} placeholder="General prescription notes..." />
+            <Textarea
+              id="rxNotes"
+              {...register('notes')}
+              placeholder="General prescription notes..."
+            />
           </div>
 
           {fields.length === 0 && (
@@ -158,23 +164,24 @@ export function PrescriptionBuilder({ control, register, aiContext }: Prescripti
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">Medication #{index + 1}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => remove(index)}
-                  >
+                  <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)}>
                     <Trash2 className="h-3.5 w-3.5 text-red-500" />
                   </Button>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <Label>Medication Name *</Label>
-                    <Input {...register(`items.${index}.medicationName`)} placeholder="e.g. Amoxicillin" />
+                    <Input
+                      {...register(`items.${index}.medicationName`)}
+                      placeholder="e.g. Amoxicillin"
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label>Generic Name</Label>
-                    <Input {...register(`items.${index}.genericName`)} placeholder="e.g. Amoxicillin Trihydrate" />
+                    <Input
+                      {...register(`items.${index}.genericName`)}
+                      placeholder="e.g. Amoxicillin Trihydrate"
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label>Dosage *</Label>
@@ -182,7 +189,10 @@ export function PrescriptionBuilder({ control, register, aiContext }: Prescripti
                   </div>
                   <div className="space-y-1">
                     <Label>Frequency *</Label>
-                    <Input {...register(`items.${index}.frequency`)} placeholder="e.g. TID (3x daily)" />
+                    <Input
+                      {...register(`items.${index}.frequency`)}
+                      placeholder="e.g. TID (3x daily)"
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label>Duration *</Label>
@@ -194,7 +204,10 @@ export function PrescriptionBuilder({ control, register, aiContext }: Prescripti
                   </div>
                   <div className="space-y-1">
                     <Label>Quantity</Label>
-                    <Input type="number" {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
+                    <Input
+                      type="number"
+                      {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+                    />
                   </div>
                 </div>
                 <div className="space-y-1">

@@ -12,84 +12,98 @@ export class AccountRepositoryPg implements AccountRepository {
   async findAll(clinicId?: number): Promise<Account[]> {
     if (clinicId) {
       // 1. Fetch organization name from organizations table
-      const orgs = await this.db.execute(sql`
+      const orgs = (await this.db.execute(sql`
         SELECT name FROM organizations WHERE id = ${clinicId}
-      `) as any[];
-      
+      `)) as any[];
+
       const orgName = orgs[0]?.name;
       if (!orgName) return [];
-      
+
       const slug = orgName.toLowerCase().replace(/[^a-z0-9]/g, '');
       const schemaName = `tenant_${slug}`;
 
       // 2. Fetch public users mapped to this clinic
-      const publicUsers = await this.db.execute(sql`
+      const publicUsers = (await this.db.execute(sql`
         SELECT id, name, email, type::text as designation, gender, mobile
         FROM users
         WHERE deleted_at IS NULL AND context_id = ${clinicId}
-      `) as any[];
+      `)) as any[];
 
       const tenantAccounts: any[] = [];
-      
+
       if (schemaName) {
         // A. Doctors
         try {
-          const doctors = await this.db.execute(sql.raw(`
+          const doctors = (await this.db.execute(
+            sql.raw(`
             SELECT id, name, email, 'Doctor' as designation, gender, mobile
             FROM ${schemaName}.doctors
             WHERE deleted_at IS NULL
-          `)) as any[];
+          `),
+          )) as any[];
           tenantAccounts.push(...doctors);
         } catch (err) {}
 
         // B. Receptionists
         try {
-          const receptionists = await this.db.execute(sql.raw(`
+          const receptionists = (await this.db.execute(
+            sql.raw(`
             SELECT id, name, email, 'Receptionist' as designation, gender, mobile
             FROM ${schemaName}.receptionists
             WHERE deleted_at IS NULL
-          `)) as any[];
+          `),
+          )) as any[];
           tenantAccounts.push(...receptionists);
         } catch (err) {}
 
         // C. Employees
         try {
-          const employees = await this.db.execute(sql.raw(`
+          const employees = (await this.db.execute(
+            sql.raw(`
             SELECT id, name, email, 'Employee' as designation, gender, mobile
             FROM ${schemaName}.employees
             WHERE deleted_at IS NULL
-          `)) as any[];
+          `),
+          )) as any[];
           tenantAccounts.push(...employees);
         } catch (err) {}
 
         // D. Dispensaries
         try {
-          const dispensaries = await this.db.execute(sql.raw(`
+          const dispensaries = (await this.db.execute(
+            sql.raw(`
             SELECT id, name, email, 'Dispensary' as designation, 'Male' as gender, mobile
             FROM ${schemaName}.dispensaries
             WHERE deleted_at IS NULL
-          `)) as any[];
+          `),
+          )) as any[];
           tenantAccounts.push(...dispensaries);
         } catch (err) {}
 
         // E. Patients (or case_datas)
         try {
-          const patients = await this.db.execute(sql.raw(`
+          const patients = (await this.db.execute(
+            sql.raw(`
             SELECT id, CONCAT(first_name, ' ', middle_name, ' ', surname) as name, email, 'Patient' as designation, gender, mobile1 as mobile
             FROM ${schemaName}.patients
             WHERE deleted_at IS NULL
-          `)) as any[];
-          tenantAccounts.push(...patients.map(p => ({
-            ...p,
-            name: p.name.trim() || 'Patient'
-          })));
+          `),
+          )) as any[];
+          tenantAccounts.push(
+            ...patients.map((p) => ({
+              ...p,
+              name: p.name.trim() || 'Patient',
+            })),
+          );
         } catch (err) {
           try {
-            const caseDatas = await this.db.execute(sql.raw(`
+            const caseDatas = (await this.db.execute(
+              sql.raw(`
               SELECT id, name, email, 'Patient' as designation, gender, mobile
               FROM ${schemaName}.case_datas
               WHERE deleted_at IS NULL
-            `)) as any[];
+            `),
+            )) as any[];
             tenantAccounts.push(...caseDatas);
           } catch (e2) {}
         }
@@ -97,7 +111,7 @@ export class AccountRepositoryPg implements AccountRepository {
 
       // Merge and deduplicate
       const allAccounts = [
-        ...publicUsers.map(u => ({
+        ...publicUsers.map((u) => ({
           id: u.id,
           name: u.name,
           email: u.email,
@@ -114,7 +128,7 @@ export class AccountRepositoryPg implements AccountRepository {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })),
-        ...tenantAccounts.map(t => ({
+        ...tenantAccounts.map((t) => ({
           id: t.id,
           name: t.name,
           email: t.email,
@@ -130,7 +144,7 @@ export class AccountRepositoryPg implements AccountRepository {
           deletedAt: null as string | null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        }))
+        })),
       ];
 
       const seen = new Set<string>();
@@ -168,16 +182,11 @@ export class AccountRepositoryPg implements AccountRepository {
         updatedAt: users.updatedAt,
       })
       .from(users)
-      .where(
-        and(
-          isNull(users.deletedAt),
-          eq(users.type, Role.Clinicadmin)
-        )
-      );
+      .where(and(isNull(users.deletedAt), eq(users.type, Role.Clinicadmin)));
 
     const rows = await query.orderBy(desc(users.id));
 
-    return rows.map(r => ({
+    return rows.map((r) => ({
       id: r.id,
       name: r.name,
       email: r.email,
@@ -224,34 +233,37 @@ export class AccountRepositoryPg implements AccountRepository {
 
     return await this.db.transaction(async (tx) => {
       // 1. Insert into accounts
-      const [account] = await tx.insert(accounts).values({
-        name:        data.name,
-        email:       data.email       ?? '',
-        password:    hashedPassword,
-        mobile:      data.mobile      ?? '',
-        mobile2:     data.mobile2     ?? '',
-        gender:      data.gender      ?? 'Male',
-        city:        data.city        ?? '',
-        address:     data.address     ?? '',
-        about:       data.about       ?? '',
-        designation: data.designation ?? '',
-        dept:        data.dept        ?? 1,
-        clinicId:    data.clinicId    ?? null,
-        // Legacy column fallbacks
-        dateBirth:   '1990-01-01',
-        dateLeft:    '1990-01-01',
-        salaryCur:   0,
-        packages:    '',
-      }).returning();
+      const [account] = await tx
+        .insert(accounts)
+        .values({
+          name: data.name,
+          email: data.email ?? '',
+          password: hashedPassword,
+          mobile: data.mobile ?? '',
+          mobile2: data.mobile2 ?? '',
+          gender: data.gender ?? 'Male',
+          city: data.city ?? '',
+          address: data.address ?? '',
+          about: data.about ?? '',
+          designation: data.designation ?? '',
+          dept: data.dept ?? 1,
+          clinicId: data.clinicId ?? null,
+          // Legacy column fallbacks
+          dateBirth: '1990-01-01',
+          dateLeft: '1990-01-01',
+          salaryCur: 0,
+          packages: '',
+        })
+        .returning();
 
       // 2. Mirror to users table (type='Account', context_id=accountId)
       await tx.insert(users).values({
-        name:      data.name,
-        email:     data.email ?? '',
-        password:  hashedPassword,
+        name: data.name,
+        email: data.email ?? '',
+        password: hashedPassword,
         contextId: account!.id,
-        type:      Role.Account,
-        dept:      data.dept ?? 1,
+        type: Role.Account,
+        dept: data.dept ?? 1,
       });
 
       return this.toDomain(account!);
@@ -307,21 +319,21 @@ export class AccountRepositoryPg implements AccountRepository {
 
   private toDomain(row: typeof accounts.$inferSelect): Account {
     return {
-      id:          row.id,
-      name:        row.name,
-      email:       row.email        ?? '',
-      mobile:      row.mobile       ?? '',
-      mobile2:     row.mobile2      ?? '',
-      gender:      row.gender       ?? 'Male',
-      city:        row.city         ?? '',
-      address:     row.address      ?? '',
-      about:       row.about        ?? '',
-      designation: row.designation  ?? '',
-      dept:        row.dept         ?? 1,
-      clinicId:    row.clinicId     ?? null,
-      deletedAt:   row.deletedAt?.toISOString() ?? null,
-      createdAt:   row.createdAt?.toISOString() ?? new Date().toISOString(),
-      updatedAt:   row.updatedAt?.toISOString() ?? new Date().toISOString(),
+      id: row.id,
+      name: row.name,
+      email: row.email ?? '',
+      mobile: row.mobile ?? '',
+      mobile2: row.mobile2 ?? '',
+      gender: row.gender ?? 'Male',
+      city: row.city ?? '',
+      address: row.address ?? '',
+      about: row.about ?? '',
+      designation: row.designation ?? '',
+      dept: row.dept ?? 1,
+      clinicId: row.clinicId ?? null,
+      deletedAt: row.deletedAt?.toISOString() ?? null,
+      createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
+      updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
     };
   }
 }

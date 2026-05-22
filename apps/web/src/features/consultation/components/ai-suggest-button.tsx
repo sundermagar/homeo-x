@@ -24,11 +24,7 @@ export function AiSuggestButton({
       disabled={disabled || isLoading}
       className="gap-1.5 border-purple-300 text-purple-700 hover:bg-purple-50"
     >
-      {isLoading ? (
-        <Spinner size="sm" />
-      ) : (
-        <Sparkles className="h-3.5 w-3.5" />
-      )}
+      {isLoading ? <Spinner size="sm" /> : <Sparkles className="h-3.5 w-3.5" />}
       {isLoading ? 'Generating...' : label}
     </Button>
   );

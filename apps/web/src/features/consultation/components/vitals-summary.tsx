@@ -43,9 +43,7 @@ export function VitalsSummary({ visitId, vitals, onVitalsRecorded }: VitalsSumma
     return (
       <Card
         className={`cursor-pointer transition-colors ${
-          critical
-            ? 'border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20'
-            : ''
+          critical ? 'border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20' : ''
         }`}
         onClick={() => setExpanded(true)}
       >
@@ -53,9 +51,7 @@ export function VitalsSummary({ visitId, vitals, onVitalsRecorded }: VitalsSumma
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <Activity className="h-4 w-4 text-gray-400 shrink-0" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Vitals
-              </span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Vitals</span>
 
               {hasVitals ? (
                 <>
@@ -79,13 +75,14 @@ export function VitalsSummary({ visitId, vitals, onVitalsRecorded }: VitalsSumma
                         critical={vitals.temperatureF >= 100.4}
                       />
                     )}
-                    {vitals.oxygenSaturation != null && Number.isFinite(vitals.oxygenSaturation) && (
-                      <VitalChip
-                        icon={Wind}
-                        label={`SpO2 ${vitals.oxygenSaturation}%`}
-                        critical={vitals.oxygenSaturation < 95}
-                      />
-                    )}
+                    {vitals.oxygenSaturation != null &&
+                      Number.isFinite(vitals.oxygenSaturation) && (
+                        <VitalChip
+                          icon={Wind}
+                          label={`SpO2 ${vitals.oxygenSaturation}%`}
+                          critical={vitals.oxygenSaturation < 95}
+                        />
+                      )}
                     {vitals.bloodSugar != null && Number.isFinite(vitals.bloodSugar) && (
                       <VitalChip icon={Droplets} label={`BS ${vitals.bloodSugar}`} />
                     )}
@@ -97,9 +94,7 @@ export function VitalsSummary({ visitId, vitals, onVitalsRecorded }: VitalsSumma
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {critical && (
-                <AlertCircle className="h-4 w-4 text-red-500" />
-              )}
+              {critical && <AlertCircle className="h-4 w-4 text-red-500" />}
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
                 {hasVitals ? 'Edit' : 'Record'}
                 <ChevronDown className="h-3 w-3 ml-1" />
@@ -118,9 +113,7 @@ export function VitalsSummary({ visitId, vitals, onVitalsRecorded }: VitalsSumma
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Vitals
-            </span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Vitals</span>
           </div>
           <Button
             variant="ghost"

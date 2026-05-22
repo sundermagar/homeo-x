@@ -5,7 +5,7 @@ import type { WhatsAppRepository } from '../../domains/whatsapp/ports/whatsapp.r
 import { encrypt, decrypt } from '../../shared/crypto.js';
 
 export class WhatsAppRepositoryPG implements WhatsAppRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   // ─── Channels ─────────────────────────────────────────────────────────────
 
@@ -40,8 +40,8 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         or(
           eq(schema.waChannels.clinicId, clinicId),
           eq(schema.waChannels.clinicId, 0),
-          isNull(schema.waChannels.clinicId)
-        )
+          isNull(schema.waChannels.clinicId),
+        ),
       );
     }
     const rows = await query.orderBy(desc(schema.waChannels.createdAt));
@@ -57,14 +57,16 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     const [row] = await this.db
       .select()
       .from(schema.waChannels)
-      .where(and(
-        or(
-          eq(schema.waChannels.clinicId, clinicId),
-          eq(schema.waChannels.clinicId, 0),
-          isNull(schema.waChannels.clinicId)
+      .where(
+        and(
+          or(
+            eq(schema.waChannels.clinicId, clinicId),
+            eq(schema.waChannels.clinicId, 0),
+            isNull(schema.waChannels.clinicId),
+          ),
+          eq(schema.waChannels.isActive, true),
         ),
-        eq(schema.waChannels.isActive, true)
-      ))
+      )
       .orderBy(desc(schema.waChannels.createdAt))
       .limit(1);
     if (row && row.accessToken) {
@@ -89,10 +91,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       }
       return row;
     }
-    const [row] = await this.db
-      .insert(schema.waChannels)
-      .values(dataToSave)
-      .returning();
+    const [row] = await this.db.insert(schema.waChannels).values(dataToSave).returning();
     if (row && row.accessToken) {
       row.accessToken = decrypt(row.accessToken);
     }
@@ -127,10 +126,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .returning();
       return row;
     }
-    const [row] = await this.db
-      .insert(schema.waTemplates)
-      .values(data)
-      .returning();
+    const [row] = await this.db.insert(schema.waTemplates).values(data).returning();
     return row;
   }
 
@@ -138,25 +134,30 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     const [row] = await this.db
       .select()
       .from(schema.waTemplates)
-      .where(and(
-        eq(schema.waTemplates.whatsappTemplateId, whatsappTemplateId),
-        eq(schema.waTemplates.channelId, channelId)
-      ))
+      .where(
+        and(
+          eq(schema.waTemplates.whatsappTemplateId, whatsappTemplateId),
+          eq(schema.waTemplates.channelId, channelId),
+        ),
+      )
       .limit(1);
     return row ?? null;
   }
 
-  async upsertTemplate(data: any): Promise<{ row: any; action: 'created' | 'updated' | 'unchanged' }> {
+  async upsertTemplate(
+    data: any,
+  ): Promise<{ row: any; action: 'created' | 'updated' | 'unchanged' }> {
     const existing = await this.findTemplateByWhatsappId(data.whatsappTemplateId, data.channelId);
-    
+
     if (existing) {
       // Only update if something changed
-      const changed = existing.status !== data.status
-        || existing.body !== data.body
-        || existing.header !== data.header
-        || existing.footer !== data.footer
-        || existing.category !== data.category;
-      
+      const changed =
+        existing.status !== data.status ||
+        existing.body !== data.body ||
+        existing.header !== data.header ||
+        existing.footer !== data.footer ||
+        existing.category !== data.category;
+
       if (!changed) {
         return { row: existing, action: 'unchanged' };
       }
@@ -169,10 +170,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       return { row, action: 'updated' };
     }
 
-    const [row] = await this.db
-      .insert(schema.waTemplates)
-      .values(data)
-      .returning();
+    const [row] = await this.db.insert(schema.waTemplates).values(data).returning();
     return { row, action: 'created' };
   }
 
@@ -195,24 +193,36 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     return row ?? null;
   }
 
-  async listCampaigns(clinicId: number, params?: { page?: number; limit?: number; search?: string }): Promise<{ data: any[]; total: number }> {
+  async listCampaigns(
+    clinicId: number,
+    params?: { page?: number; limit?: number; search?: string },
+  ): Promise<{ data: any[]; total: number }> {
     const page = params?.page || 1;
     const limit = params?.limit || 10;
     const offset = (page - 1) * limit;
-    
-    let query = this.db.select().from(schema.waCampaigns).where(eq(schema.waCampaigns.clinicId, clinicId));
-    
+
+    let query = this.db
+      .select()
+      .from(schema.waCampaigns)
+      .where(eq(schema.waCampaigns.clinicId, clinicId));
+
     if (params?.search) {
-      query = this.db.select().from(schema.waCampaigns).where(
-        and(
-          eq(schema.waCampaigns.clinicId, clinicId),
-          ilike(schema.waCampaigns.name, `%${params.search}%`)
-        )
-      ) as any;
+      query = this.db
+        .select()
+        .from(schema.waCampaigns)
+        .where(
+          and(
+            eq(schema.waCampaigns.clinicId, clinicId),
+            ilike(schema.waCampaigns.name, `%${params.search}%`),
+          ),
+        ) as any;
     }
 
-    const data = await (query as any).orderBy(desc(schema.waCampaigns.createdAt)).limit(limit).offset(offset);
-    
+    const data = await (query as any)
+      .orderBy(desc(schema.waCampaigns.createdAt))
+      .limit(limit)
+      .offset(offset);
+
     const [totalRes] = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(schema.waCampaigns)
@@ -230,10 +240,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .returning();
       return row;
     }
-    const [row] = await this.db
-      .insert(schema.waCampaigns)
-      .values(data)
-      .returning();
+    const [row] = await this.db.insert(schema.waCampaigns).values(data).returning();
     return row;
   }
 
@@ -266,10 +273,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .returning();
       return row;
     }
-    const [row] = await this.db
-      .insert(schema.waCampaignRecipients)
-      .values(data)
-      .returning();
+    const [row] = await this.db.insert(schema.waCampaignRecipients).values(data).returning();
     return row;
   }
 
@@ -300,8 +304,10 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
   }
 
   async findConversationByPhone(channelId: number | null, phone: string): Promise<any> {
-    const channelCondition = channelId ? eq(schema.waConversations.channelId, channelId) : isNull(schema.waConversations.channelId);
-    
+    const channelCondition = channelId
+      ? eq(schema.waConversations.channelId, channelId)
+      : isNull(schema.waConversations.channelId);
+
     // Fuzzy match: Meta API sends numbers with country codes (e.g. 917018936618)
     // but the CRM might store them without (e.g. 7018936618).
     // Matching on the last 10 digits ensures we link the conversation correctly.
@@ -310,10 +316,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     const [row] = await this.db
       .select()
       .from(schema.waConversations)
-      .where(and(
-        channelCondition,
-        ilike(schema.waConversations.contactPhone, `%${searchPhone}`)
-      ))
+      .where(and(channelCondition, ilike(schema.waConversations.contactPhone, `%${searchPhone}`)))
       .orderBy(desc(schema.waConversations.createdAt))
       .limit(1);
     return row ?? null;
@@ -336,10 +339,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .returning();
       return row;
     }
-    const [row] = await this.db
-      .insert(schema.waConversations)
-      .values(data)
-      .returning();
+    const [row] = await this.db.insert(schema.waConversations).values(data).returning();
     return row;
   }
 
@@ -362,10 +362,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .returning();
       return row;
     }
-    const [row] = await this.db
-      .insert(schema.waMessages)
-      .values(data)
-      .returning();
+    const [row] = await this.db.insert(schema.waMessages).values(data).returning();
     return row;
   }
 
@@ -375,13 +372,11 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     const [msg] = await this.db
       .select({ id: schema.waMessages.id })
       .from(schema.waMessages)
-      .innerJoin(schema.waConversations, eq(schema.waConversations.id, schema.waMessages.conversationId))
-      .where(
-        and(
-          eq(schema.waMessages.id, id),
-          eq(schema.waConversations.clinicId, clinicId)
-        )
+      .innerJoin(
+        schema.waConversations,
+        eq(schema.waConversations.id, schema.waMessages.conversationId),
       )
+      .where(and(eq(schema.waMessages.id, id), eq(schema.waConversations.clinicId, clinicId)))
       .limit(1);
 
     if (!msg) return false;
@@ -421,7 +416,10 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
 
   // ─── Contacts & Groups ──────────────────────────────────────────────────────
 
-  async listContacts(clinicId: number, params?: { page?: number; limit?: number; search?: string }): Promise<{ data: any[]; total: number }> {
+  async listContacts(
+    clinicId: number,
+    params?: { page?: number; limit?: number; search?: string },
+  ): Promise<{ data: any[]; total: number }> {
     // 1. Fetch matching contacts from wa_contacts
     let waFilters = [eq(schema.waContacts.clinicId, clinicId)];
     if (params?.search) {
@@ -435,14 +433,14 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     // 2. Fetch matching patients from patients (case_datas)
     let patientFilters = [
       eq(schema.patients.clinicId, clinicId),
-      isNull(schema.patients.deletedAt)
+      isNull(schema.patients.deletedAt),
     ];
     if (params?.search) {
       patientFilters.push(
         sql`(${schema.patients.firstName} ILIKE ${`%${params.search}%`} OR 
              ${schema.patients.surname} ILIKE ${`%${params.search}%`} OR 
              ${schema.patients.mobile1} ILIKE ${`%${params.search}%`} OR 
-             ${schema.patients.phone} ILIKE ${`%${params.search}%`})`
+             ${schema.patients.phone} ILIKE ${`%${params.search}%`})`,
       );
     }
     const patientList = await this.db
@@ -452,15 +450,15 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
 
     // 3. Map patients to contact format
     const mappedPatients = patientList
-      .filter(p => p.mobile1 || p.phone)
-      .map(p => ({
+      .filter((p) => p.mobile1 || p.phone)
+      .map((p) => ({
         id: `patient_${p.id}`,
         clinicId: p.clinicId,
         name: `${p.firstName} ${p.surname || ''}`.trim(),
         phone: (p.mobile1 || p.phone || '').replace(/\D/g, ''),
         email: p.email || '',
         createdAt: p.createdAt || new Date(),
-        updatedAt: p.updatedAt || new Date()
+        updatedAt: p.updatedAt || new Date(),
       }));
 
     // 4. Merge and deduplicate by phone number
@@ -475,7 +473,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         seenPhones.add(cleanPhone);
         uniqueContacts.push({
           ...c,
-          phone: cleanPhone
+          phone: cleanPhone,
         });
       }
     }
@@ -491,7 +489,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
 
     return {
       data: pagedData,
-      total: uniqueContacts.length
+      total: uniqueContacts.length,
     };
   }
 
@@ -499,10 +497,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     const [row] = await this.db
       .select()
       .from(schema.waContacts)
-      .where(and(
-        eq(schema.waContacts.clinicId, clinicId),
-        eq(schema.waContacts.phone, phone)
-      ))
+      .where(and(eq(schema.waContacts.clinicId, clinicId), eq(schema.waContacts.phone, phone)))
       .limit(1);
     return row ?? null;
   }
@@ -516,10 +511,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .returning();
       return row;
     }
-    const [row] = await this.db
-      .insert(schema.waContacts)
-      .values(data)
-      .returning();
+    const [row] = await this.db.insert(schema.waContacts).values(data).returning();
     return row;
   }
 
@@ -548,26 +540,24 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .returning();
       return row;
     }
-    const [row] = await this.db
-      .insert(schema.waContactGroups)
-      .values(data)
-      .returning();
+    const [row] = await this.db.insert(schema.waContactGroups).values(data).returning();
     return row;
   }
 
   async addContactToGroup(contactId: number, groupId: number): Promise<void> {
-    await this.db
-      .insert(schema.waContactGroupMembers)
-      .values({ contactId, groupId });
+    await this.db.insert(schema.waContactGroupMembers).values({ contactId, groupId });
   }
 
   // ─── Media Library ───────────────────────────────────────────────────────────
 
-  async listMedia(clinicId: number, params?: { page?: number; limit?: number; search?: string }): Promise<{ data: any[]; total: number }> {
+  async listMedia(
+    clinicId: number,
+    params?: { page?: number; limit?: number; search?: string },
+  ): Promise<{ data: any[]; total: number }> {
     const page = params?.page || 1;
     const limit = params?.limit || 10;
     const offset = (page - 1) * limit;
-    
+
     let filters = [eq(schema.waMedia.clinicId, clinicId)];
     if (params?.search) {
       filters.push(ilike(schema.waMedia.name, `%${params.search}%`));
@@ -580,7 +570,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .orderBy(desc(schema.waMedia.createdAt))
       .limit(limit)
       .offset(offset);
-    
+
     const [totalRes] = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(schema.waMedia)
@@ -598,10 +588,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .returning();
       return row;
     }
-    const [row] = await this.db
-      .insert(schema.waMedia)
-      .values(data)
-      .returning();
+    const [row] = await this.db.insert(schema.waMedia).values(data).returning();
     return row;
   }
 
@@ -616,11 +603,14 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
 
   // ─── Chatbots & Training ─────────────────────────────────────────────────────
 
-  async listChatbots(clinicId: number, params?: { page?: number; limit?: number }): Promise<{ data: any[]; total: number }> {
+  async listChatbots(
+    clinicId: number,
+    params?: { page?: number; limit?: number },
+  ): Promise<{ data: any[]; total: number }> {
     const page = params?.page || 1;
     const limit = params?.limit || 10;
     const offset = (page - 1) * limit;
-    
+
     const data = await this.db
       .select()
       .from(schema.waChatbots)
@@ -628,7 +618,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .orderBy(desc(schema.waChatbots.createdAt))
       .limit(limit)
       .offset(offset);
-    
+
     const [totalRes] = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(schema.waChatbots)
@@ -671,20 +661,20 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
   }
 
   async saveTrainingData(data: any): Promise<any> {
-    const [row] = await this.db
-      .insert(schema.waTrainingData)
-      .values(data)
-      .returning();
+    const [row] = await this.db.insert(schema.waTrainingData).values(data).returning();
     return row;
   }
 
   // ─── Automations ─────────────────────────────────────────────────────────────
 
-  async listAutomations(clinicId: number, params?: { page?: number; limit?: number }): Promise<{ data: any[]; total: number }> {
+  async listAutomations(
+    clinicId: number,
+    params?: { page?: number; limit?: number },
+  ): Promise<{ data: any[]; total: number }> {
     const page = params?.page || 1;
     const limit = params?.limit || 10;
     const offset = (page - 1) * limit;
-    
+
     const data = await this.db
       .select()
       .from(schema.waAutomations)
@@ -692,7 +682,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .orderBy(desc(schema.waAutomations.createdAt))
       .limit(limit)
       .offset(offset);
-    
+
     const [totalRes] = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(schema.waAutomations)
@@ -723,7 +713,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       if (data.nodes !== undefined || data.edges !== undefined) {
         updatePayload.flowData = {
           nodes: data.nodes || [],
-          edges: data.edges || []
+          edges: data.edges || [],
         };
       }
       updatePayload.updatedAt = new Date();
@@ -732,15 +722,12 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .update(schema.waAutomations)
         .set(updatePayload)
         .where(
-          and(
-            eq(schema.waAutomations.id, id),
-            eq(schema.waAutomations.clinicId, data.clinicId)
-          )
+          and(eq(schema.waAutomations.id, id), eq(schema.waAutomations.clinicId, data.clinicId)),
         )
         .returning();
       return row ?? null;
     }
-    
+
     const payload = {
       clinicId: data.clinicId,
       name: data.name,
@@ -749,15 +736,12 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       triggerConfig: data.triggerConfig || {},
       flowData: {
         nodes: data.nodes || [],
-        edges: data.edges || []
+        edges: data.edges || [],
       },
-      status: data.status || 'inactive'
+      status: data.status || 'inactive',
     };
 
-    const [row] = await this.db
-      .insert(schema.waAutomations)
-      .values(payload)
-      .returning();
+    const [row] = await this.db.insert(schema.waAutomations).values(payload).returning();
     return row;
   }
 
@@ -765,12 +749,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     const { and, eq } = await import('drizzle-orm');
     const result = await this.db
       .delete(schema.waAutomations)
-      .where(
-        and(
-          eq(schema.waAutomations.id, id),
-          eq(schema.waAutomations.clinicId, clinicId)
-        )
-      )
+      .where(and(eq(schema.waAutomations.id, id), eq(schema.waAutomations.clinicId, clinicId)))
       .returning();
     return result.length > 0;
   }
@@ -780,13 +759,16 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
   async getAnalytics(clinicId: number, days: number = 7): Promise<any> {
     // Count actual outbound messages
     const [messagesCount] = await this.db
-      .select({ 
+      .select({
         sent: sql<number>`count(case when ${schema.waMessages.direction} = 'outbound' then 1 end)::int`,
         delivered: sql<number>`count(case when ${schema.waMessages.direction} = 'outbound' and ${schema.waMessages.status} in ('delivered', 'read') then 1 end)::int`,
-        read: sql<number>`count(case when ${schema.waMessages.direction} = 'outbound' and ${schema.waMessages.status} = 'read' then 1 end)::int`
+        read: sql<number>`count(case when ${schema.waMessages.direction} = 'outbound' and ${schema.waMessages.status} = 'read' then 1 end)::int`,
       })
       .from(schema.waMessages)
-      .innerJoin(schema.waConversations, eq(schema.waConversations.id, schema.waMessages.conversationId))
+      .innerJoin(
+        schema.waConversations,
+        eq(schema.waConversations.id, schema.waMessages.conversationId),
+      )
       .where(eq(schema.waConversations.clinicId, clinicId));
 
     // Campaign recipients counts
@@ -795,10 +777,13 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         total: sql<number>`count(*)::int`,
         sent: sql<number>`count(case when ${schema.waCampaignRecipients.status} in ('sent', 'delivered', 'read') then 1 end)::int`,
         delivered: sql<number>`count(case when ${schema.waCampaignRecipients.status} in ('delivered', 'read') then 1 end)::int`,
-        read: sql<number>`count(case when ${schema.waCampaignRecipients.status} = 'read' then 1 end)::int`
+        read: sql<number>`count(case when ${schema.waCampaignRecipients.status} = 'read' then 1 end)::int`,
       })
       .from(schema.waCampaignRecipients)
-      .innerJoin(schema.waCampaigns, eq(schema.waCampaigns.id, schema.waCampaignRecipients.campaignId))
+      .innerJoin(
+        schema.waCampaigns,
+        eq(schema.waCampaigns.id, schema.waCampaignRecipients.campaignId),
+      )
       .where(eq(schema.waCampaigns.clinicId, clinicId));
 
     const totalSent = (messagesCount?.sent || 0) + (campaignStats?.sent || 0);
@@ -808,14 +793,16 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     // Active Conversations (Conversations with messages in the last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
+
     const [conversations] = await this.db
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.waConversations)
-      .where(and(
-        eq(schema.waConversations.clinicId, clinicId),
-        gte(schema.waConversations.lastMessageAt, sevenDaysAgo)
-      ));
+      .where(
+        and(
+          eq(schema.waConversations.clinicId, clinicId),
+          gte(schema.waConversations.lastMessageAt, sevenDaysAgo),
+        ),
+      );
 
     // Patient and Appointment Counts to scale simulated baseline
     const [patientsCount] = await this.db
@@ -834,7 +821,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     // Combine actual and realistic simulated fallbacks
     let totalDeliveries = totalDelivered;
     let campaignReach = 0;
-    
+
     const [reachResult] = await this.db.execute(sql`
       SELECT count(distinct phone)::int as count FROM (
         SELECT ${schema.waCampaignRecipients.phone} as phone 
@@ -855,7 +842,8 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       campaignReach = Math.max(8, basePatients);
     }
 
-    const activeConversations = conversations?.count || Math.max(2, Math.floor(baseAppointments * 0.3));
+    const activeConversations =
+      conversations?.count || Math.max(2, Math.floor(baseAppointments * 0.3));
 
     // Delivery rates and view rates
     let deliverySuccessRate = 94.0;
@@ -898,7 +886,10 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       WHERE outbound_time IS NOT NULL;
     `);
     const avgMinutes = Number((responseTimesResult as any)?.[0]?.avg_minutes) || 0;
-    const responseTime = avgMinutes > 0 ? `~${avgMinutes.toFixed(1)} mins` : `~${(2.1 + (clinicId % 2) * 0.3).toFixed(1)} mins`;
+    const responseTime =
+      avgMinutes > 0
+        ? `~${avgMinutes.toFixed(1)} mins`
+        : `~${(2.1 + (clinicId % 2) * 0.3).toFixed(1)} mins`;
 
     // Engagement rate calculation
     const [repliedConversationsCount] = await this.db.execute(sql`
@@ -914,14 +905,17 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.waConversations)
       .where(eq(schema.waConversations.clinicId, clinicId));
-    
+
     const totalConvs = totalConversationsCount?.count || 0;
-    const engagementRate = totalConvs > 0 ? Number(((repliedCount / totalConvs) * 100).toFixed(1)) : Number((88.5 + (clinicId % 3) * 0.5).toFixed(1));
+    const engagementRate =
+      totalConvs > 0
+        ? Number(((repliedCount / totalConvs) * 100).toFixed(1))
+        : Number((88.5 + (clinicId % 3) * 0.5).toFixed(1));
 
     // Daily trend data over the past X days
     const trendData: any[] = [];
     const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
+
     const daysAgoStart = new Date();
     daysAgoStart.setDate(daysAgoStart.getDate() - (days - 1));
     daysAgoStart.setHours(0, 0, 0, 0);
@@ -955,12 +949,12 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
 
     // Convert arrays of row data to maps for O(1) fast lookup
     const msgMap = new Map<string, any>();
-    (messageTrends as any[] || []).forEach(row => {
+    ((messageTrends as any[]) || []).forEach((row) => {
       msgMap.set(row.date_str, row);
     });
 
     const campMap = new Map<string, any>();
-    (campaignTrends as any[] || []).forEach(row => {
+    ((campaignTrends as any[]) || []).forEach((row) => {
       campMap.set(row.date_str, row);
     });
 
@@ -968,7 +962,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      
+
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
@@ -977,15 +971,16 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       const dayMsg = msgMap.get(dateKey) || { sent: 0, delivered: 0, read: 0 };
       const dayCamp = campMap.get(dateKey) || { sent: 0, delivered: 0, read: 0 };
 
-      const label = days > 7 
-        ? `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })}`
-        : daysOfWeek[date.getDay()];
+      const label =
+        days > 7
+          ? `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })}`
+          : daysOfWeek[date.getDay()];
 
       trendData.push({
         name: label,
         Sent: (dayMsg.sent || 0) + (dayCamp.sent || 0),
         Delivered: (dayMsg.delivered || 0) + (dayCamp.delivered || 0),
-        Read: (dayMsg.read || 0) + (dayCamp.read || 0)
+        Read: (dayMsg.read || 0) + (dayCamp.read || 0),
       });
     }
 
@@ -994,27 +989,28 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       // Seeded realistic scaling trends based on clinic size
       const baseVal = Math.max(10, baseAppointments + Math.floor(basePatients * 0.05));
       const dayScale = [0.8, 1.1, 1.3, 1.2, 1.4, 0.9, 0.7]; // Sun-Sat scaling
-      
+
       trendData.length = 0;
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         const dayIdx = date.getDay();
         const multiplier = dayScale[dayIdx] || 1.0;
-        
-        const sent = Math.floor((baseVal * 1.5) * multiplier);
+
+        const sent = Math.floor(baseVal * 1.5 * multiplier);
         const delivered = Math.floor(sent * (deliverySuccessRate / 100));
         const read = Math.floor(delivered * (messageReadRate / 100));
-        
-        const label = days > 7 
-          ? `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })}`
-          : daysOfWeek[dayIdx];
+
+        const label =
+          days > 7
+            ? `${date.getDate()} ${date.toLocaleString('default', { month: 'short' })}`
+            : daysOfWeek[dayIdx];
 
         trendData.push({
           name: label,
           Sent: sent,
           Delivered: delivered,
-          Read: read
+          Read: read,
         });
       }
     }
@@ -1027,17 +1023,34 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         authentication: sql<number>`count(case when ${schema.waTemplates.category} = 'authentication' then 1 end)::int`,
       })
       .from(schema.waTemplates)
-      .where(eq(schema.waTemplates.channelId, sql`(select id from ${schema.waChannels} where clinic_id = ${clinicId} limit 1)`));
+      .where(
+        eq(
+          schema.waTemplates.channelId,
+          sql`(select id from ${schema.waChannels} where clinic_id = ${clinicId} limit 1)`,
+        ),
+      );
 
     const mkt = categories?.marketing || 0;
     const utl = categories?.utility || 0;
     const auth = categories?.authentication || 0;
     const catTotal = mkt + utl + auth;
-    
+
     const categoryData = [
-      { name: 'Marketing', value: catTotal > 0 ? Math.round((mkt / catTotal) * 100) : 65, color: 'var(--pp-blue)' },
-      { name: 'Utility', value: catTotal > 0 ? Math.round((utl / catTotal) * 100) : 25, color: '#10b981' },
-      { name: 'Auth', value: catTotal > 0 ? Math.round((auth / catTotal) * 100) : 10, color: '#f59e0b' },
+      {
+        name: 'Marketing',
+        value: catTotal > 0 ? Math.round((mkt / catTotal) * 100) : 65,
+        color: 'var(--pp-blue)',
+      },
+      {
+        name: 'Utility',
+        value: catTotal > 0 ? Math.round((utl / catTotal) * 100) : 25,
+        color: '#10b981',
+      },
+      {
+        name: 'Auth',
+        value: catTotal > 0 ? Math.round((auth / catTotal) * 100) : 10,
+        color: '#f59e0b',
+      },
     ];
 
     // Calculate actual growth rate comparing current period vs previous period
@@ -1046,29 +1059,39 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       const currentPeriodStart = new Date();
       currentPeriodStart.setDate(currentPeriodStart.getDate() - days);
       const previousPeriodStart = new Date();
-      previousPeriodStart.setDate(previousPeriodStart.getDate() - (days * 2));
-      
+      previousPeriodStart.setDate(previousPeriodStart.getDate() - days * 2);
+
       const [currentPeriod] = await this.db
         .select({ count: sql<number>`count(*)::int` })
         .from(schema.waMessages)
-        .innerJoin(schema.waConversations, eq(schema.waConversations.id, schema.waMessages.conversationId))
-        .where(and(
-          eq(schema.waConversations.clinicId, clinicId),
-          eq(schema.waMessages.direction, 'outbound'),
-          gte(schema.waMessages.createdAt, currentPeriodStart)
-        ));
-      
+        .innerJoin(
+          schema.waConversations,
+          eq(schema.waConversations.id, schema.waMessages.conversationId),
+        )
+        .where(
+          and(
+            eq(schema.waConversations.clinicId, clinicId),
+            eq(schema.waMessages.direction, 'outbound'),
+            gte(schema.waMessages.createdAt, currentPeriodStart),
+          ),
+        );
+
       const [previousPeriod] = await this.db
         .select({ count: sql<number>`count(*)::int` })
         .from(schema.waMessages)
-        .innerJoin(schema.waConversations, eq(schema.waConversations.id, schema.waMessages.conversationId))
-        .where(and(
-          eq(schema.waConversations.clinicId, clinicId),
-          eq(schema.waMessages.direction, 'outbound'),
-          gte(schema.waMessages.createdAt, previousPeriodStart),
-          lte(schema.waMessages.createdAt, currentPeriodStart)
-        ));
-      
+        .innerJoin(
+          schema.waConversations,
+          eq(schema.waConversations.id, schema.waMessages.conversationId),
+        )
+        .where(
+          and(
+            eq(schema.waConversations.clinicId, clinicId),
+            eq(schema.waMessages.direction, 'outbound'),
+            gte(schema.waMessages.createdAt, previousPeriodStart),
+            lte(schema.waMessages.createdAt, currentPeriodStart),
+          ),
+        );
+
       const cur = currentPeriod?.count || 0;
       const prev = previousPeriod?.count || 0;
       growthRate = prev > 0 ? Number((((cur - prev) / prev) * 100).toFixed(1)) : 0;
@@ -1086,7 +1109,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       responseTime,
       engagementRate,
       trendData,
-      categoryData
+      categoryData,
     };
   }
 
@@ -1115,7 +1138,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .update(schema.waAiSettings)
         .set({
           ...dataToSave,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(schema.waAiSettings.id, id))
         .returning();
@@ -1129,7 +1152,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .values({
           ...dataToSave,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
       if (inserted && inserted.apiKey) {
@@ -1155,7 +1178,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .update(schema.waWidgets)
         .set({
           ...updateData,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(schema.waWidgets.id, id))
         .returning();
@@ -1166,7 +1189,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .values({
           ...updateData,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
       return inserted;
@@ -1199,7 +1222,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .update(schema.waTrainingSources)
         .set({
           ...updateData,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(schema.waTrainingSources.id, id))
         .returning();
@@ -1210,7 +1233,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .values({
           ...updateData,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
       return inserted;
@@ -1218,9 +1241,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
   }
 
   async deleteTrainingSource(id: number): Promise<void> {
-    await this.db
-      .delete(schema.waTrainingSources)
-      .where(eq(schema.waTrainingSources.id, id));
+    await this.db.delete(schema.waTrainingSources).where(eq(schema.waTrainingSources.id, id));
   }
 
   // ─── Training Chunks ───────────────────────────────────────────────────────
@@ -1238,7 +1259,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
       .insert(schema.waTrainingChunks)
       .values({
         ...data,
-        createdAt: new Date()
+        createdAt: new Date(),
       })
       .returning();
     return inserted;
@@ -1267,7 +1288,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .update(schema.waTrainingQaPairs)
         .set({
           ...updateData,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(schema.waTrainingQaPairs.id, id))
         .returning();
@@ -1278,7 +1299,7 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
         .values({
           ...updateData,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
       return inserted;
@@ -1286,8 +1307,6 @@ export class WhatsAppRepositoryPG implements WhatsAppRepository {
   }
 
   async deleteTrainingQaPair(id: number): Promise<void> {
-    await this.db
-      .delete(schema.waTrainingQaPairs)
-      .where(eq(schema.waTrainingQaPairs.id, id));
+    await this.db.delete(schema.waTrainingQaPairs).where(eq(schema.waTrainingQaPairs.id, id));
   }
 }

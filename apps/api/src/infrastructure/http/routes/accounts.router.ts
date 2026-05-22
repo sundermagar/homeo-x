@@ -2,7 +2,10 @@ import { Router, type Request, type Response } from 'express';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { validate, validateQuery } from '../middleware/validate.js';
-import { AdditionalChargeRepositoryPg, ExpenseRepositoryPg } from '../../repositories/accounts.repository.pg.js';
+import {
+  AdditionalChargeRepositoryPg,
+  ExpenseRepositoryPg,
+} from '../../repositories/accounts.repository.pg.js';
 import {
   ListAdditionalChargesUseCase,
   GetAdditionalChargeUseCase,
@@ -72,8 +75,13 @@ export function createAccountsRouter(): Router {
     validate(createAdditionalChargeSchema),
     asyncHandler(async (req: Request, res: Response) => {
       const { BillingRepositoryPg } = await import('../../repositories/billing.repository.pg.js');
-      const { MedicalCaseRepositoryPg } = await import('../../repositories/medical-case.repository.pg.js');
-      const useCase = new ProcessAdditionalChargeUseCase(getRepo(req), new BillingRepositoryPg(req.tenantDb), new MedicalCaseRepositoryPg(req.tenantDb));
+      const { MedicalCaseRepositoryPg } =
+        await import('../../repositories/medical-case.repository.pg.js');
+      const useCase = new ProcessAdditionalChargeUseCase(
+        getRepo(req),
+        new BillingRepositoryPg(req.tenantDb),
+        new MedicalCaseRepositoryPg(req.tenantDb),
+      );
       const result = await useCase.execute(req.body);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });

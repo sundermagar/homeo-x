@@ -11,8 +11,14 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
   constructor(private readonly waRepo: WhatsAppRepository) {}
 
   private isAuthError(data: any, errorMessage: string): boolean {
-    const isTokenExpired = data?.error?.code === 190 || data?.error?.error_subcode === 463 || data?.error?.error_subcode === 467;
-    const isAuthMessage = errorMessage.includes('Authentication Error') || errorMessage.includes('access token') || errorMessage.toLowerCase().includes('auth');
+    const isTokenExpired =
+      data?.error?.code === 190 ||
+      data?.error?.error_subcode === 463 ||
+      data?.error?.error_subcode === 467;
+    const isAuthMessage =
+      errorMessage.includes('Authentication Error') ||
+      errorMessage.includes('access token') ||
+      errorMessage.toLowerCase().includes('auth');
     return isTokenExpired || isAuthMessage;
   }
 
@@ -27,7 +33,7 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     if (!accessToken) throw new Error(`WhatsApp token not found in DB or .env`);
 
     return {
-      'Authorization': `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     };
   }
@@ -44,12 +50,18 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     return phoneId;
   }
 
-  async sendText(channelId: number | null, to: string, text: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  async sendText(
+    channelId: number | null,
+    to: string,
+    text: string,
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
       const cleanTo = to.replace(/\D/g, '');
 
-      logger.info(`[SendText] Sending to: ${cleanTo}, channelId: ${channelId}, phoneNumberId: ${phoneNumberId}`);
+      logger.info(
+        `[SendText] Sending to: ${cleanTo}, channelId: ${channelId}, phoneNumberId: ${phoneNumberId}`,
+      );
 
       const body = {
         messaging_product: 'whatsapp',
@@ -68,13 +80,16 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
         body: JSON.stringify(body),
       });
 
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
 
       if (!response.ok) {
-        logger.error(`[SendText] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
+        logger.error(
+          `[SendText] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`,
+        );
         let errorMessage = data.error?.message || 'Unknown error';
         if (this.isAuthError(data, errorMessage)) {
-          errorMessage = 'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your .env file or database configuration.';
+          errorMessage =
+            'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your .env file or database configuration.';
         }
         return { success: false, error: errorMessage };
       }
@@ -98,7 +113,13 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     return wabaId;
   }
 
-  async sendTemplate(channelId: number | null, to: string, templateName: string, language: string, components: any[]): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  async sendTemplate(
+    channelId: number | null,
+    to: string,
+    templateName: string,
+    language: string,
+    components: any[],
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
       const cleanTo = to.replace(/\D/g, '');
@@ -121,7 +142,9 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
       };
 
       const url = `${this.baseUrl}/${phoneNumberId}/messages`;
-      logger.info(`[SendTemplate] Sending template "${templateName}" to: ${cleanTo}, channelId: ${channelId}, phoneNumberId: ${phoneNumberId}`);
+      logger.info(
+        `[SendTemplate] Sending template "${templateName}" to: ${cleanTo}, channelId: ${channelId}, phoneNumberId: ${phoneNumberId}`,
+      );
       logger.info(`[SendTemplate] POST ${url}`);
       logger.info(`[SendTemplate] Request body: ${JSON.stringify(body)}`);
 
@@ -131,18 +154,23 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
         body: JSON.stringify(body),
       });
 
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
       if (!response.ok) {
-        logger.error(`[SendTemplate] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
+        logger.error(
+          `[SendTemplate] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`,
+        );
         let errorMessage = data.error?.message || 'Unknown error';
         if (this.isAuthError(data, errorMessage)) {
-          errorMessage = 'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your .env file or database configuration.';
+          errorMessage =
+            'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your .env file or database configuration.';
         }
         return { success: false, error: errorMessage };
       }
 
       const messageId = data.messages?.[0]?.id;
-      logger.info(`[SendTemplate] ✅ Template accepted by Meta! wamid: ${messageId}, to: ${cleanTo}, template: ${templateName}`);
+      logger.info(
+        `[SendTemplate] ✅ Template accepted by Meta! wamid: ${messageId}, to: ${cleanTo}, template: ${templateName}`,
+      );
       return { success: true, messageId };
     } catch (err: any) {
       logger.error(`[SendTemplate] ❌ Exception: ${err.message}`);
@@ -154,17 +182,19 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     try {
       const wabaId = await this.getWabaId(channelId || undefined);
 
-      const response = await fetch(
-        `${this.baseUrl}/${wabaId}/message_templates?limit=100`,
-        { headers: await this.getHeaders(channelId || undefined) }
-      );
+      const response = await fetch(`${this.baseUrl}/${wabaId}/message_templates?limit=100`, {
+        headers: await this.getHeaders(channelId || undefined),
+      });
 
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
       if (!response.ok) {
-        logger.error(`[GetTemplates] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
+        logger.error(
+          `[GetTemplates] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`,
+        );
         let errorMessage = data.error?.message || 'Failed to fetch templates';
         if (this.isAuthError(data, errorMessage)) {
-          errorMessage = 'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your configuration.';
+          errorMessage =
+            'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your configuration.';
         }
         throw new Error(errorMessage);
       }
@@ -176,7 +206,12 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     }
   }
 
-  async uploadMedia(channelId: number | null, file: Buffer, fileName: string, mimeType: string): Promise<string> {
+  async uploadMedia(
+    channelId: number | null,
+    file: Buffer,
+    fileName: string,
+    mimeType: string,
+  ): Promise<string> {
     try {
       const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
 
@@ -194,12 +229,15 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
         body: formData,
       });
 
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
       if (!response.ok) {
-        logger.error(`[UploadMedia] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
+        logger.error(
+          `[UploadMedia] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`,
+        );
         let errorMessage = data.error?.message || 'Failed to upload media';
         if (this.isAuthError(data, errorMessage)) {
-          errorMessage = 'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your configuration.';
+          errorMessage =
+            'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your configuration.';
         }
         throw new Error(errorMessage);
       }
@@ -211,12 +249,21 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     }
   }
 
-  async sendMedia(channelId: number | null, to: string, mediaId: string, mediaType: 'image' | 'video' | 'audio' | 'document', fileName?: string, caption?: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  async sendMedia(
+    channelId: number | null,
+    to: string,
+    mediaId: string,
+    mediaType: 'image' | 'video' | 'audio' | 'document',
+    fileName?: string,
+    caption?: string,
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
       const cleanTo = to.replace(/\D/g, '');
 
-      logger.info(`[SendMedia] Sending media to: ${cleanTo}, channelId: ${channelId}, mediaId: ${mediaId}, type: ${mediaType}, caption: ${caption}`);
+      logger.info(
+        `[SendMedia] Sending media to: ${cleanTo}, channelId: ${channelId}, mediaId: ${mediaId}, type: ${mediaType}, caption: ${caption}`,
+      );
 
       const mediaPayload: any = { id: mediaId };
       if (mediaType === 'document' && fileName) {
@@ -231,7 +278,7 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
         recipient_type: 'individual',
         to: cleanTo,
         type: mediaType,
-        [mediaType]: mediaPayload
+        [mediaType]: mediaPayload,
       };
 
       const url = `${this.baseUrl}/${phoneNumberId}/messages`;
@@ -243,13 +290,16 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
         body: JSON.stringify(body),
       });
 
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
 
       if (!response.ok) {
-        logger.error(`[SendMedia] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
+        logger.error(
+          `[SendMedia] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`,
+        );
         let errorMessage = data.error?.message || 'Unknown error';
         if (this.isAuthError(data, errorMessage)) {
-          errorMessage = 'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your configuration.';
+          errorMessage =
+            'WhatsApp API Authentication Failed: Your access token is invalid or has expired. Please update WHATSAPP_TOKEN in your configuration.';
         }
         return { success: false, error: errorMessage };
       }
@@ -263,13 +313,22 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     }
   }
 
-  async registerWebhook(channelId: number | null, callbackUrl: string, verifyToken: string): Promise<boolean> {
-    // This typically involves manual setup in Meta dashboard, 
+  async registerWebhook(
+    channelId: number | null,
+    callbackUrl: string,
+    verifyToken: string,
+  ): Promise<boolean> {
+    // This typically involves manual setup in Meta dashboard,
     // but some subscriptions can be automated via API for Embedded Signup
     return true;
   }
 
-  async sendReaction(channelId: number | null, to: string, messageId: string, emoji: string): Promise<{ success: boolean; error?: string }> {
+  async sendReaction(
+    channelId: number | null,
+    to: string,
+    messageId: string,
+    emoji: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
       const cleanTo = to.replace(/\D/g, '');
@@ -283,22 +342,24 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
         type: 'reaction',
         reaction: {
           message_id: messageId,
-          emoji: emoji
-        }
+          emoji: emoji,
+        },
       };
 
       const url = `${this.baseUrl}/${phoneNumberId}/messages`;
-      
+
       const response = await fetch(url, {
         method: 'POST',
         headers: await this.getHeaders(channelId || undefined),
         body: JSON.stringify(body),
       });
 
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
 
       if (!response.ok) {
-        logger.error(`[SendReaction] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`);
+        logger.error(
+          `[SendReaction] ❌ Meta API Error (HTTP ${response.status}): ${JSON.stringify(data)}`,
+        );
         return { success: false, error: data.error?.message || 'Unknown error' };
       }
 

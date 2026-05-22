@@ -1,4 +1,13 @@
-import { pgTable, serial, text, integer, boolean, timestamp, date, real } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  serial,
+  text,
+  integer,
+  boolean,
+  timestamp,
+  date,
+  real,
+} from 'drizzle-orm/pg-core';
 import type { Role } from '@mmc/types';
 
 /**
@@ -11,13 +20,13 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   password: text('password').notNull(),
   name: text('name').notNull(),
-  type: text('type').$type<Role>(),              // 'Doctor', 'Receptionist', 'Admin', 'Account', etc.
+  type: text('type').$type<Role>(), // 'Doctor', 'Receptionist', 'Admin', 'Account', etc.
   contextId: integer('context_id'),
   roleId: integer('role_id'),
   roleName: text('role_name'),
   phone: text('phone'),
   // clinicId: integer('clinic_id'),
-  
+
   // Professional & Personal Details (Parity with Legacy doctors/employees/receptionists)
   title: text('title'),
   firstname: text('firstname'),
@@ -33,7 +42,7 @@ export const users = pgTable('users', {
   dateBirth: date('date_birth'),
   dateLeft: date('date_left'),
   joiningdate: date('joiningdate'),
-  
+
   // Credentials & Finance
   designation: text('designation'),
   dept: integer('dept'),

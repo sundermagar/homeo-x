@@ -4,7 +4,12 @@ import type { ILeadRepository } from '../ports/lead.repository.js';
 export class ManageLeadsUseCase {
   constructor(private readonly repo: ILeadRepository) {}
 
-  async search(filters: { search?: string; status?: string; page: number; limit: number }): Promise<Result<{ data: any[]; total: number }>> {
+  async search(filters: {
+    search?: string;
+    status?: string;
+    page: number;
+    limit: number;
+  }): Promise<Result<{ data: any[]; total: number }>> {
     const result = await this.repo.findManyLeads(filters);
     return ok(result);
   }

@@ -31,7 +31,7 @@ export async function seedStaffRegistry(db: DbClient) {
       dateBirth: '1992-04-12',
       dateLeft: DEFAULT_DOE,
       salaryCur: 22000,
-      password: DEFAULT_PASSWORD
+      password: DEFAULT_PASSWORD,
     },
     {
       id: 102,
@@ -48,14 +48,22 @@ export async function seedStaffRegistry(db: DbClient) {
       dateBirth: '1995-11-20',
       dateLeft: DEFAULT_DOE,
       salaryCur: 18000,
-      password: DEFAULT_PASSWORD
-    }
+      password: DEFAULT_PASSWORD,
+    },
   ];
 
   for (const item of receptionists) {
-    const existingEmail = await db.select().from(receptionistsLegacy).where(eq(receptionistsLegacy.email, item.email)).limit(1);
-    const existingId = await db.select().from(receptionistsLegacy).where(eq(receptionistsLegacy.id, item.id)).limit(1);
-    
+    const existingEmail = await db
+      .select()
+      .from(receptionistsLegacy)
+      .where(eq(receptionistsLegacy.email, item.email))
+      .limit(1);
+    const existingId = await db
+      .select()
+      .from(receptionistsLegacy)
+      .where(eq(receptionistsLegacy.id, item.id))
+      .limit(1);
+
     if (existingEmail.length === 0 && existingId.length === 0) {
       await db.insert(receptionistsLegacy).values(item as any);
       console.log(`  - Created receptionist: ${item.name}`);
@@ -80,7 +88,7 @@ export async function seedStaffRegistry(db: DbClient) {
       dateLeft: DEFAULT_DOE,
       salaryCur: 35000,
       packages: 'Standard',
-      password: DEFAULT_PASSWORD
+      password: DEFAULT_PASSWORD,
     },
     {
       id: 202,
@@ -98,14 +106,22 @@ export async function seedStaffRegistry(db: DbClient) {
       dateLeft: DEFAULT_DOE,
       salaryCur: 42000,
       packages: 'Premium',
-      password: DEFAULT_PASSWORD
-    }
+      password: DEFAULT_PASSWORD,
+    },
   ];
 
   for (const item of employees) {
-    const existingEmail = await db.select().from(employeesLegacy).where(eq(employeesLegacy.email, item.email)).limit(1);
-    const existingId = await db.select().from(employeesLegacy).where(eq(employeesLegacy.id, item.id)).limit(1);
-    
+    const existingEmail = await db
+      .select()
+      .from(employeesLegacy)
+      .where(eq(employeesLegacy.email, item.email))
+      .limit(1);
+    const existingId = await db
+      .select()
+      .from(employeesLegacy)
+      .where(eq(employeesLegacy.id, item.id))
+      .limit(1);
+
     if (existingEmail.length === 0 && existingId.length === 0) {
       await db.insert(employeesLegacy).values(item as any);
       console.log(`  - Created employee: ${item.name}`);
@@ -129,7 +145,7 @@ export async function seedStaffRegistry(db: DbClient) {
       dateBirth: '1980-07-22',
       dateLeft: DEFAULT_DOE,
       salaryCur: 65000,
-      password: DEFAULT_PASSWORD
+      password: DEFAULT_PASSWORD,
     },
     {
       id: 302,
@@ -146,14 +162,22 @@ export async function seedStaffRegistry(db: DbClient) {
       dateBirth: '1984-01-30',
       dateLeft: DEFAULT_DOE,
       salaryCur: 72000,
-      password: DEFAULT_PASSWORD
-    }
+      password: DEFAULT_PASSWORD,
+    },
   ];
 
   for (const item of admins) {
-    const existingEmail = await db.select().from(clinicadminsLegacy).where(eq(clinicadminsLegacy.email, item.email)).limit(1);
-    const existingId = await db.select().from(clinicadminsLegacy).where(eq(clinicadminsLegacy.id, item.id)).limit(1);
-    
+    const existingEmail = await db
+      .select()
+      .from(clinicadminsLegacy)
+      .where(eq(clinicadminsLegacy.email, item.email))
+      .limit(1);
+    const existingId = await db
+      .select()
+      .from(clinicadminsLegacy)
+      .where(eq(clinicadminsLegacy.id, item.id))
+      .limit(1);
+
     if (existingEmail.length === 0 && existingId.length === 0) {
       await db.insert(clinicadminsLegacy).values(item as any);
       console.log(`  - Created clinic admin: ${item.name}`);
@@ -177,7 +201,7 @@ export async function seedStaffRegistry(db: DbClient) {
       dateBirth: '1986-09-10',
       dateLeft: DEFAULT_DOE,
       salaryCur: 45000,
-      password: DEFAULT_PASSWORD
+      password: DEFAULT_PASSWORD,
     },
     {
       id: 402,
@@ -194,14 +218,22 @@ export async function seedStaffRegistry(db: DbClient) {
       dateBirth: '1990-05-25',
       dateLeft: DEFAULT_DOE,
       salaryCur: 38000,
-      password: DEFAULT_PASSWORD
-    }
+      password: DEFAULT_PASSWORD,
+    },
   ];
 
   for (const item of accManagers) {
-    const existingEmail = await db.select().from(accountsLegacy).where(eq(accountsLegacy.email, item.email)).limit(1);
-    const existingId = await db.select().from(accountsLegacy).where(eq(accountsLegacy.id, item.id)).limit(1);
-    
+    const existingEmail = await db
+      .select()
+      .from(accountsLegacy)
+      .where(eq(accountsLegacy.email, item.email))
+      .limit(1);
+    const existingId = await db
+      .select()
+      .from(accountsLegacy)
+      .where(eq(accountsLegacy.id, item.id))
+      .limit(1);
+
     if (existingEmail.length === 0 && existingId.length === 0) {
       await db.insert(accountsLegacy).values(item as any);
       console.log(`  - Created account manager: ${item.name}`);

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { PlusCircle, X, RefreshCw, Trash2, Edit2, Search, DollarSign, Wallet } from 'lucide-react';
-import { 
-  useExpenses, 
-  useCreateExpense, 
-  useUpdateExpense, 
+import {
+  useExpenses,
+  useCreateExpense,
+  useUpdateExpense,
   useDeleteExpense,
   useExpenseHeads,
-  useCreateExpenseHead
+  useCreateExpenseHead,
 } from '../hooks/use-accounts';
 import type { ExpenseWithHead } from '@mmc/types';
 import type { CreateExpenseInput, ListExpensesQuery } from '@mmc/validation';
@@ -38,7 +38,8 @@ export default function ExpensesPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const query: ListExpensesQuery = {
-    page, limit: 10,
+    page,
+    limit: 10,
     head: headFilter ? parseInt(headFilter, 10) : undefined,
     fromDate: fromDate || undefined,
     toDate: toDate || undefined,
@@ -55,10 +56,11 @@ export default function ExpensesPage() {
   const total = data?.total ?? 0;
   const totalAmount = expenses.reduce((sum, e) => sum + (e.amount ?? 0), 0);
 
-  const filtered = expenses.filter(e =>
-    !search ||
-    (e.detail ?? '').toLowerCase().includes(search.toLowerCase()) ||
-    (e.headName ?? '').toLowerCase().includes(search.toLowerCase())
+  const filtered = expenses.filter(
+    (e) =>
+      !search ||
+      (e.detail ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (e.headName ?? '').toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleOpenCreate = () => {
@@ -85,7 +87,7 @@ export default function ExpensesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     let headId = form.head;
 
     if (isOtherSelected) {
@@ -95,7 +97,10 @@ export default function ExpensesPage() {
       }
       // Create new expense head
       try {
-        const newHead = await createExpenseHead.mutateAsync({ name: customHeadName, isActive: true });
+        const newHead = await createExpenseHead.mutateAsync({
+          name: customHeadName,
+          isActive: true,
+        });
         headId = newHead.id;
       } catch (err) {
         alert('Failed to create new category');
@@ -157,7 +162,10 @@ export default function ExpensesPage() {
       {/* ─── Stats Bar ─── */}
       <div className="bill-stats-bar">
         <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
+          <div
+            className="bill-stat-icon"
+            style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}
+          >
             <DollarSign size={22} />
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -166,7 +174,10 @@ export default function ExpensesPage() {
           </div>
         </div>
         <div className="bill-stat-card" data-type="danger">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)' }}>
+          <div
+            className="bill-stat-icon"
+            style={{ background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)' }}
+          >
             <Wallet size={22} />
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -180,30 +191,39 @@ export default function ExpensesPage() {
       <div className="bill-filters">
         <div className="bill-search-wrap">
           <Search size={14} className="bill-search-icon" strokeWidth={2} />
-          <input 
-            className="bill-filter-input bill-search-input" 
-            placeholder="Search expenses..." 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
+          <input
+            className="bill-filter-input bill-search-input"
+            placeholder="Search expenses..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select className="bill-filter-input" style={{ width: 160 }} value={headFilter} onChange={e => setHeadFilter(e.target.value)}>
+        <select
+          className="bill-filter-input"
+          style={{ width: 160 }}
+          value={headFilter}
+          onChange={(e) => setHeadFilter(e.target.value)}
+        >
           <option value="">All Categories</option>
-          {heads.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
+          {heads.map((h: any) => (
+            <option key={h.id} value={h.id}>
+              {h.name}
+            </option>
+          ))}
         </select>
-        <input 
-          type="date" 
-          className="bill-filter-input" 
-          style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} 
-          value={fromDate} 
-          onChange={e => setFromDate(e.target.value)} 
+        <input
+          type="date"
+          className="bill-filter-input"
+          style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }}
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
         />
-        <input 
-          type="date" 
-          className="bill-filter-input" 
-          style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} 
-          value={toDate} 
-          onChange={e => setToDate(e.target.value)} 
+        <input
+          type="date"
+          className="bill-filter-input"
+          style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }}
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
         />
       </div>
 
@@ -211,12 +231,23 @@ export default function ExpensesPage() {
         {isLoading ? (
           <TableSkeleton rows={10} columns={6} />
         ) : filtered.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Wallet}
-            title={search || headFilter ? "No matches found" : "No expenses recorded"}
-            description={search || headFilter ? `No expense entries matching your search filters were found.` : "Maintain a healthy clinic by tracking your operational costs."}
-            actionLabel={search || headFilter ? "Clear Filters" : "Add Expense"}
-            onAction={search || headFilter ? () => { setSearch(''); setHeadFilter(''); } : handleOpenCreate}
+            title={search || headFilter ? 'No matches found' : 'No expenses recorded'}
+            description={
+              search || headFilter
+                ? `No expense entries matching your search filters were found.`
+                : 'Maintain a healthy clinic by tracking your operational costs.'
+            }
+            actionLabel={search || headFilter ? 'Clear Filters' : 'Add Expense'}
+            onAction={
+              search || headFilter
+                ? () => {
+                    setSearch('');
+                    setHeadFilter('');
+                  }
+                : handleOpenCreate
+            }
             variant="card"
             className="my-8"
           />
@@ -234,32 +265,60 @@ export default function ExpensesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(e => (
+                {filtered.map((e) => (
                   <tr key={e.id}>
                     <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>
                       <div>#{e.id}</div>
                     </td>
-                    <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}>
+                    <td
+                      data-label="Date"
+                      style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem' }}
+                    >
                       <div>{e.expDate || '—'}</div>
                     </td>
                     <td data-label="Category">
                       <div className="plat-cell-val">
-                        <span className="bill-badge bill-badge-staff">{e.headName || `Head #${e.head}`}</span>
+                        <span className="bill-badge bill-badge-staff">
+                          {e.headName || `Head #${e.head}`}
+                        </span>
                       </div>
                     </td>
                     <td data-label="Description">
                       <div>{e.detail || '—'}</div>
                     </td>
-                    <td data-label="Amount" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-danger-fg)' }}>
+                    <td
+                      data-label="Amount"
+                      style={{
+                        fontFamily: 'var(--pp-font-mono)',
+                        fontWeight: 700,
+                        color: 'var(--pp-danger-fg)',
+                      }}
+                    >
                       <div className="plat-cell-val">₹{(e.amount ?? 0).toLocaleString()}</div>
                     </td>
                     <td data-label="Actions">
                       <div className="plat-cell-val">
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
-                          <button className="bill-btn bill-btn-sm bill-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(e)}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '8px',
+                            justifyContent: 'flex-end',
+                            width: '100%',
+                          }}
+                        >
+                          <button
+                            className="bill-btn bill-btn-sm bill-btn-icon"
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                            onClick={() => handleOpenEdit(e)}
+                          >
                             <Edit2 size={13} strokeWidth={2} />
                           </button>
-                          <button type="button" className="bill-btn bill-btn-sm bill-btn-icon bill-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={(evt) => handleDelete(evt, e.id)}>
+                          <button
+                            type="button"
+                            className="bill-btn bill-btn-sm bill-btn-icon bill-btn-danger"
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                            onClick={(evt) => handleDelete(evt, e.id)}
+                          >
                             <Trash2 size={13} strokeWidth={2} />
                           </button>
                         </div>
@@ -288,62 +347,110 @@ export default function ExpensesPage() {
       >
         <form onSubmit={handleSubmit} className="bill-form">
           <div className="bill-form-group">
-            <label className="bill-form-label">Expense Head <span className="bill-form-required">*</span></label>
-            <select 
-              className="bill-form-select" 
-              value={isOtherSelected ? 'other' : (form.head ?? '')} 
-              onChange={e => {
+            <label className="bill-form-label">
+              Expense Head <span className="bill-form-required">*</span>
+            </label>
+            <select
+              className="bill-form-select"
+              value={isOtherSelected ? 'other' : (form.head ?? '')}
+              onChange={(e) => {
                 if (e.target.value === 'other') {
                   setIsOtherSelected(true);
-                  setForm(f => ({ ...f, head: undefined }));
+                  setForm((f) => ({ ...f, head: undefined }));
                 } else {
                   setIsOtherSelected(false);
-                  setForm(f => ({ ...f, head: e.target.value ? parseInt(e.target.value) : undefined }));
+                  setForm((f) => ({
+                    ...f,
+                    head: e.target.value ? parseInt(e.target.value) : undefined,
+                  }));
                 }
-              }} 
+              }}
               required
               style={{ height: 44, borderRadius: 12 }}
             >
               <option value="">Select category...</option>
-              {heads.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
-              <option value="other" style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>+ Other (Create New)</option>
+              {heads.map((h: any) => (
+                <option key={h.id} value={h.id}>
+                  {h.name}
+                </option>
+              ))}
+              <option value="other" style={{ fontWeight: 700, color: 'var(--pp-blue)' }}>
+                + Other (Create New)
+              </option>
             </select>
           </div>
-          
+
           {isOtherSelected && (
             <div className="bill-form-group animate-fade-in">
-              <label className="bill-form-label">New Category Name <span className="bill-form-required">*</span></label>
-              <input 
-                className="bill-form-input" 
-                placeholder="Enter manual category name..." 
-                value={customHeadName} 
-                onChange={e => setCustomHeadName(e.target.value)}
-                required 
+              <label className="bill-form-label">
+                New Category Name <span className="bill-form-required">*</span>
+              </label>
+              <input
+                className="bill-form-input"
+                placeholder="Enter manual category name..."
+                value={customHeadName}
+                onChange={(e) => setCustomHeadName(e.target.value)}
+                required
                 autoFocus
                 style={{ borderRadius: 12 }}
               />
             </div>
           )}
-          
+
           <div className="bill-form-row bill-form-row-2">
             <div className="bill-form-group">
               <label className="bill-form-label">Date</label>
-              <input className="bill-form-input" type="date" value={form.expDate} onChange={e => setForm(f => ({ ...f, expDate: e.target.value }))} style={{ borderRadius: 12 }} />
+              <input
+                className="bill-form-input"
+                type="date"
+                value={form.expDate}
+                onChange={(e) => setForm((f) => ({ ...f, expDate: e.target.value }))}
+                style={{ borderRadius: 12 }}
+              />
             </div>
             <div className="bill-form-group">
-              <label className="bill-form-label">Amount (₹) <span className="bill-form-required">*</span></label>
-              <input className="bill-form-input" type="number" min={0} value={form.amount} onChange={e => setForm(f => ({ ...f, amount: Number(e.target.value) }))} required style={{ borderRadius: 12, fontWeight: 800, fontSize: '1.1rem' }} />
+              <label className="bill-form-label">
+                Amount (₹) <span className="bill-form-required">*</span>
+              </label>
+              <input
+                className="bill-form-input"
+                type="number"
+                min={0}
+                value={form.amount}
+                onChange={(e) => setForm((f) => ({ ...f, amount: Number(e.target.value) }))}
+                required
+                style={{ borderRadius: 12, fontWeight: 800, fontSize: '1.1rem' }}
+              />
             </div>
           </div>
-          
+
           <div className="bill-form-group">
             <label className="bill-form-label">Description / Detail</label>
-            <textarea className="bill-form-textarea" rows={4} value={form.detail} onChange={e => setForm(f => ({ ...f, detail: e.target.value }))} placeholder="e.g. Electricity bill for March 2026" style={{ borderRadius: 14 }} />
+            <textarea
+              className="bill-form-textarea"
+              rows={4}
+              value={form.detail}
+              onChange={(e) => setForm((f) => ({ ...f, detail: e.target.value }))}
+              placeholder="e.g. Electricity bill for March 2026"
+              style={{ borderRadius: 14 }}
+            />
           </div>
 
           <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
-            <button type="button" className="bill-btn" style={{ flex: 1, height: 48, borderRadius: 14 }} onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="bill-btn bill-btn-primary" style={{ flex: 2, height: 48, borderRadius: 14 }} disabled={createExpense.isPending || updateExpense.isPending}>
+            <button
+              type="button"
+              className="bill-btn"
+              style={{ flex: 1, height: 48, borderRadius: 14 }}
+              onClick={() => setIsModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bill-btn bill-btn-primary"
+              style={{ flex: 2, height: 48, borderRadius: 14 }}
+              disabled={createExpense.isPending || updateExpense.isPending}
+            >
               {editingId ? 'Save Changes' : 'Add Expense'}
             </button>
           </div>
@@ -361,15 +468,21 @@ export default function ExpensesPage() {
               </p>
             </div>
             <div className="bill-modal-footer">
-              <button type="button" className="bill-btn" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
-              <button type="button" className="bill-btn bill-btn-danger" onClick={confirmDelete} disabled={deleteExpense.isPending}>
+              <button type="button" className="bill-btn" onClick={() => setDeleteConfirmId(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="bill-btn bill-btn-danger"
+                onClick={confirmDelete}
+                disabled={deleteExpense.isPending}
+              >
                 {deleteExpense.isPending ? 'Deleting...' : 'Delete Permanently'}
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

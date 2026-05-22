@@ -13,16 +13,16 @@ export const CampaignList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
-  
+
   const { data, isLoading } = useCampaignsPaginated({ page, limit: pageSize, search });
   const campaigns = data?.data || [];
   const totalEntries = data?.total || 0;
-  
+
   const broadcastMutation = useBroadcastCampaign();
   const deleteMutation = useWhatsApp().useDeleteCampaign();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     const handleOpenModal = () => setIsModalOpen(true);
     window.addEventListener('open-campaign-modal', handleOpenModal);
@@ -31,16 +31,23 @@ export const CampaignList = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active': 
+      case 'active':
         return <span className="pp-badge-status status-active animate-pulse">ACTIVE</span>;
-      case 'completed': 
+      case 'completed':
         return <span className="pp-badge-status status-completed">COMPLETED</span>;
-      case 'scheduled': 
+      case 'scheduled':
         return <span className="pp-badge-status status-pending">SCHEDULED</span>;
-      case 'failed': 
+      case 'failed':
         return <span className="pp-badge-status status-cancelled">FAILED</span>;
-      default: 
-        return <span className="pp-badge-status" style={{ background: 'var(--pp-bg-subtle)', color: 'var(--pp-text-muted)' }}>DRAFT</span>;
+      default:
+        return (
+          <span
+            className="pp-badge-status"
+            style={{ background: 'var(--pp-bg-subtle)', color: 'var(--pp-text-muted)' }}
+          >
+            DRAFT
+          </span>
+        );
     }
   };
 
@@ -66,7 +73,10 @@ export const CampaignList = () => {
             className="pp-filter-search-input"
             placeholder="Search campaigns by name or template..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
       </div>
@@ -108,7 +118,9 @@ export const CampaignList = () => {
                       campaigns.map((campaign: any, idx: number) => (
                         <tr key={campaign.id} className="pp-hover-row">
                           <td>
-                             <span className="font-mono text-[10px] font-bold opacity-40">{idx + 1 + (page - 1) * pageSize}</span>
+                            <span className="font-mono text-[10px] font-bold opacity-40">
+                              {idx + 1 + (page - 1) * pageSize}
+                            </span>
                           </td>
                           <td>
                             <div className="flex items-center gap-3">
@@ -131,66 +143,111 @@ export const CampaignList = () => {
                           <td>
                             <div className="space-y-1.5 max-w-[140px]">
                               <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider">
-                                <span className="text-success">Sent: {campaign.sentCount || 0}</span>
-                                <span className="text-danger">Fail: {campaign.failedCount || 0}</span>
+                                <span className="text-success">
+                                  Sent: {campaign.sentCount || 0}
+                                </span>
+                                <span className="text-danger">
+                                  Fail: {campaign.failedCount || 0}
+                                </span>
                               </div>
                               <div className="h-1.5 w-full bg-pp-bg-subtle rounded-full overflow-hidden flex">
-                                <div 
-                                  className="bg-success h-full transition-all duration-1000" 
-                                  style={{ width: `${(campaign.sentCount / (campaign.recipientCount || 1)) * 100}%` }} 
+                                <div
+                                  className="bg-success h-full transition-all duration-1000"
+                                  style={{
+                                    width: `${(campaign.sentCount / (campaign.recipientCount || 1)) * 100}%`,
+                                  }}
                                 />
-                                <div 
-                                  className="bg-danger h-full transition-all duration-1000" 
-                                  style={{ width: `${(campaign.failedCount / (campaign.recipientCount || 1)) * 100}%` }} 
+                                <div
+                                  className="bg-danger h-full transition-all duration-1000"
+                                  style={{
+                                    width: `${(campaign.failedCount / (campaign.recipientCount || 1)) * 100}%`,
+                                  }}
                                 />
                               </div>
                             </div>
                           </td>
                           <td>
                             <div className="flex flex-col">
-                              <span className="appt-cell-name text-xs">{safeFormatDate(campaign.createdAt, 'MMM dd, yyyy')}</span>
-                              <span className="appt-cell-phone">{safeFormatDate(campaign.createdAt, 'h:mm a')}</span>
+                              <span className="appt-cell-name text-xs">
+                                {safeFormatDate(campaign.createdAt, 'MMM dd, yyyy')}
+                              </span>
+                              <span className="appt-cell-phone">
+                                {safeFormatDate(campaign.createdAt, 'h:mm a')}
+                              </span>
                             </div>
                           </td>
                           <td style={{ textAlign: 'right' }}>
                             <div className="flex items-center justify-end gap-2">
                               {campaign.status === 'draft' && (
-                                <button 
+                                <button
                                   className="btn-primary btn-sm px-4 h-8 text-[11px]"
                                   onClick={() => {
                                     broadcastMutation.mutate(campaign.id, {
-                                      onSuccess: () => toast({ title: 'Broadcast Initialized', description: 'Patients are now being messaged.' }),
-                                      onError: (err: any) => toast({ title: 'Broadcast Failed', description: err.message, variant: 'error' })
+                                      onSuccess: () =>
+                                        toast({
+                                          title: 'Broadcast Initialized',
+                                          description: 'Patients are now being messaged.',
+                                        }),
+                                      onError: (err: any) =>
+                                        toast({
+                                          title: 'Broadcast Failed',
+                                          description: err.message,
+                                          variant: 'error',
+                                        }),
                                     });
                                   }}
-                                  disabled={broadcastMutation.isPending && broadcastMutation.variables === campaign.id}
+                                  disabled={
+                                    broadcastMutation.isPending &&
+                                    broadcastMutation.variables === campaign.id
+                                  }
                                 >
-                                  <Play className={`w-3.5 h-3.5 mr-1.5 ${(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'animate-spin' : ''}`} />
-                                  {(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'Launching...' : 'Launch'}
+                                  <Play
+                                    className={`w-3.5 h-3.5 mr-1.5 ${broadcastMutation.isPending && broadcastMutation.variables === campaign.id ? 'animate-spin' : ''}`}
+                                  />
+                                  {broadcastMutation.isPending &&
+                                  broadcastMutation.variables === campaign.id
+                                    ? 'Launching...'
+                                    : 'Launch'}
                                 </button>
                               )}
                               {campaign.status === 'completed' && (
-                                <button 
+                                <button
                                   className="btn-ghost text-pp-blue font-bold text-[11px]"
                                   onClick={() => navigate('/communications/whatsapp/analytics')}
                                 >
                                   View Analytics
                                 </button>
                               )}
-                              <button 
+                              <button
                                 className="btn-ghost text-error/80 hover:text-error hover:bg-error/10 h-8 w-8 p-0 rounded-lg flex items-center justify-center transition-colors"
                                 onClick={() => {
                                   if (confirm('Are you sure you want to delete this campaign?')) {
                                     deleteMutation.mutate(campaign.id, {
                                       onSuccess: () => toast({ title: 'Campaign Deleted' }),
-                                      onError: (err: any) => toast({ title: 'Failed to delete', description: err.message, variant: 'error' })
+                                      onError: (err: any) =>
+                                        toast({
+                                          title: 'Failed to delete',
+                                          description: err.message,
+                                          variant: 'error',
+                                        }),
                                     });
                                   }
                                 }}
-                                disabled={deleteMutation.isPending && deleteMutation.variables === campaign.id}
+                                disabled={
+                                  deleteMutation.isPending &&
+                                  deleteMutation.variables === campaign.id
+                                }
                                 title="Delete Campaign"
                               >
-                                <Trash2 size={14} className={(deleteMutation.isPending && deleteMutation.variables === campaign.id) ? 'animate-pulse' : ''} />
+                                <Trash2
+                                  size={14}
+                                  className={
+                                    deleteMutation.isPending &&
+                                    deleteMutation.variables === campaign.id
+                                      ? 'animate-pulse'
+                                      : ''
+                                  }
+                                />
                               </button>
                             </div>
                           </td>
@@ -211,7 +268,10 @@ export const CampaignList = () => {
               </div>
             ) : (
               campaigns.map((campaign: any, idx: number) => (
-                <div key={campaign.id} className="bg-white p-5 rounded-2xl border border-pp-border shadow-sm space-y-4">
+                <div
+                  key={campaign.id}
+                  className="bg-white p-5 rounded-2xl border border-pp-border shadow-sm space-y-4"
+                >
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-pp-blue-tint text-pp-blue rounded-lg flex items-center justify-center font-bold text-xs">
@@ -224,7 +284,7 @@ export const CampaignList = () => {
                     </div>
                     {getStatusBadge(campaign.status)}
                   </div>
-                  
+
                   <div className="bg-pp-bg-subtle/50 p-3 rounded-xl border border-pp-border text-xs text-secondary space-y-2">
                     <div className="flex justify-between">
                       <span className="font-semibold text-muted text-[10px]">TEMPLATE:</span>
@@ -232,7 +292,9 @@ export const CampaignList = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="font-semibold text-muted text-[10px]">CREATED:</span>
-                      <span className="font-medium text-main">{safeFormatDate(campaign.createdAt, 'MMM dd, yyyy h:mm a')}</span>
+                      <span className="font-medium text-main">
+                        {safeFormatDate(campaign.createdAt, 'MMM dd, yyyy h:mm a')}
+                      </span>
                     </div>
                   </div>
 
@@ -243,54 +305,89 @@ export const CampaignList = () => {
                         <span className="text-danger">Fail: {campaign.failedCount || 0}</span>
                       </div>
                       <div className="h-1.5 w-full bg-pp-bg-subtle rounded-full overflow-hidden flex">
-                        <div 
-                          className="bg-success h-full" 
-                          style={{ width: `${(campaign.sentCount / (campaign.recipientCount || 1)) * 100}%` }} 
+                        <div
+                          className="bg-success h-full"
+                          style={{
+                            width: `${(campaign.sentCount / (campaign.recipientCount || 1)) * 100}%`,
+                          }}
                         />
-                        <div 
-                          className="bg-danger h-full" 
-                          style={{ width: `${(campaign.failedCount / (campaign.recipientCount || 1)) * 100}%` }} 
+                        <div
+                          className="bg-danger h-full"
+                          style={{
+                            width: `${(campaign.failedCount / (campaign.recipientCount || 1)) * 100}%`,
+                          }}
                         />
                       </div>
                     </div>
 
                     <div className="shrink-0 flex items-center gap-2">
                       {campaign.status === 'draft' && (
-                        <button 
+                        <button
                           className="btn-primary btn-sm px-4 h-8 text-[11px]"
                           onClick={() => {
                             broadcastMutation.mutate(campaign.id, {
-                              onSuccess: () => toast({ title: 'Broadcast Initialized', description: 'Patients are now being messaged.' }),
-                              onError: (err: any) => toast({ title: 'Broadcast Failed', description: err.message, variant: 'error' })
+                              onSuccess: () =>
+                                toast({
+                                  title: 'Broadcast Initialized',
+                                  description: 'Patients are now being messaged.',
+                                }),
+                              onError: (err: any) =>
+                                toast({
+                                  title: 'Broadcast Failed',
+                                  description: err.message,
+                                  variant: 'error',
+                                }),
                             });
                           }}
-                          disabled={broadcastMutation.isPending && broadcastMutation.variables === campaign.id}
+                          disabled={
+                            broadcastMutation.isPending &&
+                            broadcastMutation.variables === campaign.id
+                          }
                         >
-                          <Play className={`w-3.5 h-3.5 mr-1.5 ${(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'animate-spin' : ''}`} />
-                          {(broadcastMutation.isPending && broadcastMutation.variables === campaign.id) ? 'Launching...' : 'Launch'}
+                          <Play
+                            className={`w-3.5 h-3.5 mr-1.5 ${broadcastMutation.isPending && broadcastMutation.variables === campaign.id ? 'animate-spin' : ''}`}
+                          />
+                          {broadcastMutation.isPending &&
+                          broadcastMutation.variables === campaign.id
+                            ? 'Launching...'
+                            : 'Launch'}
                         </button>
                       )}
                       {campaign.status === 'completed' && (
-                        <button 
+                        <button
                           className="btn-ghost text-pp-blue font-bold text-[11px]"
                           onClick={() => navigate('/communications/whatsapp/analytics')}
                         >
                           View Analytics
                         </button>
                       )}
-                      <button 
+                      <button
                         className="btn-ghost text-error/80 hover:text-error hover:bg-error/10 h-8 w-8 p-0 rounded-lg flex items-center justify-center"
                         onClick={() => {
                           if (confirm('Are you sure you want to delete this campaign?')) {
                             deleteMutation.mutate(campaign.id, {
                               onSuccess: () => toast({ title: 'Campaign Deleted' }),
-                              onError: (err: any) => toast({ title: 'Failed to delete', description: err.message, variant: 'error' })
+                              onError: (err: any) =>
+                                toast({
+                                  title: 'Failed to delete',
+                                  description: err.message,
+                                  variant: 'error',
+                                }),
                             });
                           }
                         }}
-                        disabled={deleteMutation.isPending && deleteMutation.variables === campaign.id}
+                        disabled={
+                          deleteMutation.isPending && deleteMutation.variables === campaign.id
+                        }
                       >
-                        <Trash2 size={14} className={(deleteMutation.isPending && deleteMutation.variables === campaign.id) ? 'animate-pulse' : ''} />
+                        <Trash2
+                          size={14}
+                          className={
+                            deleteMutation.isPending && deleteMutation.variables === campaign.id
+                              ? 'animate-pulse'
+                              : ''
+                          }
+                        />
                       </button>
                     </div>
                   </div>
@@ -298,7 +395,7 @@ export const CampaignList = () => {
               ))
             )}
           </div>
-          
+
           {totalEntries > 0 && (
             <Pagination
               currentPage={page}
@@ -311,7 +408,7 @@ export const CampaignList = () => {
           )}
         </>
       )}
-      
+
       <CampaignModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );

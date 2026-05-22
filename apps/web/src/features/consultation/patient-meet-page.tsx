@@ -1,7 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Check, MonitorSmartphone, Sparkles, Send, X, MessageSquare, ChevronRight } from 'lucide-react';
-import { CallInterfacePanel, type CallMode } from '../../components/video-call/call-interface-panel';
+import {
+  Check,
+  MonitorSmartphone,
+  Sparkles,
+  Send,
+  X,
+  MessageSquare,
+  ChevronRight,
+} from 'lucide-react';
+import {
+  CallInterfacePanel,
+  type CallMode,
+} from '../../components/video-call/call-interface-panel';
 import { useVideoService } from '../../hooks/use-video-service';
 import { fetchPatientToken } from '../../hooks/use-video-call';
 import { LoadingState } from '../../components/shared/loading-state';
@@ -13,7 +24,7 @@ export default function PatientMeetPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const [searchParams] = useSearchParams();
   const callMode = (searchParams.get('mode')?.toUpperCase() || 'VIDEO') as CallMode;
-  
+
   const [hasJoined, setHasJoined] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,12 +32,14 @@ export default function PatientMeetPage() {
   const [drInterimText, setDrInterimText] = useState('');
   const [ptInterimText, setPtInterimText] = useState('');
   const [isCallEnded, setIsCallEnded] = useState(false);
-  const [activeQuestions, setActiveQuestions] = useState<Array<{ id: string; question: string; options?: string[] }>>([]); 
+  const [activeQuestions, setActiveQuestions] = useState<
+    Array<{ id: string; question: string; options?: string[] }>
+  >([]);
   const [selectedOptionsMap, setSelectedOptionsMap] = useState<Record<string, string[]>>({});
   const [customTextMap, setCustomTextMap] = useState<Record<string, string>>({});
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
   const questionIdCounter = useRef(0);
-  
+
   const video = useVideoService();
   const socketRef = useRef<Socket | null>(null);
 
@@ -59,10 +72,10 @@ export default function PatientMeetPage() {
 
     try {
       const credentials = await fetchPatientToken(roomId);
-      
+
       // Join video call
       await video.join(credentials.appId, credentials.channel, credentials.token, credentials.uid);
-      
+
       const baseUrl = import.meta.env['VITE_API_URL'] || window.location.origin;
 
       // Connect to video-call socket for questions/sync
@@ -76,8 +89,8 @@ export default function PatientMeetPage() {
 
       socket.on('call:question', (data: { question: string; options?: string[] }) => {
         // Deduplicate: check if question is already in the queue
-        setActiveQuestions(prev => {
-          if (prev.some(q => q.question === data.question)) {
+        setActiveQuestions((prev) => {
+          if (prev.some((q) => q.question === data.question)) {
             return prev;
           }
           toast({
@@ -106,17 +119,20 @@ export default function PatientMeetPage() {
           <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
             <MonitorSmartphone className="w-10 h-10" />
           </div>
-          
+
           <div className="space-y-3">
             <h1 className="text-2xl font-bold text-slate-900">Teleconsultation</h1>
-            <p className="text-slate-500">Your doctor is ready. Click below to join the consultation.</p>
+            <p className="text-slate-500">
+              Your doctor is ready. Click below to join the consultation.
+            </p>
           </div>
 
           <div className="bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] p-4 rounded-xl text-sm text-left">
-            <strong>Before joining:</strong> Please allow microphone access when prompted. Use <strong>Chrome</strong> or <strong>Edge</strong> for best experience.
+            <strong>Before joining:</strong> Please allow microphone access when prompted. Use{' '}
+            <strong>Chrome</strong> or <strong>Edge</strong> for best experience.
           </div>
 
-          <button 
+          <button
             onClick={handleJoinSession}
             className="w-full flex items-center justify-center gap-2 py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-600/30"
           >
@@ -141,9 +157,12 @@ export default function PatientMeetPage() {
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-slate-900">Consultation Ended</h1>
-            <p className="text-slate-500">Thank you for using our remote consultation service. You can now safely close this window.</p>
+            <p className="text-slate-500">
+              Thank you for using our remote consultation service. You can now safely close this
+              window.
+            </p>
           </div>
-          <button 
+          <button
             onClick={() => window.close()}
             className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all active:scale-95"
           >
@@ -163,7 +182,7 @@ export default function PatientMeetPage() {
           </div>
           <h1 className="text-xl font-bold text-slate-900">Unable to Join</h1>
           <p className="text-slate-600">{error}</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="w-full py-2 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800 transition-colors"
           >
@@ -176,11 +195,9 @@ export default function PatientMeetPage() {
 
   // Toggle an option for a specific question
   const toggleOption = (qId: string, opt: string) => {
-    setSelectedOptionsMap(prev => {
+    setSelectedOptionsMap((prev) => {
       const current = prev[qId] || [];
-      const next = current.includes(opt)
-        ? current.filter(o => o !== opt)
-        : [...current, opt];
+      const next = current.includes(opt) ? current.filter((o) => o !== opt) : [...current, opt];
       return { ...prev, [qId]: next };
     });
   };
@@ -218,7 +235,7 @@ export default function PatientMeetPage() {
       startTimeMs: Date.now(),
       endTimeMs: Date.now(),
     };
-    setTranscript(prev => [...prev, qSeg, aSeg]);
+    setTranscript((prev) => [...prev, qSeg, aSeg]);
 
     // Send the answer via socket
     if (socketRef.current?.connected) {
@@ -230,9 +247,17 @@ export default function PatientMeetPage() {
     }
 
     // Remove this question from the queue and clean up state
-    setActiveQuestions(prev => prev.filter(item => item.id !== q.id));
-    setSelectedOptionsMap(prev => { const n = { ...prev }; delete n[q.id]; return n; });
-    setCustomTextMap(prev => { const n = { ...prev }; delete n[q.id]; return n; });
+    setActiveQuestions((prev) => prev.filter((item) => item.id !== q.id));
+    setSelectedOptionsMap((prev) => {
+      const n = { ...prev };
+      delete n[q.id];
+      return n;
+    });
+    setCustomTextMap((prev) => {
+      const n = { ...prev };
+      delete n[q.id];
+      return n;
+    });
 
     toast({
       title: 'Answer submitted',
@@ -244,15 +269,23 @@ export default function PatientMeetPage() {
   const handleSubmitAll = () => {
     if (activeQuestions.length === 0) return;
     setIsSubmittingAnswer(true);
-    activeQuestions.forEach(q => handleSubmitSingle(q));
+    activeQuestions.forEach((q) => handleSubmitSingle(q));
     setIsSubmittingAnswer(false);
   };
 
   // Dismiss a single question
   const handleDismiss = (qId: string) => {
-    setActiveQuestions(prev => prev.filter(q => q.id !== qId));
-    setSelectedOptionsMap(prev => { const n = { ...prev }; delete n[qId]; return n; });
-    setCustomTextMap(prev => { const n = { ...prev }; delete n[qId]; return n; });
+    setActiveQuestions((prev) => prev.filter((q) => q.id !== qId));
+    setSelectedOptionsMap((prev) => {
+      const n = { ...prev };
+      delete n[qId];
+      return n;
+    });
+    setCustomTextMap((prev) => {
+      const n = { ...prev };
+      delete n[qId];
+      return n;
+    });
   };
 
   return (
@@ -261,14 +294,18 @@ export default function PatientMeetPage() {
         <div className="flex items-center justify-between shrink-0">
           <div className="space-y-1">
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Patient Portal</h1>
-            <p className="text-sm font-medium text-slate-500 uppercase tracking-widest text-[10px] tracking-[0.15em]">Secure Consultation Room</p>
+            <p className="text-sm font-medium text-slate-500 uppercase tracking-widest text-[10px] tracking-[0.15em]">
+              Secure Consultation Room
+            </p>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Live Connection</span>
+            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+              Live Connection
+            </span>
           </div>
         </div>
 
@@ -296,7 +333,9 @@ export default function PatientMeetPage() {
             <div className="px-5 py-3 bg-[#F8FAFC] border-b border-[#E2E8F0] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#4F46E5] animate-pulse" />
-                <span className="text-[13px] font-bold text-slate-800 tracking-tight">Doctor Inquiries</span>
+                <span className="text-[13px] font-bold text-slate-800 tracking-tight">
+                  Doctor Inquiries
+                </span>
                 <span className="px-1.5 py-0.5 rounded-full bg-[#4F46E5] text-white text-[10px] font-bold min-w-[20px] text-center">
                   {activeQuestions.length}
                 </span>
@@ -347,7 +386,9 @@ export default function PatientMeetPage() {
                     {/* Multi-select options */}
                     {q.options && q.options.length > 0 && (
                       <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select options</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          Select options
+                        </span>
                         <div className="flex flex-wrap gap-1.5">
                           {q.options.map((opt, idx) => {
                             const isSelected = selected.includes(opt);
@@ -357,8 +398,8 @@ export default function PatientMeetPage() {
                                 onClick={() => toggleOption(q.id, opt)}
                                 className={`px-2.5 py-1 text-[11px] font-semibold border rounded-lg transition-all active:scale-95 text-left ${
                                   isSelected
-                                    ? "bg-[#4F46E5] text-white border-[#4F46E5] shadow-sm shadow-indigo-500/20"
-                                    : "bg-slate-50 border-[#E2E8F0] text-slate-600 hover:border-[#4F46E5] hover:text-[#4F46E5]"
+                                    ? 'bg-[#4F46E5] text-white border-[#4F46E5] shadow-sm shadow-indigo-500/20'
+                                    : 'bg-slate-50 border-[#E2E8F0] text-slate-600 hover:border-[#4F46E5] hover:text-[#4F46E5]'
                                 }`}
                               >
                                 {isSelected && <Check className="w-3 h-3 inline mr-1 -mt-0.5" />}
@@ -375,7 +416,9 @@ export default function PatientMeetPage() {
                       <input
                         type="text"
                         value={custom}
-                        onChange={(e) => setCustomTextMap(prev => ({ ...prev, [q.id]: e.target.value }))}
+                        onChange={(e) =>
+                          setCustomTextMap((prev) => ({ ...prev, [q.id]: e.target.value }))
+                        }
                         placeholder="Add details..."
                         className="w-full text-[12px] font-medium px-3 py-2 rounded-lg border border-[#E2E8F0] bg-slate-50 focus:outline-none focus:bg-white focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF] text-slate-800 transition-colors"
                         onKeyDown={(e) => {
@@ -405,9 +448,12 @@ export default function PatientMeetPage() {
             <div className="w-12 h-12 bg-white border border-[#E2E8F0] rounded-full flex items-center justify-center mb-3 shadow-sm shrink-0">
               <Sparkles className="w-5 h-5 text-indigo-500" />
             </div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-800 shrink-0">Doctor Inquiries</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-800 shrink-0">
+              Doctor Inquiries
+            </p>
             <p className="text-xs text-slate-400 mt-2 max-w-[280px] leading-relaxed shrink-0">
-              Questions from the doctor will appear here in real-time. You can select options or submit details directly to your doctor.
+              Questions from the doctor will appear here in real-time. You can select options or
+              submit details directly to your doctor.
             </p>
           </div>
         )}
@@ -415,4 +461,3 @@ export default function PatientMeetPage() {
     </div>
   );
 }
-

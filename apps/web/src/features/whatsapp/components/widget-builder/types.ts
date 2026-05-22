@@ -104,4 +104,4 @@ export interface ChatMessage {
   time: string;
 }
 
-export type PreviewScreen = "home" | "chat" | "search" | "article";
+export type PreviewScreen = 'home' | 'chat' | 'search' | 'article';

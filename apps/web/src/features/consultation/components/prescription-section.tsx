@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { useFieldArray, type Control, type UseFormRegister, type UseFormWatch, type UseFormSetValue } from 'react-hook-form';
+import {
+  useFieldArray,
+  type Control,
+  type UseFormRegister,
+  type UseFormWatch,
+  type UseFormSetValue,
+} from 'react-hook-form';
 import { Pill, Plus, Trash2, RotateCcw } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -13,7 +19,11 @@ import { DrugInteractionAlert } from './drug-interaction-alert';
 import { useAiSuggestPrescription, useAiFeedback } from '../../../hooks/use-ai-suggest';
 import { useCheckInteractions } from '../../../hooks/use-drug-interactions';
 import type { CreatePrescriptionItemInput } from '../../../types/prescription';
-import type { PrescriptionSuggestion, SuggestPrescriptionInput, DrugInteractionWarning } from '../../../types/ai';
+import type {
+  PrescriptionSuggestion,
+  SuggestPrescriptionInput,
+  DrugInteractionWarning,
+} from '../../../types/ai';
 
 export interface PrescriptionFormData {
   notes: string;
@@ -33,7 +43,13 @@ interface PrescriptionSectionProps {
   aiContext?: SuggestPrescriptionInput;
 }
 
-export function PrescriptionSection({ control, register, watch, setValue, aiContext }: PrescriptionSectionProps) {
+export function PrescriptionSection({
+  control,
+  register,
+  watch,
+  setValue,
+  aiContext,
+}: PrescriptionSectionProps) {
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const [rxSuggestion, setRxSuggestion] = useState<PrescriptionSuggestion | null>(null);
   const [ddiWarnings, setDdiWarnings] = useState<DrugInteractionWarning[]>([]);
@@ -83,20 +99,31 @@ export function PrescriptionSection({ control, register, watch, setValue, aiCont
     <CollapsibleSection
       id="section-rx"
       title="Prescription"
-      subtitle={fields.length > 0 ? `${fields.length} medication${fields.length > 1 ? 's' : ''}` : undefined}
+      subtitle={
+        fields.length > 0 ? `${fields.length} medication${fields.length > 1 ? 's' : ''}` : undefined
+      }
       icon={<Pill className="h-5 w-5" />}
       defaultOpen={true}
       badge={
         <div className="flex items-center gap-1">
           {aiContext?.diagnoses?.length ? (
-            <AiSuggestButton onClick={handleAiSuggest} isLoading={suggestRx.isPending} label="AI Rx" />
+            <AiSuggestButton
+              onClick={handleAiSuggest}
+              isLoading={suggestRx.isPending}
+              label="AI Rx"
+            />
           ) : null}
         </div>
       }
     >
       {rxSuggestion && (
         <div className="mb-4">
-          <AiSuggestionPanel type="prescription" suggestion={rxSuggestion} onApply={handleApply} onDismiss={handleDismiss} />
+          <AiSuggestionPanel
+            type="prescription"
+            suggestion={rxSuggestion}
+            onApply={handleApply}
+            onDismiss={handleDismiss}
+          />
         </div>
       )}
 
@@ -109,19 +136,25 @@ export function PrescriptionSection({ control, register, watch, setValue, aiCont
       {/* Rx notes */}
       <div className="space-y-1 mb-4">
         <Label className="text-xs text-gray-500 dark:text-gray-400">Rx Notes</Label>
-        <Textarea {...register('notes')} placeholder="General prescription notes..." rows={2} className="text-sm" />
+        <Textarea
+          {...register('notes')}
+          placeholder="General prescription notes..."
+          rows={2}
+          className="text-sm"
+        />
       </div>
 
       {/* Medications */}
       {fields.length === 0 && (
-        <p className="py-4 text-center text-sm text-gray-400">
-          No medications added yet.
-        </p>
+        <p className="py-4 text-center text-sm text-gray-400">No medications added yet.</p>
       )}
 
       <div className="space-y-4">
         {fields.map((field, index) => (
-          <div key={field.id} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3">
+          <div
+            key={field.id}
+            className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-gray-500">#{index + 1}</span>
               <Button type="button" variant="ghost" size="sm" onClick={() => remove(index)}>
@@ -133,11 +166,19 @@ export function PrescriptionSection({ control, register, watch, setValue, aiCont
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label className="text-xs text-gray-500">Medication *</Label>
-                <Input {...register(`items.${index}.medicationName`)} placeholder="e.g. Amoxicillin" className="text-sm" />
+                <Input
+                  {...register(`items.${index}.medicationName`)}
+                  placeholder="e.g. Amoxicillin"
+                  className="text-sm"
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs text-gray-500">Generic</Label>
-                <Input {...register(`items.${index}.genericName`)} placeholder="Generic name" className="text-sm" />
+                <Input
+                  {...register(`items.${index}.genericName`)}
+                  placeholder="Generic name"
+                  className="text-sm"
+                />
               </div>
             </div>
 
@@ -188,7 +229,12 @@ export function PrescriptionSection({ control, register, watch, setValue, aiCont
             {/* Instructions */}
             <div className="space-y-1">
               <Label className="text-xs text-gray-500">Instructions</Label>
-              <Textarea {...register(`items.${index}.instructions`)} placeholder="e.g. Take after meals" rows={1} className="text-sm" />
+              <Textarea
+                {...register(`items.${index}.instructions`)}
+                placeholder="e.g. Take after meals"
+                rows={1}
+                className="text-sm"
+              />
             </div>
           </div>
         ))}
@@ -200,13 +246,29 @@ export function PrescriptionSection({ control, register, watch, setValue, aiCont
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => append({ medicationName: '', dosage: '', frequency: '', duration: '', route: '', instructions: '', quantity: undefined })}
+          onClick={() =>
+            append({
+              medicationName: '',
+              dosage: '',
+              frequency: '',
+              duration: '',
+              route: '',
+              instructions: '',
+              quantity: undefined,
+            })
+          }
         >
           <Plus className="h-3.5 w-3.5 mr-1" />
           Add Medication
         </Button>
         {fields.length >= 2 && (
-          <Button type="button" variant="outline" size="sm" onClick={handleCheckDdi} disabled={checkDdi.isPending}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCheckDdi}
+            disabled={checkDdi.isPending}
+          >
             <RotateCcw className="h-3.5 w-3.5 mr-1" />
             Check Interactions
           </Button>

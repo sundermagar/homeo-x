@@ -1,6 +1,4 @@
-import {
-  pgTable, serial, integer, varchar, text, timestamp
-} from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, varchar, text, timestamp } from 'drizzle-orm/pg-core';
 
 // ─── Records (legacy `records` table — call records / growth tracking) ────────
 export const records = pgTable('records', {

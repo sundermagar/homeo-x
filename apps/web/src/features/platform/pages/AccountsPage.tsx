@@ -16,11 +16,9 @@ export default function AccountsPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: accounts = [], isLoading } = useAccounts(clinicFilter);
-  const { data: orgs = [] }                = useOrganizations();
+  const { data: orgs = [] } = useOrganizations();
 
-  const filteredOrgs = orgs.filter(o =>
-    o.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOrgs = orgs.filter((o) => o.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   useEffect(() => {
     if (!isOpen) {
@@ -38,21 +36,14 @@ export default function AccountsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(accounts);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(accounts);
 
   const getClinicName = (id: number | null) =>
-    id ? orgs.find(o => o.id === id)?.name ?? `Clinic #${id}` : '—';
+    id ? (orgs.find((o) => o.id === id)?.name ?? `Clinic #${id}`) : '—';
 
   return (
     <div className="plat-page fade-in">
-
       {/* ─── Header ─── */}
       <div className="plat-header">
         <div>
@@ -61,7 +52,8 @@ export default function AccountsPage() {
             Clinic Accounts
           </h1>
           <p className="plat-header-sub">
-            Consolidated clinical directory. View all user accounts (Doctors, Clinic Admins, Receptionists, Employees, and Finance Managers) mapped to each clinic's system.
+            Consolidated clinical directory. View all user accounts (Doctors, Clinic Admins,
+            Receptionists, Employees, and Finance Managers) mapped to each clinic's system.
           </p>
         </div>
       </div>
@@ -89,19 +81,25 @@ export default function AccountsPage() {
                 borderRadius: 'var(--pp-radius-btn)',
                 border: '1px solid var(--pp-warm-4)',
                 fontSize: '13px',
-                color: 'var(--pp-ink)'
+                color: 'var(--pp-ink)',
               }}
               onClick={() => setIsOpen(!isOpen)}
             >
-              <span className="plat-capitalize">{clinicFilter ? orgs.find(o => o.id === clinicFilter)?.name ?? 'Select Clinic' : 'All Registered Clinics'}</span>
-              <span style={{
-                borderLeft: '5px solid transparent',
-                borderRight: '5px solid transparent',
-                borderTop: '5px solid var(--pp-text-3)',
-                marginLeft: '8px',
-                transition: 'transform 0.2s',
-                transform: isOpen ? 'rotate(180deg)' : 'none'
-              }} />
+              <span className="plat-capitalize">
+                {clinicFilter
+                  ? (orgs.find((o) => o.id === clinicFilter)?.name ?? 'Select Clinic')
+                  : 'All Registered Clinics'}
+              </span>
+              <span
+                style={{
+                  borderLeft: '5px solid transparent',
+                  borderRight: '5px solid transparent',
+                  borderTop: '5px solid var(--pp-text-3)',
+                  marginLeft: '8px',
+                  transition: 'transform 0.2s',
+                  transform: isOpen ? 'rotate(180deg)' : 'none',
+                }}
+              />
             </button>
 
             {isOpen && (
@@ -120,21 +118,31 @@ export default function AccountsPage() {
                   zIndex: 9999,
                   padding: '4px',
                   display: 'flex',
-                  flexDirection: 'column'
+                  flexDirection: 'column',
                 }}
               >
                 {/* Search Input Sticky Container */}
-                <div style={{
-                  padding: '4px',
-                  position: 'sticky',
-                  top: 0,
-                  backgroundColor: 'var(--bg-card)',
-                  zIndex: 10,
-                  borderBottom: '1px solid var(--pp-warm-3)',
-                  marginBottom: '4px'
-                }}>
+                <div
+                  style={{
+                    padding: '4px',
+                    position: 'sticky',
+                    top: 0,
+                    backgroundColor: 'var(--bg-card)',
+                    zIndex: 10,
+                    borderBottom: '1px solid var(--pp-warm-3)',
+                    marginBottom: '4px',
+                  }}
+                >
                   <div style={{ position: 'relative' }}>
-                    <Search size={12} style={{ position: 'absolute', left: '8px', top: '10px', color: 'var(--text-muted)' }} />
+                    <Search
+                      size={12}
+                      style={{
+                        position: 'absolute',
+                        left: '8px',
+                        top: '10px',
+                        color: 'var(--text-muted)',
+                      }}
+                    />
                     <input
                       type="text"
                       className="plat-form-input"
@@ -151,7 +159,7 @@ export default function AccountsPage() {
                         border: '1px solid var(--pp-warm-4)',
                         background: 'var(--bg-card)',
                         outline: 'none',
-                        color: 'var(--pp-ink)'
+                        color: 'var(--pp-ink)',
                       }}
                       autoFocus
                     />
@@ -165,21 +173,24 @@ export default function AccountsPage() {
                         padding: '8px 12px',
                         fontSize: '13px',
                         color: clinicFilter === undefined ? 'var(--pp-blue)' : 'var(--pp-ink)',
-                        backgroundColor: clinicFilter === undefined ? 'var(--pp-blue-tint)' : 'transparent',
+                        backgroundColor:
+                          clinicFilter === undefined ? 'var(--pp-blue-tint)' : 'transparent',
                         fontWeight: clinicFilter === undefined ? 600 : 400,
                         cursor: 'pointer',
                         borderRadius: '6px',
-                        transition: 'background-color 0.2s'
+                        transition: 'background-color 0.2s',
                       }}
                       onClick={() => {
                         setClinicFilter(undefined);
                         setIsOpen(false);
                       }}
                       onMouseEnter={(e) => {
-                        if (clinicFilter !== undefined) e.currentTarget.style.backgroundColor = 'var(--pp-warm-2)';
+                        if (clinicFilter !== undefined)
+                          e.currentTarget.style.backgroundColor = 'var(--pp-warm-2)';
                       }}
                       onMouseLeave={(e) => {
-                        if (clinicFilter !== undefined) e.currentTarget.style.backgroundColor = 'transparent';
+                        if (clinicFilter !== undefined)
+                          e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
                       All Registered Clinics
@@ -187,11 +198,18 @@ export default function AccountsPage() {
                   )}
 
                   {filteredOrgs.length === 0 ? (
-                    <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                    <div
+                      style={{
+                        padding: '8px 12px',
+                        fontSize: '12px',
+                        color: 'var(--text-muted)',
+                        textAlign: 'center',
+                      }}
+                    >
                       No clinics found
                     </div>
                   ) : (
-                    filteredOrgs.map(o => {
+                    filteredOrgs.map((o) => {
                       const isSelected = clinicFilter === o.id;
                       return (
                         <div
@@ -204,14 +222,15 @@ export default function AccountsPage() {
                             fontWeight: isSelected ? 600 : 400,
                             cursor: 'pointer',
                             borderRadius: '6px',
-                            transition: 'background-color 0.2s'
+                            transition: 'background-color 0.2s',
                           }}
                           onClick={() => {
                             setClinicFilter(o.id);
                             setIsOpen(false);
                           }}
                           onMouseEnter={(e) => {
-                            if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--pp-warm-2)';
+                            if (!isSelected)
+                              e.currentTarget.style.backgroundColor = 'var(--pp-warm-2)';
                           }}
                           onMouseLeave={(e) => {
                             if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
@@ -228,7 +247,10 @@ export default function AccountsPage() {
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="plat-badge plat-badge-default" style={{ padding: '4px 10px', fontSize: '0.72rem' }}>
+          <div
+            className="plat-badge plat-badge-default"
+            style={{ padding: '4px 10px', fontSize: '0.72rem' }}
+          >
             {accounts.length} Total Accounts
           </div>
         </div>
@@ -239,7 +261,7 @@ export default function AccountsPage() {
         {isLoading ? (
           <TableSkeleton rows={8} columns={6} />
         ) : accounts.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={UserCog}
             title="No accounts found"
             description="Consolidated directory of all login accounts. Select a clinic using the station filter to view accounts."
@@ -268,29 +290,52 @@ export default function AccountsPage() {
                       </td>
                       <td data-label="Account Holder">
                         <div className="plat-cell-val">
-                          <div className="plat-capitalize" style={{ fontWeight: 600 }}>{account.name}</div>
-                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                          <div className="plat-capitalize" style={{ fontWeight: 600 }}>
+                            {account.name}
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.72rem',
+                              color: 'var(--text-muted)',
+                              marginTop: '1px',
+                            }}
+                          >
                             {account.email || '—'}
                           </div>
                         </div>
                       </td>
                       <td data-label="Linked Clinic">
                         <div className="plat-cell-val">
-                          <div className="plat-capitalize" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                          <div
+                            className="plat-capitalize"
+                            style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}
+                          >
                             {getClinicName(account.clinicId)}
                           </div>
                         </div>
                       </td>
                       <td data-label="Mobile">
                         <div className="plat-cell-val">
-                          <div className="plat-mono-data" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                          <div
+                            className="plat-mono-data"
+                            style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}
+                          >
                             {account.mobile || '—'}
                           </div>
                         </div>
                       </td>
                       <td data-label="Designation / Role">
                         <div className="plat-cell-val">
-                          <span className="plat-badge plat-badge-primary" style={{ fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: '6px' }}>
+                          <span
+                            className="plat-badge plat-badge-primary"
+                            style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                            }}
+                          >
                             {account.designation || '—'}
                           </span>
                         </div>

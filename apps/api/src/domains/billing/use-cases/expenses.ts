@@ -64,7 +64,8 @@ export class CreateExpenseUseCase {
 
   async execute(input: CreateExpenseInput): Promise<ExpenseResult> {
     if (!input.head) return { success: false, error: 'Expense head is required' };
-    if (input.amount === undefined || input.amount < 0) return { success: false, error: 'Amount must be non-negative' };
+    if (input.amount === undefined || input.amount < 0)
+      return { success: false, error: 'Amount must be non-negative' };
 
     try {
       const expense = await this.repo.create(input);

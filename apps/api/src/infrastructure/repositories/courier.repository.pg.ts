@@ -1,10 +1,10 @@
-import { eq, and, desc, sql, isNull, or } from "drizzle-orm";
-import type { DbClient } from "@mmc/database";
-import * as schema from "@mmc/database";
+import { eq, and, desc, sql, isNull, or } from 'drizzle-orm';
+import type { DbClient } from '@mmc/database';
+import * as schema from '@mmc/database';
 
 export interface CourierMedicineRow {
   id: number;
-  caseId: number;  // regid in legacy
+  caseId: number; // regid in legacy
   regid: number | null;
   randId: string;
   currentdate: string;
@@ -15,9 +15,9 @@ export interface CourierMedicineRow {
   pcd: string | null;
   courier: string | null;
   pickup: number;
-  postType: string;  // 'Courier' | 'Pickup' | 'Clinic'
-  isAssign: number;  // 0 or 1
-  readType: string;  // 'read' | 'unread'
+  postType: string; // 'Courier' | 'Pickup' | 'Clinic'
+  isAssign: number; // 0 or 1
+  readType: string; // 'read' | 'unread'
   createdAt: Date | null;
   // Joined patient data
   patientName?: string;
@@ -31,25 +31,25 @@ export interface CourierMedicineRow {
 }
 
 export interface CreateCourierInput {
-  caseId: number;     // regid - the patient regid
-  regid?: number;     // internal case ID (legacy caseData.id)
-  randId: string;     // unique batch ID (e.g. 20260511 + caseID)
+  caseId: number; // regid - the patient regid
+  regid?: number; // internal case ID (legacy caseData.id)
+  randId: string; // unique batch ID (e.g. 20260511 + caseID)
   remedy?: string;
   potency?: string;
   frequency?: string;
   days?: string;
-  postType: string;   // 'Courier' | 'Pickup' | 'Clinic'
+  postType: string; // 'Courier' | 'Pickup' | 'Clinic'
 }
 
 export interface AssignCourierInput {
   id: number;
-  pcd?: string;       // POD / tracking number
-  courier?: string;   // courier company name
-  pickup?: number;    // 1 = picked up
+  pcd?: string; // POD / tracking number
+  courier?: string; // courier company name
+  pickup?: number; // 1 = picked up
 }
 
 export class CourierRepositoryPg {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   /**
    * Get today's courier queue — all entries for today with post_type = 'Courier' or 'Pickup',
@@ -75,7 +75,7 @@ export class CourierRepositoryPg {
       ORDER BY cm.created_at DESC
     `);
 
-    return (rows as any[]).map(r => this.toRow(r));
+    return (rows as any[]).map((r) => this.toRow(r));
   }
 
   /**
@@ -96,7 +96,7 @@ export class CourierRepositoryPg {
       ORDER BY cm.created_at DESC
     `);
 
-    return (rows as any[]).map(r => this.toRow(r));
+    return (rows as any[]).map((r) => this.toRow(r));
   }
 
   /**
@@ -120,7 +120,7 @@ export class CourierRepositoryPg {
       LIMIT 100
     `);
 
-    return (rows as any[]).map(r => this.toRow(r));
+    return (rows as any[]).map((r) => this.toRow(r));
   }
 
   /**
@@ -129,7 +129,7 @@ export class CourierRepositoryPg {
    * Matches legacy MedicalcasesController::store() → Couriermedicine::create().
    */
   async create(input: CreateCourierInput): Promise<CourierMedicineRow> {
-    const [row] = await this.db.execute(sql`
+    const [row] = (await this.db.execute(sql`
       INSERT INTO courier_medicine (case_id, regid, rand_id, currentdate, remedy, potency, frequency, days, post_type, pickup, is_assign, read_type, created_at, updated_at)
       VALUES (
         ${input.caseId},
@@ -148,7 +148,7 @@ export class CourierRepositoryPg {
         NOW()
       )
       RETURNING *
-    `) as any[];
+    `)) as any[];
 
     return this.toRow(row);
   }
@@ -158,7 +158,7 @@ export class CourierRepositoryPg {
    * Matches legacy CouriermedicineController::savepackages().
    */
   async assign(input: AssignCourierInput): Promise<CourierMedicineRow> {
-    const [row] = await this.db.execute(sql`
+    const [row] = (await this.db.execute(sql`
       UPDATE courier_medicine
       SET 
         pcd = COALESCE(${input.pcd || null}, pcd),
@@ -168,7 +168,7 @@ export class CourierRepositoryPg {
         updated_at = NOW()
       WHERE id = ${input.id}
       RETURNING *
-    `) as any[];
+    `)) as any[];
 
     if (!row) throw new Error(`Courier entry ${input.id} not found`);
     return this.toRow(row);
@@ -189,15 +189,25 @@ export class CourierRepositoryPg {
    * Get medicine detail for SMS notification.
    * Matches legacy CouriermedicineController::getmedicinedetail().
    */
-  async getMedicineDetail(id: number): Promise<{ phone: string; firstName: string; surname: string; pcd: string; courier: string; regid: number; message: string } | null> {
-    const [row] = await this.db.execute(sql`
+  async getMedicineDetail(
+    id: number,
+  ): Promise<{
+    phone: string;
+    firstName: string;
+    surname: string;
+    pcd: string;
+    courier: string;
+    regid: number;
+    message: string;
+  } | null> {
+    const [row] = (await this.db.execute(sql`
       SELECT 
         cm.pcd, cm.courier, cm.case_id,
         cd.first_name, cd.surname, cd.mobile1, cd.regid
       FROM courier_medicine cm
       JOIN case_datas cd ON cd.regid = cm.case_id
       WHERE cm.id = ${id}
-    `) as any[];
+    `)) as any[];
 
     if (!row) return null;
 
@@ -219,12 +229,12 @@ export class CourierRepositoryPg {
    * Get count of unread courier entries (for notification badge).
    */
   async getUnreadCount(): Promise<number> {
-    const [row] = await this.db.execute(sql`
+    const [row] = (await this.db.execute(sql`
       SELECT COUNT(*) as count FROM courier_medicine 
       WHERE read_type = 'unread' 
         AND post_type IN ('Courier', 'Pickup')
         AND (deleted_at IS NULL OR deleted_at = '')
-    `) as any[];
+    `)) as any[];
     return row?.count || 0;
   }
 

@@ -44,14 +44,16 @@ export function setupWhatsAppGateway(io: Server) {
   return {
     emitMessage: (channelId: number, conversationId: number, message: any) => {
       // Emit to channel room (for inbox list updates)
-      whatsappNs.to(`channel:${channelId}`).emit('message_received', { channelId, conversationId, message });
+      whatsappNs
+        .to(`channel:${channelId}`)
+        .emit('message_received', { channelId, conversationId, message });
       // Emit to conversation room (for active chat window updates)
       whatsappNs.to(`conversation:${conversationId}`).emit('new_message', message);
     },
     emitStatus: (conversationId: number, messageId: string, status: string) => {
       whatsappNs.to(`conversation:${conversationId}`).emit('message_status', { messageId, status });
     },
-    whatsappNs
+    whatsappNs,
   };
 }
 

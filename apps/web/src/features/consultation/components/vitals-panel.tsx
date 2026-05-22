@@ -56,7 +56,7 @@ export function VitalsPanel({ visitId, existingVitals, onComplete }: VitalsPanel
   const weight = watch('weightKg');
   const bmi =
     height && weight && typeof height === 'number' && typeof weight === 'number'
-      ? (weight / ((height / 100) ** 2)).toFixed(1)
+      ? (weight / (height / 100) ** 2).toFixed(1)
       : null;
 
   const onSubmit = async (data: VitalsForm) => {
@@ -68,7 +68,11 @@ export function VitalsPanel({ visitId, existingVitals, onComplete }: VitalsPanel
       toast({ title: 'Vitals recorded', variant: 'success' });
       onComplete();
     } catch (err) {
-      toast({ title: 'Failed to record vitals', description: err instanceof Error ? err.message : '', variant: 'error' });
+      toast({
+        title: 'Failed to record vitals',
+        description: err instanceof Error ? err.message : '',
+        variant: 'error',
+      });
     }
   };
 
@@ -133,7 +137,11 @@ export function VitalsPanel({ visitId, existingVitals, onComplete }: VitalsPanel
 
           <div className="space-y-1">
             <Label htmlFor="vitalsNotes">Notes</Label>
-            <Textarea id="vitalsNotes" {...register('notes')} placeholder="Any notes about vitals..." />
+            <Textarea
+              id="vitalsNotes"
+              {...register('notes')}
+              placeholder="Any notes about vitals..."
+            />
           </div>
 
           <div className="flex justify-end gap-2">

@@ -1,9 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApi } from '@/shared/hooks/use-api';
-import type { 
-  AnalyticsSummary, PatientTrendResult, MonthWiseResult, 
-  MonthWiseDueSummary, MonthWiseDueDetail, BirthdayListResult, 
-  ReferenceListResult 
+import type {
+  AnalyticsSummary,
+  PatientTrendResult,
+  MonthWiseResult,
+  MonthWiseDueSummary,
+  MonthWiseDueDetail,
+  BirthdayListResult,
+  ReferenceListResult,
 } from '@mmc/types';
 
 // Helper: safely unwrap the nested API envelope { success, data }
@@ -44,9 +48,11 @@ export function useCaseMonthWise(fromYearMth: string, toYearMth: string) {
   return useQuery({
     queryKey: ['analytics', 'casemonthwise', fromYearMth, toYearMth],
     queryFn: async () => {
-      const res = await api.get(`/analytics/casemonthwise?from_date=${fromYearMth}&to_date=${toYearMth}`);
+      const res = await api.get(
+        `/analytics/casemonthwise?from_date=${fromYearMth}&to_date=${toYearMth}`,
+      );
       const inner = unwrap<any>(res, []);
-      return Array.isArray(inner) ? inner as MonthWiseResult[] : [];
+      return Array.isArray(inner) ? (inner as MonthWiseResult[]) : [];
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -59,7 +65,7 @@ export function useMonthWiseDues(year: number) {
     queryFn: async () => {
       const res = await api.get(`/analytics/monthwisedue?year=${year}`);
       const inner = unwrap<any>(res, []);
-      return Array.isArray(inner) ? inner as MonthWiseDueSummary[] : [];
+      return Array.isArray(inner) ? (inner as MonthWiseDueSummary[]) : [];
     },
   });
 }
@@ -71,7 +77,7 @@ export function useDueDetails(year: number, month: number) {
     queryFn: async () => {
       const res = await api.get(`/analytics/monthwisedue/details?year=${year}&month=${month}`);
       const inner = unwrap<any>(res, []);
-      return Array.isArray(inner) ? inner as MonthWiseDueDetail[] : [];
+      return Array.isArray(inner) ? (inner as MonthWiseDueDetail[]) : [];
     },
     enabled: !!year && !!month,
   });
@@ -87,8 +93,8 @@ export function useBirthdayList(fromDate?: string, toDate?: string) {
       if (toDate) params.append('to_date', toDate);
       const res = await api.get(`/analytics/birthdaylist?${params.toString()}`);
       const inner = unwrap<any>(res, { patients: [], smsSentIds: [] });
-      return (inner && typeof inner === 'object' && !Array.isArray(inner))
-        ? inner as { patients: any[]; smsSentIds: number[] }
+      return inner && typeof inner === 'object' && !Array.isArray(inner)
+        ? (inner as { patients: any[]; smsSentIds: number[] })
         : { patients: [], smsSentIds: [] };
     },
   });
@@ -104,8 +110,7 @@ export function useReferenceListing(from?: Date, to?: Date) {
       if (to) params.append('to_date', to.toISOString());
       const res = await api.get(`/analytics/referencelisting?${params.toString()}`);
       const inner = unwrap<any>(res, []);
-      return Array.isArray(inner) ? inner as ReferenceListResult[] : [];
+      return Array.isArray(inner) ? (inner as ReferenceListResult[]) : [];
     },
   });
 }
-

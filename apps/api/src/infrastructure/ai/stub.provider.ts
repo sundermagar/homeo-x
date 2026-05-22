@@ -4,26 +4,35 @@ export class StubProvider implements AiProvider {
   readonly name = 'stub';
 
   private getCannedText(messages: ChatMessage[]): string {
-    const systemContent = messages.find(m => m.role === 'system')?.content;
+    const systemContent = messages.find((m) => m.role === 'system')?.content;
     const contentStr = typeof systemContent === 'string' ? systemContent.toUpperCase() : '';
-    
+
     if (contentStr.includes('MEDICINE') || contentStr.includes('ALLOPATHIC')) {
-      const userMsg = messages.find(m => m.role === 'user')?.content;
+      const userMsg = messages.find((m) => m.role === 'user')?.content;
       const userStr = typeof userMsg === 'string' ? userMsg.toLowerCase() : '';
-      if (userStr.includes('glycomate') || userStr.includes('metformin') || userStr.includes('glucophage') || userStr.includes('glycomet')) {
+      if (
+        userStr.includes('glycomate') ||
+        userStr.includes('metformin') ||
+        userStr.includes('glucophage') ||
+        userStr.includes('glycomet')
+      ) {
         return 'Diabetes';
       }
       if (userStr.includes('silicea')) {
         return 'Weak Nails';
       }
-      if (userStr.includes('aspirin') || userStr.includes('atorvastatin') || userStr.includes('amlodipine')) {
+      if (
+        userStr.includes('aspirin') ||
+        userStr.includes('atorvastatin') ||
+        userStr.includes('amlodipine')
+      ) {
         return 'Hypertension';
       }
       return 'General Health';
     }
 
     if (contentStr.includes('GNM') || contentStr.includes('GERMAN NEW MEDICINE')) {
-      return 'STUB: Territorial conflict pattern detected. Conflict-active phase. The symptoms suggest an ongoing biological conflict. Re-evaluate the patient\'s recent life events.';
+      return "STUB: Territorial conflict pattern detected. Conflict-active phase. The symptoms suggest an ongoing biological conflict. Re-evaluate the patient's recent life events.";
     }
     if (contentStr.includes('RUBRICS')) {
       return 'STUB: Rubric perception — Delusion: body is enlarged or heavy. Recommended rubrics include Mind, Delusions, enlarged.';
@@ -31,7 +40,7 @@ export class StubProvider implements AiProvider {
     if (contentStr.includes('CORRELATION')) {
       return 'STUB: Rubric-to-remedy correlation map — Sulphur / Lycopodium. High affinity based on the repertorization matrix.';
     }
-    
+
     return 'STUB: Sulphur 30C — presenting picture matches sulphur state. Hot, untidy, philosophical, and prone to skin eruptions. Consider as an initial prescription.';
   }
 
@@ -41,17 +50,17 @@ export class StubProvider implements AiProvider {
 
   async analyze(messages: ChatMessage[], temperature?: number): Promise<string> {
     const text = this.getCannedText(messages);
-    return new Promise(resolve => setTimeout(() => resolve(text), 5));
+    return new Promise((resolve) => setTimeout(() => resolve(text), 5));
   }
 
   async *analyzeStream(messages: ChatMessage[]): AsyncGenerator<string> {
     const text = this.getCannedText(messages);
-    
+
     let i = 0;
     while (i < text.length) {
       yield text.substring(i, i + 10);
       i += 10;
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
     }
   }
 }

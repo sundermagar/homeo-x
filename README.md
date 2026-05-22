@@ -19,22 +19,22 @@ kreed-health/
 
 ### Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Language | TypeScript (strict mode) |
-| Monorepo | Turborepo + pnpm workspaces |
-| Backend | Express.js + Hexagonal Architecture (DDD) |
-| Frontend | React 19 + TanStack Query + Zustand |
-| Database | PostgreSQL (schema-per-tenant) |
-| ORM | Drizzle ORM |
-| Validation | Zod (shared across stack) |
-| AI Providers | Google Gemini, Groq, Azure OpenAI (failover chain) |
-| Transcription | Web Speech API + Deepgram |
-| Video Calls | LiveKit |
-| Caching | Redis / Upstash |
-| Payments | Razorpay |
-| Logging | Pino (structured JSON) |
-| Testing | Vitest |
+| Layer         | Technology                                         |
+| ------------- | -------------------------------------------------- |
+| Language      | TypeScript (strict mode)                           |
+| Monorepo      | Turborepo + pnpm workspaces                        |
+| Backend       | Express.js + Hexagonal Architecture (DDD)          |
+| Frontend      | React 19 + TanStack Query + Zustand                |
+| Database      | PostgreSQL (schema-per-tenant)                     |
+| ORM           | Drizzle ORM                                        |
+| Validation    | Zod (shared across stack)                          |
+| AI Providers  | Google Gemini, Groq, Azure OpenAI (failover chain) |
+| Transcription | Web Speech API + Deepgram                          |
+| Video Calls   | LiveKit                                            |
+| Caching       | Redis / Upstash                                    |
+| Payments      | Razorpay                                           |
+| Logging       | Pino (structured JSON)                             |
+| Testing       | Vitest                                             |
 
 ### Design Patterns
 
@@ -185,6 +185,7 @@ src/
 ### AI Configuration
 
 AI keys are managed centrally via `AiConfigService`:
+
 - Validated on startup with warnings for missing providers
 - Multi-key support with comma separation (`GEMINI_API_KEY=key1,key2,key3`)
 - Health check at `GET /api/health` shows per-provider status
@@ -192,14 +193,14 @@ AI keys are managed centrally via `AiConfigService`:
 
 ### Error Handling
 
-| Layer | Mechanism |
-|-------|-----------|
-| Route handlers | `asyncHandler()` wraps async functions |
-| Validation | Zod errors → 400 with field details |
-| Domain errors | `AppError` subclasses → appropriate HTTP status |
-| Unhandled | `process.on('uncaughtException')` → log fatal + exit |
+| Layer              | Mechanism                                                 |
+| ------------------ | --------------------------------------------------------- |
+| Route handlers     | `asyncHandler()` wraps async functions                    |
+| Validation         | Zod errors → 400 with field details                       |
+| Domain errors      | `AppError` subclasses → appropriate HTTP status           |
+| Unhandled          | `process.on('uncaughtException')` → log fatal + exit      |
 | Promise rejections | `process.on('unhandledRejection')` → log error + continue |
-| Every response | Includes `correlationId` for tracing |
+| Every response     | Includes `correlationId` for tracing                      |
 
 ### Audit Trail
 
@@ -223,14 +224,14 @@ AI calls logged separately in `ai_audit_logs` with provider, model, tokens, late
 
 External services have automatic circuit breakers:
 
-| Service | Failure Threshold | Reset Timeout |
-|---------|-------------------|---------------|
-| Gemini | 5 failures | 60s |
-| Groq | 5 failures | 60s |
-| Deepgram | 3 failures | 30s |
-| SMS | 3 failures | 120s |
-| WhatsApp | 3 failures | 120s |
-| Razorpay | 3 failures | 60s |
+| Service  | Failure Threshold | Reset Timeout |
+| -------- | ----------------- | ------------- |
+| Gemini   | 5 failures        | 60s           |
+| Groq     | 5 failures        | 60s           |
+| Deepgram | 3 failures        | 30s           |
+| SMS      | 3 failures        | 120s          |
+| WhatsApp | 3 failures        | 120s          |
+| Razorpay | 3 failures        | 60s           |
 
 Health endpoint reports circuit state: `CLOSED` (healthy), `OPEN` (failing), `HALF_OPEN` (testing recovery).
 
@@ -238,19 +239,19 @@ Health endpoint reports circuit state: `CLOSED` (healthy), `OPEN` (failing), `HA
 
 See [PRD-migration.md](docs/PRD-migration.md) for the full 12-week phased migration plan.
 
-| Phase | Scope | Timeline |
-|-------|-------|----------|
-| 0 | Foundation (build, DB, CI) | Week 1 |
-| 1 | Auth & Multi-Tenancy | Week 2 |
-| 2 | Patient Management | Week 3 |
-| 3 | Medical Cases & Vitals | Week 4 |
-| 4 | Appointments & Queue | Week 5 |
-| 5 | AI Consultation Pipeline | Week 6-7 |
-| 6 | Billing & Finance | Week 8 |
-| 7 | Communications & Settings | Week 9 |
-| 8 | Analytics & Dashboard | Week 10 |
-| 9 | Remaining Features | Week 11 |
-| 10 | Testing & Hardening | Week 12 |
+| Phase | Scope                      | Timeline |
+| ----- | -------------------------- | -------- |
+| 0     | Foundation (build, DB, CI) | Week 1   |
+| 1     | Auth & Multi-Tenancy       | Week 2   |
+| 2     | Patient Management         | Week 3   |
+| 3     | Medical Cases & Vitals     | Week 4   |
+| 4     | Appointments & Queue       | Week 5   |
+| 5     | AI Consultation Pipeline   | Week 6-7 |
+| 6     | Billing & Finance          | Week 8   |
+| 7     | Communications & Settings  | Week 9   |
+| 8     | Analytics & Dashboard      | Week 10  |
+| 9     | Remaining Features         | Week 11  |
+| 10    | Testing & Hardening        | Week 12  |
 
 ## Multi-Tenancy
 

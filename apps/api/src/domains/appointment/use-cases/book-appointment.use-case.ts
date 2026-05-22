@@ -18,7 +18,7 @@ export class BookAppointmentUseCase {
     private readonly patientRepo?: PatientRepository,
     private readonly notifRepo?: NotificationsRepository,
     private readonly whatsapp?: SendWhatsAppTemplateUseCase,
-  ) { }
+  ) {}
 
   async execute(dto: CreateAppointmentDto): Promise<Result<{ id: number }>> {
     if (!dto.bookingDate) return fail('Booking date is required', 'VALIDATION');
@@ -55,14 +55,16 @@ export class BookAppointmentUseCase {
 
     if (this.whatsapp && dto.phone && dto.patientName && dto.clinicId) {
       // Find the first active WhatsApp channel for this clinic
-      this.whatsapp.sendAppointmentConfirmation({
-        clinicId: dto.clinicId,
-        phone: dto.phone,
-        patientName: dto.patientName,
-        date: dto.bookingDate,
-        time: dto.bookingTime ?? '',
-        clinicName: 'MMC Clinic'
-      }).catch(err => logger.warn(`WhatsApp confirmation skipped: ${err.message}`));
+      this.whatsapp
+        .sendAppointmentConfirmation({
+          clinicId: dto.clinicId,
+          phone: dto.phone,
+          patientName: dto.patientName,
+          date: dto.bookingDate,
+          time: dto.bookingTime ?? '',
+          clinicName: 'MMC Clinic',
+        })
+        .catch((err) => logger.warn(`WhatsApp confirmation skipped: ${err.message}`));
     }
 
     if (this.notifRepo && dto.doctorId) {

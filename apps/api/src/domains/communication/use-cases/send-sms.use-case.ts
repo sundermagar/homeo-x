@@ -1,8 +1,6 @@
 import { Result, ok, fail } from '../../../shared/result.js';
 import type { ICommunicationRepository } from '../ports/communication.repository.js';
-import type {
-  SendSmsDto, BroadcastSmsDto, SendSmsResult
-} from '@mmc/types';
+import type { SendSmsDto, BroadcastSmsDto, SendSmsResult } from '@mmc/types';
 import type { PatientRepository } from '../../patient/ports/patient.repository.js';
 import type { SmsGateway } from '../ports/sms-gateway.js';
 
@@ -15,13 +13,21 @@ export class SendSmsUseCase {
     private commRepo: ICommunicationRepository,
     private smsGateway: SmsGateway,
     private patientRepo?: PatientRepository,
-  ) { }
+  ) {}
 
   // ── Placeholders ───────────────────────────────────────────────────────────
 
   private replacePlaceholders(
     message: string,
-    vars: { name?: string; date?: string; clinic?: string; time?: string; doctor?: string; fee?: string; package?: string }
+    vars: {
+      name?: string;
+      date?: string;
+      clinic?: string;
+      time?: string;
+      doctor?: string;
+      fee?: string;
+      package?: string;
+    },
   ): string {
     return message
       .replace(/{#name#}/gi, vars.name ?? 'Patient')
@@ -79,7 +85,12 @@ export class SendSmsUseCase {
       if (!dto.message?.trim()) return fail('Message is required', 'VALIDATION');
       if (!dto.patientIds?.length) return fail('No patients specified', 'VALIDATION');
 
-      const patients: Array<{ id: number; first_name?: string; surname?: string; mobile1?: string }> = [];
+      const patients: Array<{
+        id: number;
+        first_name?: string;
+        surname?: string;
+        mobile1?: string;
+      }> = [];
       if (this.patientRepo) {
         for (const id of dto.patientIds) {
           const p = await this.patientRepo.findById(id);
@@ -88,11 +99,15 @@ export class SendSmsUseCase {
       }
 
       const today = new Date().toLocaleDateString('en-IN');
-      let sent = 0, failed = 0;
+      let sent = 0,
+        failed = 0;
 
       for (const patient of patients) {
         const phone = patient.mobile1?.replace(/\D/g, '') ?? '';
-        if (!phone) { failed++; continue; }
+        if (!phone) {
+          failed++;
+          continue;
+        }
 
         const personalizedMsg = this.replacePlaceholders(dto.message, {
           name: `${patient.first_name ?? ''} ${patient.surname ?? ''}`.trim(),
@@ -214,6 +229,11 @@ export class SendSmsUseCase {
       date: params.date,
       package: params.packageName,
     });
-    return this.sendSingle({ phone: params.phone, message, smsType: 'Package Purchase', regid: params.regid });
+    return this.sendSingle({
+      phone: params.phone,
+      message,
+      smsType: 'Package Purchase',
+      regid: params.regid,
+    });
   }
 }

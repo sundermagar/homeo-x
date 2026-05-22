@@ -1,8 +1,11 @@
 import type {
-  SmsTemplate, CreateSmsTemplateDto, UpdateSmsTemplateDto,
-  SmsReport, SmsReportFilters,
+  SmsTemplate,
+  CreateSmsTemplateDto,
+  UpdateSmsTemplateDto,
+  SmsReport,
+  SmsReportFilters,
   WhatsAppLog,
-  OtpResult
+  OtpResult,
 } from '@mmc/types';
 
 export interface ICommunicationRepository {

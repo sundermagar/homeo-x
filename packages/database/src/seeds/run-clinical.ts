@@ -7,10 +7,13 @@ import path from 'path';
 const envPath = path.join(process.cwd(), '../../.env');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
-  envContent.split('\n').forEach(line => {
+  envContent.split('\n').forEach((line) => {
     const [key, ...values] = line.split('=');
     if (key && values.length > 0) {
-      process.env[key.trim()] = values.join('=').trim().replace(/^["']|["']$/g, '');
+      process.env[key.trim()] = values
+        .join('=')
+        .trim()
+        .replace(/^["']|["']$/g, '');
     }
   });
 }

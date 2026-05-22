@@ -63,18 +63,20 @@ export function useRemedies(search?: string) {
 export function useSearchKentRubrics(query?: string) {
   return useQuery({
     queryKey: ['kent-rubric-search', query],
-    queryFn: () => api.get<Array<{
-      rubricId: string;
-      description: string;
-      category: 'MIND' | 'GENERAL' | 'PARTICULAR';
-      chapter: string | null;
-      importance: number;
-      source: string;
-      confidence: number;
-      remedyCount: number;
-    }>>(`${API.AI.KENT_SEARCH}?q=${encodeURIComponent(query || '')}`),
+    queryFn: () =>
+      api.get<
+        Array<{
+          rubricId: string;
+          description: string;
+          category: 'MIND' | 'GENERAL' | 'PARTICULAR';
+          chapter: string | null;
+          importance: number;
+          source: string;
+          confidence: number;
+          remedyCount: number;
+        }>
+      >(`${API.AI.KENT_SEARCH}?q=${encodeURIComponent(query || '')}`),
     enabled: !!query && query.length >= 2,
     staleTime: 60000, // Cache for 1 minute
   });
 }
-

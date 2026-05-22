@@ -36,15 +36,18 @@ async function runMigrations() {
 
   // Get ALL schemas from DB starting with tenant_ to ensure no clinic is missed
   const sql = postgres(dbUrl as string, { max: 1 });
-  
+
   try {
     // Ensure required extensions are available in public schema
     console.log('Ensuring pg_trgm extension is enabled in public schema...');
     await sql`CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public`;
 
-    const schemas = await sql`SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'`;
-    const tenantSchemas = schemas.map(s => s['schema_name']);
-    console.log(`Starting migration strategy for ${tenantSchemas.length} discovered tenant schemas...`);
+    const schemas =
+      await sql`SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'`;
+    const tenantSchemas = schemas.map((s) => s['schema_name']);
+    console.log(
+      `Starting migration strategy for ${tenantSchemas.length} discovered tenant schemas...`,
+    );
 
     // 1. Provision public schema with base tables
     console.log('\n===========================================');
@@ -59,15 +62,15 @@ async function runMigrations() {
       console.log(`🚀 Provisioning & Migrating Schema: [${schemaName}]`);
       console.log(`   Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
       console.log('===========================================');
-      
+
       try {
         await provisionTenant(dbUrl as string, schemaName);
-        const dbConnection = postgres(dbUrl as string, { 
-          max: 1, 
+        const dbConnection = postgres(dbUrl as string, {
+          max: 1,
           onnotice: () => {},
           connection: {
-            search_path: `${schemaName},public`
-          }
+            search_path: `${schemaName},public`,
+          },
         });
         const db = drizzle(dbConnection);
         await migrate(db, {

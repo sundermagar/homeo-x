@@ -8,10 +8,9 @@ export const dashboardKeys = {
 };
 
 const fetchDashboard = async (period: string): Promise<UnifiedDashboardData> => {
-  const res = await apiClient.get<{ success: boolean; data: UnifiedDashboardData }>(
-    '/dashboard',
-    { params: { period } },
-  );
+  const res = await apiClient.get<{ success: boolean; data: UnifiedDashboardData }>('/dashboard', {
+    params: { period },
+  });
   return res.data.data;
 };
 
@@ -19,8 +18,8 @@ export function useDashboard(period: string = 'month') {
   return useQuery({
     queryKey: dashboardKeys.detail(period),
     queryFn: () => fetchDashboard(period),
-    staleTime: 5 * 60_000,  // 5 min — dashboards don't change second-by-second
-    gcTime: 15 * 60_000,    // keep in cache 15 min after unmount
+    staleTime: 5 * 60_000, // 5 min — dashboards don't change second-by-second
+    gcTime: 15 * 60_000, // keep in cache 15 min after unmount
   });
 }
 

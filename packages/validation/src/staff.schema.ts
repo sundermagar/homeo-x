@@ -5,7 +5,13 @@ import { phoneSchema, numericStringSchema } from './common.schema.js';
  * Staff validation schemas — unified create/update for all staff categories.
  */
 
-export const staffCategoryEnum = z.enum(['doctor', 'employee', 'receptionist', 'clinicadmin', 'account']);
+export const staffCategoryEnum = z.enum([
+  'doctor',
+  'employee',
+  'receptionist',
+  'clinicadmin',
+  'account',
+]);
 
 export const createStaffSchema = z.object({
   category: staffCategoryEnum,

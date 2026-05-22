@@ -14,7 +14,8 @@ function getUserId(req: Request): string {
 
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || 'devkey';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || 'secret';
-const LIVEKIT_URL = process.env.LIVEKIT_URL || process.env.VITE_LIVEKIT_URL || 'ws://127.0.0.1:7880';
+const LIVEKIT_URL =
+  process.env.LIVEKIT_URL || process.env.VITE_LIVEKIT_URL || 'ws://127.0.0.1:7880';
 
 // POST /api/video-call/token
 videoCallRouter.post('/token', async (req: Request, res: Response, next: NextFunction) => {
@@ -34,7 +35,7 @@ videoCallRouter.post('/token', async (req: Request, res: Response, next: NextFun
     at.addGrant({
       roomJoin: true,
       room: roomName,
-      canPublish: true, 
+      canPublish: true,
       canSubscribe: true,
     });
 
@@ -44,41 +45,48 @@ videoCallRouter.post('/token', async (req: Request, res: Response, next: NextFun
       token,
       channel: LIVEKIT_URL, // UI livekit adapter maps generic 'channel' argument to URL
       appId: 'livekit',
-      uid: 1, 
+      uid: 1,
       visitId,
       patientJoinLink: `/meet/${visitId}`,
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/video-call/patient-token/:roomId
-videoCallRouter.get('/patient-token/:roomId', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { roomId } = req.params;
-    const roomName = `visit-${roomId}`;
-    const uid = `patient-${Date.now()}`;
+videoCallRouter.get(
+  '/patient-token/:roomId',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { roomId } = req.params;
+      const roomName = `visit-${roomId}`;
+      const uid = `patient-${Date.now()}`;
 
-    const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-      identity: uid,
-      name: 'patient',
-    });
+      const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+        identity: uid,
+        name: 'patient',
+      });
 
-    at.addGrant({
-      roomJoin: true,
-      room: roomName,
-      canPublish: true,
-      canSubscribe: true,
-    });
+      at.addGrant({
+        roomJoin: true,
+        room: roomName,
+        canPublish: true,
+        canSubscribe: true,
+      });
 
-    const token = await at.toJwt();
+      const token = await at.toJwt();
 
-    sendSuccess(res, {
-      token,
-      channel: LIVEKIT_URL,
-      appId: 'livekit',
-      uid: 2, 
-      visitId: roomId,
-      patientJoinLink: `/meet/${roomId}`,
-    });
-  } catch (err) { next(err); }
-});
+      sendSuccess(res, {
+        token,
+        channel: LIVEKIT_URL,
+        appId: 'livekit',
+        uid: 2,
+        visitId: roomId,
+        patientJoinLink: `/meet/${roomId}`,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);

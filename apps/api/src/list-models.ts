@@ -10,12 +10,18 @@ async function listModels() {
     console.error('No GEMINI_API_KEY found');
     return;
   }
-  
+
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
     const response = await fetch(url);
     const data: any = await response.json();
-    console.log(JSON.stringify(data.models.map((m: any) => m.name), null, 2));
+    console.log(
+      JSON.stringify(
+        data.models.map((m: any) => m.name),
+        null,
+        2,
+      ),
+    );
   } catch (err: any) {
     console.error('Error fetching models:', err.message);
   } finally {

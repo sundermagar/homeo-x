@@ -14,7 +14,12 @@ export interface AiProviderConfig {
 export interface AiConfig {
   providers: AiProviderConfig[];
   transcription: { deepgramKey: string | null; isAvailable: boolean };
-  videoCall: { livekitUrl: string | null; livekitApiKey: string | null; livekitApiSecret: string | null; isAvailable: boolean };
+  videoCall: {
+    livekitUrl: string | null;
+    livekitApiKey: string | null;
+    livekitApiSecret: string | null;
+    isAvailable: boolean;
+  };
 }
 
 /**
@@ -39,7 +44,10 @@ class AiConfigService {
 
   private parseKeys(envValue: string | undefined): string[] {
     if (!envValue) return [];
-    return envValue.split(',').map((k) => k.trim()).filter(Boolean);
+    return envValue
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
   }
 
   private loadFromEnv(): AiConfig {
@@ -103,9 +111,13 @@ class AiConfigService {
     const totalKeys = available.reduce((sum, p) => sum + p.keys.length, 0);
 
     if (available.length === 0) {
-      logger.error('NO AI PROVIDERS CONFIGURED. Set ANTHROPIC_API_KEY, GEMINI_API_KEY or GROQ_API_KEY in .env');
+      logger.error(
+        'NO AI PROVIDERS CONFIGURED. Set ANTHROPIC_API_KEY, GEMINI_API_KEY or GROQ_API_KEY in .env',
+      );
     } else {
-      logger.info(`AI providers ready: ${available.map((p) => `${p.name} (${p.keys.length} keys)`).join(', ')}`);
+      logger.info(
+        `AI providers ready: ${available.map((p) => `${p.name} (${p.keys.length} keys)`).join(', ')}`,
+      );
     }
 
     if (!this.config.transcription.isAvailable) {
@@ -145,8 +157,16 @@ class AiConfigService {
     for (const p of this.config.providers) {
       status[p.type] = { available: p.isAvailable, keyCount: p.keys.length, models: p.models };
     }
-    status['deepgram'] = { available: this.config.transcription.isAvailable, keyCount: this.config.transcription.deepgramKey ? 1 : 0, models: ['nova-3-medical'] };
-    status['livekit'] = { available: this.config.videoCall.isAvailable, keyCount: this.config.videoCall.livekitApiKey ? 1 : 0, models: [] };
+    status['deepgram'] = {
+      available: this.config.transcription.isAvailable,
+      keyCount: this.config.transcription.deepgramKey ? 1 : 0,
+      models: ['nova-3-medical'],
+    };
+    status['livekit'] = {
+      available: this.config.videoCall.isAvailable,
+      keyCount: this.config.videoCall.livekitApiKey ? 1 : 0,
+      models: [],
+    };
     return status;
   }
 

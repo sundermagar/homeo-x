@@ -12,7 +12,7 @@ export class HandleWebhookUseCase {
   constructor(
     private readonly waRepo: WhatsAppRepository,
     private readonly gateway?: any, // WhatsAppCloudGateway
-    private readonly notificationsRepo?: NotificationsRepository
+    private readonly notificationsRepo?: NotificationsRepository,
   ) {}
 
   async execute(body: any): Promise<void> {
@@ -58,7 +58,9 @@ export class HandleWebhookUseCase {
     // Check if we already processed this message to avoid duplicate entries and incorrect conversation count increments.
     const existingMsg = await this.waRepo.findMessageByWhatsappId(message.id);
     if (existingMsg) {
-      logger.info(`Skipping duplicate webhook for message ${message.id} (already in DB as id=${existingMsg.id})`);
+      logger.info(
+        `Skipping duplicate webhook for message ${message.id} (already in DB as id=${existingMsg.id})`,
+      );
       return;
     }
 
@@ -116,7 +118,17 @@ export class HandleWebhookUseCase {
       const notifTitle = `New WhatsApp from +${phone}`;
       const notifMessage = content.length > 100 ? content.substring(0, 100) + '…' : content;
       triggerNotificationToRoles({
-        roles: ['doctor', 'medical practitioner', 'admin', 'superadmin', 'clinicadmin', 'receptionist', 'account', 'employee', 'staff'],
+        roles: [
+          'doctor',
+          'medical practitioner',
+          'admin',
+          'superadmin',
+          'clinicadmin',
+          'receptionist',
+          'account',
+          'employee',
+          'staff',
+        ],
         clinicId: channel.clinicId,
         type: 'WHATSAPP',
         title: notifTitle,
@@ -133,7 +145,7 @@ export class HandleWebhookUseCase {
       const incomingText = (message.text?.body || '').toLowerCase().trim();
       const result = await this.waRepo.listAutomations(channel.clinicId);
       const automations = result.data;
-      
+
       const matchedAutomation = automations.find((a: any) => {
         if (a.status !== 'active' || a.trigger !== 'keyword') return false;
         const config = a.triggerConfig as any;
@@ -142,7 +154,9 @@ export class HandleWebhookUseCase {
       });
 
       if (matchedAutomation && this.gateway) {
-        logger.info(`Triggering keyword automation ${matchedAutomation.id} for message: ${incomingText}`);
+        logger.info(
+          `Triggering keyword automation ${matchedAutomation.id} for message: ${incomingText}`,
+        );
         const executeUseCase = new ExecuteAutomationUseCase(this.waRepo, this.gateway);
         await executeUseCase.execute(matchedAutomation.id, conversation.id, message);
         automationTriggered = true;
@@ -169,18 +183,18 @@ export class HandleWebhookUseCase {
   private async handleStatusUpdate(status: any) {
     const messageId = status.id;
     const currentStatus = status.status;
-    
+
     // Update recipient status if part of a campaign
     await this.waRepo.updateRecipientStatus(messageId, currentStatus, {
-      error: status.errors?.[0]
+      error: status.errors?.[0],
     });
 
     // Update message status in conversations
     const message = await this.waRepo.findMessageByWhatsappId(messageId);
     if (message) {
-      const updateData: any = { 
-        status: currentStatus, 
-        updatedAt: new Date() 
+      const updateData: any = {
+        status: currentStatus,
+        updatedAt: new Date(),
       };
       if (currentStatus === 'delivered') updateData.deliveredAt = new Date();
       if (currentStatus === 'read') updateData.readAt = new Date();
@@ -188,10 +202,10 @@ export class HandleWebhookUseCase {
         updateData.errorCode = status.errors[0].code;
         updateData.errorMessage = status.errors[0].message;
       }
-      
+
       await this.waRepo.saveMessage({
         id: message.id,
-        ...updateData
+        ...updateData,
       });
 
       // ─── Real-time Status Update ───────────────────────────────────────────
@@ -205,20 +219,31 @@ export class HandleWebhookUseCase {
 
   private getMessageContent(message: any): string {
     switch (message.type) {
-      case 'text': return message.text?.body || '';
-      case 'image': return message.image?.caption || '[Image]';
-      case 'video': return message.video?.caption || '[Video]';
-      case 'audio': return message.audio?.voice ? '[Voice Message]' : '[Audio]';
-      case 'document': return message.document?.filename || '[Document]';
-      case 'location': return message.location?.name || '[Location]';
-      case 'sticker': return '[Sticker]';
-      case 'contacts': return '[Contact]';
-      case 'button': return message.button?.text || '[Button]';
-      case 'interactive': 
+      case 'text':
+        return message.text?.body || '';
+      case 'image':
+        return message.image?.caption || '[Image]';
+      case 'video':
+        return message.video?.caption || '[Video]';
+      case 'audio':
+        return message.audio?.voice ? '[Voice Message]' : '[Audio]';
+      case 'document':
+        return message.document?.filename || '[Document]';
+      case 'location':
+        return message.location?.name || '[Location]';
+      case 'sticker':
+        return '[Sticker]';
+      case 'contacts':
+        return '[Contact]';
+      case 'button':
+        return message.button?.text || '[Button]';
+      case 'interactive':
         if (message.interactive?.type === 'list_reply') return message.interactive.list_reply.title;
-        if (message.interactive?.type === 'button_reply') return message.interactive.button_reply.title;
+        if (message.interactive?.type === 'button_reply')
+          return message.interactive.button_reply.title;
         return '[Interactive]';
-      default: return `[${message.type}]`;
+      default:
+        return `[${message.type}]`;
     }
   }
 }

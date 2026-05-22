@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { useWhatsApp } from "../hooks/use-whatsapp";
-import { useQuery } from "@tanstack/react-query";
-import { apiClient } from "@/infrastructure/api-client";
-import { toast } from "@/hooks/use-toast";
-import { Loader2, MessageSquare, Code, Settings } from "lucide-react";
-import { WidgetConfig, ChatMessage, PreviewScreen } from "./widget-builder/types";
-import { createDefaultConfig } from "./widget-builder/utils";
-import WidgetConfigPanel from "./widget-builder/WidgetConfigPanel";
-import WidgetPreview from "./widget-builder/WidgetPreview";
-import WidgetCodeSnippet from "./widget-builder/WidgetCodeSnippet";
+import React, { useState, useEffect } from 'react';
+import { useWhatsApp } from '../hooks/use-whatsapp';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/infrastructure/api-client';
+import { toast } from '@/hooks/use-toast';
+import { Loader2, MessageSquare, Code, Settings } from 'lucide-react';
+import { WidgetConfig, ChatMessage, PreviewScreen } from './widget-builder/types';
+import { createDefaultConfig } from './widget-builder/utils';
+import WidgetConfigPanel from './widget-builder/WidgetConfigPanel';
+import WidgetPreview from './widget-builder/WidgetPreview';
+import WidgetCodeSnippet from './widget-builder/WidgetCodeSnippet';
 
 export const WidgetBuilder = () => {
   const { useChannels, useWidgetSettings, useSaveWidgetSettings } = useWhatsApp();
@@ -18,25 +18,25 @@ export const WidgetBuilder = () => {
 
   // Fetch doctors list for the team dropdown selection
   const { data: doctors, isLoading: doctorsLoading } = useQuery({
-    queryKey: ["doctors-list"],
+    queryKey: ['doctors-list'],
     queryFn: async () => {
-      const { data } = await apiClient.get<any>("/doctors");
+      const { data } = await apiClient.get<any>('/doctors');
       return data.data || [];
     },
   });
 
   const { data: settings, isLoading: settingsLoading } = useWidgetSettings(
-    activeChannel?.id || null
+    activeChannel?.id || null,
   );
   const saveWidgetSettings = useSaveWidgetSettings();
 
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
-  const [previewScreen, setPreviewScreen] = useState<PreviewScreen>("home");
+  const [previewScreen, setPreviewScreen] = useState<PreviewScreen>('home');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeSubTab, setActiveSubTab] = useState<"builder" | "code">("builder");
+  const [chatInput, setChatInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSubTab, setActiveSubTab] = useState<'builder' | 'code'>('builder');
 
   useEffect(() => {
     if (activeChannel) {
@@ -56,11 +56,11 @@ export const WidgetBuilder = () => {
     if (config) {
       setChatMessages([
         {
-          role: "bot",
+          role: 'bot',
           text: config.greeting,
           time: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
+            hour: '2-digit',
+            minute: '2-digit',
           }),
         },
       ]);
@@ -85,19 +85,19 @@ export const WidgetBuilder = () => {
       {
         onSuccess: () => {
           toast({
-            title: "Success",
-            description: "Widget configuration saved successfully.",
-            variant: "success",
+            title: 'Success',
+            description: 'Widget configuration saved successfully.',
+            variant: 'success',
           });
         },
         onError: (err: any) => {
           toast({
-            title: "Error",
-            description: err.message || "Failed to save configuration.",
-            variant: "error",
+            title: 'Error',
+            description: err.message || 'Failed to save configuration.',
+            variant: 'error',
           });
         },
-      }
+      },
     );
   };
 
@@ -105,13 +105,13 @@ export const WidgetBuilder = () => {
     if (!chatInput.trim() || !config) return;
 
     const time = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
+      hour: '2-digit',
+      minute: '2-digit',
     });
 
-    const newMsgs = [...chatMessages, { role: "user", text: chatInput, time }];
+    const newMsgs = [...chatMessages, { role: 'user', text: chatInput, time }];
     setChatMessages(newMsgs);
-    setChatInput("");
+    setChatInput('');
 
     // Simulate AI response if enabled
     if (config.enableAiAutoReply) {
@@ -119,11 +119,11 @@ export const WidgetBuilder = () => {
         setChatMessages((prev) => [
           ...prev,
           {
-            role: "bot",
-            text: "Thank you for message! This is a preview simulation. Once installed on your website, our clinical assistant will answer dynamically based on clinical records.",
+            role: 'bot',
+            text: 'Thank you for message! This is a preview simulation. Once installed on your website, our clinical assistant will answer dynamically based on clinical records.',
             time: new Date().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
+              hour: '2-digit',
+              minute: '2-digit',
             }),
           },
         ]);
@@ -148,7 +148,8 @@ export const WidgetBuilder = () => {
         </div>
         <h3 className="text-lg font-bold text-main">No WhatsApp Channel Configured</h3>
         <p className="text-sm text-secondary leading-relaxed">
-          Please connect your WhatsApp Business Account (WABA) first under WhatsApp Settings or Channels.
+          Please connect your WhatsApp Business Account (WABA) first under WhatsApp Settings or
+          Channels.
         </p>
       </div>
     );
@@ -165,33 +166,34 @@ export const WidgetBuilder = () => {
   const copyCode = () => {
     navigator.clipboard.writeText(embedCode);
     toast({
-      title: "Copied!",
-      description: "Installation script copied to clipboard.",
-      variant: "success",
+      title: 'Copied!',
+      description: 'Installation script copied to clipboard.',
+      variant: 'success',
     });
   };
 
   // Mock FAQs for live mockup
   const sampleFaqs = [
     {
-      id: "1",
-      question: "What are your consultation hours?",
-      answer: "We are open Monday to Friday 9:00 AM to 6:00 PM, and Saturday 9:00 AM to 1:00 PM.",
-      category: "General",
+      id: '1',
+      question: 'What are your consultation hours?',
+      answer: 'We are open Monday to Friday 9:00 AM to 6:00 PM, and Saturday 9:00 AM to 1:00 PM.',
+      category: 'General',
       isActive: true,
     },
     {
-      id: "2",
-      question: "How can I book an appointment?",
-      answer: "You can book an appointment directly through this widget by clicking 'Chat on WhatsApp', or by calling our clinic number.",
-      category: "Appointments",
+      id: '2',
+      question: 'How can I book an appointment?',
+      answer:
+        "You can book an appointment directly through this widget by clicking 'Chat on WhatsApp', or by calling our clinic number.",
+      category: 'Appointments',
       isActive: true,
     },
     {
-      id: "3",
-      question: "Do you offer online consultations?",
-      answer: "Yes, we offer fully remote video/audio consultations for patients worldwide.",
-      category: "Services",
+      id: '3',
+      question: 'Do you offer online consultations?',
+      answer: 'Yes, we offer fully remote video/audio consultations for patients worldwide.',
+      category: 'Services',
       isActive: true,
     },
   ];
@@ -208,22 +210,22 @@ export const WidgetBuilder = () => {
 
         <div className="flex items-center gap-1 p-1.5 bg-[var(--bg-main)] rounded-[14px] border border-pp-border/30 shadow-inner">
           <button
-            onClick={() => setActiveSubTab("builder")}
+            onClick={() => setActiveSubTab('builder')}
             className={`px-5 py-2 text-[13px] font-semibold rounded-xl flex items-center gap-2 transition-all select-none ${
-              activeSubTab === "builder"
-                ? "bg-[var(--bg-card)] text-main shadow-sm border border-pp-border"
-                : "text-secondary hover:text-main"
+              activeSubTab === 'builder'
+                ? 'bg-[var(--bg-card)] text-main shadow-sm border border-pp-border'
+                : 'text-secondary hover:text-main'
             }`}
           >
             <Settings className="h-4 w-4" />
             Designer
           </button>
           <button
-            onClick={() => setActiveSubTab("code")}
+            onClick={() => setActiveSubTab('code')}
             className={`px-5 py-2 text-[13px] font-semibold rounded-xl flex items-center gap-2 transition-all select-none ${
-              activeSubTab === "code"
-                ? "bg-[var(--bg-card)] text-main shadow-sm border border-pp-border"
-                : "text-secondary hover:text-main"
+              activeSubTab === 'code'
+                ? 'bg-[var(--bg-card)] text-main shadow-sm border border-pp-border'
+                : 'text-secondary hover:text-main'
             }`}
           >
             <Code className="h-4 w-4" />
@@ -235,7 +237,7 @@ export const WidgetBuilder = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Side: Builder Config or Embed Code */}
         <div className="lg:col-span-6 xl:col-span-5 space-y-6">
-          {activeSubTab === "builder" ? (
+          {activeSubTab === 'builder' ? (
             <div className="space-y-6">
               <WidgetConfigPanel
                 config={config}
@@ -249,9 +251,7 @@ export const WidgetBuilder = () => {
                   disabled={saveWidgetSettings.isPending}
                   className="w-full bg-pp-blue hover:bg-pp-blue/90 text-white rounded-xl h-11 text-sm font-semibold shadow-sm transition-colors flex items-center justify-center gap-2"
                 >
-                  {saveWidgetSettings.isPending && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  )}
+                  {saveWidgetSettings.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                   Save Configuration
                 </button>
               </div>

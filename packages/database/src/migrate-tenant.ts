@@ -19,8 +19,8 @@ export async function migrateTenant(dbUrl: string, schemaName: string): Promise<
     max: 1,
     onnotice: () => {},
     connection: {
-      search_path: `${schemaName},public`
-    }
+      search_path: `${schemaName},public`,
+    },
   });
 
   try {

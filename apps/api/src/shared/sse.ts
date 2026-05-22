@@ -25,7 +25,7 @@ export async function streamToSSE(
 ): Promise<void> {
   initSSE(res);
   let disconnected = false;
-  
+
   req.on('close', () => {
     disconnected = true;
   });
@@ -33,10 +33,10 @@ export async function streamToSSE(
   try {
     for await (const item of generator) {
       if (disconnected) break;
-      sendSSEChunk(res, { 
-        chunk: item.chunk, 
-        provider: item.provider, 
-        sessionId 
+      sendSSEChunk(res, {
+        chunk: item.chunk,
+        provider: item.provider,
+        sessionId,
       });
     }
   } catch (error) {

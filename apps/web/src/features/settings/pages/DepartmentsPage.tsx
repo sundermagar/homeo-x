@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { Layers, Plus, X, RefreshCw, Trash2, Edit2, CheckCircle2, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from '../hooks/use-settings';
+import {
+  useDepartments,
+  useCreateDepartment,
+  useUpdateDepartment,
+  useDeleteDepartment,
+} from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css'; // Reusing platform styles
 import '../styles/settings.css';
@@ -30,14 +35,8 @@ export default function DepartmentsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(depts);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(depts);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -68,8 +67,6 @@ export default function DepartmentsPage() {
 
   return (
     <div className="plat-page fade-in">
-
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
@@ -103,7 +100,7 @@ export default function DepartmentsPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={5} />
         ) : depts.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Layers}
             title="No departments found"
             description="Add your first clinic department or medical specialization to organize your staff."
@@ -114,52 +111,66 @@ export default function DepartmentsPage() {
           />
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '60px' }}>ID</th>
-                  <th>Department Name</th>
-                  <th>Description / Detail</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '120px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((dept: Department, idx: number) => (
-                  <tr key={dept.id} className="plat-table-row">
-                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                    <td data-label="Name" className="plat-table-cell font-semibold">{dept.name}</td>
-                    <td data-label="Detail" className="plat-table-cell text-secondary">{dept.description || '—'}</td>
-                    <td data-label="Status" className="plat-table-cell">
-                      <span className={`plat-badge ${dept.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                        {dept.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="plat-table-cell">
-                      <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(dept)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(dept.id, dept.name)}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px' }}>ID</th>
+                    <th>Department Name</th>
+                    <th>Description / Detail</th>
+                    <th style={{ width: '100px' }}>Status</th>
+                    <th style={{ width: '120px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((dept: Department, idx: number) => (
+                    <tr key={dept.id} className="plat-table-row">
+                      <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">
+                        {(currentPage - 1) * itemsPerPage + idx + 1}
+                      </td>
+                      <td data-label="Name" className="plat-table-cell font-semibold">
+                        {dept.name}
+                      </td>
+                      <td data-label="Detail" className="plat-table-cell text-secondary">
+                        {dept.description || '—'}
+                      </td>
+                      <td data-label="Status" className="plat-table-cell">
+                        <span
+                          className={`plat-badge ${dept.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}
+                        >
+                          {dept.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="flex justify-end gap-3">
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon"
+                            onClick={() => handleOpenEdit(dept)}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(dept.id, dept.name)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
@@ -172,14 +183,17 @@ export default function DepartmentsPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
                 <div className="plat-form-group">
                   <label className="plat-form-label">Department Name *</label>
                   <input
                     className="plat-form-input"
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     required
                     placeholder="e.g. Homeopathy, General Medicine"
                   />
@@ -190,7 +204,7 @@ export default function DepartmentsPage() {
                     className="plat-form-input"
                     style={{ minHeight: '120px' }}
                     value={form.description}
-                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                     placeholder="Describe the department's focus..."
                   />
                 </div>
@@ -198,7 +212,7 @@ export default function DepartmentsPage() {
                   <input
                     type="checkbox"
                     checked={form.isActive}
-                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                   />
                   <span className="plat-checkbox-label">Department is active</span>
                 </label>
@@ -206,14 +220,19 @@ export default function DepartmentsPage() {
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={createDept.isPending || updateDept.isPending}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
+              disabled={createDept.isPending || updateDept.isPending}
+            >
               {editingId ? 'Save Changes' : 'Create Department'}
             </button>
           </div>
         </form>
       </Drawer>
-
     </div>
   );
 }

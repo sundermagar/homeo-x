@@ -4,7 +4,7 @@ import type {
   MedicalCase,
   Vitals,
   SoapNotes,
-  HomeoDetails
+  HomeoDetails,
 } from '../ports/medical-case.repository.js';
 
 export interface FullMedicalCase extends MedicalCase {
@@ -32,7 +32,7 @@ export class GetMedicalCaseUseCase {
 
   async executeByVisit(visitId: number, regid: number): Promise<Result<FullMedicalCase>> {
     const cases = await this.repository.findByRegId(regid);
-    const activeCase = cases.find(c => c.status === 'Active') || cases[0];
+    const activeCase = cases.find((c) => c.status === 'Active') || cases[0];
 
     if (!activeCase) {
       return fail(`No medical case found for patient ${regid}`, 'NOT_FOUND');

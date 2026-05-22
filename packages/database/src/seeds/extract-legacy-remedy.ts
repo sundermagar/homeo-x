@@ -50,7 +50,9 @@ function parseSql(content: string) {
     const rows = values.split(/\),\s*\(/);
     for (let row of rows) {
       row = row.replace(/^\s*\(/, '').replace(/\)\s*$/, '');
-      const cols = row.split(/,(?=(?:(?:[^']*'){2})*[^']*$)/).map(c => c.trim().replace(/^'|'$/g, ''));
+      const cols = row
+        .split(/,(?=(?:(?:[^']*'){2})*[^']*$)/)
+        .map((c) => c.trim().replace(/^'|'$/g, ''));
       if (cols.length >= 3) {
         const id = parseInt(cols[0] || '0');
         if (!nodes[id]) {
@@ -67,7 +69,7 @@ function parseSql(content: string) {
             marathi_label: cols[9],
             french_label: cols[10],
             german_label: cols[11],
-            spanish_label: cols[12]
+            spanish_label: cols[12],
           };
         }
       }
@@ -82,7 +84,9 @@ function parseSql(content: string) {
     const rows = values.split(/\),\s*\(/);
     for (let row of rows) {
       row = row.replace(/^\s*\(/, '').replace(/\)\s*$/, '');
-      const cols = row.split(/,(?=(?:(?:[^']*'){2})*[^']*$)/).map(c => c.trim().replace(/^'|'$/g, ''));
+      const cols = row
+        .split(/,(?=(?:(?:[^']*'){2})*[^']*$)/)
+        .map((c) => c.trim().replace(/^'|'$/g, ''));
       if (cols.length >= 3) {
         const id = parseInt(cols[0] || '0');
         if (!alternatives[id]) {
@@ -90,8 +94,8 @@ function parseSql(content: string) {
             id,
             tree_id: parseInt(cols[1] || '0'),
             remedy: cols[2] || '',
-            potency: (cols[3] && cols[3] !== 'NULL') ? cols[3] : undefined,
-            notes: cols[4] !== 'NULL' ? cols[4] : undefined
+            potency: cols[3] && cols[3] !== 'NULL' ? cols[3] : undefined,
+            notes: cols[4] !== 'NULL' ? cols[4] : undefined,
           };
         }
       }
@@ -104,7 +108,7 @@ if (!fs.existsSync(SQL_DIR)) {
   process.exit(1);
 }
 
-const files = fs.readdirSync(SQL_DIR).filter(f => f.endsWith('.sql'));
+const files = fs.readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'));
 console.log(`Processing ${files.length} SQL files...`);
 
 for (const file of files) {
@@ -115,9 +119,11 @@ for (const file of files) {
 
 const result = {
   nodes: Object.values(nodes),
-  alternatives: Object.values(alternatives)
+  alternatives: Object.values(alternatives),
 };
 
 fs.writeFileSync(OUTPUT_FILE, JSON.stringify(result, null, 2));
-console.log(`\nSuccess! Extracted ${result.nodes.length} nodes and ${result.alternatives.length} alternatives.`);
+console.log(
+  `\nSuccess! Extracted ${result.nodes.length} nodes and ${result.alternatives.length} alternatives.`,
+);
 console.log(`Saved to ${OUTPUT_FILE}`);

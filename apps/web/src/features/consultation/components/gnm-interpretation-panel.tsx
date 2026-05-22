@@ -72,9 +72,7 @@ function CollapsibleCard({
         )}
       </button>
       {open && (
-        <CardContent className="p-4 animate-in fade-in duration-300">
-          {children}
-        </CardContent>
+        <CardContent className="p-4 animate-in fade-in duration-300">{children}</CardContent>
       )}
     </Card>
   );
@@ -115,7 +113,9 @@ function MatchBadge({ strength }: { strength: string }) {
     moderate: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
   };
   return (
-    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${colors[strength] || colors['moderate']}`}>
+    <span
+      className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${colors[strength] || colors['moderate']}`}
+    >
       {strength.charAt(0).toUpperCase() + strength.slice(1)} Match
     </span>
   );
@@ -147,8 +147,12 @@ export function GnmInterpretationPanel({
     }
   };
 
-  useEffect(() => { autoResize(subjectiveRef); }, [subjective]);
-  useEffect(() => { autoResize(notesRef); }, [clinicalNotes]);
+  useEffect(() => {
+    autoResize(subjectiveRef);
+  }, [subjective]);
+  useEffect(() => {
+    autoResize(notesRef);
+  }, [clinicalNotes]);
 
   const hasGnm = !!gnmAnalysis;
 
@@ -195,27 +199,35 @@ export function GnmInterpretationPanel({
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Conflict Type</p>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">
+                  Conflict Type
+                </p>
                 <p className="text-sm font-bold text-purple-700 dark:text-purple-300">
                   {gnmAnalysis.coreConflict.conflictType}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Affected Tissue</p>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">
+                  Affected Tissue
+                </p>
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {gnmAnalysis.coreConflict.affectedTissue}
                 </p>
               </div>
             </div>
             <div>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Biological Meaning</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">
+                Biological Meaning
+              </p>
               <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                 {gnmAnalysis.coreConflict.biologicalMeaning}
               </p>
             </div>
             {gnmAnalysis.coreConflict.triggerEvents.length > 0 && (
               <div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Trigger Events</p>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">
+                  Trigger Events
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {gnmAnalysis.coreConflict.triggerEvents.map((event, i) => (
                     <span
@@ -245,13 +257,17 @@ export function GnmInterpretationPanel({
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-lg border border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/10 p-3">
-                <p className="text-[9px] text-red-500 font-bold uppercase tracking-wider mb-1">🔴 Conflict Active</p>
+                <p className="text-[9px] text-red-500 font-bold uppercase tracking-wider mb-1">
+                  🔴 Conflict Active
+                </p>
                 <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
                   {gnmAnalysis.phases.conflictActive}
                 </p>
               </div>
               <div className="rounded-lg border border-green-100 dark:border-green-900/30 bg-green-50/50 dark:bg-green-950/10 p-3">
-                <p className="text-[9px] text-green-600 font-bold uppercase tracking-wider mb-1">🟢 Healing Phase</p>
+                <p className="text-[9px] text-green-600 font-bold uppercase tracking-wider mb-1">
+                  🟢 Healing Phase
+                </p>
                 <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
                   {gnmAnalysis.phases.healingPhase}
                 </p>
@@ -282,7 +298,9 @@ export function GnmInterpretationPanel({
         {gnmAnalysis?.homeopathicTotality && (
           <div className="space-y-3">
             <div>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Mental / Emotional</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">
+                Mental / Emotional
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {gnmAnalysis.homeopathicTotality.mentalEmotional.map((trait, i) => (
                   <span
@@ -295,7 +313,9 @@ export function GnmInterpretationPanel({
               </div>
             </div>
             <div>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Physical Generals</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">
+                Physical Generals
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {gnmAnalysis.homeopathicTotality.physicalGenerals.map((gen, i) => (
                   <span
@@ -405,7 +425,10 @@ export function GnmInterpretationPanel({
                   {remedy.keynotes.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {remedy.keynotes.map((k, j) => (
-                        <span key={j} className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                        <span
+                          key={j}
+                          className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                        >
                           {k}
                         </span>
                       ))}
@@ -449,7 +472,9 @@ export function GnmInterpretationPanel({
             </div>
             {gnmAnalysis.resolutionStrategy.prognosis && (
               <div className="rounded-lg bg-teal-50/50 dark:bg-teal-950/10 border border-teal-100 dark:border-teal-800/40 px-3 py-2">
-                <p className="text-[10px] font-bold text-teal-600 dark:text-teal-400 mb-0.5">💡 Prognosis</p>
+                <p className="text-[10px] font-bold text-teal-600 dark:text-teal-400 mb-0.5">
+                  💡 Prognosis
+                </p>
                 <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                   {gnmAnalysis.resolutionStrategy.prognosis}
                 </p>
@@ -463,8 +488,12 @@ export function GnmInterpretationPanel({
                 onClick={() => {
                   const text = [
                     ...gnmAnalysis.resolutionStrategy.directions,
-                    gnmAnalysis.resolutionStrategy.prognosis ? `Prognosis: ${gnmAnalysis.resolutionStrategy.prognosis}` : '',
-                  ].filter(Boolean).join('\n');
+                    gnmAnalysis.resolutionStrategy.prognosis
+                      ? `Prognosis: ${gnmAnalysis.resolutionStrategy.prognosis}`
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join('\n');
                   onCopyToAdvice(text);
                 }}
               >

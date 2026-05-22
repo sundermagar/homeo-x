@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
-import { Package, Plus, X, RefreshCw, Trash2, Edit2, Calendar, IndianRupee, Search } from 'lucide-react';
+import {
+  Package,
+  Plus,
+  X,
+  RefreshCw,
+  Trash2,
+  Edit2,
+  Calendar,
+  IndianRupee,
+  Search,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { usePackagePlans, useCreatePackagePlan, useUpdatePackagePlan, useDeletePackagePlan } from '../hooks/use-settings';
+import {
+  usePackagePlans,
+  useCreatePackagePlan,
+  useUpdatePackagePlan,
+  useDeletePackagePlan,
+} from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -11,7 +26,14 @@ import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { usePackagePeriods } from '../hooks/use-settings';
 
-const EMPTY_FORM = { name: '', description: '', price: 0, durationDays: 30, colorCode: '#2563EB', isActive: true };
+const EMPTY_FORM = {
+  name: '',
+  description: '',
+  price: 0,
+  durationDays: 30,
+  colorCode: '#2563EB',
+  isActive: true,
+};
 
 export default function PackagePlansPage() {
   const { data: plans = [], isLoading } = usePackagePlans();
@@ -26,19 +48,14 @@ export default function PackagePlansPage() {
 
   const { data: periods = [] } = usePackagePeriods();
 
-  const filteredItems = plans.filter((p: any) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredItems = plans.filter(
+    (p: any) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filteredItems);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filteredItems);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -54,7 +71,7 @@ export default function PackagePlansPage() {
       price: Number(plan.price),
       durationDays: Number(plan.durationDays),
       colorCode: plan.colorCode || '#2563EB',
-      isActive: plan.isActive ?? true
+      isActive: plan.isActive ?? true,
     });
     setIsModalOpen(true);
   };
@@ -77,14 +94,15 @@ export default function PackagePlansPage() {
 
   return (
     <div className="plat-page fade-in">
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
             <Package size={20} className="color-primary" />
             Treatment Packages
           </h1>
-          <p className="plat-header-sub">Manage standard visit/care bundles and membership plans.</p>
+          <p className="plat-header-sub">
+            Manage standard visit/care bundles and membership plans.
+          </p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
@@ -129,71 +147,89 @@ export default function PackagePlansPage() {
           </div>
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '80px' }}>Theme</th>
-                  <th>Package Name</th>
-                  <th>Pricing</th>
-                  <th>Duration</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '120px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((plan: any) => (
-                  <tr key={plan.id} className="plat-table-row">
-                    <td data-label="Theme" className="plat-table-cell">
-                      <div className="flex justify-start">
-                        <div style={{ backgroundColor: plan.colorCode, width: '32px', height: '10px', borderRadius: '4px', opacity: 0.8 }}></div>
-                      </div>
-                    </td>
-                    <td data-label="Package" className="plat-table-cell">
-                      <div className="font-semibold text-left">{plan.name}</div>
-                      <div className="text-xs color-muted line-clamp-1 text-left">{plan.description || 'No description'}</div>
-                    </td>
-                    <td data-label="Price" className="plat-table-cell font-mono font-bold">
-                      <div className="flex items-center gap-1 justify-start">
-                        <IndianRupee size={12} className="color-primary" />
-                        {plan.price}
-                      </div>
-                    </td>
-                    <td data-label="Duration" className="plat-table-cell">
-                      <div className="flex items-center gap-1 justify-start">
-                        <Calendar size={12} className="color-muted" />
-                        {plan.durationDays} Days
-                      </div>
-                    </td>
-                    <td data-label="Status" className="plat-table-cell">
-                      <span className={`plat-badge ${plan.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                        {plan.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="plat-table-cell">
-                      <div className="flex justify-end gap-2">
-                        <button className="plat-btn plat-btn-icon" onClick={() => handleOpenEdit(plan)}>
-                          <Edit2 size={14} />
-                        </button>
-                        <button className="plat-btn plat-btn-icon plat-btn-danger" onClick={() => handleDelete(plan.id, plan.name)}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '80px' }}>Theme</th>
+                    <th>Package Name</th>
+                    <th>Pricing</th>
+                    <th>Duration</th>
+                    <th style={{ width: '100px' }}>Status</th>
+                    <th style={{ width: '120px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((plan: any) => (
+                    <tr key={plan.id} className="plat-table-row">
+                      <td data-label="Theme" className="plat-table-cell">
+                        <div className="flex justify-start">
+                          <div
+                            style={{
+                              backgroundColor: plan.colorCode,
+                              width: '32px',
+                              height: '10px',
+                              borderRadius: '4px',
+                              opacity: 0.8,
+                            }}
+                          ></div>
+                        </div>
+                      </td>
+                      <td data-label="Package" className="plat-table-cell">
+                        <div className="font-semibold text-left">{plan.name}</div>
+                        <div className="text-xs color-muted line-clamp-1 text-left">
+                          {plan.description || 'No description'}
+                        </div>
+                      </td>
+                      <td data-label="Price" className="plat-table-cell font-mono font-bold">
+                        <div className="flex items-center gap-1 justify-start">
+                          <IndianRupee size={12} className="color-primary" />
+                          {plan.price}
+                        </div>
+                      </td>
+                      <td data-label="Duration" className="plat-table-cell">
+                        <div className="flex items-center gap-1 justify-start">
+                          <Calendar size={12} className="color-muted" />
+                          {plan.durationDays} Days
+                        </div>
+                      </td>
+                      <td data-label="Status" className="plat-table-cell">
+                        <span
+                          className={`plat-badge ${plan.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}
+                        >
+                          {plan.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            className="plat-btn plat-btn-icon"
+                            onClick={() => handleOpenEdit(plan)}
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(plan.id, plan.name)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
@@ -206,14 +242,17 @@ export default function PackagePlansPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
                 <div className="plat-form-group">
                   <label className="plat-form-label">Package Name *</label>
                   <input
                     className="plat-form-input"
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     required
                     placeholder="e.g. 1 Month Treatment, Annual Gold Plan"
                   />
@@ -222,29 +261,36 @@ export default function PackagePlansPage() {
 
               <div className="plat-form-group mt-4">
                 <label className="plat-form-label">Select Period</label>
-                <select 
-                  className="plat-form-input" 
+                <select
+                  className="plat-form-input"
                   value={
-                    periods.some(p => p.days === form.durationDays && p.isActive !== false)
+                    periods.some((p) => p.days === form.durationDays && p.isActive !== false)
                       ? form.durationDays
                       : 'custom'
                   }
-                  onChange={e => {
+                  onChange={(e) => {
                     const val = e.target.value;
                     if (val !== 'custom') {
-                      setForm(f => ({ ...f, durationDays: Number(val) }));
+                      setForm((f) => ({ ...f, durationDays: Number(val) }));
                     }
                   }}
                   style={{ cursor: 'pointer', appearance: 'auto' }}
                 >
                   <option value="custom">Custom (Specify days manually)</option>
-                  {periods.filter(p => p.isActive !== false).map(p => (
-                    <option key={p.id} value={p.days}>{p.name} ({p.days} days)</option>
-                  ))}
+                  {periods
+                    .filter((p) => p.isActive !== false)
+                    .map((p) => (
+                      <option key={p.id} value={p.days}>
+                        {p.name} ({p.days} days)
+                      </option>
+                    ))}
                 </select>
               </div>
 
-              <div className="plat-form-grid-multi mt-4" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <div
+                className="plat-form-grid-multi mt-4"
+                style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}
+              >
                 <div className="plat-form-group">
                   <label className="plat-form-label">Price (₹) *</label>
                   <div className="plat-input-wrapper">
@@ -253,7 +299,7 @@ export default function PackagePlansPage() {
                       type="number"
                       className="plat-form-input"
                       value={form.price}
-                      onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))}
+                      onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
                       required
                     />
                   </div>
@@ -266,7 +312,9 @@ export default function PackagePlansPage() {
                       type="number"
                       className="plat-form-input"
                       value={form.durationDays}
-                      onChange={e => setForm(f => ({ ...f, durationDays: Number(e.target.value) }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, durationDays: Number(e.target.value) }))
+                      }
                       required
                     />
                   </div>
@@ -278,14 +326,14 @@ export default function PackagePlansPage() {
                     className="plat-form-input p-1"
                     style={{ height: '42px' }}
                     value={form.colorCode}
-                    onChange={e => setForm(f => ({ ...f, colorCode: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, colorCode: e.target.value }))}
                   />
                 </div>
                 <label className="plat-checkbox-group">
                   <input
                     type="checkbox"
                     checked={form.isActive}
-                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                   />
                   <span className="plat-checkbox-label">Plan is Active</span>
                 </label>
@@ -297,21 +345,26 @@ export default function PackagePlansPage() {
                   className="plat-form-input"
                   style={{ minHeight: '120px' }}
                   value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   placeholder="Optional details about this plan..."
                 />
               </div>
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={createPlan.isPending || updatePlan.isPending}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
+              disabled={createPlan.isPending || updatePlan.isPending}
+            >
               {editingId ? 'Update Package' : 'Create Package'}
             </button>
           </div>
         </form>
       </Drawer>
-
     </div>
   );
 }

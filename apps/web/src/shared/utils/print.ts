@@ -7,12 +7,17 @@ export interface PrintOptions {
 }
 
 export const printBill = (bill: BillWithPatient, org: Organization, options: PrintOptions = {}) => {
-  const effectiveTemplate = options.template ?? (
-    bill.billType === 'Package' ? 'package' :
-      bill.billType === 'Custom' ? 'comprehensive' :
-        'standard'
-  );
-  const { template = effectiveTemplate, showLetterhead = true } = { ...options, template: effectiveTemplate };
+  const effectiveTemplate =
+    options.template ??
+    (bill.billType === 'Package'
+      ? 'package'
+      : bill.billType === 'Custom'
+        ? 'comprehensive'
+        : 'standard');
+  const { template = effectiveTemplate, showLetterhead = true } = {
+    ...options,
+    template: effectiveTemplate,
+  };
   const balance = bill.balance || 0;
   const isPaid = balance <= 0;
 
@@ -20,7 +25,7 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
     standard: 'Standard Transaction Receipt',
     pharmacy: 'Pharmacy / Medicinal Bill',
     package: 'Clinical Program / Package',
-    comprehensive: 'Statement of Account'
+    comprehensive: 'Statement of Account',
   }[template];
 
   let bodyRows = '';
@@ -273,29 +278,32 @@ export const printPrescription = (caseData: any, org: Organization) => {
   }
 };
 
-export const printAppointmentSlip = (appointment: {
-  patientName: string;
-  phone: string;
-  doctorName: string;
-  bookingDate: string;
-  bookingTime: string;
-  consultationFee: string;
-  visitType: string;
-  tokenNo?: number;
-  regid?: number;
-  notes?: string;
-}, org: {
-  name: string;
-  tagLine?: string;
-  address?: string;
-  address2?: string;
-  phone?: string;
-  email?: string;
-  registration?: string;
-  timing?: string;
-  logo?: string;
-  website?: string;
-}) => {
+export const printAppointmentSlip = (
+  appointment: {
+    patientName: string;
+    phone: string;
+    doctorName: string;
+    bookingDate: string;
+    bookingTime: string;
+    consultationFee: string;
+    visitType: string;
+    tokenNo?: number;
+    regid?: number;
+    notes?: string;
+  },
+  org: {
+    name: string;
+    tagLine?: string;
+    address?: string;
+    address2?: string;
+    phone?: string;
+    email?: string;
+    registration?: string;
+    timing?: string;
+    logo?: string;
+    website?: string;
+  },
+) => {
   const formattedDate = appointment.bookingDate
     ? format(new Date(appointment.bookingDate + 'T00:00:00'), 'EEEE, dd MMMM yyyy')
     : 'N/A';
@@ -368,10 +376,11 @@ export const printAppointmentSlip = (appointment: {
           <div class="letterhead">
             <div class="letterhead-band"></div>
             <div class="letterhead-row">
-              ${org.logo
-      ? `<img src="${org.logo}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
-      : `<div class="letterhead-logo-fallback">${(org.name || 'C').charAt(0).toUpperCase()}</div>`
-    }
+              ${
+                org.logo
+                  ? `<img src="${org.logo}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
+                  : `<div class="letterhead-logo-fallback">${(org.name || 'C').charAt(0).toUpperCase()}</div>`
+              }
               <div class="letterhead-title">
                 <div class="clinic-name">${org.name}</div>
                 ${org.tagLine ? `<div class="clinic-tagline">${org.tagLine}</div>` : ''}
@@ -400,11 +409,15 @@ export const printAppointmentSlip = (appointment: {
               <p class="p-name">${appointment.patientName || 'Patient'}</p>
               <p class="p-sub">${appointment.phone ? `+91 ${appointment.phone}` : ''} ${appointment.regid ? `| Reg ID: #${appointment.regid}` : ''}</p>
             </div>
-            ${appointment.tokenNo ? `
+            ${
+              appointment.tokenNo
+                ? `
             <div class="token-box">
               <p class="token-label">Token No.</p>
               <p class="token-value">${String(appointment.tokenNo).padStart(2, '0')}</p>
-            </div>` : ''}
+            </div>`
+                : ''
+            }
           </div>
 
           <div class="details-grid">
@@ -438,7 +451,9 @@ export const printAppointmentSlip = (appointment: {
             </div>
           </div>
 
-          ${appointment.consultationFee ? `
+          ${
+            appointment.consultationFee
+              ? `
           <div class="fee-bar">
             <div>
               <p class="fee-label">Consultation Fee</p>
@@ -447,13 +462,19 @@ export const printAppointmentSlip = (appointment: {
             <div>
               <p class="fee-value">₹${Number(appointment.consultationFee).toLocaleString()}</p>
             </div>
-          </div>` : ''}
+          </div>`
+              : ''
+          }
 
-          ${appointment.notes ? `
+          ${
+            appointment.notes
+              ? `
           <div style="margin-bottom: 15px;">
             <p style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px;">Booking Notes</p>
             <div style="background: #f8fafc; padding: 12px; border-radius: 10px; font-size: 12px; color: #334155; border: 1px solid #f1f5f9; white-space: pre-wrap;">${appointment.notes}</div>
-          </div>` : ''}
+          </div>`
+              : ''
+          }
 
           <div class="instructions">
             <p class="instructions-title">Patient Instructions</p>
@@ -479,4 +500,3 @@ export const printAppointmentSlip = (appointment: {
     printWindow.document.close();
   }
 };
-

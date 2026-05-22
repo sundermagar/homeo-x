@@ -86,13 +86,14 @@ export function PatientInfoStage({
 }: PatientInfoStageProps) {
   const patientAge = patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : undefined;
 
-
   return (
     <div className="space-y-6 pp-fade-in relative">
       {/* Progress Bar */}
       <div className="w-full">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-bold text-[#888786] uppercase tracking-widest">Step 1 of 4</span>
+          <span className="text-[10px] font-bold text-[#888786] uppercase tracking-widest">
+            Step 1 of 4
+          </span>
         </div>
         <div className="w-full h-1.5 bg-[#E3E2DF] rounded-full overflow-hidden">
           <div className="h-full bg-[#2563EB] rounded-full" style={{ width: '25%' }} />
@@ -102,7 +103,9 @@ export function PatientInfoStage({
       {/* Title */}
       <div>
         <h2 className="text-xl font-bold text-[#0F0F0E] tracking-tight">Patient Setup & Mode</h2>
-        <p className="text-sm font-medium text-[#4A4A47] mt-1">Configure consultation parameters and verify patient history.</p>
+        <p className="text-sm font-medium text-[#4A4A47] mt-1">
+          Configure consultation parameters and verify patient history.
+        </p>
       </div>
 
       {/* Patient Details Card */}
@@ -113,27 +116,49 @@ export function PatientInfoStage({
         <div className="grid grid-cols-1 md:grid-cols-[1fr_80px_110px] gap-4 mb-4">
           <div>
             <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">Full Name *</label>
-            <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed" value={patient ? `${patient.firstName} ${patient.lastName}` : ''} readOnly />
+            <input
+              className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed"
+              value={patient ? `${patient.firstName} ${patient.lastName}` : ''}
+              readOnly
+            />
           </div>
           <div className="grid grid-cols-2 gap-4 md:contents">
             <div>
               <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">Age *</label>
-              <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed" value={patientAge || ''} readOnly />
+              <input
+                className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed"
+                value={patientAge || ''}
+                readOnly
+              />
             </div>
             <div>
               <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">Gender *</label>
-              <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed" value={patient?.gender || ''} readOnly />
+              <input
+                className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed"
+                value={patient?.gender || ''}
+                readOnly
+              />
             </div>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">MRN / Patient ID</label>
-            <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed pp-mono" value={patient?.mrn || patient?.id || ''} readOnly />
+            <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">
+              MRN / Patient ID
+            </label>
+            <input
+              className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed pp-mono"
+              value={patient?.mrn || patient?.id || ''}
+              readOnly
+            />
           </div>
           <div>
             <label className="text-[11px] font-bold text-[#4A4A47] mb-1.5 block">Contact</label>
-            <input className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed" value={patient?.phone || ''} readOnly />
+            <input
+              className="w-full h-9 border border-[#E3E2DF] rounded-md px-3 text-[13px] font-medium text-[#0F0F0E] outline-none bg-[#FAFAF8] cursor-not-allowed"
+              value={patient?.phone || ''}
+              readOnly
+            />
           </div>
         </div>
       </div>
@@ -170,31 +195,37 @@ export function PatientInfoStage({
                   'group relative flex items-center gap-3 px-4 py-4 rounded-lg border transition-all duration-200 cursor-pointer text-left',
                   isSelected
                     ? `border-[#2563EB] bg-[#EFF6FF] ring-2 ring-[#BFDBFE]/50 shadow-sm`
-                    : 'border-[#E3E2DF] bg-white hover:border-[#D1D0CE] hover:bg-[#FAFAF8]'
+                    : 'border-[#E3E2DF] bg-white hover:border-[#D1D0CE] hover:bg-[#FAFAF8]',
                 )}
               >
                 {/* Icon */}
-                <div className={cn(
-                  'w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-all duration-200',
-                  isSelected
-                    ? `bg-[#2563EB] text-white shadow-sm`
-                    : 'bg-[#F4F3F1] text-[#888786] group-hover:text-[#4A4A47]'
-                )}>
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-all duration-200',
+                    isSelected
+                      ? `bg-[#2563EB] text-white shadow-sm`
+                      : 'bg-[#F4F3F1] text-[#888786] group-hover:text-[#4A4A47]',
+                  )}
+                >
                   {opt.icon}
                 </div>
 
                 {/* Label + tagline */}
                 <div className="flex flex-col items-start min-w-0">
-                  <span className={cn(
-                    'text-[13px] font-bold transition-colors',
-                    isSelected ? 'text-[#2563EB]' : 'text-[#0F0F0E]'
-                  )}>
+                  <span
+                    className={cn(
+                      'text-[13px] font-bold transition-colors',
+                      isSelected ? 'text-[#2563EB]' : 'text-[#0F0F0E]',
+                    )}
+                  >
                     {opt.label}
                   </span>
-                  <span className={cn(
-                    'text-[11px] transition-colors leading-snug mt-0.5',
-                    isSelected ? 'text-[#1D4ED8]' : 'text-[#888786]'
-                  )}>
+                  <span
+                    className={cn(
+                      'text-[11px] transition-colors leading-snug mt-0.5',
+                      isSelected ? 'text-[#1D4ED8]' : 'text-[#888786]',
+                    )}
+                  >
                     {opt.tagline}
                   </span>
                 </div>
@@ -223,35 +254,39 @@ export function PatientInfoStage({
                   'group relative flex items-center gap-3 px-4 py-4 rounded-lg border transition-all duration-200 cursor-pointer text-left',
                   isSelected
                     ? `border-[#2563EB] bg-[#EFF6FF] ring-2 ring-[#BFDBFE]/50 shadow-sm`
-                    : 'border-[#E3E2DF] bg-white hover:border-[#D1D0CE] hover:bg-[#FAFAF8]'
+                    : 'border-[#E3E2DF] bg-white hover:border-[#D1D0CE] hover:bg-[#FAFAF8]',
                 )}
               >
                 {/* Icon */}
-                <div className={cn(
-                  'w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-all duration-200',
-                  isSelected
-                    ? `bg-[#2563EB] text-white shadow-sm`
-                    : 'bg-[#F4F3F1] text-[#888786] group-hover:text-[#4A4A47]'
-                )}>
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-all duration-200',
+                    isSelected
+                      ? `bg-[#2563EB] text-white shadow-sm`
+                      : 'bg-[#F4F3F1] text-[#888786] group-hover:text-[#4A4A47]',
+                  )}
+                >
                   {opt.icon}
                 </div>
 
                 {/* Label */}
-                <span className={cn(
-                  'text-[13px] font-bold flex-1 transition-colors',
-                  isSelected ? 'text-[#2563EB]' : 'text-[#0F0F0E]'
-                )}>
+                <span
+                  className={cn(
+                    'text-[13px] font-bold flex-1 transition-colors',
+                    isSelected ? 'text-[#2563EB]' : 'text-[#0F0F0E]',
+                  )}
+                >
                   {opt.label}
                 </span>
 
                 {/* Badge */}
                 {opt.badge && (
-                  <span className={cn(
-                    'text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[4px] shrink-0',
-                    isSelected
-                      ? `bg-[#2563EB] text-white`
-                      : 'bg-[#E3E2DF] text-[#4A4A47]'
-                  )}>
+                  <span
+                    className={cn(
+                      'text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[4px] shrink-0',
+                      isSelected ? `bg-[#2563EB] text-white` : 'bg-[#E3E2DF] text-[#4A4A47]',
+                    )}
+                  >
                     {opt.badge}
                   </span>
                 )}

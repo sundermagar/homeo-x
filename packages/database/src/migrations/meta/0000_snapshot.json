@@ -103,9 +103,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -141,10 +139,7 @@
       "compositePrimaryKeys": {
         "permission_role_permission_id_role_id_pk": {
           "name": "permission_role_permission_id_role_id_pk",
-          "columns": [
-            "permission_id",
-            "role_id"
-          ]
+          "columns": ["permission_id", "role_id"]
         }
       },
       "uniqueConstraints": {},
@@ -214,16 +209,12 @@
         "permissions_name_unique": {
           "name": "permissions_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         },
         "permissions_slug_unique": {
           "name": "permissions_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -259,10 +250,7 @@
       "compositePrimaryKeys": {
         "role_user_user_id_role_id_pk": {
           "name": "role_user_user_id_role_id_pk",
-          "columns": [
-            "user_id",
-            "role_id"
-          ]
+          "columns": ["user_id", "role_id"]
         }
       },
       "uniqueConstraints": {},
@@ -326,9 +314,7 @@
         "roles_name_unique": {
           "name": "roles_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -1357,9 +1343,7 @@
         "case_datas_regid_unique": {
           "name": "case_datas_regid_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "regid"
-          ]
+          "columns": ["regid"]
         }
       },
       "policies": {},
@@ -1661,9 +1645,7 @@
         "homeo_details_regid_unique": {
           "name": "homeo_details_regid_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "regid"
-          ]
+          "columns": ["regid"]
         }
       },
       "policies": {},
@@ -2008,9 +1990,7 @@
         "soap_notes_visit_id_unique": {
           "name": "soap_notes_visit_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "visit_id"
-          ]
+          "columns": ["visit_id"]
         }
       },
       "policies": {},
@@ -2128,9 +2108,7 @@
         "vitals_visit_id_unique": {
           "name": "vitals_visit_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "visit_id"
-          ]
+          "columns": ["visit_id"]
         }
       },
       "policies": {},
@@ -2261,12 +2239,8 @@
           "name": "bills_regid_case_datas_regid_fk",
           "tableFrom": "bills",
           "tableTo": "case_datas",
-          "columnsFrom": [
-            "regid"
-          ],
-          "columnsTo": [
-            "regid"
-          ],
+          "columnsFrom": ["regid"],
+          "columnsTo": ["regid"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2375,12 +2349,8 @@
           "name": "payments_regid_case_datas_regid_fk",
           "tableFrom": "payments",
           "tableTo": "case_datas",
-          "columnsFrom": [
-            "regid"
-          ],
-          "columnsTo": [
-            "regid"
-          ],
+          "columnsFrom": ["regid"],
+          "columnsTo": ["regid"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2388,12 +2358,8 @@
           "name": "payments_bill_id_bills_id_fk",
           "tableFrom": "payments",
           "tableTo": "bills",
-          "columnsFrom": [
-            "bill_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["bill_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4040,9 +4006,7 @@
         "static_pages_slug_unique": {
           "name": "static_pages_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},

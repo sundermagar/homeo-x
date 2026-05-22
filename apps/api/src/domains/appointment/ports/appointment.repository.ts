@@ -1,6 +1,9 @@
 import type {
-  Appointment, WaitlistEntry, AvailabilitySlot,
-  CreateAppointmentDto, UpdateAppointmentDto,
+  Appointment,
+  WaitlistEntry,
+  AvailabilitySlot,
+  CreateAppointmentDto,
+  UpdateAppointmentDto,
 } from '@mmc/types';
 
 export interface AppointmentFilters {
@@ -12,6 +15,7 @@ export interface AppointmentFilters {
   status?: string;
   search?: string;
   patientId?: number;
+  patientRegId?: number;
   page?: number;
   limit?: number;
 }
@@ -20,7 +24,7 @@ export interface AppointmentRepository {
   // Queries
   findMany(filters: AppointmentFilters): Promise<{ data: Appointment[]; total: number }>;
   findFollowups(filters: AppointmentFilters): Promise<{ data: Appointment[]; total: number }>;
-  findToday(doctorId?: number, clinicId?: number): Promise<Appointment[]>;
+  findToday(doctorId?: number, clinicId?: number, patientId?: number, patientRegId?: number): Promise<Appointment[]>;
   findById(id: number): Promise<Appointment | null>;
   findAvailableSlots(doctorId: number, date: string): Promise<AvailabilitySlot[]>;
 
@@ -32,8 +36,14 @@ export interface AppointmentRepository {
   issueToken(appointmentId: number): Promise<number>;
 
   // Waitlist
-  getWaitlist(date: string, doctorId?: number, clinicId?: number): Promise<WaitlistEntry[]>;
-  addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<number>;
+  getWaitlist(date: string, doctorId?: number, clinicId?: number, patientId?: number, patientRegId?: number): Promise<WaitlistEntry[]>;
+  addToWaitlist(dto: {
+    patientId?: number;
+    appointmentId?: number;
+    doctorId?: number;
+    consultationFee?: number;
+    clinicId?: number;
+  }): Promise<number>;
   callNextInWaitlist(waitlistId: number): Promise<void>;
   completeWaitlistEntry(waitlistId: number): Promise<void>;
   skipWaitlistEntry(waitlistId: number): Promise<void>;

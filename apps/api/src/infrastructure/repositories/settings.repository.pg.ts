@@ -4,10 +4,24 @@ import { createLogger } from '../../shared/logger.js';
 import type { DbClient } from '@mmc/database';
 import type {
   ISettingsRepository,
-  Department, Dispensary, ReferralSource, Sticker,
-  StaticPage, Faq, PdfSetting, Medicine, Potency, Frequency,
-  MessageTemplate, StockLog, PackagePlan, Courier,
-  User, Vaccine, Stock, PackagePeriod
+  Department,
+  Dispensary,
+  ReferralSource,
+  Sticker,
+  StaticPage,
+  Faq,
+  PdfSetting,
+  Medicine,
+  Potency,
+  Frequency,
+  MessageTemplate,
+  StockLog,
+  PackagePlan,
+  Courier,
+  User,
+  Vaccine,
+  Stock,
+  PackagePeriod,
 } from '../../domains/settings/ports/settings.repository.js';
 
 export class SettingsRepositoryPg implements ISettingsRepository {
@@ -32,7 +46,9 @@ export class SettingsRepositoryPg implements ISettingsRepository {
       // Seed if empty or contains old template
       const rows = await this.q<any>('SELECT COUNT(*)::integer as count FROM package_periods');
       const count = rows[0]?.count ?? 0;
-      const hasOldSeed = await this.q<any>("SELECT id FROM package_periods WHERE name = 'Monthly' LIMIT 1");
+      const hasOldSeed = await this.q<any>(
+        "SELECT id FROM package_periods WHERE name = 'Monthly' LIMIT 1",
+      );
       if (count === 0 || hasOldSeed.length > 0) {
         this.logger.info('Seeding default package periods into DB');
         await this.q('TRUNCATE TABLE package_periods RESTART IDENTITY CASCADE');
@@ -50,7 +66,6 @@ export class SettingsRepositoryPg implements ISettingsRepository {
       this.logger.error({ err }, 'initPackagePeriods failed');
     }
   }
-
 
   // ─── Helpers: raw query via db.execute ───────────────────────────────────────
   private async q<T>(query: string, params: unknown[] = []): Promise<T[]> {
@@ -86,19 +101,31 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     // Specific legacy mappings
     if (row.ID !== undefined && mapped.id === undefined) mapped.id = row.ID;
     if (row.shortname !== undefined && mapped.name === undefined) mapped.name = row.shortname;
-    if (row.remedy !== undefined && (mapped.name === undefined || mapped.name === null)) mapped.name = row.remedy;
+    if (row.remedy !== undefined && (mapped.name === undefined || mapped.name === null))
+      mapped.name = row.remedy;
     if (row.message !== undefined && mapped.content === undefined) mapped.content = row.message;
-    if (row.related_diseases !== undefined && mapped.disease === undefined) mapped.disease = row.related_diseases;
-    if (row.medicine_name !== undefined && mapped.name === undefined) mapped.name = row.medicine_name;
-    
+    if (row.related_diseases !== undefined && mapped.disease === undefined)
+      mapped.disease = row.related_diseases;
+    if (row.medicine_name !== undefined && mapped.name === undefined)
+      mapped.name = row.medicine_name;
+
     if (row.potency_name) mapped.name = row.potency_name;
     if (row.case_frequency) mapped.frequency = row.case_frequency;
-    
+
     // FAQ Mappings: Bridge the gap between ques/ans and name/detail
-    if (row.ques !== undefined && (mapped.name === undefined || mapped.name === null || mapped.name === '')) mapped.name = row.ques;
-    if (row.ans !== undefined && (mapped.detail === undefined || mapped.detail === null || mapped.detail === '')) mapped.detail = row.ans;
-    if (row.detail !== undefined && mapped.description === undefined) mapped.description = row.detail;
-    
+    if (
+      row.ques !== undefined &&
+      (mapped.name === undefined || mapped.name === null || mapped.name === '')
+    )
+      mapped.name = row.ques;
+    if (
+      row.ans !== undefined &&
+      (mapped.detail === undefined || mapped.detail === null || mapped.detail === '')
+    )
+      mapped.detail = row.ans;
+    if (row.detail !== undefined && mapped.description === undefined)
+      mapped.description = row.detail;
+
     return mapped;
   }
 
@@ -118,15 +145,20 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     await this.ensureTable();
     return this.q1('SELECT * FROM package_periods WHERE id = $1', [id]);
   }
-  async createPackagePeriod(data: Omit<PackagePeriod, 'id' | 'createdAt' | 'updatedAt'>): Promise<PackagePeriod> {
+  async createPackagePeriod(
+    data: Omit<PackagePeriod, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<PackagePeriod> {
     await this.ensureTable();
     return this.q1(
       `INSERT INTO package_periods (name, days, description, is_active, created_at, updated_at) 
        VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
-      [data.name, data.days, data.description ?? null, data.isActive ?? true]
+      [data.name, data.days, data.description ?? null, data.isActive ?? true],
     ) as Promise<PackagePeriod>;
   }
-  async updatePackagePeriod(id: number, data: Partial<Omit<PackagePeriod, 'id'>>): Promise<PackagePeriod> {
+  async updatePackagePeriod(
+    id: number,
+    data: Partial<Omit<PackagePeriod, 'id'>>,
+  ): Promise<PackagePeriod> {
     await this.ensureTable();
     return this.q1(
       `UPDATE package_periods SET 
@@ -136,7 +168,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
         is_active = COALESCE($4, is_active), 
         updated_at = NOW() 
        WHERE id = $5 RETURNING *`,
-      [data.name ?? null, data.days ?? null, data.description ?? null, data.isActive ?? null, id]
+      [data.name ?? null, data.days ?? null, data.description ?? null, data.isActive ?? null, id],
     ) as Promise<PackagePeriod>;
   }
   async deletePackagePeriod(id: number): Promise<void> {
@@ -151,40 +183,42 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   async getDepartment(id: number): Promise<Department | undefined> {
     return this.q1('SELECT * FROM departments WHERE id = $1', [id]);
   }
-  async createDepartment(data: Omit<Department, 'id' | 'createdAt' | 'updatedAt'>): Promise<Department> {
+  async createDepartment(
+    data: Omit<Department, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<Department> {
     this.logger.debug({ name: data.name }, 'Creating department');
     try {
-      return await this.q1(
+      return (await this.q1(
         `INSERT INTO departments (name, detail, is_active, tags, color, created_at, updated_at) 
          VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *`,
-        [data.name, data.description ?? null, data.isActive ?? true, '', '']
-      ) as Department;
+        [data.name, data.description ?? null, data.isActive ?? true, '', ''],
+      )) as Department;
     } catch (err: any) {
       if (err.message?.includes('column "is_active" does not exist')) {
         this.logger.warn('is_active column missing, retrying without it');
-        return await this.q1(
+        return (await this.q1(
           `INSERT INTO departments (name, detail, tags, color, created_at, updated_at) 
            VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
-          [data.name, data.description ?? null, '', '']
-        ) as Department;
+          [data.name, data.description ?? null, '', ''],
+        )) as Department;
       }
       throw err;
     }
   }
   async updateDepartment(id: number, data: Partial<Omit<Department, 'id'>>): Promise<Department> {
     try {
-      return await this.q1(
+      return (await this.q1(
         `UPDATE departments SET name = COALESCE($1, name), detail = COALESCE($2, detail),
          is_active = COALESCE($3, is_active), updated_at = NOW() WHERE id = $4 RETURNING *`,
-        [data.name ?? null, data.description ?? null, data.isActive ?? null, id]
-      ) as Department;
+        [data.name ?? null, data.description ?? null, data.isActive ?? null, id],
+      )) as Department;
     } catch (err: any) {
       if (err.message?.includes('column "is_active" does not exist')) {
-        return await this.q1(
+        return (await this.q1(
           `UPDATE departments SET name = COALESCE($1, name), detail = COALESCE($2, detail),
            updated_at = NOW() WHERE id = $3 RETURNING *`,
-          [data.name ?? null, data.description ?? null, id]
-        ) as Department;
+          [data.name ?? null, data.description ?? null, id],
+        )) as Department;
       }
       throw err;
     }
@@ -202,14 +236,26 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async createDispensary(data: any): Promise<Dispensary> {
     this.logger.debug({ name: data.name }, 'Creating dispensary staff');
-    const { 
-      name, email, password, gender, mobile, mobile2, 
-      location, city, address, about, designation, 
-      dept, dateBirth, contactNumber, isActive 
+    const {
+      name,
+      email,
+      password,
+      gender,
+      mobile,
+      mobile2,
+      location,
+      city,
+      address,
+      about,
+      designation,
+      dept,
+      dateBirth,
+      contactNumber,
+      isActive,
     } = data;
 
     try {
-      return await this.q1<any>(
+      return (await this.q1<any>(
         `INSERT INTO dispensaries (
           name, email, password, gender, mobile, mobile2, 
           location, city, address, about, designation, 
@@ -217,21 +263,45 @@ export class SettingsRepositoryPg implements ISettingsRepository {
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()) RETURNING *`,
         [
-          name, email ?? null, password ?? null, gender ?? 'Male', 
-          mobile ?? null, mobile2 ?? null, location ?? null, 
-          city ?? null, address ?? null, about ?? null, 
-          designation ?? null, dept ?? null, dateBirth ?? null, 
-          contactNumber ?? null, isActive ?? true
-        ]
-      ) as Dispensary;
+          name,
+          email ?? null,
+          password ?? null,
+          gender ?? 'Male',
+          mobile ?? null,
+          mobile2 ?? null,
+          location ?? null,
+          city ?? null,
+          address ?? null,
+          about ?? null,
+          designation ?? null,
+          dept ?? null,
+          dateBirth ?? null,
+          contactNumber ?? null,
+          isActive ?? true,
+        ],
+      )) as Dispensary;
     } catch (err: any) {
-      if (err.message?.includes('column "location" does not exist') || err.message?.includes('column "is_active" does not exist')) {
+      if (
+        err.message?.includes('column "location" does not exist') ||
+        err.message?.includes('column "is_active" does not exist')
+      ) {
         this.logger.warn('Modern columns missing in dispensaries, retrying legacy insert');
-        return await this.q1<any>(
+        return (await this.q1<any>(
           `INSERT INTO dispensaries (name, email, password, gender, mobile, mobile2, city, address, designation, dept, created_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) RETURNING *`,
-          [name, email ?? null, password ?? null, gender ?? 'Male', mobile ?? null, mobile2 ?? null, city ?? null, address ?? null, designation ?? null, dept ?? null]
-        ) as Dispensary;
+          [
+            name,
+            email ?? null,
+            password ?? null,
+            gender ?? 'Male',
+            mobile ?? null,
+            mobile2 ?? null,
+            city ?? null,
+            address ?? null,
+            designation ?? null,
+            dept ?? null,
+          ],
+        )) as Dispensary;
       }
       throw err;
     }
@@ -259,28 +329,49 @@ export class SettingsRepositoryPg implements ISettingsRepository {
           updated_at = NOW() 
          WHERE id = $16 RETURNING *`,
         [
-          data.name ?? null, data.email ?? null, data.password ?? null, data.gender ?? null,
-          data.mobile ?? null, data.mobile2 ?? null, data.location ?? null,
-          data.city ?? null, data.address ?? null, data.about ?? null,
-          data.designation ?? null, data.dept ?? null, data.dateBirth ?? null,
-          data.contactNumber ?? null, data.isActive ?? null, id
-        ]
+          data.name ?? null,
+          data.email ?? null,
+          data.password ?? null,
+          data.gender ?? null,
+          data.mobile ?? null,
+          data.mobile2 ?? null,
+          data.location ?? null,
+          data.city ?? null,
+          data.address ?? null,
+          data.about ?? null,
+          data.designation ?? null,
+          data.dept ?? null,
+          data.dateBirth ?? null,
+          data.contactNumber ?? null,
+          data.isActive ?? null,
+          id,
+        ],
       );
       return r;
     } catch (err: any) {
-      if (err.message?.includes('column "location" does not exist') || err.message?.includes('column "is_active" does not exist')) {
+      if (
+        err.message?.includes('column "location" does not exist') ||
+        err.message?.includes('column "is_active" does not exist')
+      ) {
         const r = await this.q1<any>(
           `UPDATE dispensaries SET name = COALESCE($1, name), email = COALESCE($2, email), password = COALESCE($3, password),
            city = COALESCE($4, city), address = COALESCE($5, address), designation = COALESCE($6, designation),
            updated_at = NOW() WHERE id = $7 RETURNING *`,
-          [data.name ?? null, data.email ?? null, data.password ?? null, data.city ?? null, data.address ?? null, data.designation ?? null, id]
+          [
+            data.name ?? null,
+            data.email ?? null,
+            data.password ?? null,
+            data.city ?? null,
+            data.address ?? null,
+            data.designation ?? null,
+            id,
+          ],
         );
         return r;
       }
       throw err;
     }
   }
-
 
   async deleteDispensary(id: number): Promise<void> {
     await this.q('DELETE FROM dispensaries WHERE id = $1', [id]);
@@ -296,14 +387,17 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   async createReferralSource(data: Omit<ReferralSource, 'id'>): Promise<ReferralSource> {
     return this.q1(
       `INSERT INTO referral_sources (name, type, is_active) VALUES ($1, $2, $3) RETURNING *`,
-      [data.name, data.type ?? null, data.isActive ?? true]
+      [data.name, data.type ?? null, data.isActive ?? true],
     ) as Promise<ReferralSource>;
   }
-  async updateReferralSource(id: number, data: Partial<Omit<ReferralSource, 'id'>>): Promise<ReferralSource> {
+  async updateReferralSource(
+    id: number,
+    data: Partial<Omit<ReferralSource, 'id'>>,
+  ): Promise<ReferralSource> {
     return this.q1(
       `UPDATE referral_sources SET name = COALESCE($1, name), type = COALESCE($2, type),
        is_active = COALESCE($3, is_active), updated_at = NOW() WHERE id = $4 RETURNING *`,
-      [data.name ?? null, data.type ?? null, data.isActive ?? null, id]
+      [data.name ?? null, data.type ?? null, data.isActive ?? null, id],
     ) as Promise<ReferralSource>;
   }
   async deleteReferralSource(id: number): Promise<void> {
@@ -318,16 +412,16 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1('SELECT * FROM stickers WHERE id = $1', [id]);
   }
   async createSticker(data: Omit<Sticker, 'id'>): Promise<Sticker> {
-    return this.q1(
-      `INSERT INTO stickers (name, detail) VALUES ($1, $2) RETURNING *`,
-      [data.name, data.detail]
-    ) as Promise<Sticker>;
+    return this.q1(`INSERT INTO stickers (name, detail) VALUES ($1, $2) RETURNING *`, [
+      data.name,
+      data.detail,
+    ]) as Promise<Sticker>;
   }
   async updateSticker(id: number, data: Partial<Omit<Sticker, 'id'>>): Promise<Sticker> {
     return this.q1(
       `UPDATE stickers SET name = COALESCE($1, name), detail = COALESCE($2, detail),
        updated_at = NOW() WHERE id = $3 RETURNING *`,
-      [data.name ?? null, data.detail ?? null, id]
+      [data.name ?? null, data.detail ?? null, id],
     ) as Promise<Sticker>;
   }
   async deleteSticker(id: number): Promise<void> {
@@ -348,7 +442,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1(
       `INSERT INTO static_pages (slug, title, content, is_active, created_at, updated_at) 
        VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
-      [data.slug, data.title, data.content ?? null, data.isActive ?? true]
+      [data.slug, data.title, data.content ?? null, data.isActive ?? true],
     ) as Promise<StaticPage>;
   }
   async updateStaticPage(id: number, data: Partial<Omit<StaticPage, 'id'>>): Promise<StaticPage> {
@@ -356,7 +450,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
       `UPDATE static_pages SET slug = COALESCE($1, slug), title = COALESCE($2, title),
        content = COALESCE($3, content), is_active = COALESCE($4, is_active),
        updated_at = NOW() WHERE id = $5 RETURNING *`,
-      [data.slug ?? null, data.title ?? null, data.content ?? null, data.isActive ?? null, id]
+      [data.slug ?? null, data.title ?? null, data.content ?? null, data.isActive ?? null, id],
     ) as Promise<StaticPage>;
   }
   async deleteStaticPage(id: number): Promise<void> {
@@ -377,27 +471,27 @@ export class SettingsRepositoryPg implements ISettingsRepository {
       const name = data.name || data.ques;
       const detail = data.detail || data.ans;
 
-      return await this.q1(
+      return (await this.q1(
         `INSERT INTO faqs (ques, ans, name, detail, display_order, is_active, created_at, updated_at) 
          VALUES ($1, $2, $3, $4, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM faqs), $5, NOW(), NOW()) RETURNING *`,
-        [ques, ans, name, detail, data.isActive ?? true]
-      ) as Faq;
+        [ques, ans, name, detail, data.isActive ?? true],
+      )) as Faq;
     } catch (err: any) {
       // Auto-repair: Drop NOT NULL constraint if it blocks creation
       if (err.message?.includes('not-null constraint') && err.message?.includes('deleted_at')) {
         this.logger.warn('detected legacy NOT NULL constraint on deleted_at, patching table...');
         await this.db.execute(sql`ALTER TABLE faqs ALTER COLUMN deleted_at DROP NOT NULL`);
-        
+
         const ques = data.ques || data.name;
         const ans = data.ans || data.detail;
         const name = data.name || data.ques;
         const detail = data.detail || data.ans;
 
-        return await this.q1(
+        return (await this.q1(
           `INSERT INTO faqs (ques, ans, name, detail, display_order, is_active, created_at, updated_at) 
            VALUES ($1, $2, $3, $4, (SELECT COALESCE(MAX(display_order), 0) + 1 FROM faqs), $5, NOW(), NOW()) RETURNING *`,
-          [ques, ans, name, detail, data.isActive ?? true]
-        ) as Faq;
+          [ques, ans, name, detail, data.isActive ?? true],
+        )) as Faq;
       }
       throw err;
     }
@@ -410,7 +504,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
         is_active = COALESCE($3, is_active),
         updated_at = NOW() 
        WHERE id = $4 RETURNING *`,
-      [data.ques || data.name || null, data.ans || data.detail || null, data.isActive ?? null, id]
+      [data.ques || data.name || null, data.ans || data.detail || null, data.isActive ?? null, id],
     ) as Promise<Faq>;
   }
   async deleteFaq(id: number): Promise<void> {
@@ -439,7 +533,13 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1(
       `INSERT INTO pdf_settings (template_name, header_html, footer_html, margin, is_default)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [data.templateName, data.headerHtml ?? null, data.footerHtml ?? null, data.margin ?? null, data.isDefault ?? false]
+      [
+        data.templateName,
+        data.headerHtml ?? null,
+        data.footerHtml ?? null,
+        data.margin ?? null,
+        data.isDefault ?? false,
+      ],
     ) as Promise<PdfSetting>;
   }
   async updatePdfSetting(id: number, data: Partial<Omit<PdfSetting, 'id'>>): Promise<PdfSetting> {
@@ -451,7 +551,14 @@ export class SettingsRepositoryPg implements ISettingsRepository {
        header_html = COALESCE($2, header_html), footer_html = COALESCE($3, footer_html),
        margin = COALESCE($4, margin), is_default = COALESCE($5, is_default),
        updated_at = NOW() WHERE id = $6 RETURNING *`,
-      [data.templateName ?? null, data.headerHtml ?? null, data.footerHtml ?? null, data.margin ?? null, data.isDefault ?? null, id]
+      [
+        data.templateName ?? null,
+        data.headerHtml ?? null,
+        data.footerHtml ?? null,
+        data.margin ?? null,
+        data.isDefault ?? null,
+        id,
+      ],
     ) as Promise<PdfSetting>;
   }
   async deletePdfSetting(id: number): Promise<void> {
@@ -487,7 +594,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return await this.q1<any>(
       `INSERT INTO medicines (name, disease, potency_id, type, category, price, stock_level, snomed_code_id, created_at, updated_at) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING *`,
-      [name, disease ?? null, potencyId, type, category, price, stockLevel, snomedCodeId]
+      [name, disease ?? null, potencyId, type, category, price, stockLevel, snomedCodeId],
     );
   }
   async updateMedicine(id: number, data: Partial<Omit<Medicine, 'id'>>): Promise<Medicine> {
@@ -519,13 +626,13 @@ export class SettingsRepositoryPg implements ISettingsRepository {
           updated_at = NOW() 
          WHERE id = $8 RETURNING *`,
         [
-          name ?? null, 
-          disease ?? null, 
-          potencyId ?? null, 
-          type ?? null, 
-          category ?? null, 
-          price ?? null, 
-          stockLevel ?? null, 
+          name ?? null,
+          disease ?? null,
+          potencyId ?? null,
+          type ?? null,
+          category ?? null,
+          price ?? null,
+          stockLevel ?? null,
           id,
           disease === null,
           potencyId === null,
@@ -534,8 +641,8 @@ export class SettingsRepositoryPg implements ISettingsRepository {
           price === null,
           stockLevel === null,
           snomedCodeId ?? null,
-          snomedCodeId === null
-        ]
+          snomedCodeId === null,
+        ],
       );
       this.logger.info({ medicineId: id }, 'Medicine updated successfully');
 
@@ -547,7 +654,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
           quantity: stockLevel - oldStock,
           previousStock: oldStock,
           newStock: stockLevel,
-          reason: 'Manual adjustment via catalog'
+          reason: 'Manual adjustment via catalog',
         });
       }
 
@@ -572,13 +679,13 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1(
       `INSERT INTO potencies (name, detail, created_at, updated_at) 
        VALUES ($1, $2, NOW(), NOW()) RETURNING *`,
-      [data.name, data.detail ?? null]
+      [data.name, data.detail ?? null],
     ) as Promise<Potency>;
   }
   async updatePotency(id: number, data: Partial<Omit<Potency, 'id'>>): Promise<Potency> {
     return this.q1(
       `UPDATE potencies SET name = COALESCE($1, name), detail = COALESCE($2, detail), updated_at = NOW() WHERE id = $3 RETURNING *`,
-      [data.name ?? null, data.detail ?? null, id]
+      [data.name ?? null, data.detail ?? null, id],
     ) as Promise<Potency>;
   }
   async deletePotency(id: number): Promise<void> {
@@ -592,11 +699,13 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   async getFrequency(id: number): Promise<Frequency | undefined> {
     return this.q1('SELECT * FROM case_frequency WHERE id = $1', [id]);
   }
-  async createFrequency(data: Omit<Frequency, 'id' | 'createdAt' | 'updatedAt'>): Promise<Frequency> {
+  async createFrequency(
+    data: Omit<Frequency, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<Frequency> {
     return this.q1(
       `INSERT INTO case_frequency (title, frequency, duration, days, created_at, updated_at) 
        VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
-      [data.title ?? null, data.frequency ?? null, data.duration ?? null, data.days ?? null]
+      [data.title ?? null, data.frequency ?? null, data.duration ?? null, data.days ?? null],
     ) as Promise<Frequency>;
   }
   async updateFrequency(id: number, data: Partial<Omit<Frequency, 'id'>>): Promise<Frequency> {
@@ -608,14 +717,12 @@ export class SettingsRepositoryPg implements ISettingsRepository {
         days = COALESCE($4, days),
         updated_at = NOW() 
        WHERE id = $5 RETURNING *`,
-      [data.title ?? null, data.frequency ?? null, data.duration ?? null, data.days ?? null, id]
+      [data.title ?? null, data.frequency ?? null, data.duration ?? null, data.days ?? null, id],
     ) as Promise<Frequency>;
   }
   async deleteFrequency(id: number): Promise<void> {
     await this.q('DELETE FROM case_frequency WHERE id = $1', [id]);
   }
-
-
 
   // ─── Message Templates ────────────────────────────────────────────────────
   async listMessageTemplates(): Promise<MessageTemplate[]> {
@@ -627,16 +734,19 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   async createMessageTemplate(data: Omit<MessageTemplate, 'id'>): Promise<MessageTemplate> {
     return this.q1(
       `INSERT INTO message_templates (name, content, message, type, is_active) VALUES ($1, $2, $2, $3, $4) RETURNING *`,
-      [data.name, data.content, data.type ?? 'SMS', data.isActive ?? true]
+      [data.name, data.content, data.type ?? 'SMS', data.isActive ?? true],
     ) as Promise<MessageTemplate>;
   }
-  async updateMessageTemplate(id: number, data: Partial<Omit<MessageTemplate, 'id'>>): Promise<MessageTemplate> {
+  async updateMessageTemplate(
+    id: number,
+    data: Partial<Omit<MessageTemplate, 'id'>>,
+  ): Promise<MessageTemplate> {
     return this.q1(
       `UPDATE message_templates SET name = COALESCE($1, name), content = COALESCE($2, content),
        message = COALESCE($2, message),
        type = COALESCE($3, type), is_active = COALESCE($4, is_active), updated_at = NOW()
        WHERE id = $5 RETURNING *`,
-      [data.name ?? null, data.content ?? null, data.type ?? null, data.isActive ?? null, id]
+      [data.name ?? null, data.content ?? null, data.type ?? null, data.isActive ?? null, id],
     ) as Promise<MessageTemplate>;
   }
   async deleteMessageTemplate(id: number): Promise<void> {
@@ -647,7 +757,10 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   async listStockLogs(medicineId?: number): Promise<StockLog[]> {
     try {
       if (medicineId) {
-        return await this.q('SELECT * FROM stock_logs WHERE medicine_id = $1 ORDER BY created_at DESC', [medicineId]);
+        return await this.q(
+          'SELECT * FROM stock_logs WHERE medicine_id = $1 ORDER BY created_at DESC',
+          [medicineId],
+        );
       }
       return await this.q('SELECT * FROM stock_logs ORDER BY created_at DESC LIMIT 100');
     } catch (err) {
@@ -659,7 +772,14 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1(
       `INSERT INTO stock_logs (medicine_id, change_type, quantity, previous_stock, new_stock, reason)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [data.medicineId, data.changeType, data.quantity, data.previousStock ?? null, data.newStock ?? null, data.reason ?? null]
+      [
+        data.medicineId,
+        data.changeType,
+        data.quantity,
+        data.previousStock ?? null,
+        data.newStock ?? null,
+        data.reason ?? null,
+      ],
     ) as Promise<StockLog>;
   }
   async deleteStockLog(id: number): Promise<void> {
@@ -670,7 +790,6 @@ export class SettingsRepositoryPg implements ISettingsRepository {
       throw err;
     }
   }
-
 
   // ─── Package Plans ────────────────────────────────────────────────────────
   async listPackagePlans(): Promise<PackagePlan[]> {
@@ -683,16 +802,34 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1(
       `INSERT INTO package_plans (name, description, price, duration_days, color_code, is_active, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *`,
-      [data.name, data.description ?? null, data.price, data.durationDays, data.colorCode ?? '#2563EB', data.isActive ?? true]
+      [
+        data.name,
+        data.description ?? null,
+        data.price,
+        data.durationDays,
+        data.colorCode ?? '#2563EB',
+        data.isActive ?? true,
+      ],
     ) as Promise<PackagePlan>;
   }
-  async updatePackagePlan(id: number, data: Partial<Omit<PackagePlan, 'id'>>): Promise<PackagePlan> {
+  async updatePackagePlan(
+    id: number,
+    data: Partial<Omit<PackagePlan, 'id'>>,
+  ): Promise<PackagePlan> {
     return this.q1(
       `UPDATE package_plans SET name = COALESCE($1, name), description = COALESCE($2, description),
        price = COALESCE($3, price), duration_days = COALESCE($4, duration_days),
        color_code = COALESCE($5, color_code), is_active = COALESCE($6, is_active), updated_at = NOW()
        WHERE id = $7 RETURNING *`,
-      [data.name ?? null, data.description ?? null, data.price ?? null, data.durationDays ?? null, data.colorCode ?? null, data.isActive ?? null, id]
+      [
+        data.name ?? null,
+        data.description ?? null,
+        data.price ?? null,
+        data.durationDays ?? null,
+        data.colorCode ?? null,
+        data.isActive ?? null,
+        id,
+      ],
     ) as Promise<PackagePlan>;
   }
   async deletePackagePlan(id: number): Promise<void> {
@@ -710,7 +847,13 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1(
       `INSERT INTO courier_masters (name, contact_person, phone, tracking_url, is_active)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [data.name, data.contactPerson ?? null, data.phone ?? null, data.trackingUrl ?? null, data.isActive ?? true]
+      [
+        data.name,
+        data.contactPerson ?? null,
+        data.phone ?? null,
+        data.trackingUrl ?? null,
+        data.isActive ?? true,
+      ],
     ) as Promise<Courier>;
   }
   async updateCourier(id: number, data: Partial<Omit<Courier, 'id'>>): Promise<Courier> {
@@ -718,7 +861,14 @@ export class SettingsRepositoryPg implements ISettingsRepository {
       `UPDATE courier_masters SET name = COALESCE($1, name), contact_person = COALESCE($2, contact_person),
        phone = COALESCE($3, phone), tracking_url = COALESCE($4, tracking_url),
        is_active = COALESCE($5, is_active), updated_at = NOW() WHERE id = $6 RETURNING *`,
-      [data.name ?? null, data.contactPerson ?? null, data.phone ?? null, data.trackingUrl ?? null, data.isActive ?? null, id]
+      [
+        data.name ?? null,
+        data.contactPerson ?? null,
+        data.phone ?? null,
+        data.trackingUrl ?? null,
+        data.isActive ?? null,
+        id,
+      ],
     ) as Promise<Courier>;
   }
   async deleteCourier(id: number): Promise<void> {
@@ -742,7 +892,16 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1(
       `INSERT INTO stocks (name, description, potency, category, quantity, unit_price, batch_number, snomed_code_id, created_at, updated_at) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING *`,
-      [data.name, data.description ?? null, data.potency ?? null, data.category ?? null, data.quantity ?? 0, data.unitPrice ?? 0, data.batchNumber ?? null, data.snomedCodeId ?? null]
+      [
+        data.name,
+        data.description ?? null,
+        data.potency ?? null,
+        data.category ?? null,
+        data.quantity ?? 0,
+        data.unitPrice ?? 0,
+        data.batchNumber ?? null,
+        data.snomedCodeId ?? null,
+      ],
     ) as Promise<Stock>;
   }
   async updateStock(id: number, data: Partial<Stock>): Promise<Stock> {
@@ -758,7 +917,17 @@ export class SettingsRepositoryPg implements ISettingsRepository {
         snomed_code_id = COALESCE($8, snomed_code_id),
         updated_at = NOW() 
        WHERE id = $9 RETURNING *`,
-      [data.name ?? null, data.description ?? null, data.potency ?? null, data.category ?? null, data.quantity ?? null, data.unitPrice ?? null, data.batchNumber ?? null, data.snomedCodeId ?? null, id]
+      [
+        data.name ?? null,
+        data.description ?? null,
+        data.potency ?? null,
+        data.category ?? null,
+        data.quantity ?? null,
+        data.unitPrice ?? null,
+        data.batchNumber ?? null,
+        data.snomedCodeId ?? null,
+        id,
+      ],
     ) as Promise<Stock>;
   }
   async deleteStock(id: number): Promise<void> {
@@ -778,7 +947,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
     return this.q1(
       `INSERT INTO vaccinedatas (label, description, months, parent_id, created_at, updated_at)
        VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *`,
-      [data.label, data.description ?? null, data.months ?? null, data.parentId ?? 0]
+      [data.label, data.description ?? null, data.months ?? null, data.parentId ?? 0],
     ) as Promise<Vaccine>;
   }
   async updateVaccine(id: number, data: Partial<Omit<Vaccine, 'id'>>): Promise<Vaccine> {
@@ -790,7 +959,13 @@ export class SettingsRepositoryPg implements ISettingsRepository {
         parent_id = COALESCE($4, parent_id),
         updated_at = NOW() 
        WHERE id = $5 RETURNING *`,
-      [data.label ?? null, data.description ?? null, data.months ?? null, data.parentId ?? null, id]
+      [
+        data.label ?? null,
+        data.description ?? null,
+        data.months ?? null,
+        data.parentId ?? null,
+        id,
+      ],
     ) as Promise<Vaccine>;
   }
   async deleteVaccine(id: number): Promise<void> {
@@ -800,8 +975,8 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   // ─── Practitioners (Doctors from users table) ──────────────────────────────
   async listPractitioners(): Promise<User[]> {
     return this.q<User>(
-      "SELECT id, email, name, type, context_id, mobile, created_at, updated_at " +
-      "FROM users WHERE type = 'Doctor' AND deleted_at IS NULL ORDER BY name ASC"
+      'SELECT id, email, name, type, context_id, mobile, created_at, updated_at ' +
+        "FROM users WHERE type = 'Doctor' AND deleted_at IS NULL ORDER BY name ASC",
     );
   }
 }

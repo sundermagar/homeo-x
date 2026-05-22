@@ -15,10 +15,10 @@ export function useVideoService(_options: UseVideoServiceOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   const [remoteUsers, setRemoteUsers] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [localVideoTrack, setLocalVideoTrack] = useState<any | null>(null);
   const [localAudioTrack, setLocalAudioTrack] = useState<any | null>(null);
-  
+
   const [isMicOn, setIsMicOn] = useState(_options.initialAudioEnabled ?? true);
   const [isCameraOn, setIsCameraOn] = useState(_options.initialVideoEnabled ?? true);
 
@@ -27,12 +27,12 @@ export function useVideoService(_options: UseVideoServiceOptions = {}) {
   useEffect(() => {
     // 1. Read Provider from Environment with fallback to LiveKit
     const providerType = import.meta.env.VITE_VIDEO_PROVIDER || 'livekit';
-    
+
     console.log(`[VideoService] Initializing with provider: ${providerType}`);
-    
+
     const provider = createProvider(providerType);
     const service = new VideoCallService(provider);
-    
+
     // 2. Setup Callbacks
     const callbacks: VideoProviderCallbacks = {
       onConnected: (connected) => setIsConnected(connected),
@@ -43,7 +43,7 @@ export function useVideoService(_options: UseVideoServiceOptions = {}) {
       onMicStateChanged: (isOn) => setIsMicOn(isOn),
       onCameraStateChanged: (isOn) => setIsCameraOn(isOn),
     };
-    
+
     service.setCallbacks(callbacks);
     service.init({
       video: _options.initialVideoEnabled ?? true,

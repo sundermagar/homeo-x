@@ -15,15 +15,21 @@ const sql = postgres(dbUrl);
 async function main() {
   try {
     console.log('Adding columns to organizations table...');
-    await sql.unsafe(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS admin_email text DEFAULT ''`);
-    await sql.unsafe(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS admin_password text DEFAULT ''`);
-    await sql.unsafe(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS assigned_to integer DEFAULT 1`);
-    
+    await sql.unsafe(
+      `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS admin_email text DEFAULT ''`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS admin_password text DEFAULT ''`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS assigned_to integer DEFAULT 1`,
+    );
+
     // Also remove the columns the user deleted from schema
     console.log('Removing outdated columns from organizations table...');
     await sql.unsafe(`ALTER TABLE organizations DROP COLUMN IF EXISTS profile_image`);
     await sql.unsafe(`ALTER TABLE organizations DROP COLUMN IF EXISTS profile`);
-    
+
     console.log('Successfully patched organizations table.');
   } catch (err) {
     console.error('Failed to patch table:', err);

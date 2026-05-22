@@ -6,17 +6,16 @@ import { LiveKitProvider } from '../adapters/livekit.provider';
 
 export function createProvider(type: string): VideoProvider {
   switch (type.toLowerCase()) {
-    case "zoom":
+    case 'zoom':
       return new ZoomProvider();
 
-    case "livekit":
+    case 'livekit':
       return new LiveKitProvider();
 
-    case "webrtc":
+    case 'webrtc':
       return new WebRTCProvider();
 
     default:
       throw new Error(`Unsupported provider: ${type}`);
   }
 }
-

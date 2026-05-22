@@ -6,7 +6,16 @@ import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import '../styles/communications.css';
 
-const SMS_TYPES_FILTER = ['', 'Appointment', 'Group', 'Birthday', 'Package Expiry', 'Reminder', 'General', 'OTP'];
+const SMS_TYPES_FILTER = [
+  '',
+  'Appointment',
+  'Group',
+  'Birthday',
+  'Package Expiry',
+  'Reminder',
+  'General',
+  'OTP',
+];
 const STATUS_FILTER = ['', 'sent', 'delivered', 'failed', 'pending'];
 
 function getStatusClass(status: string) {
@@ -37,7 +46,7 @@ export default function SmsReportsPage() {
   const limit = filters.limit ?? 10;
   const totalPages = Math.ceil(total / limit);
 
-  const set = (k: string, v: string) => setFilters(f => ({ ...f, [k]: v, page: 1 }));
+  const set = (k: string, v: string) => setFilters((f) => ({ ...f, [k]: v, page: 1 }));
 
   const totalPages5 = total > 0 ? totalPages : 1;
 
@@ -50,18 +59,38 @@ export default function SmsReportsPage() {
             <BarChart2 size={20} strokeWidth={1.6} className="comm-title-icon-blue" />
             Archived SMS Reports
           </h1>
-          <p className="comm-subtitle">Legacy delivery tracking and transmission ledger (Read Only)</p>
+          <p className="comm-subtitle">
+            Legacy delivery tracking and transmission ledger (Read Only)
+          </p>
         </div>
       </header>
 
       {/* Deactivation Banner */}
-      <div style={{ marginBottom: '24px', padding: '16px 20px', background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ padding: '8px', background: '#fed7aa', borderRadius: '50%', color: '#9a3412' }}>
+      <div
+        style={{
+          marginBottom: '24px',
+          padding: '16px 20px',
+          background: '#fff7ed',
+          border: '1px solid #ffedd5',
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{ padding: '8px', background: '#fed7aa', borderRadius: '50%', color: '#9a3412' }}
+        >
           <RefreshCw size={18} />
         </div>
         <div>
-          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#9a3412' }}>Legacy SMS Infrastructure Deactivated</h4>
-          <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#c2410c' }}>SMS sending has been decommissioned. Please use the WhatsApp module for all new clinical correspondence.</p>
+          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#9a3412' }}>
+            Legacy SMS Infrastructure Deactivated
+          </h4>
+          <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#c2410c' }}>
+            SMS sending has been decommissioned. Please use the WhatsApp module for all new clinical
+            correspondence.
+          </p>
         </div>
       </div>
 
@@ -69,12 +98,29 @@ export default function SmsReportsPage() {
       <div className="comm-stats">
         {[
           { label: 'Total Sent', value: reports.length, color: '#2563EB', bg: '#EFF6FF' },
-          { label: 'Delivered', value: reports.filter(r => r.status === 'delivered').length, color: '#16A34A', bg: '#F0FDF4' },
-          { label: 'Pending', value: reports.filter(r => r.status === 'pending').length, color: '#D97706', bg: '#FFFBEB' },
-          { label: 'Failed', value: reports.filter(r => r.status === 'failed').length, color: '#DC2626', bg: '#FEF2F2' },
-        ].map(s => (
+          {
+            label: 'Delivered',
+            value: reports.filter((r) => r.status === 'delivered').length,
+            color: '#16A34A',
+            bg: '#F0FDF4',
+          },
+          {
+            label: 'Pending',
+            value: reports.filter((r) => r.status === 'pending').length,
+            color: '#D97706',
+            bg: '#FFFBEB',
+          },
+          {
+            label: 'Failed',
+            value: reports.filter((r) => r.status === 'failed').length,
+            color: '#DC2626',
+            bg: '#FEF2F2',
+          },
+        ].map((s) => (
           <div key={s.label} className="comm-stat-card">
-            <div className="comm-stat-icon" style={{ background: s.bg, color: s.color }}>{s.label[0]}</div>
+            <div className="comm-stat-icon" style={{ background: s.bg, color: s.color }}>
+              {s.label[0]}
+            </div>
             <div>
               <div className="comm-stat-label">{s.label}</div>
               <div className="comm-stat-value">{s.value}</div>
@@ -87,23 +133,67 @@ export default function SmsReportsPage() {
       <div className="comm-filters">
         <div className="comm-search-wrap">
           <Search size={13} className="comm-search-icon" />
-          <input className="comm-filter-input comm-filter-input-search"
+          <input
+            className="comm-filter-input comm-filter-input-search"
             style={{ width: 160 }}
-            placeholder="Phone…" value={filters.phone} onChange={e => set('phone', e.target.value)} />
+            placeholder="Phone…"
+            value={filters.phone}
+            onChange={(e) => set('phone', e.target.value)}
+          />
         </div>
-        <select className="comm-filter-input" value={filters.sms_type} onChange={e => set('sms_type', e.target.value)}>
+        <select
+          className="comm-filter-input"
+          value={filters.sms_type}
+          onChange={(e) => set('sms_type', e.target.value)}
+        >
           <option value="">All Types</option>
-          {SMS_TYPES_FILTER.filter(Boolean).map(t => <option key={t} value={t}>{t}</option>)}
+          {SMS_TYPES_FILTER.filter(Boolean).map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
         </select>
-        <select className="comm-filter-input" value={filters.status} onChange={e => set('status', e.target.value)}>
+        <select
+          className="comm-filter-input"
+          value={filters.status}
+          onChange={(e) => set('status', e.target.value)}
+        >
           <option value="">All Status</option>
-          {STATUS_FILTER.filter(Boolean).map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+          {STATUS_FILTER.filter(Boolean).map((s) => (
+            <option key={s} value={s}>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </option>
+          ))}
         </select>
-        <input className="comm-filter-input" type="date" value={filters.from_date} onChange={e => set('from_date', e.target.value)} title="From" />
-        <input className="comm-filter-input" type="date" value={filters.to_date} onChange={e => set('to_date', e.target.value)} title="To" />
+        <input
+          className="comm-filter-input"
+          type="date"
+          value={filters.from_date}
+          onChange={(e) => set('from_date', e.target.value)}
+          title="From"
+        />
+        <input
+          className="comm-filter-input"
+          type="date"
+          value={filters.to_date}
+          onChange={(e) => set('to_date', e.target.value)}
+          title="To"
+        />
         {(filters.sms_type || filters.status || filters.from_date || filters.phone) && (
-          <button className="comm-btn comm-btn-sm"
-            onClick={() => setFilters({ sms_type: '', status: '', from_date: '', to_date: '', phone: '', page: 1, limit: 10 })}>
+          <button
+            className="comm-btn comm-btn-sm"
+            onClick={() =>
+              setFilters({
+                sms_type: '',
+                status: '',
+                from_date: '',
+                to_date: '',
+                phone: '',
+                page: 1,
+                limit: 10,
+              })
+            }
+          >
             Clear
           </button>
         )}
@@ -136,21 +226,33 @@ export default function SmsReportsPage() {
                 <tbody>
                   {reports.map((r: SmsReport) => (
                     <tr key={r.id}>
-                      <td data-label="#" className="comm-table-mono">#{r.id}</td>
-                      <td data-label="DATE & TIME" className="comm-table-date">
-                        {new Date(r.sendDate).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                      <td data-label="#" className="comm-table-mono">
+                        #{r.id}
                       </td>
-                      <td data-label="PHONE" className="comm-table-phone">{r.phone ?? '—'}</td>
+                      <td data-label="DATE & TIME" className="comm-table-date">
+                        {new Date(r.sendDate).toLocaleString('en-IN', {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        })}
+                      </td>
+                      <td data-label="PHONE" className="comm-table-phone">
+                        {r.phone ?? '—'}
+                      </td>
                       <td data-label="MESSAGE" className="comm-table-message" title={r.message}>
                         <div className="comm-msg-text">{r.message}</div>
                       </td>
-                      <td data-label="TYPE"><span className="comm-type-tag">{r.smsType}</span></td>
+                      <td data-label="TYPE">
+                        <span className="comm-type-tag">{r.smsType}</span>
+                      </td>
                       <td data-label="STATUS">
                         <span className={getStatusClass(r.status)}>
-                          {r.status?.charAt(0).toUpperCase()}{r.status?.slice(1)}
+                          {r.status?.charAt(0).toUpperCase()}
+                          {r.status?.slice(1)}
                         </span>
                       </td>
-                      <td data-label="REF" className="comm-table-ref">{r.gatewayRef ?? '—'}</td>
+                      <td data-label="REF" className="comm-table-ref">
+                        {r.gatewayRef ?? '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -161,13 +263,12 @@ export default function SmsReportsPage() {
               totalItems={total}
               itemsPerPage={limit}
               currentPage={page}
-              onPageChange={(p) => setFilters(f => ({ ...f, page: p }))}
-              onLimitChange={(l) => setFilters(f => ({ ...f, limit: l, page: 1 }))}
+              onPageChange={(p) => setFilters((f) => ({ ...f, page: p }))}
+              onLimitChange={(l) => setFilters((f) => ({ ...f, limit: l, page: 1 }))}
             />
           </>
         )}
       </div>
-
     </div>
   );
 }

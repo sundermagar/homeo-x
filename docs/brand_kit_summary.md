@@ -5,6 +5,7 @@ This document captures the design system and brand identity guidelines for Paper
 ## 🎨 Colour System
 
 ### Primary Accent
+
 - **Paperplane Blue**: `#2563EB`
   - Tint / Light Fill: `#EFF6FF`
   - Border / Ring: `#BFDBFE`
@@ -12,24 +13,28 @@ This document captures the design system and brand identity guidelines for Paper
   - Deep: `#1E3A8A`
 
 ### Neutrals (Warm Native)
+
 - **Warm 1 (Background)**: `#FAFAF8`
 - **Warm 2 (Surface 2)**: `#F4F3F1`
 - **Warm 3 (Surface 3)**: `#EEECEA`
 - **Warm 4 (Border)**: `#E3E2DF`
 
 ### Semantic
+
 - **Success**: `#F0FDF4` (Background) / `#16A34A` (Foreground)
 - **Danger**: `#FEF2F2` (Background) / `#DC2626` (Foreground)
 - **Warning**: `#FFFBEB` (Background) / `#D97706` (Foreground)
 - **Info**: `#EFF6FF` (Background) / `#2563EB` (Foreground)
 
 ### Typography
+
 - **Ink Primary**: `#0F0F0E` (Titles)
 - **Text 2**: `#4A4A4A7` (Body)
 - **Text 3**: `#888786` (Captions)
 - **Text 4**: `#CECDCA` (Placeholders)
 
 ## 🔠 Typography (Geist)
+
 - **Base Font**: Geist (UI text)
 - **Mono Font**: Geist Mono (Data, IDs, Vitals, Timers, Amounts)
 - **Weights Used**: 300 (Light) to 900 (Black)
@@ -43,6 +48,7 @@ This document captures the design system and brand identity guidelines for Paper
   - KPI Values: 22px / 600
 
 ## 📐 Spacing & Layout
+
 - **Base Unit**: 4px
 - **Grid Anchors**:
   - Topbar & Stage Footer: 48px
@@ -53,11 +59,13 @@ This document captures the design system and brand identity guidelines for Paper
   - Cards / Tables / Inputs: 8px
 
 ## 🛠️ Components
+
 - **Buttons**: 8px 16px padding. 500 weight.
 - **Tables**: `thead` background `#F4F3F1`, `td` border `#E3E2DF`.
 - **KPI Cards**: White background, 1px `#E3E2DF` border.
 
 ## 🎞️ Motion
+
 - **Ease Out**: `cubic-bezier(0, 0, 0.2, 1)` (UI entering)
 - **Ease In-Out**: `cubic-bezier(0.4, 0, 0.6, 1)` (State transitions)
 - **Durations**:
@@ -67,6 +75,7 @@ This document captures the design system and brand identity guidelines for Paper
   - Deliberate (Stage): 300ms
 
 ## 🗣️ Voice & Tone
+
 - **Precise**: "Missed Amlodipine x2" vs "missed medication multiple times"
 - **Action-Oriented**: "Capturing symptoms" vs "AI is intelligently extracting"
 - **Authoritative**: Formal clinical baseline, no exclamation marks.

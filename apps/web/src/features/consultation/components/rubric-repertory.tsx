@@ -14,7 +14,6 @@ import {
   Type,
 } from 'lucide-react';
 
-
 import { Card, CardContent } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
 import { useSearchKentRubrics } from '../../../hooks/use-rubrics';
@@ -32,7 +31,6 @@ interface RubricRepertoryProps {
   onScoredRemediesChange?: (remedies: any[]) => void;
 }
 
-
 // ─── Selected rubric with importance ───
 
 interface SelectedRubric {
@@ -45,7 +43,6 @@ interface SelectedRubric {
 }
 
 type RubricCategory = 'MIND' | 'GENERAL' | 'PARTICULAR';
-
 
 const IMPORTANCE_LABELS: Record<number, string> = {
   1: 'Supporting',
@@ -69,7 +66,6 @@ export function RubricRepertory({
   onRubricsChange,
   onScoredRemediesChange,
 }: RubricRepertoryProps) {
-
   const [expanded, setExpanded] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -82,9 +78,12 @@ export function RubricRepertory({
   // AI extraction state
   const lastExtractionKeyRef = useRef<string>('');
 
-
   // Queries & mutations
-  const { data: kentResults, isLoading: kentLoading, isFetching: kentFetching } = useSearchKentRubrics(debouncedSearch);
+  const {
+    data: kentResults,
+    isLoading: kentLoading,
+    isFetching: kentFetching,
+  } = useSearchKentRubrics(debouncedSearch);
   const scoreMutation = useRepertorizeScore();
 
   // Debounce search
@@ -112,7 +111,10 @@ export function RubricRepertory({
   useEffect(() => {
     if (!initialRubrics || initialRubrics.length === 0) return;
 
-    const fingerprint = initialRubrics.map(r => `${r.rubricId}-${r.importance}`).sort().join('|');
+    const fingerprint = initialRubrics
+      .map((r) => `${r.rubricId}-${r.importance}`)
+      .sort()
+      .join('|');
     if (fingerprint === lastReceivedFingerprint.current) return;
     lastReceivedFingerprint.current = fingerprint;
 
@@ -147,7 +149,7 @@ export function RubricRepertory({
     toast({
       title: 'Rubrics Updated',
       description: `Loaded ${initialRubrics.length} rubrics for this case.`,
-      variant: 'success'
+      variant: 'success',
     });
   }, [initialRubrics]);
 
@@ -180,7 +182,11 @@ export function RubricRepertory({
     setClinicalFindings([]);
     setObservations([]);
     setIsRubricsExpanded(false);
-    toast({ title: 'Repertory Reset', description: 'All rubrics and extractions cleared.', variant: 'default' });
+    toast({
+      title: 'Repertory Reset',
+      description: 'All rubrics and extractions cleared.',
+      variant: 'default',
+    });
   }, []);
 
   // ─── Add Custom Free-Text Rubric ───
@@ -192,24 +198,53 @@ export function RubricRepertory({
     const lower = text.toLowerCase();
     let category: RubricCategory = 'PARTICULAR';
     let chapter = 'Unknown';
-    if (lower.startsWith('mind')) { category = 'MIND'; chapter = 'Mind'; }
-    else if (lower.startsWith('general')) { category = 'GENERAL'; chapter = 'Generalities'; }
-    else if (lower.startsWith('head')) { chapter = 'Head'; }
-    else if (lower.startsWith('chest')) { chapter = 'Chest'; }
-    else if (lower.startsWith('stomach') || lower.startsWith('abdomen')) { chapter = 'Stomach'; }
-    else if (lower.startsWith('back')) { chapter = 'Back'; }
-    else if (lower.startsWith('skin')) { chapter = 'Skin'; }
-    else if (lower.startsWith('sleep')) { chapter = 'Sleep'; }
-    else if (lower.startsWith('extremit')) { chapter = 'Extremities'; }
-    else if (lower.startsWith('eye')) { chapter = 'Eye'; }
-    else if (lower.startsWith('ear')) { chapter = 'Ear'; }
-    else if (lower.startsWith('nose')) { chapter = 'Nose'; }
-    else if (lower.startsWith('throat') || lower.startsWith('larynx')) { chapter = 'Throat'; }
-    else if (lower.startsWith('rectum') || lower.startsWith('stool')) { chapter = 'Rectum'; }
-    else if (lower.startsWith('urin') || lower.startsWith('bladder') || lower.startsWith('kidney')) { chapter = 'Urinary'; }
-    else if (lower.startsWith('female') || lower.startsWith('male') || lower.startsWith('genital')) { chapter = 'Genitalia'; }
-    else if (lower.startsWith('fever')) { chapter = 'Fever'; }
-    else if (lower.startsWith('perspir') || lower.startsWith('sweat')) { chapter = 'Perspiration'; }
+    if (lower.startsWith('mind')) {
+      category = 'MIND';
+      chapter = 'Mind';
+    } else if (lower.startsWith('general')) {
+      category = 'GENERAL';
+      chapter = 'Generalities';
+    } else if (lower.startsWith('head')) {
+      chapter = 'Head';
+    } else if (lower.startsWith('chest')) {
+      chapter = 'Chest';
+    } else if (lower.startsWith('stomach') || lower.startsWith('abdomen')) {
+      chapter = 'Stomach';
+    } else if (lower.startsWith('back')) {
+      chapter = 'Back';
+    } else if (lower.startsWith('skin')) {
+      chapter = 'Skin';
+    } else if (lower.startsWith('sleep')) {
+      chapter = 'Sleep';
+    } else if (lower.startsWith('extremit')) {
+      chapter = 'Extremities';
+    } else if (lower.startsWith('eye')) {
+      chapter = 'Eye';
+    } else if (lower.startsWith('ear')) {
+      chapter = 'Ear';
+    } else if (lower.startsWith('nose')) {
+      chapter = 'Nose';
+    } else if (lower.startsWith('throat') || lower.startsWith('larynx')) {
+      chapter = 'Throat';
+    } else if (lower.startsWith('rectum') || lower.startsWith('stool')) {
+      chapter = 'Rectum';
+    } else if (
+      lower.startsWith('urin') ||
+      lower.startsWith('bladder') ||
+      lower.startsWith('kidney')
+    ) {
+      chapter = 'Urinary';
+    } else if (
+      lower.startsWith('female') ||
+      lower.startsWith('male') ||
+      lower.startsWith('genital')
+    ) {
+      chapter = 'Genitalia';
+    } else if (lower.startsWith('fever')) {
+      chapter = 'Fever';
+    } else if (lower.startsWith('perspir') || lower.startsWith('sweat')) {
+      chapter = 'Perspiration';
+    }
 
     const rubricId = `custom-rubric-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
@@ -236,11 +271,12 @@ export function RubricRepertory({
   // ─── Auto-Repertorization (scoring) ───
 
   const rubricsFingerprint = useMemo(
-    () => Array.from(selectedRubrics.values())
-      .map(r => `${r.rubricId}:${r.importance}`)
-      .sort()
-      .join('|'),
-    [selectedRubrics]
+    () =>
+      Array.from(selectedRubrics.values())
+        .map((r) => `${r.rubricId}:${r.importance}`)
+        .sort()
+        .join('|'),
+    [selectedRubrics],
   );
 
   useEffect(() => {
@@ -278,18 +314,24 @@ export function RubricRepertory({
 
   useEffect(() => {
     if (onRubricsChange) {
-      const array = Array.from(selectedRubrics.values()).map(r => ({
-        rubricId: r.rubricId,
-        description: r.description,
-        category: r.category as 'MIND' | 'GENERAL' | 'PARTICULAR',
-        chapter: r.chapter || null,
-        importance: r.importance,
-        source: r.source,
-        confidence: 100,
-        remedyCount: 0,
-      } as SuggestedRubric));
-      
-      const fingerprint = array.map(r => `${r.rubricId}-${r.importance}`).sort().join('|');
+      const array = Array.from(selectedRubrics.values()).map(
+        (r) =>
+          ({
+            rubricId: r.rubricId,
+            description: r.description,
+            category: r.category as 'MIND' | 'GENERAL' | 'PARTICULAR',
+            chapter: r.chapter || null,
+            importance: r.importance,
+            source: r.source,
+            confidence: 100,
+            remedyCount: 0,
+          }) as SuggestedRubric,
+      );
+
+      const fingerprint = array
+        .map((r) => `${r.rubricId}-${r.importance}`)
+        .sort()
+        .join('|');
       if (fingerprint !== lastEmittedFingerprint.current) {
         lastEmittedFingerprint.current = fingerprint;
         onRubricsChange(array);
@@ -312,9 +354,7 @@ export function RubricRepertory({
         >
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-purple-500" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Repertory
-            </span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Repertory</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 font-medium">
               Repertorization
             </span>
@@ -357,8 +397,12 @@ export function RubricRepertory({
               <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-gray-950 p-3 space-y-3">
                 <div className="flex items-center gap-2">
                   <Search className="h-3.5 w-3.5 text-purple-500" />
-                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest">Search Repertory</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600 font-bold">AI-Powered</span>
+                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest">
+                    Search Repertory
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600 font-bold">
+                    AI-Powered
+                  </span>
                 </div>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
@@ -428,9 +472,13 @@ export function RubricRepertory({
                             {isSelected && <Check className="h-3 w-3" />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-xs ${
-                              isSelected ? 'font-medium text-purple-700 dark:text-purple-300' : 'text-gray-700 dark:text-gray-300'
-                            }`}>
+                            <p
+                              className={`text-xs ${
+                                isSelected
+                                  ? 'font-medium text-purple-700 dark:text-purple-300'
+                                  : 'text-gray-700 dark:text-gray-300'
+                              }`}
+                            >
                               {rubric.description}
                             </p>
                             <p className="text-[10px] text-gray-400">
@@ -438,16 +486,18 @@ export function RubricRepertory({
                             </p>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
-                              rubric.importance >= 4 ? 'bg-red-100 text-red-700' :
-                              rubric.importance >= 3 ? 'bg-orange-100 text-orange-700' :
-                              'bg-gray-100 text-gray-600'
-                            }`}>
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                                rubric.importance >= 4
+                                  ? 'bg-red-100 text-red-700'
+                                  : rubric.importance >= 3
+                                    ? 'bg-orange-100 text-orange-700'
+                                    : 'bg-gray-100 text-gray-600'
+                              }`}
+                            >
                               {IMPORTANCE_LABELS[rubric.importance] || 'Moderate'}
                             </span>
-                            <span className="text-[10px] text-gray-400">
-                              ~{rubric.remedyCount}
-                            </span>
+                            <span className="text-[10px] text-gray-400">~{rubric.remedyCount}</span>
                           </div>
                         </button>
                       );
@@ -460,13 +510,20 @@ export function RubricRepertory({
               <div className="rounded-lg border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20 p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <Type className="h-3 w-3 text-gray-400" />
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Or type a custom rubric manually</span>
+                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                    Or type a custom rubric manually
+                  </span>
                 </div>
                 <div className="flex gap-2">
                   <Input
                     value={customRubricText}
                     onChange={(e) => setCustomRubricText(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustomRubric(); } }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomRubric();
+                      }
+                    }}
                     placeholder="e.g. Mind - Jealousy - morning"
                     className="h-7 text-[11px] flex-1"
                   />
@@ -494,19 +551,24 @@ export function RubricRepertory({
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors group"
                 >
                   <div className="flex items-center gap-2">
-                    <div className={`p-1.5 rounded-lg transition-colors ${scoreMutation.isPending ? 'bg-purple-100 text-purple-600 animate-pulse' : 'bg-purple-50 text-purple-500'}`}>
+                    <div
+                      className={`p-1.5 rounded-lg transition-colors ${scoreMutation.isPending ? 'bg-purple-100 text-purple-600 animate-pulse' : 'bg-purple-50 text-purple-500'}`}
+                    >
                       <BarChart3 className="h-3.5 w-3.5" />
                     </div>
                     <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">
                       Selected Rubrics ({selectedArray.length})
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     {!isRubricsExpanded && (
                       <div className="flex -space-x-1 overflow-hidden mr-2">
                         {selectedArray.slice(0, 3).map((r, i) => (
-                          <div key={i} className="h-4 w-4 rounded-full border border-white dark:border-gray-950 bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-[8px] font-bold text-purple-600">
+                          <div
+                            key={i}
+                            className="h-4 w-4 rounded-full border border-white dark:border-gray-950 bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-[8px] font-bold text-purple-600"
+                          >
                             {r.description[0]}
                           </div>
                         ))}
@@ -580,7 +642,6 @@ export function RubricRepertory({
                 SECTION 4: Scored Remedies & Differential Matrix (Hiden from UI as per user request)
                 ════════════════════════════════════════════ */}
             {/* These were removed to reduce redundancy as the top remedy is auto-prescribed in the Remedy Plan */}
-
           </>
         )}
       </CardContent>

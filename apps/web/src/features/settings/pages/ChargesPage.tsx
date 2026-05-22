@@ -31,14 +31,13 @@ export function ChargesPage() {
   const [amount, setAmount] = useState('');
   const [quantity, setQuantity] = useState('0');
 
-  const filteredCharges = charges?.filter(c =>
-    c.charges?.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  const filteredCharges =
+    charges?.filter((c) => c.charges?.toLowerCase().includes(search.toLowerCase())) || [];
 
   const totalPages = Math.ceil(filteredCharges.length / pageSize) || 1;
   const paginatedCharges = filteredCharges.slice(
     (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    currentPage * pageSize,
   );
 
   const handleOpenModal = (charge?: any) => {
@@ -123,7 +122,7 @@ export function ChargesPage() {
             className="plat-form-input plat-search-input"
             placeholder="Search..."
             value={search}
-            onChange={e => {
+            onChange={(e) => {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
@@ -157,12 +156,8 @@ export function ChargesPage() {
                       <td className="plat-table-cell text-xs color-muted font-mono">
                         {(currentPage - 1) * pageSize + idx + 1}
                       </td>
-                      <td className="plat-table-cell font-medium color-main">
-                        {charge.charges}
-                      </td>
-                      <td className="plat-table-cell color-main">
-                        {charge.amount}
-                      </td>
+                      <td className="plat-table-cell font-medium color-main">{charge.charges}</td>
+                      <td className="plat-table-cell color-main">{charge.amount}</td>
                       <td className="plat-table-cell color-main">
                         {isProduct && (charge.quantity ?? 0) > 0 ? charge.quantity : 0}
                       </td>
@@ -194,7 +189,7 @@ export function ChargesPage() {
             </table>
           </div>
         )}
-        
+
         {!isLoading && filteredCharges.length > 0 && (
           <Pagination
             currentPage={currentPage}
@@ -215,17 +210,21 @@ export function ChargesPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
-              
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-group">
                 <label className="plat-form-label">Type:</label>
-                <select 
-                  className="plat-form-input" 
+                <select
+                  className="plat-form-input"
                   value={type}
                   onChange={(e) => setType(e.target.value)}
                   required
                 >
-                  <option value="" disabled>Select Type</option>
+                  <option value="" disabled>
+                    Select Type
+                  </option>
                   <option value="Normal">Service</option>
                   <option value="Product">Product</option>
                 </select>
@@ -237,7 +236,7 @@ export function ChargesPage() {
                   type="text"
                   required
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   className="plat-form-input"
                   placeholder="Product"
                 />
@@ -251,7 +250,7 @@ export function ChargesPage() {
                   min="0"
                   step="0.01"
                   value={amount}
-                  onChange={e => setAmount(e.target.value)}
+                  onChange={(e) => setAmount(e.target.value)}
                   className="plat-form-input"
                   placeholder="Amount"
                 />
@@ -264,22 +263,24 @@ export function ChargesPage() {
                     type="number"
                     min="0"
                     value={quantity}
-                    onChange={e => setQuantity(e.target.value)}
+                    onChange={(e) => setQuantity(e.target.value)}
                     className="plat-form-input"
                     placeholder="quantity"
                   />
                 </div>
               )}
-
             </div>
           </div>
 
-          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px', borderTop: '1px solid var(--pp-warm-4)' }}>
-            <button
-              type="button"
-              onClick={handleCloseModal}
-              className="plat-btn plat-btn-ghost"
-            >
+          <div
+            className="plat-modal-footer"
+            style={{
+              padding: '24px 0 0 0',
+              marginTop: '24px',
+              borderTop: '1px solid var(--pp-warm-4)',
+            }}
+          >
+            <button type="button" onClick={handleCloseModal} className="plat-btn plat-btn-ghost">
               Close
             </button>
             <button

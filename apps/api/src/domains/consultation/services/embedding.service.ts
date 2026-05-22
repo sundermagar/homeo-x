@@ -27,7 +27,10 @@ export class EmbeddingService {
         return [];
       }
 
-      logger.info({ textLength: text.length, model: EMBEDDING_MODEL }, '🔑 generateEmbedding: Calling Gemini REST API');
+      logger.info(
+        { textLength: text.length, model: EMBEDDING_MODEL },
+        '🔑 generateEmbedding: Calling Gemini REST API',
+      );
 
       const url = `https://generativelanguage.googleapis.com/${API_VERSION}/models/${EMBEDDING_MODEL}:embedContent?key=${this.geminiKey}`;
 
@@ -47,7 +50,7 @@ export class EmbeddingService {
         return [];
       }
 
-      const data = await response.json() as { embedding?: { values?: number[] } };
+      const data = (await response.json()) as { embedding?: { values?: number[] } };
       const values = data?.embedding?.values;
 
       if (!values || values.length === 0) {
@@ -58,28 +61,31 @@ export class EmbeddingService {
       logger.info({ dimensions: values.length }, '🔑 generateEmbedding: Got vector from Gemini');
       return values;
     } catch (error: any) {
-      logger.error({ err: error.message, stack: error.stack }, 'Failed to generate embedding via Gemini');
+      logger.error(
+        { err: error.message, stack: error.stack },
+        'Failed to generate embedding via Gemini',
+      );
       return [];
     }
   }
 
   /**
-   * Constructs a clean text string from various clinical data points 
+   * Constructs a clean text string from various clinical data points
    * to create a searchable "fingerprint" of the consultation.
    */
   createFingerprint(data: any): string {
     const parts: string[] = [];
-    
+
     if (data.consultationMode) {
       parts.push(`Consultation Mode: ${data.consultationMode}`);
     }
-    
+
     if (data.extractedSymptoms) {
       const s = data.extractedSymptoms;
       const mental = Array.isArray(s.mental) ? s.mental.join(', ') : '';
       const physical = Array.isArray(s.physical) ? s.physical.join(', ') : '';
       const particular = Array.isArray(s.particular) ? s.particular.join(', ') : '';
-      
+
       const symptoms = [mental, physical, particular].filter(Boolean).join(', ');
       if (symptoms) {
         parts.push(`Symptoms: ${symptoms}`);
@@ -87,7 +93,10 @@ export class EmbeddingService {
     }
 
     if (data.mappedRubrics && Array.isArray(data.mappedRubrics)) {
-      const rubrics = data.mappedRubrics.map((r: any) => r.rubricName || r.name).filter(Boolean).join(', ');
+      const rubrics = data.mappedRubrics
+        .map((r: any) => r.rubricName || r.name)
+        .filter(Boolean)
+        .join(', ');
       if (rubrics) {
         parts.push(`Repertory Rubrics: ${rubrics}`);
       }
@@ -104,7 +113,11 @@ export class EmbeddingService {
       const matrix = data.repertorizationMatrix;
       const remedies = matrix?.scoredRemedies;
       if (Array.isArray(remedies)) {
-        const topRemedies = remedies.slice(0, 3).map((r: any) => r.remedyName).filter(Boolean).join(', ');
+        const topRemedies = remedies
+          .slice(0, 3)
+          .map((r: any) => r.remedyName)
+          .filter(Boolean)
+          .join(', ');
         if (topRemedies) {
           parts.push(`Top AI Remedies: ${topRemedies}`);
         }
@@ -124,20 +137,21 @@ export class EmbeddingService {
     }
 
     if (data.aiSuggestedRemedy) {
-      const remedy = typeof data.aiSuggestedRemedy === 'string' 
-        ? data.aiSuggestedRemedy 
-        : JSON.stringify(data.aiSuggestedRemedy);
+      const remedy =
+        typeof data.aiSuggestedRemedy === 'string'
+          ? data.aiSuggestedRemedy
+          : JSON.stringify(data.aiSuggestedRemedy);
       parts.push(`AI Suggested Remedy: ${remedy.replace(/"/g, '')}`);
     }
 
     if (data.doctorFinalRemedy && Array.isArray(data.doctorFinalRemedy)) {
-       const remedies = data.doctorFinalRemedy
-         .map((r: any) => `${r.remedyName || r.medicationName} ${r.potencyName || r.dosage || ''}`)
-         .filter(Boolean)
-         .join(', ');
-       if (remedies) {
-         parts.push(`Final Prescription: ${remedies}`);
-       }
+      const remedies = data.doctorFinalRemedy
+        .map((r: any) => `${r.remedyName || r.medicationName} ${r.potencyName || r.dosage || ''}`)
+        .filter(Boolean)
+        .join(', ');
+      if (remedies) {
+        parts.push(`Final Prescription: ${remedies}`);
+      }
     }
 
     return parts.join('\n\n').trim();
@@ -145,4 +159,3 @@ export class EmbeddingService {
 }
 
 export const embeddingService = new EmbeddingService();
-

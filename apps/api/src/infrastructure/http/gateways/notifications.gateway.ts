@@ -28,7 +28,9 @@ export function setupNotificationsGateway(io: Server) {
     logger.info(`Notification socket connected: ${client.id}`);
 
     // Authenticate via JWT in handshake auth
-    const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
+    const token =
+      client.handshake.auth?.token ||
+      client.handshake.headers?.authorization?.replace('Bearer ', '');
     const userId = client.handshake.auth?.userId as number | undefined;
 
     if (!token || !userId) {
@@ -48,6 +50,22 @@ export function setupNotificationsGateway(io: Server) {
 
     // Send confirmation to client
     client.emit('connected', { userId, room });
+
+    client.on('join-case', (regid: number) => {
+      if (regid) {
+        const roomName = `case:${regid}`;
+        client.join(roomName);
+        logger.info(`[NOTIF] Socket ${client.id} (user ${userId}) joined room ${roomName}`);
+      }
+    });
+
+    client.on('leave-case', (regid: number) => {
+      if (regid) {
+        const roomName = `case:${regid}`;
+        client.leave(roomName);
+        logger.info(`[NOTIF] Socket ${client.id} (user ${userId}) left room ${roomName}`);
+      }
+    });
 
     client.on('disconnect', () => {
       socketUserMap.delete(client.id);
@@ -85,7 +103,7 @@ let _emitToClinic: ((clinicId: number, event: NotificationEvent) => void) | null
 
 export function setNotificationEmitters(
   emitUser: (userId: number, event: NotificationEvent) => void,
-  emitClinic: (clinicId: number, event: NotificationEvent) => void
+  emitClinic: (clinicId: number, event: NotificationEvent) => void,
 ) {
   _emitToUser = emitUser;
   _emitToClinic = emitClinic;

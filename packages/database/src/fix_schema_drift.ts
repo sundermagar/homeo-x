@@ -63,38 +63,77 @@ async function diagnoseAndFix() {
   for (const s of missingSnomed) console.log('  -', s['schema_name']);
 
   // 4. NOW FIX ALL OF THEM
-  const allSchemas = await sql`SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'`;
+  const allSchemas =
+    await sql`SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'`;
   console.log(`\n=== Applying direct fixes to ${allSchemas.length} tenant schemas... ===\n`);
 
   for (const row of allSchemas) {
     const schema = row['schema_name'];
     try {
       // Fix bills table
-      await sql.unsafe(`ALTER TABLE "${schema}"."bills" ADD COLUMN IF NOT EXISTS "procedure_code_id" integer`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."bills" ADD COLUMN IF NOT EXISTS "bill_type" varchar(30) DEFAULT 'Consultation'`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."bills" ADD COLUMN IF NOT EXISTS "custom_title" varchar(255)`);
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."bills" ADD COLUMN IF NOT EXISTS "procedure_code_id" integer`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."bills" ADD COLUMN IF NOT EXISTS "bill_type" varchar(30) DEFAULT 'Consultation'`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."bills" ADD COLUMN IF NOT EXISTS "custom_title" varchar(255)`,
+      );
 
-      // Fix medicines table 
-      await sql.unsafe(`ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "name" varchar(255)`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "disease" text`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "potency_id" integer`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "type" varchar(100)`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "category" varchar(100)`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "price" real DEFAULT 0`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "stock_level" integer DEFAULT 0`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "created_at" timestamp DEFAULT now()`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "updated_at" timestamp DEFAULT now()`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp`);
-      
+      // Fix medicines table
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "name" varchar(255)`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "disease" text`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "potency_id" integer`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "type" varchar(100)`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "category" varchar(100)`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "price" real DEFAULT 0`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "stock_level" integer DEFAULT 0`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "created_at" timestamp DEFAULT now()`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "updated_at" timestamp DEFAULT now()`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."medicines" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp`,
+      );
+
       // Populate name from legacy columns
-      await sql.unsafe(`UPDATE "${schema}"."medicines" SET "name" = "shortname" WHERE "name" IS NULL AND "shortname" IS NOT NULL`);
-      await sql.unsafe(`UPDATE "${schema}"."medicines" SET "name" = "remedy" WHERE "name" IS NULL AND "remedy" IS NOT NULL`);
+      await sql.unsafe(
+        `UPDATE "${schema}"."medicines" SET "name" = "shortname" WHERE "name" IS NULL AND "shortname" IS NOT NULL`,
+      );
+      await sql.unsafe(
+        `UPDATE "${schema}"."medicines" SET "name" = "remedy" WHERE "name" IS NULL AND "remedy" IS NOT NULL`,
+      );
 
-      // Fix stocks table  
-      await sql.unsafe(`ALTER TABLE "${schema}"."stocks" ADD COLUMN IF NOT EXISTS "quantity" integer DEFAULT 0`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."stocks" ADD COLUMN IF NOT EXISTS "unit_price" real`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."stocks" ADD COLUMN IF NOT EXISTS "batch_number" varchar(100)`);
-      await sql.unsafe(`ALTER TABLE "${schema}"."stocks" ADD COLUMN IF NOT EXISTS "category" varchar(100)`);
+      // Fix stocks table
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."stocks" ADD COLUMN IF NOT EXISTS "quantity" integer DEFAULT 0`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."stocks" ADD COLUMN IF NOT EXISTS "unit_price" real`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."stocks" ADD COLUMN IF NOT EXISTS "batch_number" varchar(100)`,
+      );
+      await sql.unsafe(
+        `ALTER TABLE "${schema}"."stocks" ADD COLUMN IF NOT EXISTS "category" varchar(100)`,
+      );
 
       // Create snomed_concepts if missing
       await sql.unsafe(`CREATE TABLE IF NOT EXISTS "${schema}"."snomed_concepts" (
@@ -127,18 +166,40 @@ async function diagnoseAndFix() {
 
   // Also fix public schema
   try {
-    await sql.unsafe(`ALTER TABLE "public"."bills" ADD COLUMN IF NOT EXISTS "procedure_code_id" integer`);
-    await sql.unsafe(`ALTER TABLE "public"."bills" ADD COLUMN IF NOT EXISTS "bill_type" varchar(30) DEFAULT 'Consultation'`);
-    await sql.unsafe(`ALTER TABLE "public"."bills" ADD COLUMN IF NOT EXISTS "custom_title" varchar(255)`);
-    await sql.unsafe(`ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp`);
-    await sql.unsafe(`ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "name" varchar(255)`);
-    await sql.unsafe(`ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "price" real DEFAULT 0`);
-    await sql.unsafe(`ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "stock_level" integer DEFAULT 0`);
-    await sql.unsafe(`ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "created_at" timestamp DEFAULT now()`);
-    await sql.unsafe(`ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "updated_at" timestamp DEFAULT now()`);
-    await sql.unsafe(`ALTER TABLE "public"."stocks" ADD COLUMN IF NOT EXISTS "quantity" integer DEFAULT 0`);
+    await sql.unsafe(
+      `ALTER TABLE "public"."bills" ADD COLUMN IF NOT EXISTS "procedure_code_id" integer`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE "public"."bills" ADD COLUMN IF NOT EXISTS "bill_type" varchar(30) DEFAULT 'Consultation'`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE "public"."bills" ADD COLUMN IF NOT EXISTS "custom_title" varchar(255)`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "name" varchar(255)`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "price" real DEFAULT 0`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "stock_level" integer DEFAULT 0`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "created_at" timestamp DEFAULT now()`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE "public"."medicines" ADD COLUMN IF NOT EXISTS "updated_at" timestamp DEFAULT now()`,
+    );
+    await sql.unsafe(
+      `ALTER TABLE "public"."stocks" ADD COLUMN IF NOT EXISTS "quantity" integer DEFAULT 0`,
+    );
     await sql.unsafe(`ALTER TABLE "public"."stocks" ADD COLUMN IF NOT EXISTS "unit_price" real`);
-    await sql.unsafe(`ALTER TABLE "public"."stocks" ADD COLUMN IF NOT EXISTS "batch_number" varchar(100)`);
+    await sql.unsafe(
+      `ALTER TABLE "public"."stocks" ADD COLUMN IF NOT EXISTS "batch_number" varchar(100)`,
+    );
     await sql.unsafe(`CREATE TABLE IF NOT EXISTS "public"."snomed_concepts" (
       "id" serial PRIMARY KEY,
       "concept_id" bigint NOT NULL UNIQUE,
@@ -184,4 +245,7 @@ async function diagnoseAndFix() {
   console.log('\n🎉 Done!');
 }
 
-diagnoseAndFix().catch(e => { console.error(e); process.exit(1); });
+diagnoseAndFix().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

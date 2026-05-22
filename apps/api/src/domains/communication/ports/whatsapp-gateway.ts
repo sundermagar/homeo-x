@@ -3,11 +3,11 @@
  */
 
 export interface WhatsAppPayload {
-  phone: string;       // Recipient phone number (with country code)
-  message: string;     // The text message
+  phone: string; // Recipient phone number (with country code)
+  message: string; // The text message
   instanceId?: string; // Optional specific instance to send from
   tenantSlug?: string; // Optional tenant slug to resolve instance from env
-  mediaUrl?: string;   // Optional URL for media (image/pdf)
+  mediaUrl?: string; // Optional URL for media (image/pdf)
   mediaType?: 'image' | 'pdf' | 'video' | 'document';
 }
 
@@ -19,7 +19,7 @@ export interface WhatsAppGatewayResult {
 
 export interface WhatsAppQRResult {
   success: boolean;
-  qrCode?: string;     // Base64 image data
+  qrCode?: string; // Base64 image data
   instanceId?: string;
   error?: string;
 }

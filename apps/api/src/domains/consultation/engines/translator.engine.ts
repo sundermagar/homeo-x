@@ -1,4 +1,3 @@
-
 // ─── Translator Engine ────────────────────────────────────────────────────────
 // Translates Hindi/Hinglish text to English for the consultation pipeline.
 // Primary path: Google Cloud Translation API (deterministic, purpose-built).
@@ -22,14 +21,19 @@ function getTranslateClient(): Promise<any | null> {
           logger.warn('@google-cloud/translate loaded but no Translate constructor found');
           return null;
         }
-        const credentialsStr = process.env.GOOGLE_CREDENTIALS_BASE64 
-          ? Buffer.from(process.env.GOOGLE_CREDENTIALS_BASE64, 'base64').toString('utf-8') 
+        const credentialsStr = process.env.GOOGLE_CREDENTIALS_BASE64
+          ? Buffer.from(process.env.GOOGLE_CREDENTIALS_BASE64, 'base64').toString('utf-8')
           : null;
         const credentials = credentialsStr ? JSON.parse(credentialsStr) : undefined;
 
-        return new TranslateCtor(credentials ? { credentials, projectId: credentials.project_id } : undefined);
+        return new TranslateCtor(
+          credentials ? { credentials, projectId: credentials.project_id } : undefined,
+        );
       } catch (err: any) {
-        logger.warn({ err: err?.message }, '@google-cloud/translate not available — will fall back to LLM');
+        logger.warn(
+          { err: err?.message },
+          '@google-cloud/translate not available — will fall back to LLM',
+        );
         return null;
       }
     })();
@@ -45,8 +49,12 @@ export class TranslatorEngine {
 
     // ── 1. Skip logic: Is it pure English? ───────────────────────────────────
     // Use a simple heuristic: if mostly ASCII and no non-English words, assume English
-    const isLikelyEnglish = /^[a-zA-Z0-9\s\.,!?;:'"()-]+$/.test(text) && !/\b(hai|mein|hain|nahi|aur|ko|se|par|ka|ki|ke|tha|thi|ho|hota|wala|accha|theek|bahut|et|und|der|die|das|le|la|les|el|los|las|che|il|lo|gli|la|le|i|o|a|gli|ne|na|ta|te|ho|hai|wa|ga|wo|ni|de|wa|mo|ru|shi|ri|ku|tsu|ka|ke|ko|sa|shi|su|se|so|ta|chi|tsu|te|to|na|ni|nu|ne|no|ha|hi|fu|he|ho|ma|mi|mu|me|mo|ya|yu|yo|ra|ri|ru|re|ro|wa|wo|n|ga|gi|gu|ge|go|za|ji|zu|ze|zo|da|di|du|de|do|ba|bi|bu|be|bo|pa|pi|pu|pe|po)\b/i.test(text);
-    
+    const isLikelyEnglish =
+      /^[a-zA-Z0-9\s\.,!?;:'"()-]+$/.test(text) &&
+      !/\b(hai|mein|hain|nahi|aur|ko|se|par|ka|ki|ke|tha|thi|ho|hota|wala|accha|theek|bahut|et|und|der|die|das|le|la|les|el|los|las|che|il|lo|gli|la|le|i|o|a|gli|ne|na|ta|te|ho|hai|wa|ga|wo|ni|de|wa|mo|ru|shi|ri|ku|tsu|ka|ke|ko|sa|shi|su|se|so|ta|chi|tsu|te|to|na|ni|nu|ne|no|ha|hi|fu|he|ho|ma|mi|mu|me|mo|ya|yu|yo|ra|ri|ru|re|ro|wa|wo|n|ga|gi|gu|ge|go|za|ji|zu|ze|zo|da|di|du|de|do|ba|bi|bu|be|bo|pa|pi|pu|pe|po)\b/i.test(
+        text,
+      );
+
     if (isLikelyEnglish) {
       return text;
     }
@@ -76,7 +84,8 @@ export class TranslatorEngine {
   private isStrongHinglish(text: string): boolean {
     // Only trigger if we see actual Hindi grammar words (hai, mein, ka, ki, etc.)
     // Avoid common words that are used in English like 'doctor', 'patient', 'clinic'.
-    const strongHinglish = /\b(hai|mein|hain|nahi|aur|ko|se|par|ka|ki|ke|tha|thi|ho|hota|wala|accha|theek|bahut|dard|bukhar|khasi|pet|sar|kamar|neend|chakkar|jalan|khujli|sujan|thand|garmi|bata|raha|rahi|abhi|pehle|baad|din|hamesha|kabhi|kbhi|thoda|zyada)\b/i;
+    const strongHinglish =
+      /\b(hai|mein|hain|nahi|aur|ko|se|par|ka|ki|ke|tha|thi|ho|hota|wala|accha|theek|bahut|dard|bukhar|khasi|pet|sar|kamar|neend|chakkar|jalan|khujli|sujan|thand|garmi|bata|raha|rahi|abhi|pehle|baad|din|hamesha|kabhi|kbhi|thoda|zyada)\b/i;
     return strongHinglish.test(text);
   }
 }

@@ -58,7 +58,6 @@ export function TotalityStage({
   // ─── Categorized symptom management ───
   const catSymptoms = categorizedSymptoms || { mental: [], physical: [], particular: [] };
 
-
   // ─── Constitutional factors — synced to parent state ───
   const thermalReaction = parentThermalReaction || '';
   const setThermalReaction = (val: string) => onThermalReactionChange?.(val);
@@ -73,32 +72,39 @@ export function TotalityStage({
   const doctorNotes = parentDoctorNotes || '';
   const setDoctorNotes = (val: string) => onDoctorNotesChange?.(val);
 
-  const addSymptom = useCallback((category: 'mental' | 'physical' | 'particular') => {
-    const val = prompt(`Add ${category} symptom (Repertory format):`);
-    if (val?.trim() && onCategorizedSymptomsChange) {
-      onCategorizedSymptomsChange((prev) => ({
-        ...prev,
-        [category]: [...new Set([...prev[category], val.trim()])],
-      }));
-    }
-  }, [onCategorizedSymptomsChange]);
+  const addSymptom = useCallback(
+    (category: 'mental' | 'physical' | 'particular') => {
+      const val = prompt(`Add ${category} symptom (Repertory format):`);
+      if (val?.trim() && onCategorizedSymptomsChange) {
+        onCategorizedSymptomsChange((prev) => ({
+          ...prev,
+          [category]: [...new Set([...prev[category], val.trim()])],
+        }));
+      }
+    },
+    [onCategorizedSymptomsChange],
+  );
 
-  const removeSymptom = useCallback((category: 'mental' | 'physical' | 'particular', idx: number) => {
-    if (onCategorizedSymptomsChange) {
-      onCategorizedSymptomsChange((prev) => ({
-        ...prev,
-        [category]: prev[category].filter((_, i) => i !== idx),
-      }));
-    }
-  }, [onCategorizedSymptomsChange]);
+  const removeSymptom = useCallback(
+    (category: 'mental' | 'physical' | 'particular', idx: number) => {
+      if (onCategorizedSymptomsChange) {
+        onCategorizedSymptomsChange((prev) => ({
+          ...prev,
+          [category]: prev[category].filter((_, i) => i !== idx),
+        }));
+      }
+    },
+    [onCategorizedSymptomsChange],
+  );
 
   return (
     <div className="space-y-8 pp-fade-in relative">
-      
       {/* ═══ 1. Progress Bar ═══ */}
       <div className="w-full">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">Step 3 of 4</span>
+          <span className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">
+            Step 3 of 4
+          </span>
           <span className="text-[11px] font-bold text-[#4A4A47]">75%</span>
         </div>
         <div className="w-full h-1.5 bg-[#E3E2DF] rounded-full overflow-hidden">
@@ -114,26 +120,34 @@ export function TotalityStage({
         </p>
       </div>
 
-
       {/* ═══ 4. Three-Column Symptom Grid ═══ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
         {/* Mental Generals — Purple -> Blue Default */}
         <div className="pp-card overflow-hidden">
           <div className="px-4 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center gap-2">
             <Brain className="h-4 w-4 text-[#2563EB]" />
-            <span className="text-[13px] font-bold text-[#0F0F0E] tracking-tight">Mental Generals</span>
+            <span className="text-[13px] font-bold text-[#0F0F0E] tracking-tight">
+              Mental Generals
+            </span>
           </div>
           <div className="p-4 space-y-2 min-h-[140px] bg-white">
             {catSymptoms.mental.length === 0 && (
-              <p className="text-[12px] text-[#888786] italic py-4 text-center">No mental symptoms yet</p>
+              <p className="text-[12px] text-[#888786] italic py-4 text-center">
+                No mental symptoms yet
+              </p>
             )}
             {catSymptoms.mental.map((s, i) => (
-              <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] group hover:border-[#BFDBFE]">
+              <div
+                key={i}
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] group hover:border-[#BFDBFE]"
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] shrink-0" />
                 <span className="flex-1 leading-snug">{s}</span>
                 {onCategorizedSymptomsChange && (
-                  <button onClick={() => removeSymptom('mental', i)} className="opacity-0 group-hover:opacity-100 text-[#888786] hover:text-[#DC2626] transition-opacity p-0.5">
+                  <button
+                    onClick={() => removeSymptom('mental', i)}
+                    className="opacity-0 group-hover:opacity-100 text-[#888786] hover:text-[#DC2626] transition-opacity p-0.5"
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 )}
@@ -156,18 +170,28 @@ export function TotalityStage({
         <div className="pp-card overflow-hidden">
           <div className="px-4 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center gap-2">
             <Heart className="h-4 w-4 text-[#2563EB]" />
-            <span className="text-[13px] font-bold text-[#0F0F0E] tracking-tight">Physical Generals</span>
+            <span className="text-[13px] font-bold text-[#0F0F0E] tracking-tight">
+              Physical Generals
+            </span>
           </div>
           <div className="p-4 space-y-2 min-h-[140px] bg-white">
             {catSymptoms.physical.length === 0 && (
-              <p className="text-[12px] text-[#888786] italic py-4 text-center">No physical symptoms yet</p>
+              <p className="text-[12px] text-[#888786] italic py-4 text-center">
+                No physical symptoms yet
+              </p>
             )}
             {catSymptoms.physical.map((s, i) => (
-              <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] group hover:border-[#BFDBFE]">
+              <div
+                key={i}
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] group hover:border-[#BFDBFE]"
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] shrink-0" />
                 <span className="flex-1 leading-snug">{s}</span>
                 {onCategorizedSymptomsChange && (
-                  <button onClick={() => removeSymptom('physical', i)} className="opacity-0 group-hover:opacity-100 text-[#888786] hover:text-[#DC2626] transition-opacity p-0.5">
+                  <button
+                    onClick={() => removeSymptom('physical', i)}
+                    className="opacity-0 group-hover:opacity-100 text-[#888786] hover:text-[#DC2626] transition-opacity p-0.5"
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 )}
@@ -190,18 +214,28 @@ export function TotalityStage({
         <div className="pp-card overflow-hidden">
           <div className="px-4 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center gap-2">
             <Search className="h-4 w-4 text-[#2563EB]" />
-            <span className="text-[13px] font-bold text-[#0F0F0E] tracking-tight">Particular Symptoms</span>
+            <span className="text-[13px] font-bold text-[#0F0F0E] tracking-tight">
+              Particular Symptoms
+            </span>
           </div>
           <div className="p-4 space-y-2 min-h-[140px] bg-white">
             {catSymptoms.particular.length === 0 && (
-              <p className="text-[12px] text-[#888786] italic py-4 text-center">No particular symptoms yet</p>
+              <p className="text-[12px] text-[#888786] italic py-4 text-center">
+                No particular symptoms yet
+              </p>
             )}
             {catSymptoms.particular.map((s, i) => (
-              <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] group hover:border-[#BFDBFE]">
+              <div
+                key={i}
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] group hover:border-[#BFDBFE]"
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] shrink-0" />
                 <span className="flex-1 leading-snug">{s}</span>
                 {onCategorizedSymptomsChange && (
-                  <button onClick={() => removeSymptom('particular', i)} className="opacity-0 group-hover:opacity-100 text-[#888786] hover:text-[#DC2626] transition-opacity p-0.5">
+                  <button
+                    onClick={() => removeSymptom('particular', i)}
+                    className="opacity-0 group-hover:opacity-100 text-[#888786] hover:text-[#DC2626] transition-opacity p-0.5"
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 )}
@@ -229,7 +263,9 @@ export function TotalityStage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
           {/* Thermal Reaction */}
           <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Thermal Reaction</label>
+            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              Thermal Reaction
+            </label>
             <select
               value={thermalReaction}
               onChange={(e) => setThermalReaction(e.target.value)}
@@ -243,7 +279,9 @@ export function TotalityStage({
           </div>
           {/* Dominant Miasm */}
           <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Dominant Miasm</label>
+            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              Dominant Miasm
+            </label>
             <select
               value={dominantMiasm}
               onChange={(e) => setDominantMiasm(e.target.value)}
@@ -258,7 +296,9 @@ export function TotalityStage({
           </div>
           {/* Thirst Pattern */}
           <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Thirst Pattern</label>
+            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              Thirst Pattern
+            </label>
             <select
               value={thirstPattern}
               onChange={(e) => setThirstPattern(e.target.value)}
@@ -274,7 +314,9 @@ export function TotalityStage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Sleep Position */}
           <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Sleep Position</label>
+            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              Sleep Position
+            </label>
             <select
               value={sleepPosition}
               onChange={(e) => setSleepPosition(e.target.value)}
@@ -290,7 +332,9 @@ export function TotalityStage({
           </div>
           {/* Perspiration */}
           <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Perspiration</label>
+            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              Perspiration
+            </label>
             <select
               value={perspiration}
               onChange={(e) => setPerspiration(e.target.value)}
@@ -306,7 +350,9 @@ export function TotalityStage({
           </div>
           {/* Doctor Notes */}
           <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Doctor Notes</label>
+            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              Doctor Notes
+            </label>
             <input
               type="text"
               value={doctorNotes}
@@ -328,11 +374,17 @@ export function TotalityStage({
           {/* Core Conflict */}
           {conflict && (
             <div className="space-y-2">
-              <p className="text-[11px] font-bold text-[#4A4A47] uppercase tracking-widest">Core Conflict &mdash; <span className="text-[#0F0F0E]">{conflict.conflictType}</span></p>
+              <p className="text-[11px] font-bold text-[#4A4A47] uppercase tracking-widest">
+                Core Conflict &mdash;{' '}
+                <span className="text-[#0F0F0E]">{conflict.conflictType}</span>
+              </p>
               <div className="pl-4 border-l-2 border-[#E3E2DF] space-y-2">
                 {conflict.triggerEvents.map((event, i) => (
                   <div key={i} className="text-[12px] text-[#4A4A47] leading-relaxed">
-                    <span className="font-bold text-[#0F0F0E]">{i === 0 ? 'Primary DHS' : `Rail ${i}`}:</span> {event}
+                    <span className="font-bold text-[#0F0F0E]">
+                      {i === 0 ? 'Primary DHS' : `Rail ${i}`}:
+                    </span>{' '}
+                    {event}
                   </div>
                 ))}
               </div>
@@ -343,11 +395,15 @@ export function TotalityStage({
           {phases && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="rounded-md border border-[#FCA5A5] bg-[#FEF2F2] p-4">
-                <p className="text-[10px] font-bold text-[#DC2626] uppercase tracking-widest mb-1.5">Conflict-Active Phase</p>
+                <p className="text-[10px] font-bold text-[#DC2626] uppercase tracking-widest mb-1.5">
+                  Conflict-Active Phase
+                </p>
                 <p className="text-[12px] text-[#7F1D1D] font-medium">{phases.conflictActive}</p>
               </div>
               <div className="rounded-md border border-[#BFDBFE] bg-[#EFF6FF] p-4">
-                <p className="text-[10px] font-bold text-[#2563EB] uppercase tracking-widest mb-1.5">Healing Phase</p>
+                <p className="text-[10px] font-bold text-[#2563EB] uppercase tracking-widest mb-1.5">
+                  Healing Phase
+                </p>
                 <p className="text-[12px] text-[#1E3A8A] font-medium">{phases.healingPhase}</p>
               </div>
             </div>
@@ -356,9 +412,13 @@ export function TotalityStage({
           {/* Resolution */}
           {resolution && (
             <div className="rounded-md border border-[#E3E2DF] bg-[#FAFAF8] p-4">
-              <p className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest mb-1.5">Resolution Pathway</p>
+              <p className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest mb-1.5">
+                Resolution Pathway
+              </p>
               {resolution.directions.map((dir, i) => (
-                <p key={i} className="text-[12px] text-[#0F0F0E] font-medium leading-relaxed">{dir}</p>
+                <p key={i} className="text-[12px] text-[#0F0F0E] font-medium leading-relaxed">
+                  {dir}
+                </p>
               ))}
             </div>
           )}
@@ -366,19 +426,25 @@ export function TotalityStage({
           {/* AI Remedy Suggestions from GNM */}
           {aiRemedies.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-[#E3E2DF]">
-              <p className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">AI Remedy Suggestions</p>
+              <p className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">
+                AI Remedy Suggestions
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {aiRemedies.map((remedy, i) => (
                   <div key={i} className="rounded-md border border-[#E3E2DF] bg-white p-3">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[13px] font-bold text-[#0F0F0E]">{remedy.name}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] ${i === 0 ? 'bg-[#FFFBEB] text-[#D97706]' : 'bg-[#FAFAF8] text-[#888786]'}`}>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] ${i === 0 ? 'bg-[#FFFBEB] text-[#D97706]' : 'bg-[#FAFAF8] text-[#888786]'}`}
+                      >
                         #{remedy.rank}
                       </span>
                     </div>
                     <div className="space-y-0.5">
                       {remedy.keynotes.slice(0, 2).map((k, j) => (
-                        <p key={j} className="text-[11px] text-[#888786] truncate">{k}</p>
+                        <p key={j} className="text-[11px] text-[#888786] truncate">
+                          {k}
+                        </p>
                       ))}
                     </div>
                   </div>
@@ -400,13 +466,16 @@ export function TotalityStage({
               </div>
             </div>
             <div>
-              <span className="text-[15px] font-bold text-[#0F0F0E] tracking-tight">Repertorizing Symptoms...</span>
-              <p className="text-[12px] font-medium text-[#4A4A47] mt-1">Sieving through Materia Medica and matching exact rubrics.</p>
+              <span className="text-[15px] font-bold text-[#0F0F0E] tracking-tight">
+                Repertorizing Symptoms...
+              </span>
+              <p className="text-[12px] font-medium text-[#4A4A47] mt-1">
+                Sieving through Materia Medica and matching exact rubrics.
+              </p>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

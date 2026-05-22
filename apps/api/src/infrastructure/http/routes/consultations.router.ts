@@ -57,11 +57,17 @@ consultationsRouter.get('/rubrics', async (req: Request, res: Response, next: Ne
     const limit = Math.min(Number(req.query.limit) || 100, 500);
 
     const rows = category
-      ? await db.select().from(schema.rubrics).where(eq(schema.rubrics.category, category)).limit(limit)
+      ? await db
+          .select()
+          .from(schema.rubrics)
+          .where(eq(schema.rubrics.category, category))
+          .limit(limit)
       : await db.select().from(schema.rubrics).limit(limit);
 
     sendSuccess(res, rows);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/consultations/remedies?limit=100
@@ -71,7 +77,9 @@ consultationsRouter.get('/remedies', async (req: Request, res: Response, next: N
     const limit = Math.min(Number(req.query.limit) || 100, 500);
     const rows = await db.select().from(schema.remedies).limit(limit);
     sendSuccess(res, rows);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/consultations/start
@@ -152,7 +160,9 @@ consultationsRouter.post('/start', async (req: Request, res: Response, next: Nex
       prescriptionStrategy: 'SINGLE_REMEDY',
       uiHints: HOMEOPATHY_UI_HINTS,
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/consultations/complete
@@ -315,7 +325,10 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
         `);
       } catch (e: any) {
         // Non-fatal: some tenants may not have a waitlist row for every visit.
-        logger.warn({ visitId, err: e?.message }, 'Could not update waitlist row to Done — non-fatal');
+        logger.warn(
+          { visitId, err: e?.message },
+          'Could not update waitlist row to Done — non-fatal',
+        );
       }
 
       // 5. Ensure a Medical Case exists and link this consultation's diagnosis as the case condition.
@@ -325,7 +338,12 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
           const [existingCase] = await tx
             .select()
             .from(schema.medicalCases)
-            .where(and(eq(schema.medicalCases.regid, appt.patientId), eq(schema.medicalCases.status, 'Active')))
+            .where(
+              and(
+                eq(schema.medicalCases.regid, appt.patientId),
+                eq(schema.medicalCases.status, 'Active'),
+              ),
+            )
             .limit(1);
 
           const condition = soap?.assessment || appt.visitType || 'General Consultation';
@@ -345,7 +363,10 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
             });
           }
         } catch (caseErr: any) {
-          logger.warn({ visitId, err: caseErr?.message }, 'Could not ensure medical case record — non-fatal');
+          logger.warn(
+            { visitId, err: caseErr?.message },
+            'Could not ensure medical case record — non-fatal',
+          );
         }
       }
     });
@@ -368,7 +389,7 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
     // ML Training Log: Update with final ground-truth remedy when prescription is saved
     const rxItems = savedPrescription?.items?.length
       ? savedPrescription.items
-      : (req.body?.prescription?.items || []);
+      : req.body?.prescription?.items || [];
 
     if (rxItems.length > 0) {
       // Normalize remedy data for consistent storage
@@ -380,15 +401,27 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
         instructions: item.instructions || '',
       }));
 
-      logger.info({ visitId, remedyCount: normalizedRemedies.length, remedies: normalizedRemedies }, '💊 Logging doctor final remedy');
+      logger.info(
+        { visitId, remedyCount: normalizedRemedies.length, remedies: normalizedRemedies },
+        '💊 Logging doctor final remedy',
+      );
 
-      mlTrainingLogger.logPhase((req as any).tenantSlug || (req as any).tenantId || 'default', String(visitId), {
-        doctorFinalRemedy: normalizedRemedies,
-      });
+      mlTrainingLogger.logPhase(
+        (req as any).tenantSlug || (req as any).tenantId || 'default',
+        String(visitId),
+        {
+          doctorFinalRemedy: normalizedRemedies,
+        },
+      );
     }
 
     logger.info(
-      { tenantSlug: req.tenantSlug, visitId, soapId: savedSoap?.id, rxItems: savedPrescription?.items?.length ?? 0 },
+      {
+        tenantSlug: req.tenantSlug,
+        visitId,
+        soapId: savedSoap?.id,
+        rxItems: savedPrescription?.items?.length ?? 0,
+      },
       'Consultation completed',
     );
 
@@ -403,79 +436,91 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
       soap: savedSoap,
       prescription: savedPrescription,
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/consultations/:visitId/summary
-consultationsRouter.get('/:visitId/summary', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const visitId = parseVisitId(req.params.visitId);
-    const db = req.tenantDb;
+consultationsRouter.get(
+  '/:visitId/summary',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const visitId = parseVisitId(req.params.visitId);
+      const db = req.tenantDb;
 
-    const [appt] = await db
-      .select()
-      .from(schema.appointments)
-      .where(eq(schema.appointments.id, visitId))
-      .limit(1);
+      const [appt] = await db
+        .select()
+        .from(schema.appointments)
+        .where(eq(schema.appointments.id, visitId))
+        .limit(1);
 
-    if (!appt) {
-      res.status(404).json({ success: false, error: 'Visit (appointment) not found' });
-      return;
-    }
+      if (!appt) {
+        res.status(404).json({ success: false, error: 'Visit (appointment) not found' });
+        return;
+      }
 
-    const [patient] = appt.patientId
-      ? await db.select().from(schema.patients).where(eq(schema.patients.id, appt.patientId)).limit(1)
-      : [null as any];
+      const [patient] = appt.patientId
+        ? await db
+            .select()
+            .from(schema.patients)
+            .where(eq(schema.patients.id, appt.patientId))
+            .limit(1)
+        : [null as any];
 
-    const [doctor] = appt.doctorId
-      ? await db.select().from(schema.users).where(eq(schema.users.id, appt.doctorId)).limit(1)
-      : [null as any];
+      const [doctor] = appt.doctorId
+        ? await db.select().from(schema.users).where(eq(schema.users.id, appt.doctorId)).limit(1)
+        : [null as any];
 
-    const [v] = await db
-      .select()
-      .from(schema.vitals)
-      .where(eq(schema.vitals.visitId, visitId))
-      .limit(1);
+      const [v] = await db
+        .select()
+        .from(schema.vitals)
+        .where(eq(schema.vitals.visitId, visitId))
+        .limit(1);
 
-    const [s] = await db
-      .select()
-      .from(schema.legacySoapNotes)
-      .where(eq(schema.legacySoapNotes.visitId, visitId))
-      .limit(1);
+      const [s] = await db
+        .select()
+        .from(schema.legacySoapNotes)
+        .where(eq(schema.legacySoapNotes.visitId, visitId))
+        .limit(1);
 
-    const rxRows = s
-      ? ((await db.execute(sql`
+      const rxRows = s
+        ? ((await db.execute(sql`
           SELECT * FROM "prescriptions" WHERE "consultation_id" = ${s.id} ORDER BY "id"
         `)) as any[])
-      : [];
+        : [];
 
-    const doctorOut = doctor
-      ? {
-        id: String(doctor.id),
-        firstName: (doctor as any).firstname ?? (doctor.name ?? '').split(' ')[0] ?? '',
-        lastName: (doctor as any).surname ?? (doctor.name ?? '').split(' ').slice(1).join(' ') ?? '',
-        email: doctor.email,
-        qualifications: (doctor as any).qualification ?? null,
-        specialization: (doctor as any).designation ?? null,
-      }
-      : null;
+      const doctorOut = doctor
+        ? {
+            id: String(doctor.id),
+            firstName: (doctor as any).firstname ?? (doctor.name ?? '').split(' ')[0] ?? '',
+            lastName:
+              (doctor as any).surname ?? (doctor.name ?? '').split(' ').slice(1).join(' ') ?? '',
+            email: doctor.email,
+            qualifications: (doctor as any).qualification ?? null,
+            specialization: (doctor as any).designation ?? null,
+          }
+        : null;
 
-    sendSuccess(res, {
-      visit: {
-        id: String(visitId),
-        status: appt.status,
-        patientId: appt.patientId,
-        doctorId: appt.doctorId,
-        visitType: appt.visitType,
-      },
-      patient: patient ?? null,
-      doctor: doctorOut,
-      vitals: v ?? null,
-      soap: s ?? null,
-      prescriptions: rxRows,
-      specialtyConfig: HOMEOPATHY_SPECIALTY_CONFIG,
-      clinicCategory: 'HOMEOPATHY',
-      uiHints: HOMEOPATHY_UI_HINTS,
-    });
-  } catch (err) { next(err); }
-});
+      sendSuccess(res, {
+        visit: {
+          id: String(visitId),
+          status: appt.status,
+          patientId: appt.patientId,
+          doctorId: appt.doctorId,
+          visitType: appt.visitType,
+        },
+        patient: patient ?? null,
+        doctor: doctorOut,
+        vitals: v ?? null,
+        soap: s ?? null,
+        prescriptions: rxRows,
+        specialtyConfig: HOMEOPATHY_SPECIALTY_CONFIG,
+        clinicCategory: 'HOMEOPATHY',
+        uiHints: HOMEOPATHY_UI_HINTS,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);

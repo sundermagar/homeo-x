@@ -43,10 +43,7 @@ function describeAxiosError(error: any): { title: string; description?: string }
   const status = error?.response?.status as number | undefined;
   const data = error?.response?.data;
   const serverMsg: string | undefined =
-    (typeof data === 'string' ? data : undefined) ||
-    data?.error ||
-    data?.message ||
-    data?.detail;
+    (typeof data === 'string' ? data : undefined) || data?.error || data?.message || data?.detail;
 
   if (!error?.response) {
     if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') {

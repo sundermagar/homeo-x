@@ -11,24 +11,24 @@ export class UserRepositoryPG implements UserRepository {
   private mapLegacyRole(type: string): Role {
     const mapping: Record<string, Role> = {
       // Legacy ALL_CAPS strings (from old PHP app)
-      'SUPER_ADMIN': Role.Admin,
-      'CLINIC_ADMIN': Role.Clinicadmin,
-      'CLICNIC_ADMIN': Role.Clinicadmin,
-      'DOCTOR': Role.Doctor,
-      'RECEPTION': Role.Receptionist,
-      'DISPENSARY_MANAGER': Role.Dispensary,
-      'ACCOUNT_MANAGER': Role.Account,
-      'PATIENT': Role.Patient,
+      SUPER_ADMIN: Role.Admin,
+      CLINIC_ADMIN: Role.Clinicadmin,
+      CLICNIC_ADMIN: Role.Clinicadmin,
+      DOCTOR: Role.Doctor,
+      RECEPTION: Role.Receptionist,
+      DISPENSARY_MANAGER: Role.Dispensary,
+      ACCOUNT_MANAGER: Role.Account,
+      PATIENT: Role.Patient,
       // Modern PascalCase Role enum values (stored by StaffRepositoryPg)
-      'SuperAdmin': Role.SuperAdmin,
-      'Admin': Role.Admin,
-      'Clinicadmin': Role.Clinicadmin,
-      'Doctor': Role.Doctor,
-      'Receptionist': Role.Receptionist,
-      'Employee': Role.Employee,
-      'Account': Role.Account,
-      'Dispensary': Role.Dispensary,
-      'Patient': Role.Patient,
+      SuperAdmin: Role.SuperAdmin,
+      Admin: Role.Admin,
+      Clinicadmin: Role.Clinicadmin,
+      Doctor: Role.Doctor,
+      Receptionist: Role.Receptionist,
+      Employee: Role.Employee,
+      Account: Role.Account,
+      Dispensary: Role.Dispensary,
+      Patient: Role.Patient,
     };
     return mapping[type] || (type as Role);
   }
@@ -57,7 +57,7 @@ export class UserRepositoryPG implements UserRepository {
       sql`SELECT u.id, u.email, u.name, u.type, u.context_id, u.mobile, u.created_at, u.updated_at, o.name as clinic_name
           FROM users u 
           LEFT JOIN public.organizations o ON o.id = u.context_id 
-          WHERE u.id = ${id} AND u.deleted_at IS NULL LIMIT 1`
+          WHERE u.id = ${id} AND u.deleted_at IS NULL LIMIT 1`,
     );
     const row = (rows as any[])[0];
     return row ? this.rowToUser(row) : null;
@@ -69,7 +69,7 @@ export class UserRepositoryPG implements UserRepository {
           FROM users u 
           LEFT JOIN public.organizations o ON o.id = u.context_id 
           WHERE u.email = ${email} AND u.deleted_at IS NULL 
-          LIMIT 1`
+          LIMIT 1`,
     );
     const row = (rows as any[])[0];
     return row ? this.rowToUser(row) : null;
@@ -77,7 +77,7 @@ export class UserRepositoryPG implements UserRepository {
 
   async getUserPassword(email: string): Promise<string | null> {
     const rows = await this.db.execute(
-      sql`SELECT password FROM users WHERE email = ${email} AND deleted_at IS NULL LIMIT 1`
+      sql`SELECT password FROM users WHERE email = ${email} AND deleted_at IS NULL LIMIT 1`,
     );
     const row = (rows as any[])[0] as any;
     return row?.password || null;
@@ -85,7 +85,7 @@ export class UserRepositoryPG implements UserRepository {
 
   async updatePassword(userId: number, passwordHash: string): Promise<void> {
     await this.db.execute(
-      sql`UPDATE users SET password = ${passwordHash}, updated_at = NOW() WHERE id = ${userId}`
+      sql`UPDATE users SET password = ${passwordHash}, updated_at = NOW() WHERE id = ${userId}`,
     );
   }
 
@@ -95,9 +95,12 @@ export class UserRepositoryPG implements UserRepository {
       const rows = await this.db
         .select({ name: schema.permissions.name })
         .from(schema.permissions)
-        .innerJoin(schema.permissionRole, eq(schema.permissionRole.permissionId, schema.permissions.id))
+        .innerJoin(
+          schema.permissionRole,
+          eq(schema.permissionRole.permissionId, schema.permissions.id),
+        )
         .where(eq(schema.permissionRole.roleId, roleId));
-      return rows.map(r => r.name || '').filter(Boolean);
+      return rows.map((r) => r.name || '').filter(Boolean);
     } catch {
       return [];
     }
@@ -106,21 +109,21 @@ export class UserRepositoryPG implements UserRepository {
   async findPractitioners(): Promise<User[]> {
     const rows = await this.db.execute(
       sql`SELECT id, email, name, type, context_id, mobile, created_at, updated_at
-          FROM users WHERE type = 'Doctor' AND deleted_at IS NULL`
+          FROM users WHERE type = 'Doctor' AND deleted_at IS NULL`,
     );
-    return (rows as any[]).map(row => this.rowToUser(row));
+    return (rows as any[]).map((row) => this.rowToUser(row));
   }
 
   async updateResetOtp(userId: number, hashedToken: string, expiry: Date): Promise<void> {
     const expiryStr = expiry.toISOString();
     await this.db.execute(
-      sql`UPDATE users SET reset_otp = ${hashedToken}, reset_otp_expiry = ${expiryStr}, updated_at = NOW() WHERE id = ${userId}`
+      sql`UPDATE users SET reset_otp = ${hashedToken}, reset_otp_expiry = ${expiryStr}, updated_at = NOW() WHERE id = ${userId}`,
     );
   }
 
   async updatePasswordAndClearOtp(userId: number, newPasswordHash: string): Promise<void> {
     await this.db.execute(
-      sql`UPDATE users SET password_hash = ${newPasswordHash}, reset_otp = NULL, reset_otp_expiry = NULL, updated_at = NOW() WHERE id = ${userId}`
+      sql`UPDATE users SET password_hash = ${newPasswordHash}, reset_otp = NULL, reset_otp_expiry = NULL, updated_at = NOW() WHERE id = ${userId}`,
     );
   }
 }

@@ -34,7 +34,11 @@ export interface ClinicalExtractionResult {
 export class ClinicalExtractionEngine {
   constructor(private providerChain: AiProviderChain) {}
 
-  async extract(tenantId: string, userId: string, input: ClinicalExtractionInput): Promise<ClinicalExtractionResult> {
+  async extract(
+    tenantId: string,
+    userId: string,
+    input: ClinicalExtractionInput,
+  ): Promise<ClinicalExtractionResult> {
     const systemPrompt = `You are an expert homeopathic clinical data extractor.
 Analyze the provided transcript and clinical data to extract structured findings.
 
@@ -87,22 +91,39 @@ Extract all clinical data:`;
 
       const parsed: any = safeJsonParse(response.content);
       if (!parsed) {
-        logger.error({ tenantId, contentPreview: response.content.slice(0, 300) }, 'Clinical extraction: JSON unrecoverable even after repair');
+        logger.error(
+          { tenantId, contentPreview: response.content.slice(0, 300) },
+          'Clinical extraction: JSON unrecoverable even after repair',
+        );
         throw new Error('Clinical extraction returned unparseable JSON');
       }
 
       logger.info({ tenantId }, 'Clinical extraction complete');
 
       return {
-        observations: Array.isArray(parsed.observations) ? [...new Set<string>(parsed.observations)] : [],
-        clinicalFindings: Array.isArray(parsed.clinicalFindings) ? [...new Set<string>(parsed.clinicalFindings)] : [],
-        mentalState: Array.isArray(parsed.mentalState) ? [...new Set<string>(parsed.mentalState)] : [],
+        observations: Array.isArray(parsed.observations)
+          ? [...new Set<string>(parsed.observations)]
+          : [],
+        clinicalFindings: Array.isArray(parsed.clinicalFindings)
+          ? [...new Set<string>(parsed.clinicalFindings)]
+          : [],
+        mentalState: Array.isArray(parsed.mentalState)
+          ? [...new Set<string>(parsed.mentalState)]
+          : [],
         emotionProfile: Array.isArray(parsed.emotionProfile) ? parsed.emotionProfile : [],
-        physicalSymptoms: Array.isArray(parsed.physicalSymptoms) ? [...new Set<string>(parsed.physicalSymptoms)] : [],
-        generalSymptoms: Array.isArray(parsed.generalSymptoms) ? [...new Set<string>(parsed.generalSymptoms)] : [],
+        physicalSymptoms: Array.isArray(parsed.physicalSymptoms)
+          ? [...new Set<string>(parsed.physicalSymptoms)]
+          : [],
+        generalSymptoms: Array.isArray(parsed.generalSymptoms)
+          ? [...new Set<string>(parsed.generalSymptoms)]
+          : [],
         modalities: {
-          aggravation: Array.isArray(parsed.modalities?.aggravation) ? [...new Set<string>(parsed.modalities.aggravation)] : [],
-          amelioration: Array.isArray(parsed.modalities?.amelioration) ? [...new Set<string>(parsed.modalities.amelioration)] : [],
+          aggravation: Array.isArray(parsed.modalities?.aggravation)
+            ? [...new Set<string>(parsed.modalities.aggravation)]
+            : [],
+          amelioration: Array.isArray(parsed.modalities?.amelioration)
+            ? [...new Set<string>(parsed.modalities.amelioration)]
+            : [],
         },
         thermalReaction: parsed.thermalReaction || undefined,
         constitution: parsed.constitution || undefined,
@@ -112,8 +133,12 @@ Extract all clinical data:`;
     } catch (error: any) {
       logger.error({ error: error.message }, 'Clinical extraction failed');
       return {
-        observations: [], clinicalFindings: [], mentalState: [],
-        emotionProfile: [], physicalSymptoms: [], generalSymptoms: [],
+        observations: [],
+        clinicalFindings: [],
+        mentalState: [],
+        emotionProfile: [],
+        physicalSymptoms: [],
+        generalSymptoms: [],
         modalities: { aggravation: [], amelioration: [] },
         confidence: 0,
       };

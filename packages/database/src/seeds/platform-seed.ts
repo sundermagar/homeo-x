@@ -50,7 +50,7 @@ export async function seedPlatform(db: DbClient) {
       city: 'Shimla',
       website: 'www.elitehomeo.com',
       description: 'Specialized clinic for severe pediatric and skin conditions.',
-    }
+    },
   ];
 
   // Common hashed password: password123
@@ -58,12 +58,23 @@ export async function seedPlatform(db: DbClient) {
 
   for (const clinicData of demoClinics) {
     // Check if clinic exists (use raw any to bypass type issues with legacy columns)
-    const seedData = { ...clinicData, assignedTo: 1, connectSince: new Date().toISOString().split('T')[0] };
-    let clinic = await db.select().from(organizations).where(eq(organizations.name, clinicData.name)).limit(1);
+    const seedData = {
+      ...clinicData,
+      assignedTo: 1,
+      connectSince: new Date().toISOString().split('T')[0],
+    };
+    let clinic = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.name, clinicData.name))
+      .limit(1);
     let clinicId: number;
 
     if (clinic.length === 0) {
-      const inserted = await db.insert(organizations).values(seedData as any).returning({ id: organizations.id });
+      const inserted = await db
+        .insert(organizations)
+        .values(seedData as any)
+        .returning({ id: organizations.id });
       clinicId = inserted[0]!.id;
       console.log(`[Seed] Created clinic: ${clinicData.name}`);
     } else {
@@ -89,7 +100,7 @@ export async function seedPlatform(db: DbClient) {
         dateBirth: '1990-01-01',
         dateLeft: '1990-01-01',
         salaryCur: 0,
-        packages: ''
+        packages: '',
       },
       {
         name: `Lead Doctor - ${clinicData.name}`,
@@ -107,12 +118,16 @@ export async function seedPlatform(db: DbClient) {
         dateBirth: '1990-01-01',
         dateLeft: '1990-01-01',
         salaryCur: 0,
-        packages: ''
-      }
+        packages: '',
+      },
     ];
 
     for (const accountData of clinicAccounts) {
-      const existingAccount = await db.select().from(accounts).where(eq(accounts.email, accountData.email)).limit(1);
+      const existingAccount = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.email, accountData.email))
+        .limit(1);
       if (existingAccount.length === 0) {
         await db.insert(accounts).values(accountData);
         console.log(`  - Created account: ${accountData.email}`);

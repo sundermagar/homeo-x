@@ -6,17 +6,17 @@
  */
 
 export interface SmsGatewayResult {
-  messageId: string;   // Provider's reference ID
+  messageId: string; // Provider's reference ID
   status: 'queued' | 'sent' | 'failed';
   error?: string;
 }
 
 export interface SmsPayload {
-  phone: string;   // E.164 or 10-digit (provider normalises)
+  phone: string; // E.164 or 10-digit (provider normalises)
   message: string;
   senderId?: string;
   entityId?: string;
-  templateId?: string;   // DLT template ID for transactional SMS
+  templateId?: string; // DLT template ID for transactional SMS
   variables?: Record<string, string>; // Values for template placeholders
 }
 

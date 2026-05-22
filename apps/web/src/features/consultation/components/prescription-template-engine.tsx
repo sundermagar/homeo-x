@@ -1,14 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import {
-  Pill,
-  Plus,
-  X,
-  Sparkles,
-  Copy,
-  ChevronDown,
-  ChevronUp,
-  AlertTriangle,
-} from 'lucide-react';
+import { Pill, Plus, X, Sparkles, Copy, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -16,7 +7,11 @@ import { AiConfidenceBadge } from './ai-confidence-badge';
 import { DrugInteractionAlert } from './drug-interaction-alert';
 import { useAiSuggestPrescription, useAiFeedback } from '../../../hooks/use-ai-suggest';
 import { useCheckInteractions } from '../../../hooks/use-drug-interactions';
-import type { PrescriptionSuggestion, MedicationSuggestion, DrugInteractionWarning } from '../../../types/ai';
+import type {
+  PrescriptionSuggestion,
+  MedicationSuggestion,
+  DrugInteractionWarning,
+} from '../../../types/ai';
 import type { CreatePrescriptionItemInput } from '../../../types/prescription';
 
 export interface UiHints {
@@ -63,7 +58,14 @@ const POTENCY_CHIPS = ['6C', '12C', '30C', '200C', '1M', '10M', '50M', 'CM'];
 const FORM_CHIPS = ['Globules', 'Pills', 'Liquid', 'Trituration', 'Mother Tincture'];
 const DOSAGE_CHIPS_REMEDY = ['Single dose', '2 globules', '4 globules', '5 drops', '10 drops'];
 const FREQUENCY_CHIPS_REMEDY = ['Single dose', 'OD', 'BD', 'SOS', 'Weekly'];
-const DURATION_CHIPS_REMEDY = ['Single dose', '3 days', '7 days', '14 days', '30 days', 'Until next visit'];
+const DURATION_CHIPS_REMEDY = [
+  'Single dose',
+  '3 days',
+  '7 days',
+  '14 days',
+  '30 days',
+  'Until next visit',
+];
 
 // Default uiHints for backward compatibility (PROTOCOL)
 const DEFAULT_UI_HINTS: UiHints = {
@@ -114,15 +116,18 @@ export function PrescriptionTemplateEngine({
 
   const handleAiSuggest = useCallback(() => {
     if (!aiContext || aiContext.diagnoses.length === 0) return;
-    aiSuggest.mutate({
-      ...aiContext,
-      currentMedications: items.map(i => i.medicationName).filter(Boolean)
-    }, {
-      onSuccess: (suggestion) => {
-        setAiSuggestion(suggestion);
-        setMode('ai-template');
+    aiSuggest.mutate(
+      {
+        ...aiContext,
+        currentMedications: items.map((i) => i.medicationName).filter(Boolean),
       },
-    });
+      {
+        onSuccess: (suggestion) => {
+          setAiSuggestion(suggestion);
+          setMode('ai-template');
+        },
+      },
+    );
   }, [aiContext, aiSuggest]);
 
   const handleApplyTemplate = useCallback(() => {
@@ -228,9 +233,7 @@ export function PrescriptionTemplateEngine({
         </div>
 
         {/* Drug Interaction Alert */}
-        {interactions.length > 0 && (
-          <DrugInteractionAlert interactions={interactions} />
-        )}
+        {interactions.length > 0 && <DrugInteractionAlert interactions={interactions} />}
 
         {/* Entry mode selector — shown when no items yet */}
         {items.length === 0 && mode === 'idle' && (
@@ -247,12 +250,7 @@ export function PrescriptionTemplateEngine({
                 {aiSuggest.isPending ? 'Generating...' : 'AI Template'}
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={addEmptyItem}
-            >
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={addEmptyItem}>
               <Plus className="h-3.5 w-3.5 mr-1" />
               {hints.showRemedySelector ? 'Add Remedy' : 'Custom Prescription'}
             </Button>
@@ -275,7 +273,10 @@ export function PrescriptionTemplateEngine({
             <div className="space-y-1.5 px-1 py-1">
               {aiSuggestion.medications.length > 0 ? (
                 aiSuggestion.medications.map((med, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs text-purple-900 dark:text-purple-200">
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-xs text-purple-900 dark:text-purple-200"
+                  >
                     <span className="font-bold px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900 border border-purple-200 dark:border-purple-800">
                       {med.medicationName}
                     </span>
@@ -313,9 +314,7 @@ export function PrescriptionTemplateEngine({
                     <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
                       {med.medicationName}
                       {med.genericName && (
-                        <span className="text-gray-400 font-normal ml-1">
-                          ({med.genericName})
-                        </span>
+                        <span className="text-gray-400 font-normal ml-1">({med.genericName})</span>
                       )}
                     </p>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -365,12 +364,7 @@ export function PrescriptionTemplateEngine({
 
             {/* Add more actions */}
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={addEmptyItem}
-              >
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={addEmptyItem}>
                 <Plus className="h-3 w-3 mr-1" />
                 {hints.showRemedySelector ? 'Add Remedy' : 'Add Medication'}
               </Button>
@@ -421,8 +415,12 @@ function MedicationCard({
 
   // Select chip arrays based on uiHints
   const dosageChips = uiHints.showPotencySelector ? DOSAGE_CHIPS_REMEDY : DOSAGE_CHIPS_DEFAULT;
-  const frequencyChips = uiHints.showPotencySelector ? FREQUENCY_CHIPS_REMEDY : FREQUENCY_CHIPS_DEFAULT;
-  const durationChips = uiHints.showPotencySelector ? DURATION_CHIPS_REMEDY : DURATION_CHIPS_DEFAULT;
+  const frequencyChips = uiHints.showPotencySelector
+    ? FREQUENCY_CHIPS_REMEDY
+    : FREQUENCY_CHIPS_DEFAULT;
+  const durationChips = uiHints.showPotencySelector
+    ? DURATION_CHIPS_REMEDY
+    : DURATION_CHIPS_DEFAULT;
 
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
@@ -435,17 +433,13 @@ function MedicationCard({
               <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
                 {item.medicationName}
               </span>
-              {item.dosage && (
-                <span className="text-[11px] text-gray-500">{item.dosage}</span>
-              )}
+              {item.dosage && <span className="text-[11px] text-gray-500">{item.dosage}</span>}
               {item.frequency && (
                 <span className="rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:text-gray-400">
                   {item.frequency}
                 </span>
               )}
-              {item.duration && (
-                <span className="text-[11px] text-gray-400">{item.duration}</span>
-              )}
+              {item.duration && <span className="text-[11px] text-gray-400">{item.duration}</span>}
             </div>
           ) : (
             <span className="text-xs text-gray-400">
@@ -501,11 +495,24 @@ function MedicationCard({
                     variant="purple"
                   />
                 ))}
-                {item.dosage && !POTENCY_CHIPS.includes(item.dosage) && !dosageChips.includes(item.dosage) && (
-                  <ChipButton label={item.dosage} active onClick={() => onUpdate(index, 'dosage', '')} variant="purple" />
-                )}
+                {item.dosage &&
+                  !POTENCY_CHIPS.includes(item.dosage) &&
+                  !dosageChips.includes(item.dosage) && (
+                    <ChipButton
+                      label={item.dosage}
+                      active
+                      onClick={() => onUpdate(index, 'dosage', '')}
+                      variant="purple"
+                    />
+                  )}
                 <Input
-                  value={POTENCY_CHIPS.includes(item.dosage) ? '' : (dosageChips.includes(item.dosage) ? '' : item.dosage)}
+                  value={
+                    POTENCY_CHIPS.includes(item.dosage)
+                      ? ''
+                      : dosageChips.includes(item.dosage)
+                        ? ''
+                        : item.dosage
+                  }
                   onChange={(e) => onUpdate(index, 'dosage', e.target.value)}
                   placeholder="Other"
                   className="h-6 w-16 text-[11px] px-2"
@@ -550,7 +557,11 @@ function MedicationCard({
                   />
                 ))}
                 {item.dosage && !dosageChips.includes(item.dosage) && (
-                  <ChipButton label={item.dosage} active onClick={() => onUpdate(index, 'dosage', '')} />
+                  <ChipButton
+                    label={item.dosage}
+                    active
+                    onClick={() => onUpdate(index, 'dosage', '')}
+                  />
                 )}
                 <Input
                   value={dosageChips.includes(item.dosage) ? '' : item.dosage}
@@ -574,7 +585,9 @@ function MedicationCard({
                     key={d}
                     label={d}
                     active={item.instructions === d}
-                    onClick={() => onUpdate(index, 'instructions', item.instructions === d ? '' : d)}
+                    onClick={() =>
+                      onUpdate(index, 'instructions', item.instructions === d ? '' : d)
+                    }
                   />
                 ))}
               </div>

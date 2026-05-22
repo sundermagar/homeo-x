@@ -2,10 +2,23 @@ import React, { useState } from 'react';
 import { useWhatsApp } from '../hooks/use-whatsapp';
 import type { WhatsAppTemplate, WhatsAppChannel } from '@mmc/types';
 import ReactDOM from 'react-dom';
-import { 
-  X, Search, FileText, Megaphone, Wrench, ShieldCheck, 
-  Globe, Image as ImageIcon, Video, FileDown, MousePointerClick,
-  Check, Loader2, Info, ChevronRight, Send
+import {
+  X,
+  Search,
+  FileText,
+  Megaphone,
+  Wrench,
+  ShieldCheck,
+  Globe,
+  Image as ImageIcon,
+  Video,
+  FileDown,
+  MousePointerClick,
+  Check,
+  Loader2,
+  Info,
+  ChevronRight,
+  Send,
 } from 'lucide-react';
 const cn = (...classes: (string | false | null | undefined)[]) => classes.filter(Boolean).join(' ');
 import { toast } from '@/hooks/use-toast';
@@ -18,16 +31,33 @@ interface TemplateModalProps {
 }
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  MARKETING: { label: 'Marketing', color: 'bg-purple-50 text-purple-700 border-purple-200', icon: Megaphone },
+  MARKETING: {
+    label: 'Marketing',
+    color: 'bg-purple-50 text-purple-700 border-purple-200',
+    icon: Megaphone,
+  },
   UTILITY: { label: 'Utility', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Wrench },
-  AUTHENTICATION: { label: 'Auth', color: 'bg-amber-50 text-amber-700 border-amber-200', icon: ShieldCheck },
+  AUTHENTICATION: {
+    label: 'Auth',
+    color: 'bg-amber-50 text-amber-700 border-amber-200',
+    icon: ShieldCheck,
+  },
 };
 
 const Badge = ({ category }: { category: string }) => {
-  const config = CATEGORY_CONFIG[category.toUpperCase()] || { label: category, color: 'bg-gray-50 text-gray-600 border-gray-200', icon: Info };
+  const config = CATEGORY_CONFIG[category.toUpperCase()] || {
+    label: category,
+    color: 'bg-gray-50 text-gray-600 border-gray-200',
+    icon: Info,
+  };
   const Icon = config.icon;
   return (
-    <span className={cn("px-2 py-0.5 rounded-full border text-[10px] font-bold flex items-center gap-1", config.color)}>
+    <span
+      className={cn(
+        'px-2 py-0.5 rounded-full border text-[10px] font-bold flex items-center gap-1',
+        config.color,
+      )}
+    >
       <Icon size={10} />
       {config.label}
     </span>
@@ -40,7 +70,7 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
   // Use the first active channel — same one the inbox uses
   const activeChannelId = channels?.[0]?.id;
   const { data: templates, isLoading } = useTemplates(activeChannelId);
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedTemplate, setSelectedTemplate] = useState<WhatsAppTemplate | null>(null);
@@ -50,9 +80,11 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
   const approvedTemplates = templates?.filter((t: any) => t.status === 'approved') || [];
 
   const filteredTemplates = approvedTemplates.filter((t: any) => {
-    const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         t.body.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'ALL' || t.category.toUpperCase() === selectedCategory;
+    const matchesSearch =
+      t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.body.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      selectedCategory === 'ALL' || t.category.toUpperCase() === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -64,11 +96,15 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
 
   const handleSend = () => {
     if (!selectedTemplate) return;
-    
+
     // Validate variables
-    const incomplete = variables.some(v => v.type === 'custom' && !v.value);
+    const incomplete = variables.some((v) => v.type === 'custom' && !v.value);
     if (incomplete) {
-      toast({ title: 'Variables Required', description: 'Please fill in all clinical variables.', variant: 'error' });
+      toast({
+        title: 'Variables Required',
+        description: 'Please fill in all clinical variables.',
+        variant: 'error',
+      });
       return;
     }
 
@@ -92,7 +128,7 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
         <div className="appt-drawer-header">
           <div className="flex items-center gap-2">
             {selectedTemplate && (
-              <button 
+              <button
                 onClick={() => setSelectedTemplate(null)}
                 className="p-1 hover:bg-pp-bg-subtle rounded-lg text-muted transition-colors"
               >
@@ -114,10 +150,13 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
               {/* Search & Filter */}
               <div className="space-y-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={16} />
-                  <input 
-                    placeholder="Search clinical templates..." 
-                    className="appt-form-input pl-10" 
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+                    size={16}
+                  />
+                  <input
+                    placeholder="Search clinical templates..."
+                    className="appt-form-input pl-10"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -128,10 +167,10 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
                       className={cn(
-                        "px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all whitespace-nowrap",
-                        selectedCategory === cat 
-                          ? "bg-pp-blue border-pp-blue text-white shadow-sm" 
-                          : "bg-white border-pp-border text-secondary hover:border-pp-blue/30"
+                        'px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all whitespace-nowrap',
+                        selectedCategory === cat
+                          ? 'bg-pp-blue border-pp-blue text-white shadow-sm'
+                          : 'bg-white border-pp-border text-secondary hover:border-pp-blue/30',
                       )}
                     >
                       {cat}
@@ -143,36 +182,46 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
               {/* Template List */}
               <div className="grid gap-4">
                 {isLoading ? (
-                  <div className="py-10 text-center text-muted italic">Syncing with Meta Vault...</div>
+                  <div className="py-10 text-center text-muted italic">
+                    Syncing with Meta Vault...
+                  </div>
                 ) : filteredTemplates.length === 0 ? (
                   <div className="py-10 text-center">
                     <FileText size={40} className="mx-auto text-muted/20 mb-3" />
                     <p className="text-secondary font-medium">No templates found</p>
-                    <p className="text-[11px] text-muted mt-1 text-balance">Try adjusting your filters or sync your Meta Business account.</p>
+                    <p className="text-[11px] text-muted mt-1 text-balance">
+                      Try adjusting your filters or sync your Meta Business account.
+                    </p>
                   </div>
-                ) : filteredTemplates.map((t: any) => (
-                  <div 
-                    key={t.id}
-                    onClick={() => handleTemplateSelect(t)}
-                    className="p-4 bg-[var(--bg-card)] border border-pp-border rounded-2xl hover:border-pp-blue/50 cursor-pointer transition-all group shadow-sm"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="text-[13px] font-bold text-main group-hover:text-pp-blue transition-colors">{t.name}</h4>
-                      <Badge category={t.category} />
-                    </div>
-                    <p className="text-xs text-secondary line-clamp-2 leading-relaxed">{t.body}</p>
-                    <div className="flex items-center gap-3 mt-3">
-                      <span className="flex items-center gap-1 text-[10px] text-muted font-bold uppercase tracking-tight">
-                        <Globe size={11} /> {t.language || 'en_US'}
-                      </span>
-                      {t.mediaType && t.mediaType !== 'text' && (
+                ) : (
+                  filteredTemplates.map((t: any) => (
+                    <div
+                      key={t.id}
+                      onClick={() => handleTemplateSelect(t)}
+                      className="p-4 bg-[var(--bg-card)] border border-pp-border rounded-2xl hover:border-pp-blue/50 cursor-pointer transition-all group shadow-sm"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="text-[13px] font-bold text-main group-hover:text-pp-blue transition-colors">
+                          {t.name}
+                        </h4>
+                        <Badge category={t.category} />
+                      </div>
+                      <p className="text-xs text-secondary line-clamp-2 leading-relaxed">
+                        {t.body}
+                      </p>
+                      <div className="flex items-center gap-3 mt-3">
                         <span className="flex items-center gap-1 text-[10px] text-muted font-bold uppercase tracking-tight">
-                          <ImageIcon size={11} /> {t.mediaType}
+                          <Globe size={11} /> {t.language || 'en_US'}
                         </span>
-                      )}
+                        {t.mediaType && t.mediaType !== 'text' && (
+                          <span className="flex items-center gap-1 text-[10px] text-muted font-bold uppercase tracking-tight">
+                            <ImageIcon size={11} /> {t.mediaType}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           ) : (
@@ -181,11 +230,17 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
               <div className="p-5 bg-pp-bg-subtle/50 rounded-2xl border border-pp-border border-dashed">
                 <div className="space-y-3">
                   {selectedTemplate.header && (
-                    <div className="text-[13px] font-bold text-main border-b border-pp-border pb-2">{selectedTemplate.header}</div>
+                    <div className="text-[13px] font-bold text-main border-b border-pp-border pb-2">
+                      {selectedTemplate.header}
+                    </div>
                   )}
-                  <div className="text-xs text-secondary leading-relaxed whitespace-pre-wrap">{selectedTemplate.body}</div>
+                  <div className="text-xs text-secondary leading-relaxed whitespace-pre-wrap">
+                    {selectedTemplate.body}
+                  </div>
                   {selectedTemplate.footer && (
-                    <div className="text-[10px] text-muted italic pt-1">{selectedTemplate.footer}</div>
+                    <div className="text-[10px] text-muted italic pt-1">
+                      {selectedTemplate.footer}
+                    </div>
                   )}
                 </div>
               </div>
@@ -201,13 +256,15 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
                     {variables.map((v, idx) => (
                       <div key={idx} className="appt-form-group mb-0">
                         <label className="appt-form-label flex justify-between">
-                          <span>Variable {"{{" + (idx + 1) + "}}"}</span>
+                          <span>Variable {'{{' + (idx + 1) + '}}'}</span>
                           {selectedTemplate.variables?.[idx] && (
-                            <span className="text-[10px] text-muted normal-case font-medium italic">Example: {selectedTemplate.variables[idx]}</span>
+                            <span className="text-[10px] text-muted normal-case font-medium italic">
+                              Example: {selectedTemplate.variables[idx]}
+                            </span>
                           )}
                         </label>
                         <div className="flex gap-2">
-                          <select 
+                          <select
                             className="appt-form-input w-32 shrink-0"
                             value={v.type}
                             onChange={(e) => {
@@ -221,8 +278,8 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
                             <option value="phone">Patient Phone</option>
                           </select>
                           {v.type === 'custom' && (
-                            <input 
-                              placeholder="Enter manual value..." 
+                            <input
+                              placeholder="Enter manual value..."
                               className="appt-form-input"
                               value={v.value}
                               onChange={(e) => {
@@ -242,7 +299,8 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
               <div className="p-4 bg-pp-blue/5 border border-pp-blue/10 rounded-xl flex gap-3">
                 <Info size={16} className="text-pp-blue shrink-0 mt-0.5" />
                 <p className="text-[11px] text-secondary leading-relaxed">
-                  Templates bypass the 24-hour service window. Sending this will initiate a new clinical session with the patient.
+                  Templates bypass the 24-hour service window. Sending this will initiate a new
+                  clinical session with the patient.
                 </p>
               </div>
             </div>
@@ -250,14 +308,14 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
         </div>
 
         <div className="appt-drawer-actions flex items-center justify-end gap-3 p-6 border-t border-[var(--pp-warm-3)] bg-white">
-          <button 
-            className="px-5 py-2.5 rounded-xl border border-[var(--pp-warm-4)] bg-[var(--bg-card)] text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-2)] active:scale-95 transition-all text-xs font-bold uppercase tracking-wider" 
+          <button
+            className="px-5 py-2.5 rounded-xl border border-[var(--pp-warm-4)] bg-[var(--bg-card)] text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-2)] active:scale-95 transition-all text-xs font-bold uppercase tracking-wider"
             onClick={onClose}
           >
             Cancel
           </button>
           {selectedTemplate && (
-            <button 
+            <button
               onClick={handleSend}
               disabled={isSending}
               className="bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] hover:brightness-105 active:scale-95 text-white flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl shadow-[0_4px_12px_rgba(37,99,235,0.2)] font-bold text-xs uppercase tracking-wider transition-all border-none disabled:from-[var(--pp-text-4)] disabled:to-[var(--pp-text-4)] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
@@ -278,8 +336,6 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
         </div>
       </div>
     </>,
-    document.body
+    document.body,
   );
 };
-
-

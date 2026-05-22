@@ -70,7 +70,7 @@ async function main() {
   console.log('🔍 Discovering tenant schemas…');
 
   const schemaResult = await pool.query(
-    "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%' ORDER BY schema_name"
+    "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%' ORDER BY schema_name",
   );
 
   const schemas = schemaResult.rows.map((r: any) => r.schema_name as string);
@@ -90,8 +90,9 @@ async function main() {
     for (const ddl of INDEX_DEFINITIONS) {
       // Qualify table names with schema prefix when running cross-schema
       const qualifiedDdl = schema
-        ? ddl.replace(/ ON (\w+)\(/g, ` ON ${schema}.$1(`)
-              .replace(/IF NOT EXISTS (idx_\w+)/g, `IF NOT EXISTS ${schema.replace(/\W/g, '_')}_$1`)
+        ? ddl
+            .replace(/ ON (\w+)\(/g, ` ON ${schema}.$1(`)
+            .replace(/IF NOT EXISTS (idx_\w+)/g, `IF NOT EXISTS ${schema.replace(/\W/g, '_')}_$1`)
         : ddl;
 
       try {
@@ -101,7 +102,10 @@ async function main() {
         console.log(`  ✅ ${idxName}`);
       } catch (err: any) {
         totalSkipped++;
-        if (!err?.message?.includes('already exists') && !err?.message?.includes('does not exist')) {
+        if (
+          !err?.message?.includes('already exists') &&
+          !err?.message?.includes('does not exist')
+        ) {
           const idxName = qualifiedDdl.match(/IF NOT EXISTS (\S+)/)?.[1] || '?';
           console.warn(`  ⚠ ${idxName}: ${err?.message}`);
         }

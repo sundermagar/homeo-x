@@ -2,8 +2,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Mail, Lock, Eye, EyeOff, Loader2, AlertCircle,
-  Video, Activity, ShieldCheck, Building2, X
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  Video,
+  Activity,
+  ShieldCheck,
+  Building2,
+  X,
 } from 'lucide-react';
 import { z } from 'zod';
 import { apiClient } from '@/infrastructure/api-client';
@@ -24,7 +33,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof LoginFields, string>>>({});
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
   const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false);
   const [showForgotForm, setShowForgotForm] = useState(false);
@@ -99,7 +108,7 @@ export default function LoginPage() {
       const { data } = await apiClient.post('/auth/reset-password', {
         email: resetEmail || email,
         token: resetToken,
-        newPassword
+        newPassword,
       });
       if (data.success) {
         toast({ title: 'Success', description: 'Password reset successfully. Please login.' });
@@ -172,11 +181,8 @@ export default function LoginPage() {
   return (
     <div className="login-screen">
       <div className="login-container fade-in">
-
-
         {/* ─── Main Content Area ─────────────────────────────────────────────── */}
         <div className="login-content-grid">
-
           {/* Left Side: Hospital Hero Illustration */}
           <div className="login-hero-side">
             <div className="hero-background-shapes">
@@ -187,17 +193,42 @@ export default function LoginPage() {
             <div className="hospital-image-container">
               <img src={hospitalHero} alt="Hospital Facility" className="hospital-image" />
             </div>
-
           </div>
 
           {/* Right Side: Form */}
           <div className="login-form-side">
             <div className="login-form-card">
               {/* ─── Integrated Logo ─── */}
-              <div className="login-form-logo" style={{ alignItems: 'center', justifyContent: 'center', marginTop: '-32px', marginBottom: '36px' }}>
+              <div
+                className="login-form-logo"
+                style={{
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: '-32px',
+                  marginBottom: '36px',
+                }}
+              >
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '16px' }}>
-                  <img src={mmcIconOrange} alt="MMC Icon" style={{ height: '48px', width: '48px', objectFit: 'contain', transform: 'scale(1.4)' }} />
-                  <span style={{ fontSize: '36px', fontWeight: '800', color: '#1e3a8a', letterSpacing: '-0.5px' }}>MMC</span>
+                  <img
+                    src={mmcIconOrange}
+                    alt="MMC Icon"
+                    style={{
+                      height: '48px',
+                      width: '48px',
+                      objectFit: 'contain',
+                      transform: 'scale(1.4)',
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: '36px',
+                      fontWeight: '800',
+                      color: '#1e3a8a',
+                      letterSpacing: '-0.5px',
+                    }}
+                  >
+                    MMC
+                  </span>
                 </div>
               </div>
 
@@ -212,29 +243,37 @@ export default function LoginPage() {
                 </div>
               </div>
               <h1 className="login-form-title">
-                {resetToken ? 'Reset Password' : showForgotForm ? 'Forgot Password' : 'Clinic Portal'}
+                {resetToken
+                  ? 'Reset Password'
+                  : showForgotForm
+                    ? 'Forgot Password'
+                    : 'Clinic Portal'}
               </h1>
               <div className="login-subtitle-container">
                 <p className={`login-form-subtitle ${activeFeature ? 'is-insight' : ''}`}>
                   {activeFeature === 'ai' && (
                     <>
                       <Activity size={12} className="insight-inline-icon" />
-                      <strong>AI Intelligence:</strong> Our proprietary engine assists with clinical analysis and remedy suggestions using 15+ years of data.
+                      <strong>AI Intelligence:</strong> Our proprietary engine assists with clinical
+                      analysis and remedy suggestions using 15+ years of data.
                     </>
                   )}
                   {activeFeature === 'tele' && (
                     <>
                       <Video size={12} className="insight-inline-icon" />
-                      <strong>Telehealth:</strong> Integrated HD video suite designed for remote diagnostics with built-in vitals tracking.
+                      <strong>Telehealth:</strong> Integrated HD video suite designed for remote
+                      diagnostics with built-in vitals tracking.
                     </>
                   )}
                   {activeFeature === 'data' && (
                     <>
                       <ShieldCheck size={12} className="insight-inline-icon" />
-                      <strong>Security:</strong> Enterprise-grade HIPAA-compliant 256-bit encryption with dedicated clinical tenant isolation.
+                      <strong>Security:</strong> Enterprise-grade HIPAA-compliant 256-bit encryption
+                      with dedicated clinical tenant isolation.
                     </>
                   )}
-                  {!activeFeature && "Access your clinical dashboard, patient records, and clinic management tools."}
+                  {!activeFeature &&
+                    'Access your clinical dashboard, patient records, and clinic management tools.'}
                 </p>
                 {activeFeature && (
                   <button className="insight-close-pill" onClick={() => setActiveFeature(null)}>
@@ -246,10 +285,18 @@ export default function LoginPage() {
 
               {resetToken ? (
                 <form className="login-form" onSubmit={handleResetPassword} noValidate>
-                  <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px', textAlign: 'center' }}>
-                    Set a new password for <br /><strong style={{ color: '#1e3a8a' }}>{resetEmail}</strong>
+                  <p
+                    style={{
+                      fontSize: '14px',
+                      color: '#64748b',
+                      marginBottom: '16px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Set a new password for <br />
+                    <strong style={{ color: '#1e3a8a' }}>{resetEmail}</strong>
                   </p>
-                  
+
                   <div className="form-group input-wrapper has-input-icon">
                     <div className="input-icon-bg">
                       <Lock size={18} className="input-icon" />
@@ -296,10 +343,17 @@ export default function LoginPage() {
                   )}
 
                   <button type="submit" className="login-btn-primary" disabled={isResetting}>
-                    {isResetting ? <Loader2 size={20} className="animate-spin" /> : 'Set New Password'}
+                    {isResetting ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      'Set New Password'
+                    )}
                   </button>
 
-                  <div className="login-form-options" style={{ justifyContent: 'center', marginTop: '16px' }}>
+                  <div
+                    className="login-form-options"
+                    style={{ justifyContent: 'center', marginTop: '16px' }}
+                  >
                     <Link to="/login" className="forgot-pass">
                       Back to Login
                     </Link>
@@ -307,8 +361,16 @@ export default function LoginPage() {
                 </form>
               ) : showForgotForm ? (
                 <form className="login-form" onSubmit={handleForgotPassword} noValidate>
-                  <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px', textAlign: 'center' }}>
-                    Enter your registered email address. We'll search your account and send a reset link.
+                  <p
+                    style={{
+                      fontSize: '14px',
+                      color: '#64748b',
+                      marginBottom: '16px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Enter your registered email address. We'll search your account and send a reset
+                    link.
                   </p>
 
                   <div className="form-group input-wrapper has-input-icon">
@@ -321,7 +383,11 @@ export default function LoginPage() {
                       className={`login-input${forgotError ? ' error' : ''}`}
                       placeholder="Enter your email address"
                       value={forgotEmail}
-                      onChange={(e) => { setForgotEmail(e.target.value); setForgotError(null); setForgotSuccess(null); }}
+                      onChange={(e) => {
+                        setForgotEmail(e.target.value);
+                        setForgotError(null);
+                        setForgotSuccess(null);
+                      }}
                       autoComplete="email"
                       autoFocus
                     />
@@ -335,21 +401,44 @@ export default function LoginPage() {
                   )}
 
                   {forgotSuccess && (
-                    <div className="login-error-alert" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534' }}>
+                    <div
+                      className="login-error-alert"
+                      style={{
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        color: '#166534',
+                      }}
+                    >
                       <ShieldCheck size={16} />
                       <span>{forgotSuccess}</span>
                     </div>
                   )}
 
-                  <button type="submit" className="login-btn-primary" disabled={isForgotPasswordLoading}>
-                    {isForgotPasswordLoading ? <Loader2 size={20} className="animate-spin" /> : 'Search & Send Reset Link'}
+                  <button
+                    type="submit"
+                    className="login-btn-primary"
+                    disabled={isForgotPasswordLoading}
+                  >
+                    {isForgotPasswordLoading ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      'Search & Send Reset Link'
+                    )}
                   </button>
 
-                  <div className="login-form-options" style={{ justifyContent: 'center', marginTop: '16px' }}>
+                  <div
+                    className="login-form-options"
+                    style={{ justifyContent: 'center', marginTop: '16px' }}
+                  >
                     <a
                       href="#"
                       className="forgot-pass"
-                      onClick={(e) => { e.preventDefault(); setShowForgotForm(false); setForgotError(null); setForgotSuccess(null); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowForgotForm(false);
+                        setForgotError(null);
+                        setForgotSuccess(null);
+                      }}
                     >
                       Back to Login
                     </a>
@@ -407,7 +496,13 @@ export default function LoginPage() {
                     <a
                       href="#"
                       className="forgot-pass"
-                      onClick={(e) => { e.preventDefault(); setShowForgotForm(true); setForgotEmail(''); setForgotError(null); setForgotSuccess(null); }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowForgotForm(true);
+                        setForgotEmail('');
+                        setForgotError(null);
+                        setForgotSuccess(null);
+                      }}
                     >
                       Reset Password?
                     </a>
@@ -434,7 +529,9 @@ export default function LoginPage() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="feature-icon"><Activity size={18} /></div>
+                  <div className="feature-icon">
+                    <Activity size={18} />
+                  </div>
                   <div className="feature-text">
                     <strong>AI Consultation</strong>
                     <span>Smart clinical assistance</span>
@@ -446,7 +543,9 @@ export default function LoginPage() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="feature-icon"><Video size={18} /></div>
+                  <div className="feature-icon">
+                    <Video size={18} />
+                  </div>
                   <div className="feature-text">
                     <strong>Telehealth Ready</strong>
                     <span>Integrated video care</span>
@@ -458,7 +557,9 @@ export default function LoginPage() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="feature-icon"><ShieldCheck size={18} /></div>
+                  <div className="feature-icon">
+                    <ShieldCheck size={18} />
+                  </div>
                   <div className="feature-text">
                     <strong>Secure Data</strong>
                     <span>Enterprise protection</span>
@@ -471,13 +572,16 @@ export default function LoginPage() {
             <div className="login-mini-footer">
               <span>© 2026 MMC Clinical Systems</span>
               <div className="footer-dot" />
-              <Link to="/privacy-policy" className="footer-highlight">Privacy Policy</Link>
+              <Link to="/privacy-policy" className="footer-highlight">
+                Privacy Policy
+              </Link>
               <div className="footer-dot" />
-              <Link to="/terms-of-service" className="footer-highlight">Terms of Service</Link>
+              <Link to="/terms-of-service" className="footer-highlight">
+                Terms of Service
+              </Link>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

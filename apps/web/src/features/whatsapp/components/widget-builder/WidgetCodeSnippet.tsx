@@ -1,14 +1,8 @@
-import React from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Copy } from "lucide-react";
-import { WidgetConfig } from "./types";
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Copy } from 'lucide-react';
+import { WidgetConfig } from './types';
 
 interface WidgetCodeSnippetProps {
   config: WidgetConfig;
@@ -25,7 +19,7 @@ export default function WidgetCodeSnippet({
   copyCode,
   onSave,
   isSaving,
-  channelId = "WABA_CHANNEL_ID",
+  channelId = 'WABA_CHANNEL_ID',
 }: WidgetCodeSnippetProps) {
   return (
     <Card className="rounded-3xl border border-pp-border shadow-sm overflow-hidden bg-[var(--bg-card)] dark:bg-[#0f0f12]">
@@ -39,7 +33,9 @@ export default function WidgetCodeSnippet({
         <div className="relative rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 shadow-md">
           {/* Terminal Window Header */}
           <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-            <span className="text-[10px] font-bold text-zinc-500 font-mono tracking-wide">HTML HEAD</span>
+            <span className="text-[10px] font-bold text-zinc-500 font-mono tracking-wide">
+              HTML HEAD
+            </span>
             <Button
               variant="ghost"
               size="sm"
@@ -53,7 +49,9 @@ export default function WidgetCodeSnippet({
             <pre>
               <div className="font-mono text-[11px] leading-relaxed text-zinc-300 space-y-1">
                 <div>
-                  <span className="text-zinc-500 font-normal">&lt;!-- Homeo-X WhatsApp Floating Support Widget --&gt;</span>
+                  <span className="text-zinc-500 font-normal">
+                    &lt;!-- Homeo-X WhatsApp Floating Support Widget --&gt;
+                  </span>
                 </div>
                 <div>
                   <span className="text-purple-400">&lt;</span>
@@ -79,7 +77,9 @@ export default function WidgetCodeSnippet({
                   <span className="text-zinc-400"> </span>
                   <span className="text-cyan-400">src</span>
                   <span className="text-zinc-400">=</span>
-                  <span className="text-emerald-400">"{window.location.origin}/widgets/whatsapp-chat-widget.js"</span>
+                  <span className="text-emerald-400">
+                    "{window.location.origin}/widgets/whatsapp-chat-widget.js"
+                  </span>
                   <span className="text-zinc-400"> </span>
                   <span className="text-cyan-400">async</span>
                   <span className="text-purple-400">&gt;&lt;/</span>
@@ -96,7 +96,7 @@ export default function WidgetCodeSnippet({
           disabled={isSaving}
           className="w-full bg-pp-blue hover:bg-pp-blue/90 text-white rounded-xl h-11 text-sm font-semibold shadow-sm transition-colors"
         >
-          {isSaving ? "Saving..." : "Save Configuration"}
+          {isSaving ? 'Saving...' : 'Save Configuration'}
         </Button>
       </CardContent>
     </Card>

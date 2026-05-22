@@ -101,4 +101,3 @@ export interface Charge {
   updatedAt: Date | null;
   deletedAt: Date | null;
 }
-

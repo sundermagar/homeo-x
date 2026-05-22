@@ -28,7 +28,7 @@ function getRepo(req: Request) {
 patientRouter.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { search, page = '1', limit = '30', sortBy, sortOrder, doctor_id, clinicId } = req.query;
-    
+
     // Determine clinic filter:
     // 1. If provided in query and user is Admin, use it.
     // 2. Otherwise, use user's contextId (clinicId).
@@ -67,10 +67,13 @@ patientRouter.get('/lookup', authMiddleware, async (req: Request, res: Response)
       return;
     }
     const repo = getRepo(req);
-    
+
     // Determine clinic filter for lookup
     let clinicId = req.user?.contextId;
-    if (req.query.clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+    if (
+      req.query.clinicId &&
+      (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)
+    ) {
       clinicId = Number(req.query.clinicId);
     }
 
@@ -85,10 +88,13 @@ patientRouter.get('/lookup', authMiddleware, async (req: Request, res: Response)
 patientRouter.get('/meta/form', authMiddleware, async (req: Request, res: Response) => {
   try {
     const repo = getRepo(req);
-    
+
     // Determine clinic filter
     let clinicId = req.user?.contextId;
-    if (req.query.clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+    if (
+      req.query.clinicId &&
+      (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)
+    ) {
       clinicId = Number(req.query.clinicId);
     }
 
@@ -105,7 +111,7 @@ patientRouter.get('/meta/birthdays', authMiddleware, async (req: Request, res: R
   try {
     const { date } = req.query; // Expects MM-DD format, defaults to today
     const mmdd = (date as string) || new Date().toISOString().slice(5, 10);
-    
+
     const repo = getRepo(req);
     const clinicId = req.user?.contextId;
     const data = await repo.findBirthdays(mmdd, clinicId);
@@ -120,13 +126,16 @@ patientRouter.get('/unregistered', authMiddleware, async (req: Request, res: Res
   try {
     const { search, clinicId } = req.query;
     const repo = getRepo(req);
-    
+
     let effectiveClinicId = req.user?.contextId;
     if (clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
       effectiveClinicId = Number(clinicId);
     }
 
-    const data = await repo.findUnregistered({ clinicId: effectiveClinicId, search: search as string });
+    const data = await repo.findUnregistered({
+      clinicId: effectiveClinicId,
+      search: search as string,
+    });
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -157,7 +166,10 @@ patientRouter.get('/family-groups', authMiddleware, async (req: Request, res: Re
 patientRouter.get('/:regid', async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
-    if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
+    if (isNaN(regid)) {
+      res.status(400).json({ success: false, message: 'Invalid regid' });
+      return;
+    }
     const repo = getRepo(req);
     const uc = new GetPatientUseCase(repo);
     const result = await uc.execute(regid);
@@ -176,8 +188,20 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createPatientSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: 'Validation failed',
+          errors: parsed.error.flatten().fieldErrors,
+        });
       return;
+    }
+
+    // Auto-generate a secure password if welcome email is requested but password is left blank
+    if (parsed.data.sendWelcomeEmail && !parsed.data.password) {
+      // 8-character random string + 'X1!' to ensure it meets any basic complexity rules
+      parsed.data.password = Math.random().toString(36).slice(-8) + 'X1!';
     }
     const repo = getRepo(req);
     const billingRepo = new BillingRepositoryPg(req.tenantDb);
@@ -186,8 +210,40 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
     const clinicId = req.user?.contextId;
     const result = await uc.execute(parsed.data, clinicId);
     if (result.success) {
-      res.status(201).json({ success: true, data: result.data.patient, regid: result.data.patient.regid, registrationBillId: (result.data as any).registrationBillId });
-      
+      res
+        .status(201)
+        .json({
+          success: true,
+          data: result.data.patient,
+          regid: result.data.patient.regid,
+          registrationBillId: (result.data as any).registrationBillId,
+        });
+
+      // Send Welcome Email if requested and email/password are present
+      if (parsed.data.sendWelcomeEmail && parsed.data.email && parsed.data.password) {
+        try {
+          const patientName =
+            [parsed.data.firstName, parsed.data.middleName, parsed.data.surname]
+              .filter(Boolean)
+              .join(' ') || 'Patient';
+          // Use dynamic import since emailService is not currently imported in this file
+          const { emailService } = await import('../../communication/nodemailer.service.js');
+          await emailService.sendWelcomeCredentials(
+            parsed.data.email,
+            patientName,
+            'Patient',
+            parsed.data.password,
+            false,
+          );
+          console.log(`[CreatePatient] Welcome email sent successfully to ${parsed.data.email}`);
+        } catch (emailErr: any) {
+          console.error(
+            `[CreatePatient] Failed to send welcome email to ${parsed.data.email}:`,
+            emailErr.message,
+          );
+        }
+      }
+
       // Auto WhatsApp to referring patient (Non-blocking background execution)
       let referrerId: number | null = null;
       if (req.body.referredById && !isNaN(Number(req.body.referredById))) {
@@ -195,7 +251,7 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
       } else if (req.body.referredBy && !isNaN(Number(req.body.referredBy))) {
         referrerId = Number(req.body.referredBy);
       }
-      
+
       if (referrerId) {
         (async () => {
           try {
@@ -204,10 +260,10 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
               const rawPhone = referrer.phone || referrer.mobile1 || '';
               const cleaned = rawPhone.replace(/\D/g, '');
               const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
-              
+
               const org = clinicId ? await orgRepo.findById(clinicId) : null;
               const clinicName = org?.name || 'Clinic';
-              
+
               const [dbTemplate] = await req.tenantDb.execute(sql`
                 SELECT language FROM wa_templates WHERE name = 'thank_you_for_reference_v3' LIMIT 1
               `);
@@ -229,15 +285,20 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
                     type: 'body',
                     parameters: [
                       { type: 'text', text: referrerName },
-                      { type: 'text', text: clinicName }
-                    ]
-                  }
-                ]
+                      { type: 'text', text: clinicName },
+                    ],
+                  },
+                ],
               });
-              console.log(`[CreatePatient] Reference thank you message sent to ${referrerName} (${finalPhone})`);
+              console.log(
+                `[CreatePatient] Reference thank you message sent to ${referrerName} (${finalPhone})`,
+              );
             }
           } catch (waErr: any) {
-            console.warn('[CreatePatient] Failed sending WhatsApp template to referring patient:', waErr.message);
+            console.warn(
+              '[CreatePatient] Failed sending WhatsApp template to referring patient:',
+              waErr.message,
+            );
           }
         })();
       }
@@ -253,10 +314,19 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
 patientRouter.put('/:regid', async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
-    if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
+    if (isNaN(regid)) {
+      res.status(400).json({ success: false, message: 'Invalid regid' });
+      return;
+    }
     const parsed = updatePatientSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: 'Validation failed',
+          errors: parsed.error.flatten().fieldErrors,
+        });
       return;
     }
     const repo = getRepo(req);
@@ -277,7 +347,10 @@ patientRouter.put('/:regid', async (req: Request, res: Response) => {
 patientRouter.delete('/:regid', async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
-    if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
+    if (isNaN(regid)) {
+      res.status(400).json({ success: false, message: 'Invalid regid' });
+      return;
+    }
     const repo = getRepo(req);
     const uc = new DeletePatientUseCase(repo);
     const result = await uc.execute(regid);
@@ -309,7 +382,13 @@ patientRouter.post('/:regid/family', async (req: Request, res: Response) => {
     const regid = Number(req.params.regid);
     const parsed = familyMemberSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: 'Validation failed',
+          errors: parsed.error.flatten().fieldErrors,
+        });
       return;
     }
     const repo = getRepo(req);

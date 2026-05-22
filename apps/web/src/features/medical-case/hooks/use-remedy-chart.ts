@@ -68,10 +68,10 @@ export function useRemedyTree(parentId: number = 0, label?: string) {
     queryKey: ['remedy-chart', 'tree', parentId, label ?? ''],
     queryFn: () =>
       apiClient
-        .get('/medical-cases/remedy-chart/tree', { 
-          params: { parentId, label } 
+        .get('/medical-cases/remedy-chart/tree', {
+          params: { parentId, label },
         })
-        .then(r => (r.data as any).data ?? r.data),
+        .then((r) => (r.data as any).data ?? r.data),
     staleTime: 5 * 60_000,
   });
 }
@@ -83,7 +83,7 @@ export function useAlphabetIndex() {
     queryFn: () =>
       apiClient
         .get('/medical-cases/remedy-chart/tree/alphabet')
-        .then(r => (r.data as any).data ?? r.data),
+        .then((r) => (r.data as any).data ?? r.data),
     staleTime: 5 * 60_000,
   });
 }
@@ -95,7 +95,7 @@ export function useTreeByLetter(letter: string) {
     queryFn: () =>
       apiClient
         .get('/medical-cases/remedy-chart/tree/filter', { params: { letter } })
-        .then(r => (r.data as any).data ?? r.data),
+        .then((r) => (r.data as any).data ?? r.data),
     enabled: !!letter,
   });
 }
@@ -107,7 +107,7 @@ export function useRemedyLookups() {
     queryFn: () =>
       apiClient
         .get('/medical-cases/remedy-chart/lookups')
-        .then(r => (r.data as any).data ?? r.data),
+        .then((r) => (r.data as any).data ?? r.data),
     staleTime: 10 * 60_000,
   });
 }
@@ -119,7 +119,7 @@ export function useRemedyAlternatives(treeNodeId: number | null) {
     queryFn: () =>
       apiClient
         .get(`/medical-cases/remedy-chart/alternatives/${treeNodeId}`)
-        .then(r => (r.data as any).data ?? r.data),
+        .then((r) => (r.data as any).data ?? r.data),
     enabled: treeNodeId !== null && treeNodeId > 0,
   });
 }
@@ -131,7 +131,7 @@ export function usePatientPrescriptions(regid: number) {
     queryFn: () =>
       apiClient
         .get(`/medical-cases/remedy-chart/${regid}`)
-        .then(r => (r.data as any).data ?? r.data),
+        .then((r) => (r.data as any).data ?? r.data),
     enabled: !!regid,
   });
 }
@@ -143,7 +143,7 @@ export function useSavePrescription() {
     mutationFn: (dto: SavePrescriptionDto) =>
       apiClient
         .post('/medical-cases/remedy-chart', dto)
-        .then(r => (r.data as any).data ?? r.data),
+        .then((r) => (r.data as any).data ?? r.data),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['remedy-chart', 'prescriptions', vars.regid] });
     },
@@ -154,8 +154,7 @@ export function useSavePrescription() {
 export function useDeletePrescription(regid: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) =>
-      apiClient.delete(`/medical-cases/remedy-chart/${id}`),
+    mutationFn: (id: number) => apiClient.delete(`/medical-cases/remedy-chart/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['remedy-chart', 'prescriptions', regid] });
       // Also refresh the full case data since cascade may have deleted SOAP, notes, images etc.

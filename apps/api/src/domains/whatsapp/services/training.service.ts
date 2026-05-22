@@ -15,7 +15,10 @@ export function getAIClient(apiKey: string, endpoint?: string): OpenAI {
   });
 }
 
-export async function getChannelAIClient(waRepo: WhatsAppRepository, channelId: number): Promise<OpenAI | null> {
+export async function getChannelAIClient(
+  waRepo: WhatsAppRepository,
+  channelId: number,
+): Promise<OpenAI | null> {
   const setting = await waRepo.findAiSettings(channelId);
   if (!setting || !setting.apiKey || !setting.isActive) {
     return null;
@@ -69,7 +72,7 @@ export async function scrapeUrl(url: string): Promise<string> {
     headers: {
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.5',
     },
     signal: AbortSignal.timeout(15000),
@@ -88,7 +91,15 @@ export async function scrapeUrl(url: string): Promise<string> {
   $('script, style, nav, footer, header, aside, noscript, iframe, svg, link, meta').remove();
 
   let mainContent = '';
-  const selectors = ['main', 'article', '[role="main"]', '.content', '.main-content', '#content', '#main'];
+  const selectors = [
+    'main',
+    'article',
+    '[role="main"]',
+    '.content',
+    '.main-content',
+    '#content',
+    '#main',
+  ];
   for (const sel of selectors) {
     const text = $(sel).text().replace(/\s+/g, ' ').trim();
     if (text && text.length > 100) {
@@ -109,7 +120,10 @@ export async function scrapeUrl(url: string): Promise<string> {
   return finalContent;
 }
 
-export async function processTrainingSource(waRepo: WhatsAppRepository, sourceId: number): Promise<void> {
+export async function processTrainingSource(
+  waRepo: WhatsAppRepository,
+  sourceId: number,
+): Promise<void> {
   const source = await waRepo.findTrainingSourceById(sourceId);
   if (!source) throw new Error('Source not found');
 
@@ -180,7 +194,11 @@ export async function processTrainingSource(waRepo: WhatsAppRepository, sourceId
   }
 }
 
-export async function generateQaEmbedding(waRepo: WhatsAppRepository, qaId: number, channelId: number): Promise<void> {
+export async function generateQaEmbedding(
+  waRepo: WhatsAppRepository,
+  qaId: number,
+  channelId: number,
+): Promise<void> {
   const aiClient = await getChannelAIClient(waRepo, channelId);
   if (!aiClient) return;
 
@@ -203,7 +221,7 @@ export async function searchTrainingData(
   waRepo: WhatsAppRepository,
   channelId: number,
   query: string,
-  topK: number = 5
+  topK: number = 5,
 ): Promise<{ chunks: string[]; qaPairs: Array<{ question: string; answer: string }> }> {
   const aiClient = await getChannelAIClient(waRepo, channelId);
 
@@ -212,7 +230,9 @@ export async function searchTrainingData(
     try {
       queryEmbedding = await generateEmbedding(aiClient, query);
     } catch (err: any) {
-      logger.warn(`Query embedding generation failed: ${err.message}. Falling back to text matching.`);
+      logger.warn(
+        `Query embedding generation failed: ${err.message}. Falling back to text matching.`,
+      );
     }
   }
 

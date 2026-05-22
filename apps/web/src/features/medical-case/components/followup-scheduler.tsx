@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Calendar, Clock, User, FileText, Check, X, 
-  Loader2, CalendarPlus, AlertCircle, MessageSquare
+import {
+  Calendar,
+  Clock,
+  User,
+  FileText,
+  Check,
+  X,
+  Loader2,
+  CalendarPlus,
+  AlertCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { useDoctors } from '@/features/appointments/hooks/use-doctors';
 import { apiClient } from '@/infrastructure/api-client';
@@ -13,24 +21,24 @@ interface FollowupSchedulerProps {
   onSuccess?: () => void;
 }
 
-export function FollowupScheduler({ 
-  patientId, 
+export function FollowupScheduler({
+  patientId,
   patientName,
-  defaultDoctorId, 
-  onSuccess 
+  defaultDoctorId,
+  onSuccess,
 }: FollowupSchedulerProps) {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { data: doctors = [] } = useDoctors();
-  
+
   const [form, setForm] = useState({
     bookingDate: '',
     bookingTime: '10:00 AM',
     doctorId: defaultDoctorId || '',
     notes: 'Follow-up visit',
-    visitType: 'Follow-up'
+    visitType: 'Follow-up',
   });
 
   const handleSave = async (e: React.FormEvent) => {
@@ -52,11 +60,11 @@ export function FollowupScheduler({
         bookingTime: form.bookingTime,
         notes: form.notes,
         visitType: form.visitType,
-        status: 'Pending'
+        status: 'Pending',
       });
-      
+
       setShowForm(false);
-      setForm(f => ({ ...f, bookingDate: '', notes: 'Follow-up visit' }));
+      setForm((f) => ({ ...f, bookingDate: '', notes: 'Follow-up visit' }));
       if (onSuccess) onSuccess();
     } catch (err: any) {
       setError(err.message || 'Failed to schedule follow-up');
@@ -67,8 +75,8 @@ export function FollowupScheduler({
 
   if (!showForm) {
     return (
-      <button 
-        className="mc-btn-primary" 
+      <button
+        className="mc-btn-primary"
         style={{ display: 'flex', alignItems: 'center', gap: 8 }}
         onClick={() => setShowForm(true)}
       >
@@ -95,57 +103,89 @@ export function FollowupScheduler({
       <form onSubmit={handleSave} className="mc-scheduler-form">
         <div className="mc-scheduler-grid">
           <div className="mc-form-group">
-            <label><Calendar size={12} /> Date</label>
-            <input 
-              type="date" 
+            <label>
+              <Calendar size={12} /> Date
+            </label>
+            <input
+              type="date"
               className="mc-input"
               required
               min={new Date().toISOString().split('T')[0]}
               value={form.bookingDate}
-              onChange={e => setForm(f => ({ ...f, bookingDate: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, bookingDate: e.target.value }))}
             />
           </div>
 
           <div className="mc-form-group">
-            <label><Clock size={12} /> Time</label>
-            <select 
+            <label>
+              <Clock size={12} /> Time
+            </label>
+            <select
               className="mc-input"
               value={form.bookingTime}
-              onChange={e => setForm(f => ({ ...f, bookingTime: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, bookingTime: e.target.value }))}
             >
               {[
-                '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-                '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM',
-                '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM',
-                '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM'
-              ].map(t => <option key={t} value={t}>{t}</option>)}
+                '09:00 AM',
+                '09:30 AM',
+                '10:00 AM',
+                '10:30 AM',
+                '11:00 AM',
+                '11:30 AM',
+                '12:00 PM',
+                '12:30 PM',
+                '01:00 PM',
+                '01:30 PM',
+                '02:00 PM',
+                '02:30 PM',
+                '03:00 PM',
+                '03:30 PM',
+                '04:00 PM',
+                '04:30 PM',
+                '05:00 PM',
+                '05:30 PM',
+                '06:00 PM',
+                '06:30 PM',
+                '07:00 PM',
+                '07:30 PM',
+              ].map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
             </select>
           </div>
 
           <div className="mc-form-group">
-            <label><User size={12} /> Doctor</label>
-            <select 
+            <label>
+              <User size={12} /> Doctor
+            </label>
+            <select
               className="mc-input"
               required
               value={form.doctorId}
-              onChange={e => setForm(f => ({ ...f, doctorId: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, doctorId: e.target.value }))}
             >
               <option value="">Select Doctor</option>
               {doctors.map((d: any) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
               ))}
             </select>
           </div>
         </div>
 
         <div className="mc-form-group" style={{ marginTop: 12 }}>
-          <label><FileText size={12} /> Instructions / Notes</label>
-          <textarea 
+          <label>
+            <FileText size={12} /> Instructions / Notes
+          </label>
+          <textarea
             className="mc-input"
             rows={2}
             placeholder="e.g. Review blood reports, check progress on remedy..."
             value={form.notes}
-            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
           />
         </div>
 
@@ -157,18 +197,10 @@ export function FollowupScheduler({
         )}
 
         <div className="mc-scheduler-actions">
-          <button 
-            type="button" 
-            className="mc-btn-ghost"
-            onClick={() => setShowForm(false)}
-          >
+          <button type="button" className="mc-btn-ghost" onClick={() => setShowForm(false)}>
             Cancel
           </button>
-          <button 
-            type="submit" 
-            className="mc-btn-primary"
-            disabled={saving}
-          >
+          <button type="submit" className="mc-btn-primary" disabled={saving}>
             {saving ? <Loader2 size={16} className="mc-spin" /> : <Check size={16} />}
             {saving ? 'Scheduling...' : 'Confirm Follow-up'}
           </button>

@@ -25,7 +25,11 @@ interface AuthState {
   user: (AuthTokenPayload & { permissions?: Permissions }) | null;
   isAuthenticated: boolean;
   rememberMe: boolean;
-  setAuth: (token: string, user: AuthTokenPayload & { permissions?: Permissions }, rememberMe?: boolean) => void;
+  setAuth: (
+    token: string,
+    user: AuthTokenPayload & { permissions?: Permissions },
+    rememberMe?: boolean,
+  ) => void;
   logout: () => void;
   clearAuth: () => void;
 }
@@ -72,10 +76,8 @@ export const useAuthStore = create<AuthState>()(
       rememberMe: false,
       setAuth: (token, user, rememberMe = false) =>
         set({ token, user, isAuthenticated: true, rememberMe }),
-      logout: () =>
-        set({ token: null, user: null, isAuthenticated: false, rememberMe: false }),
-      clearAuth: () =>
-        set({ token: null, user: null, isAuthenticated: false, rememberMe: false }),
+      logout: () => set({ token: null, user: null, isAuthenticated: false, rememberMe: false }),
+      clearAuth: () => set({ token: null, user: null, isAuthenticated: false, rememberMe: false }),
     }),
     {
       name: 'mmc-auth',

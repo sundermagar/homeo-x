@@ -20,7 +20,12 @@ export interface QueueEntry {
     status: string;
     patient?: { id: string; firstName: string; lastName: string; mrn: string; gender?: string };
     doctor?: { id: string; firstName: string; lastName: string };
-    vitals?: { pulseRate?: number; systolicBp?: number; diastolicBp?: number; temperatureF?: number };
+    vitals?: {
+      pulseRate?: number;
+      systolicBp?: number;
+      diastolicBp?: number;
+      temperatureF?: number;
+    };
   };
 }
 

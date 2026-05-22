@@ -48,7 +48,10 @@ export function TranscriptPanel({ segments, interimText, isRecording }: Transcri
           <span className="text-xs text-gray-400 min-w-[3rem] pt-0.5 text-right tabular-nums">
             {formatTime(seg.startTimeMs)}
           </span>
-          <Badge variant="outline" className={`text-[10px] h-5 px-1.5 ${speakerColors[seg.speaker]}`}>
+          <Badge
+            variant="outline"
+            className={`text-[10px] h-5 px-1.5 ${speakerColors[seg.speaker]}`}
+          >
             {seg.speaker === 'DOCTOR' ? 'Dr' : seg.speaker === 'PATIENT' ? 'Pt' : '?'}
           </Badge>
           <div className="flex-1 flex flex-col pt-0.5">
@@ -62,7 +65,11 @@ export function TranscriptPanel({ segments, interimText, isRecording }: Transcri
           {seg.confidence != null && (
             <span
               className={`h-2 w-2 rounded-full mt-1.5 flex-shrink-0 ${
-                seg.confidence > 0.8 ? 'bg-green-400' : seg.confidence > 0.5 ? 'bg-yellow-400' : 'bg-red-400'
+                seg.confidence > 0.8
+                  ? 'bg-green-400'
+                  : seg.confidence > 0.5
+                    ? 'bg-yellow-400'
+                    : 'bg-red-400'
               }`}
               title={`Confidence: ${Math.round(seg.confidence * 100)}%`}
             />

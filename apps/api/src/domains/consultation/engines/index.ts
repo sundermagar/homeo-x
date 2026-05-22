@@ -5,7 +5,10 @@ export { TranslatorEngine } from './translator.engine.js';
 export { SoapStructuringEngine } from './soap-structuring.engine.js';
 export type { SoapSuggestion, SoapGenerationInput } from './soap-structuring.engine.js';
 export { ClinicalExtractionEngine } from './clinical-extraction.engine.js';
-export type { ClinicalExtractionInput, ClinicalExtractionResult } from './clinical-extraction.engine.js';
+export type {
+  ClinicalExtractionInput,
+  ClinicalExtractionResult,
+} from './clinical-extraction.engine.js';
 export { RepertorizationEngine } from './repertorization.engine.js';
 export type {
   SuggestedRubric,

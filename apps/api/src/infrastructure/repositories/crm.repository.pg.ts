@@ -4,11 +4,16 @@ import * as schema from '@mmc/database';
 import type { ILeadRepository } from '../../domains/crm/ports/lead.repository.js';
 
 export class CrmRepositoryPg implements ILeadRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   // ── Leads ──────────────────────────────────────────────────────────────────
 
-  async findManyLeads(filters: { search?: string; status?: string; page: number; limit: number }): Promise<{ data: any[]; total: number }> {
+  async findManyLeads(filters: {
+    search?: string;
+    status?: string;
+    page: number;
+    limit: number;
+  }): Promise<{ data: any[]; total: number }> {
     const { search, status, page, limit } = filters;
     const offset = (page - 1) * limit;
 
@@ -16,19 +21,34 @@ export class CrmRepositoryPg implements ILeadRepository {
     if (status) conditions.push(eq(schema.leads.status, status));
     if (search) {
       const s = `%${search}%`;
-      conditions.push(sql`(${schema.leads.name} LIKE ${s} OR ${schema.leads.mobile} LIKE ${s} OR ${schema.leads.email} LIKE ${s})`);
+      conditions.push(
+        sql`(${schema.leads.name} LIKE ${s} OR ${schema.leads.mobile} LIKE ${s} OR ${schema.leads.email} LIKE ${s})`,
+      );
     }
 
     const [rows, countRows] = await Promise.all([
-      this.db.select().from(schema.leads).where(and(...conditions)).orderBy(desc(schema.leads.id)).limit(limit).offset(offset),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(schema.leads).where(and(...conditions))
+      this.db
+        .select()
+        .from(schema.leads)
+        .where(and(...conditions))
+        .orderBy(desc(schema.leads.id))
+        .limit(limit)
+        .offset(offset),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.leads)
+        .where(and(...conditions)),
     ]);
 
     return { data: rows, total: countRows[0]?.count ?? 0 };
   }
 
   async findLeadById(id: number): Promise<any | null> {
-    const [row] = await this.db.select().from(schema.leads).where(and(eq(schema.leads.id, id), isNull(schema.leads.deletedAt))).limit(1);
+    const [row] = await this.db
+      .select()
+      .from(schema.leads)
+      .where(and(eq(schema.leads.id, id), isNull(schema.leads.deletedAt)))
+      .limit(1);
     return row || null;
   }
 
@@ -36,70 +56,92 @@ export class CrmRepositoryPg implements ILeadRepository {
     const res = await this.db.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM leads`);
     const nextId = (res[0] as any)?.maxId ?? 1;
 
-    const [row] = await this.db.insert(schema.leads).values({
-      id: nextId,
-      name: dto.name,
-      mobile: dto.mobile || dto.phone || '',
-      phone: dto.phone || '',
-      email: dto.email || '',
-      address: dto.address || '',
-      source: dto.source || '',
-      status: dto.status || 'new',
-      notes: dto.notes || '',
-      assignedTo: dto.assigned_to || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any).returning({ id: schema.leads.id });
+    const [row] = await this.db
+      .insert(schema.leads)
+      .values({
+        id: nextId,
+        name: dto.name,
+        mobile: dto.mobile || dto.phone || '',
+        phone: dto.phone || '',
+        email: dto.email || '',
+        address: dto.address || '',
+        source: dto.source || '',
+        status: dto.status || 'new',
+        notes: dto.notes || '',
+        assignedTo: dto.assigned_to || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+      .returning({ id: schema.leads.id });
     return row!.id;
   }
 
   async updateLead(id: number, dto: any): Promise<void> {
-    await this.db.update(schema.leads).set({
-      ...dto,
-      mobile: dto.mobile || dto.phone,
-      updatedAt: new Date(),
-    }).where(eq(schema.leads.id, id));
+    await this.db
+      .update(schema.leads)
+      .set({
+        ...dto,
+        mobile: dto.mobile || dto.phone,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.leads.id, id));
   }
 
   async deleteLead(id: number): Promise<void> {
-    await this.db.update(schema.leads).set({ deletedAt: new Date() }).where(eq(schema.leads.id, id));
+    await this.db
+      .update(schema.leads)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.leads.id, id));
   }
 
   // ── Followups ──────────────────────────────────────────────────────────────
 
   async findFollowupsByLeadId(leadId: number): Promise<any[]> {
-    return this.db.select().from(schema.leadFollowups)
+    return this.db
+      .select()
+      .from(schema.leadFollowups)
       .where(and(eq(schema.leadFollowups.leadId, leadId), isNull(schema.leadFollowups.deletedAt)))
       .orderBy(desc(schema.leadFollowups.createdAt));
   }
 
   async createFollowup(leadId: number, dto: any): Promise<number> {
-    const res = await this.db.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM lead_followups`);
+    const res = await this.db.execute(
+      sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM lead_followups`,
+    );
     const nextId = (res[0] as any)?.maxId ?? 1;
 
-    const [row] = await this.db.insert(schema.leadFollowups).values({
-      id: nextId,
-      leadId,
-      name: dto.notes || dto.name || '',
-      task: dto.task || dto.followup_type || '',
-      taskstatus: dto.taskstatus || dto.status || 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any).returning({ id: schema.leadFollowups.id });
+    const [row] = await this.db
+      .insert(schema.leadFollowups)
+      .values({
+        id: nextId,
+        leadId,
+        name: dto.notes || dto.name || '',
+        task: dto.task || dto.followup_type || '',
+        taskstatus: dto.taskstatus || dto.status || 'pending',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+      .returning({ id: schema.leadFollowups.id });
     return row!.id;
   }
 
   async updateFollowup(id: number, dto: any): Promise<void> {
-    await this.db.update(schema.leadFollowups).set({
-      name: dto.notes || dto.name,
-      task: dto.task || dto.followup_type,
-      taskstatus: dto.taskstatus || dto.status,
-      updatedAt: new Date(),
-    }).where(eq(schema.leadFollowups.id, id));
+    await this.db
+      .update(schema.leadFollowups)
+      .set({
+        name: dto.notes || dto.name,
+        task: dto.task || dto.followup_type,
+        taskstatus: dto.taskstatus || dto.status,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.leadFollowups.id, id));
   }
 
   async deleteFollowup(id: number): Promise<void> {
-    await this.db.update(schema.leadFollowups).set({ deletedAt: new Date() }).where(eq(schema.leadFollowups.id, id));
+    await this.db
+      .update(schema.leadFollowups)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.leadFollowups.id, id));
   }
 
   // ── Referrals ──────────────────────────────────────────────────────────────
@@ -121,34 +163,49 @@ export class CrmRepositoryPg implements ILeadRepository {
   }
 
   async findReferralDetails(referralId: number): Promise<any[]> {
-    return this.db.select().from(schema.referrals)
+    return this.db
+      .select()
+      .from(schema.referrals)
       .where(and(eq(schema.referrals.referralId, referralId), isNull(schema.referrals.deletedAt)))
       .orderBy(desc(schema.referrals.createdAt));
   }
 
   async createReferral(dto: any): Promise<number> {
-    const res = await this.db.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM referral`);
+    const res = await this.db.execute(
+      sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM referral`,
+    );
     const nextId = (res[0] as any)?.maxId ?? 1;
 
-    const [row] = await this.db.insert(schema.referrals).values({
-      id: nextId,
-      regid: dto.regid,
-      referralId: dto.referral_id,
-      totalAmount: String(dto.total_amount || 0) as any,
-      usedAmount: String(dto.used_amount || 0) as any,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any).returning({ id: schema.referrals.id });
+    const [row] = await this.db
+      .insert(schema.referrals)
+      .values({
+        id: nextId,
+        regid: dto.regid,
+        referralId: dto.referral_id,
+        totalAmount: String(dto.total_amount || 0) as any,
+        usedAmount: String(dto.used_amount || 0) as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+      .returning({ id: schema.referrals.id });
     return row!.id;
   }
 
   async deleteReferral(id: number): Promise<void> {
-    await this.db.update(schema.referrals).set({ deletedAt: new Date() }).where(eq(schema.referrals.id, id));
+    await this.db
+      .update(schema.referrals)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.referrals.id, id));
   }
 
   // ── Reminders ──────────────────────────────────────────────────────────────
 
-  async findReminders(filters: { status?: string; page: number; limit: number; date?: string }): Promise<{ data: any[]; total: number }> {
+  async findReminders(filters: {
+    status?: string;
+    page: number;
+    limit: number;
+    date?: string;
+  }): Promise<{ data: any[]; total: number }> {
     const { status, page, limit, date } = filters;
     const offset = (page - 1) * limit;
 
@@ -164,7 +221,10 @@ export class CrmRepositoryPg implements ILeadRepository {
         WHERE cr.deleted_at IS NULL ${status ? sql`AND cr.status = ${status}` : sql``}
         ORDER BY cr.id DESC LIMIT ${limit} OFFSET ${offset}
       `),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(schema.crmCaseReminders).where(and(...conditions))
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.crmCaseReminders)
+        .where(and(...conditions)),
     ]);
 
     return { data: rows as any[], total: countRows[0]?.count ?? 0 };
@@ -181,10 +241,14 @@ export class CrmRepositoryPg implements ILeadRepository {
   }
 
   async createReminder(dto: any): Promise<number> {
-    const res = await this.db.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM case_reminder`);
+    const res = await this.db.execute(
+      sql`SELECT COALESCE(MAX(id), 0) + 1 AS "maxId" FROM case_reminder`,
+    );
     const nextId = (res[0] as any)?.maxId ?? 1;
 
-    const patientRes = await this.db.execute(sql`SELECT first_name, surname FROM case_datas WHERE regid = ${dto.regid || 0}`);
+    const patientRes = await this.db.execute(
+      sql`SELECT first_name, surname FROM case_datas WHERE regid = ${dto.regid || 0}`,
+    );
     const p = patientRes[0] as any;
     const pName = p ? `${p.first_name} ${p.surname || ''}`.trim() : `Patient ${dto.regid}`;
 
@@ -211,17 +275,26 @@ export class CrmRepositoryPg implements ILeadRepository {
   }
 
   async updateReminder(id: number, dto: any): Promise<void> {
-    await this.db.update(schema.crmCaseReminders).set({
-      ...dto,
-      updatedAt: new Date(),
-    }).where(eq(schema.crmCaseReminders.id, id));
+    await this.db
+      .update(schema.crmCaseReminders)
+      .set({
+        ...dto,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.crmCaseReminders.id, id));
   }
 
   async markReminderDone(id: number): Promise<void> {
-    await this.db.update(schema.crmCaseReminders).set({ status: 'done', updatedAt: new Date() }).where(eq(schema.crmCaseReminders.id, id));
+    await this.db
+      .update(schema.crmCaseReminders)
+      .set({ status: 'done', updatedAt: new Date() })
+      .where(eq(schema.crmCaseReminders.id, id));
   }
 
   async deleteReminder(id: number): Promise<void> {
-    await this.db.update(schema.crmCaseReminders).set({ deletedAt: new Date().toISOString() as any }).where(eq(schema.crmCaseReminders.id, id));
+    await this.db
+      .update(schema.crmCaseReminders)
+      .set({ deletedAt: new Date().toISOString() as any })
+      .where(eq(schema.crmCaseReminders.id, id));
   }
 }

@@ -85,8 +85,8 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 function DefaultFallback({ error, reset, errorId, occurredAt }: FallbackProps): ReactNode {
-  const isChunkError = 
-    error.name === 'ChunkLoadError' || 
+  const isChunkError =
+    error.name === 'ChunkLoadError' ||
     error.message.includes('Failed to fetch dynamically imported module') ||
     error.message.includes('Loading chunk');
 
@@ -102,7 +102,7 @@ function DefaultFallback({ error, reset, errorId, occurredAt }: FallbackProps): 
   }, [isChunkError, reset]);
 
   const reload = (): void => window.location.reload();
-  
+
   const formattedTime = occurredAt
     ? new Date(occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : '';
@@ -119,7 +119,7 @@ function DefaultFallback({ error, reset, errorId, occurredAt }: FallbackProps): 
               {isChunkError ? 'Connection refresh needed' : 'Something went wrong'}
             </h3>
             <p className="eb-soft-message">
-              {isChunkError 
+              {isChunkError
                 ? 'We encountered a minor glitch loading this view. Trying to recover...'
                 : error.message || 'An unexpected error occurred.'}
             </p>
@@ -144,7 +144,7 @@ function DefaultFallback({ error, reset, errorId, occurredAt }: FallbackProps): 
           </div>
         )}
       </div>
-      
+
       {isDev && error.stack && (
         <details className="eb-soft-trace">
           <summary>Debug Details</summary>

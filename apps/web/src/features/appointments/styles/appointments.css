@@ -3459,4 +3459,73 @@
   background: var(--pp-danger-bg);
   color: var(--pp-danger-fg);
   border: 1px solid rgba(220, 38, 38, 0.15);
-}
+}
+
+/* ─── Patient Portal Details Card & Fee Info ─── */
+.appt-patient-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--pp-warm-1);
+  border: 1px solid var(--pp-warm-4);
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.appt-patient-profile-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--pp-warm-3);
+  color: var(--pp-text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.appt-patient-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.appt-patient-profile-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pp-ink);
+  margin: 0;
+}
+
+.appt-patient-profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--pp-text-3);
+}
+
+.appt-patient-profile-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.appt-patient-fee-info {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--pp-warm-2);
+  border: 1px solid var(--pp-warm-4);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--pp-text-2);
+}
+
+.appt-patient-fee-info strong {
+  color: var(--pp-ink);
+  font-weight: 700;
+}

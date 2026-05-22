@@ -10,7 +10,8 @@ export default function AiConsultantPage() {
         <Sparkles size={48} className="text-gray-300" />
         <h1 className="text-2xl font-bold text-gray-900">AI Clinical Analysis Deprecated</h1>
         <p className="text-gray-500 max-w-md">
-          This feature has been decommissioned. Please use the standard clinical modules for patient analysis.
+          This feature has been decommissioned. Please use the standard clinical modules for patient
+          analysis.
         </p>
       </div>
     </div>

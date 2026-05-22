@@ -12,31 +12,52 @@ import { BillingForm } from './BillingFormPage';
 import { CustomBillForm } from './CustomBillPage';
 import '../styles/billing.css';
 
-function DailyCollectionCard({ label, amount, count, icon, type = 'default' }: { 
-  label: string; 
-  amount: number; 
-  count?: number; 
+function DailyCollectionCard({
+  label,
+  amount,
+  count,
+  icon,
+  type = 'default',
+}: {
+  label: string;
+  amount: number;
+  count?: number;
   icon: React.ReactNode;
   type?: 'success' | 'danger' | 'warning' | 'default';
 }) {
   return (
     <div className="bill-stat-card" data-type={type}>
-      <div className="bill-stat-icon" style={{ 
-        background: type === 'success' ? 'var(--pp-success-bg)' : 
-                    type === 'danger' ? 'var(--pp-danger-bg)' : 
-                    type === 'warning' ? 'var(--pp-warning-bg)' : 
-                    'var(--pp-blue-tint)',
-        color: type === 'success' ? 'var(--pp-success-fg)' : 
-               type === 'danger' ? 'var(--pp-danger-fg)' : 
-               type === 'warning' ? 'var(--pp-warning-fg)' : 
-               'var(--pp-blue)'
-      }}>
+      <div
+        className="bill-stat-icon"
+        style={{
+          background:
+            type === 'success'
+              ? 'var(--pp-success-bg)'
+              : type === 'danger'
+                ? 'var(--pp-danger-bg)'
+                : type === 'warning'
+                  ? 'var(--pp-warning-bg)'
+                  : 'var(--pp-blue-tint)',
+          color:
+            type === 'success'
+              ? 'var(--pp-success-fg)'
+              : type === 'danger'
+                ? 'var(--pp-danger-fg)'
+                : type === 'warning'
+                  ? 'var(--pp-warning-fg)'
+                  : 'var(--pp-blue)',
+        }}
+      >
         {icon}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p className="bill-stat-label">{label}</p>
         <div className="bill-stat-value">₹{amount.toLocaleString('en-IN')}</div>
-        {count !== undefined && <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mt-1">{count} items</div>}
+        {count !== undefined && (
+          <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mt-1">
+            {count} items
+          </div>
+        )}
       </div>
     </div>
   );
@@ -52,21 +73,20 @@ export default function BillingListPage() {
   const [isCustomBillOpen, setIsCustomBillOpen] = useState(false);
 
   const parsedRegid = parseInt(regidFilter, 10);
-  const billsQuery      = useBills({ 
-    page, 
-    limit: pageSize, 
-    regid: (!isNaN(parsedRegid) && regidFilter) ? parsedRegid : undefined, 
-    date: date || undefined 
+  const billsQuery = useBills({
+    page,
+    limit: pageSize,
+    regid: !isNaN(parsedRegid) && regidFilter ? parsedRegid : undefined,
+    date: date || undefined,
   });
   const collectionQuery = useDailyCollection(date);
 
-  const total     = billsQuery.data?.total     ?? 0;
-  const bills     = billsQuery.data?.data       ?? [];
-  const hasMore   = bills.length === 30;
+  const total = billsQuery.data?.total ?? 0;
+  const bills = billsQuery.data?.data ?? [];
+  const hasMore = bills.length === 30;
 
   return (
     <div className="pp-page-container bill-page animate-fade-in">
-
       {/* ─── Header ─── */}
       <div className="pp-page-hero">
         <div>
@@ -74,7 +94,9 @@ export default function BillingListPage() {
             <Receipt size={22} strokeWidth={1.6} />
             Billing & Finance
           </h1>
-          <p className="pp-page-hero-sub">Manage clinic invoices, daily collections, and patient accounts.</p>
+          <p className="pp-page-hero-sub">
+            Manage clinic invoices, daily collections, and patient accounts.
+          </p>
         </div>
         <div className="pp-page-hero-actions">
           <input
@@ -108,13 +130,36 @@ export default function BillingListPage() {
           label="Total Received"
           amount={collectionQuery.data?.totalReceived ?? 0}
           type="success"
-          icon={<svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3z" /><path d="M12 4v1m0 14v1m8-8h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" /></svg>}
+          icon={
+            <svg
+              width={16}
+              height={16}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={1.8}
+            >
+              <path d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3z" />
+              <path d="M12 4v1m0 14v1m8-8h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
+            </svg>
+          }
         />
         <DailyCollectionCard
           label="Outstanding Balance"
           amount={collectionQuery.data?.totalBalance ?? 0}
           type="danger"
-          icon={<svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
+          icon={
+            <svg
+              width={16}
+              height={16}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={1.8}
+            >
+              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          }
         />
         <DailyCollectionCard
           label="Avg Ticket"
@@ -124,7 +169,18 @@ export default function BillingListPage() {
               : 0
           }
           type="warning"
-          icon={<svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
+          icon={
+            <svg
+              width={16}
+              height={16}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={1.8}
+            >
+              <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          }
         />
       </div>
 
@@ -144,7 +200,10 @@ export default function BillingListPage() {
               className="pp-filter-search-input"
               placeholder="Search by Reg ID…"
               value={regidFilter}
-              onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setRegidFilter(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
           {/* List / Grid toggle */}
@@ -172,11 +231,15 @@ export default function BillingListPage() {
       {billsQuery.isLoading ? (
         <TableSkeleton rows={8} columns={8} />
       ) : bills.length === 0 ? (
-        <EmptyState 
+        <EmptyState
           icon={Receipt}
-          title={regidFilter ? "No billing records found" : "No transactions today"}
-          description={regidFilter ? `No bills matching Reg ID "${regidFilter}" were found.` : "Clinical billing is clean. Generate an invoice to start tracking today's collection."}
-          actionLabel={regidFilter ? "Clear Search" : "New Bill"}
+          title={regidFilter ? 'No billing records found' : 'No transactions today'}
+          description={
+            regidFilter
+              ? `No bills matching Reg ID "${regidFilter}" were found.`
+              : "Clinical billing is clean. Generate an invoice to start tracking today's collection."
+          }
+          actionLabel={regidFilter ? 'Clear Search' : 'New Bill'}
           onAction={regidFilter ? () => setRegidFilter('') : () => setIsNewBillOpen(true)}
           variant="card"
           className="my-8"
@@ -187,27 +250,54 @@ export default function BillingListPage() {
         <div className="bill-card-grid">
           {bills.map((bill) => (
             <div key={bill.id} className="bill-card bill-grid-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  alignItems: 'flex-start',
+                }}
+              >
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--pp-ink)' }}>Bill #{bill.billNo}</div>
-                  <div className="text-small" style={{ color: 'var(--pp-text-3)' }}>{bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : 'No date'}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--pp-ink)' }}>
+                    Bill #{bill.billNo}
+                  </div>
+                  <div className="text-small" style={{ color: 'var(--pp-text-3)' }}>
+                    {bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : 'No date'}
+                  </div>
                 </div>
                 <div className="bill-grid-card-icon">
                   <Receipt size={18} />
                 </div>
               </div>
               <div style={{ display: 'grid', gap: 10, fontSize: '13px' }}>
-                <div><strong>Patient:</strong> {bill.patientName}</div>
-                <div><strong>Mode:</strong> <span className={`bill-badge ${bill.paymentMode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}>{bill.paymentMode ?? '—'}</span></div>
-                <div><strong>Charges:</strong> ₹{bill.charges.toLocaleString()}</div>
-                <div><strong>Received:</strong> ₹{bill.received.toLocaleString()}</div>
-                <div><strong>Balance:</strong> {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}</div>
+                <div>
+                  <strong>Patient:</strong> {bill.patientName}
+                </div>
+                <div>
+                  <strong>Mode:</strong>{' '}
+                  <span
+                    className={`bill-badge ${bill.paymentMode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}
+                  >
+                    {bill.paymentMode ?? '—'}
+                  </span>
+                </div>
+                <div>
+                  <strong>Charges:</strong> ₹{bill.charges.toLocaleString()}
+                </div>
+                <div>
+                  <strong>Received:</strong> ₹{bill.received.toLocaleString()}
+                </div>
+                <div>
+                  <strong>Balance:</strong>{' '}
+                  {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}
+                </div>
               </div>
               <div className="bill-grid-card-footer">
-                <button 
-                  className="bill-btn bill-btn-primary" 
+                <button
+                  className="bill-btn bill-btn-primary"
                   style={{ width: '100%' }}
-                  onClick={() => window.location.href = `/patients/${bill.regid}`}
+                  onClick={() => (window.location.href = `/patients/${bill.regid}`)}
                 >
                   View Details
                 </button>
@@ -229,17 +319,35 @@ export default function BillingListPage() {
         }}
       />
 
-      <Drawer isOpen={isNewBillOpen} onClose={() => setIsNewBillOpen(false)} title="Generate New Invoice" maxWidth="500px">
-        <BillingForm 
-          onSuccess={() => { setIsNewBillOpen(false); billsQuery.refetch(); collectionQuery.refetch(); }} 
-          onCancel={() => setIsNewBillOpen(false)} 
+      <Drawer
+        isOpen={isNewBillOpen}
+        onClose={() => setIsNewBillOpen(false)}
+        title="Generate New Invoice"
+        maxWidth="500px"
+      >
+        <BillingForm
+          onSuccess={() => {
+            setIsNewBillOpen(false);
+            billsQuery.refetch();
+            collectionQuery.refetch();
+          }}
+          onCancel={() => setIsNewBillOpen(false)}
         />
       </Drawer>
 
-      <Drawer isOpen={isCustomBillOpen} onClose={() => setIsCustomBillOpen(false)} title="Custom Bill" maxWidth="500px">
-        <CustomBillForm 
-          onSuccess={() => { setIsCustomBillOpen(false); billsQuery.refetch(); collectionQuery.refetch(); }} 
-          onCancel={() => setIsCustomBillOpen(false)} 
+      <Drawer
+        isOpen={isCustomBillOpen}
+        onClose={() => setIsCustomBillOpen(false)}
+        title="Custom Bill"
+        maxWidth="500px"
+      >
+        <CustomBillForm
+          onSuccess={() => {
+            setIsCustomBillOpen(false);
+            billsQuery.refetch();
+            collectionQuery.refetch();
+          }}
+          onCancel={() => setIsCustomBillOpen(false)}
         />
       </Drawer>
 

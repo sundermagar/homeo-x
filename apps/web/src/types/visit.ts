@@ -3,7 +3,14 @@ import type { SOAPNote } from './soap';
 import type { Prescription } from './prescription';
 
 export type VisitStatus = 'SCHEDULED' | 'CHECKED_IN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-export type VisitType = 'CONSULTATION' | 'FOLLOW_UP' | 'EMERGENCY' | 'PROCEDURE' | 'VACCINATION' | 'VIDEO' | 'AUDIO';
+export type VisitType =
+  | 'CONSULTATION'
+  | 'FOLLOW_UP'
+  | 'EMERGENCY'
+  | 'PROCEDURE'
+  | 'VACCINATION'
+  | 'VIDEO'
+  | 'AUDIO';
 export type Specialty = 'ALLOPATHY' | 'HOMEOPATHY' | 'GENERAL';
 
 export interface Visit {

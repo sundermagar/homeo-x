@@ -12,11 +12,14 @@ export class CreatePatientUseCase {
     private readonly orgRepo: OrganizationRepository,
   ) {}
 
-  async execute(input: CreatePatientInput, clinicId?: number): Promise<Result<{ patient: Patient; registrationBillId?: number }>> {
+  async execute(
+    input: CreatePatientInput,
+    clinicId?: number,
+  ): Promise<Result<{ patient: Patient; registrationBillId?: number }>> {
     // ─── Parallelize Patient Creation and Org Lookup ───
     const [patient, org] = await Promise.all([
       this.patientRepo.create({ ...input, clinicId }),
-      clinicId ? this.orgRepo.findById(clinicId) : Promise.resolve(null)
+      clinicId ? this.orgRepo.findById(clinicId) : Promise.resolve(null),
     ]);
 
     // ─── Background: Auto-bill registration fee ───
@@ -44,8 +47,9 @@ export class CreatePatientUseCase {
 
     // ─── Background: Link to unregistered patient record ───
     if (input.unregisteredId) {
-      this.patientRepo.linkUnregisteredToFormal(input.unregisteredId, patient.id)
-        .catch(err => console.warn('[CreatePatient] linkUnregisteredToFormal failed:', err));
+      this.patientRepo
+        .linkUnregisteredToFormal(input.unregisteredId, patient.id)
+        .catch((err) => console.warn('[CreatePatient] linkUnregisteredToFormal failed:', err));
     }
 
     return ok({ patient });

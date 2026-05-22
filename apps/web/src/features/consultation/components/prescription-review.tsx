@@ -59,7 +59,11 @@ export function PrescriptionReview({
     }
   }, [advice]);
 
-  const handleUpdateItem = (index: number, field: keyof CreatePrescriptionItemInput, value: string) => {
+  const handleUpdateItem = (
+    index: number,
+    field: keyof CreatePrescriptionItemInput,
+    value: string,
+  ) => {
     const next = [...rxItems];
     const existing = next[index];
     if (!existing) return;
@@ -89,12 +93,11 @@ export function PrescriptionReview({
   const formattedDate = new Date().toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric'
+    year: 'numeric',
   });
 
   return (
     <div className="max-w-4xl mx-auto px-8 py-8 space-y-6 animate-in fade-in duration-500 bg-white dark:bg-gray-950 shadow-2xl rounded-2xl border border-gray-100 dark:border-gray-800 font-sans text-gray-900 dark:text-gray-100">
-
       {/* ─── Clinic Header ─── */}
       <div className="flex justify-between items-start border-b-2 pb-6 border-gray-900 dark:border-gray-200">
         <div className="space-y-2">
@@ -106,13 +109,16 @@ export function PrescriptionReview({
           )}
           <div className="text-[12px] text-gray-600 dark:text-gray-400 font-medium">
             <p className="text-gray-800 dark:text-gray-200 font-bold">
-              Dr. {doctor.name}{doctor.qualification ? ` — ${doctor.qualification}` : ''}
+              Dr. {doctor.name}
+              {doctor.qualification ? ` — ${doctor.qualification}` : ''}
             </p>
             <p>
               {[
                 doctor.registrationNumber ? `Reg. No. ${doctor.registrationNumber}` : null,
                 clinic.phone,
-              ].filter(Boolean).join(' · ') || '—'}
+              ]
+                .filter(Boolean)
+                .join(' · ') || '—'}
             </p>
             {(clinic.address || clinic.email || clinic.website) && (
               <p className="text-[10px] text-gray-500 dark:text-gray-500 font-medium mt-1">
@@ -125,31 +131,43 @@ export function PrescriptionReview({
           <p className="text-gray-400">{formattedDate}</p>
           <p>Ref #RX-{visit?.refNo || visit?.id.slice(-5).toUpperCase() || '—'}</p>
           {clinic.registrationNo && (
-            <p className="text-[10px] text-gray-400 font-medium">Clinic Reg. {clinic.registrationNo}</p>
+            <p className="text-[10px] text-gray-400 font-medium">
+              Clinic Reg. {clinic.registrationNo}
+            </p>
           )}
         </div>
       </div>
 
       {/* ─── Patient Details Row ─── */}
       <section className="space-y-2">
-        <h3 className="text-[10px] font-black text-blue-600/80 dark:text-blue-400 uppercase tracking-[0.2em]">Patient Details</h3>
+        <h3 className="text-[10px] font-black text-blue-600/80 dark:text-blue-400 uppercase tracking-[0.2em]">
+          Patient Details
+        </h3>
         <div className="grid grid-cols-4 gap-0 bg-gray-50/50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 rounded-sm overflow-hidden">
           <div className="p-3 border-r border-gray-100 dark:border-gray-800">
-            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Patient Name</label>
+            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+              Patient Name
+            </label>
             <p className="text-sm font-black truncate">{patient?.name || 'John A. Patterson'}</p>
           </div>
           <div className="p-3 border-r border-gray-100 dark:border-gray-800">
-            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Age / Sex</label>
+            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+              Age / Sex
+            </label>
             <p className="text-sm font-black">
               {patient?.age ? `${patient.age} yrs` : '40 yrs'} · {patient?.gender?.[0] || 'M'}
             </p>
           </div>
           <div className="p-3 border-r border-gray-100 dark:border-gray-800">
-            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Patient ID</label>
+            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+              Patient ID
+            </label>
             <p className="text-sm font-black">{patient?.id || 'PT-GF-00421'}</p>
           </div>
           <div className="p-3">
-            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Allergy</label>
+            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+              Allergy
+            </label>
             <p className="text-sm font-black text-red-600 dark:text-red-400 truncate">
               {patient?.allergies?.length ? patient.allergies.join(', ') : 'None Reported'}
             </p>
@@ -159,11 +177,13 @@ export function PrescriptionReview({
 
       {/* ─── Diagnosis Section ─── */}
       <section className="space-y-2">
-        <h3 className="text-[10px] font-black text-blue-600/80 dark:text-blue-400 uppercase tracking-[0.2em]">Diagnosis</h3>
+        <h3 className="text-[10px] font-black text-blue-600/80 dark:text-blue-400 uppercase tracking-[0.2em]">
+          Diagnosis
+        </h3>
         <div className="space-y-1">
           <Input
             value={diagnoses.join(', ')}
-            onChange={(e) => onDiagnosesChange(e.target.value.split(',').map(s => s.trim()))}
+            onChange={(e) => onDiagnosesChange(e.target.value.split(',').map((s) => s.trim()))}
             className="text-lg font-black text-gray-900 dark:text-white border-0 p-0 h-auto focus-visible:ring-0 bg-transparent placeholder:text-gray-300"
             placeholder="e.g. Acute Upper Respiratory Tract Infection..."
           />
@@ -179,7 +199,12 @@ export function PrescriptionReview({
           <h3 className="text-[10px] font-black text-blue-600/80 dark:text-blue-400 uppercase tracking-[0.2em] flex items-center gap-2">
             Medicines
           </h3>
-          <Button variant="ghost" size="sm" onClick={handleAddItem} className="h-6 text-[10px] uppercase font-black text-teal-600 hover:text-teal-700 bg-teal-50/50 hover:bg-teal-50 dark:bg-teal-950/20 px-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAddItem}
+            className="h-6 text-[10px] uppercase font-black text-teal-600 hover:text-teal-700 bg-teal-50/50 hover:bg-teal-50 dark:bg-teal-950/20 px-3"
+          >
             <Plus className="h-3 w-3 mr-1" /> Add Medicine
           </Button>
         </div>
@@ -195,10 +220,15 @@ export function PrescriptionReview({
 
           <div className="divide-y divide-gray-100 dark:divide-gray-800 border-b-2 border-gray-900 dark:border-gray-200">
             {rxItems.length === 0 ? (
-              <p className="py-10 text-sm text-gray-400 italic text-center font-medium">No medications prescribed yet.</p>
+              <p className="py-10 text-sm text-gray-400 italic text-center font-medium">
+                No medications prescribed yet.
+              </p>
             ) : (
               rxItems.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-4 py-4 px-2 group items-center bg-transparent hover:bg-gray-50/30 dark:hover:bg-gray-900/20 transition-colors">
+                <div
+                  key={idx}
+                  className="grid grid-cols-12 gap-4 py-4 px-2 group items-center bg-transparent hover:bg-gray-50/30 dark:hover:bg-gray-900/20 transition-colors"
+                >
                   <div className="col-span-1 text-center text-xs font-bold text-gray-400 group-hover:text-gray-600">
                     {idx + 1}.
                   </div>
@@ -210,7 +240,9 @@ export function PrescriptionReview({
                       placeholder="Amoxicillin 500mg Capsules"
                     />
                     {item.instructions && (
-                      <p className="text-[10px] text-gray-400 italic mt-1 font-medium">{item.instructions}</p>
+                      <p className="text-[10px] text-gray-400 italic mt-1 font-medium">
+                        {item.instructions}
+                      </p>
                     )}
                   </div>
                   <div className="col-span-2">
@@ -236,7 +268,10 @@ export function PrescriptionReview({
                       className="text-xs font-bold border-0 p-0 h-auto focus-visible:ring-0 bg-transparent text-gray-700 dark:text-gray-300"
                       placeholder="7 days"
                     />
-                    <button onClick={() => handleRemoveItem(idx)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-500 p-1">
+                    <button
+                      onClick={() => handleRemoveItem(idx)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-500 p-1"
+                    >
                       <Trash2 className="h-3 w-3" />
                     </button>
                   </div>
@@ -250,7 +285,9 @@ export function PrescriptionReview({
       {/* ─── Advice & Follow-up ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-4">
         <div className="space-y-3">
-          <h3 className="text-[10px] font-black text-blue-600/80 dark:text-blue-400 uppercase tracking-[0.2em]">Advice</h3>
+          <h3 className="text-[10px] font-black text-blue-600/80 dark:text-blue-400 uppercase tracking-[0.2em]">
+            Advice
+          </h3>
           <Textarea
             ref={adviceRef}
             scroll-none="true"
@@ -261,7 +298,9 @@ export function PrescriptionReview({
           />
         </div>
         <div className="space-y-3">
-          <h3 className="text-[10px] font-black text-blue-600/80 dark:text-blue-400 uppercase tracking-[0.2em]">Follow-up</h3>
+          <h3 className="text-[10px] font-black text-blue-600/80 dark:text-blue-400 uppercase tracking-[0.2em]">
+            Follow-up
+          </h3>
           <div className="space-y-2">
             <Input
               value={followUp}
@@ -270,7 +309,13 @@ export function PrescriptionReview({
               placeholder="Within 7 days to assess response..."
             />
             <p className="text-[10px] text-gray-400 font-bold italic">
-              (Approx. {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })})
+              (Approx.{' '}
+              {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })}
+              )
             </p>
           </div>
         </div>
@@ -281,12 +326,8 @@ export function PrescriptionReview({
         <div className="space-y-4 border-t border-gray-100 dark:border-gray-800 pt-4 min-w-[240px]">
           <p className="text-sm font-black text-gray-900 dark:text-white">Dr. {doctor.name}</p>
           <div className="text-[9px] text-gray-400 font-bold space-y-0.5">
-            {doctor.qualification && (
-              <p className="uppercase">{doctor.qualification}</p>
-            )}
-            {doctor.registrationNumber && (
-              <p>Reg. No. {doctor.registrationNumber}</p>
-            )}
+            {doctor.qualification && <p className="uppercase">{doctor.qualification}</p>}
+            {doctor.registrationNumber && <p>Reg. No. {doctor.registrationNumber}</p>}
           </div>
         </div>
       </div>

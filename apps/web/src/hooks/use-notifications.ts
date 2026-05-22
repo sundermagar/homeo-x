@@ -7,7 +7,7 @@ export function useNotifications(limit = 20, offset = 0) {
     queryKey: ['notifications', { limit, offset }],
     queryFn: async () => {
       const response = await apiClient.get<NotificationResponse>('/notifications', {
-        params: { limit, offset, _t: Date.now() }
+        params: { limit, offset, _t: Date.now() },
       });
       return response.data.data;
     },

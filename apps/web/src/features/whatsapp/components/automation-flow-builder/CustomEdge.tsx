@@ -15,9 +15,9 @@
  * ============================================================
  */
 
-import { BaseEdge, getBezierPath, EdgeLabelRenderer } from "@xyflow/react";
-import { X } from "lucide-react";
-import { CustomEdgeProps } from "./types";
+import { BaseEdge, getBezierPath, EdgeLabelRenderer } from '@xyflow/react';
+import { X } from 'lucide-react';
+import { CustomEdgeProps } from './types';
 
 export function CustomEdge({
   id,
@@ -47,16 +47,16 @@ export function CustomEdge({
         markerEnd={markerEnd}
         style={{
           ...style,
-          stroke: "#94a3b8",
+          stroke: '#94a3b8',
           strokeWidth: 2,
         }}
       />
       <EdgeLabelRenderer>
         <div
           style={{
-            position: "absolute",
+            position: 'absolute',
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-            pointerEvents: "all",
+            pointerEvents: 'all',
           }}
           className="opacity-0 hover:opacity-100 transition-opacity duration-150"
         >

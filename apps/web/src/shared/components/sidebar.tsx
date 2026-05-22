@@ -70,11 +70,12 @@ import '../styles/sidebar.css';
 
 // ─── Role Definitions ────────────────────────────────────────────────────────
 
-type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist';
+type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist' | 'Patient';
 
 const ALL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
 const ADMIN: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
 const CLINICAL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'];
+const PATIENT: UserRole[] = ['Patient'];
 
 // ─── Navigation Structure ────────────────────────────────────────────────────
 
@@ -96,7 +97,14 @@ interface NavGroup {
 }
 
 type NavItem =
-  | { type: 'link'; path: string; label: string; icon: LucideIcon; roles?: UserRole[]; badge?: number }
+  | {
+      type: 'link';
+      path: string;
+      label: string;
+      icon: LucideIcon;
+      roles?: UserRole[];
+      badge?: number;
+    }
   | { type: 'group'; group: NavGroup };
 
 // ... existing helper functions ...
@@ -109,6 +117,7 @@ function normalizeRole(raw: string | undefined | null): UserRole | null {
   if (r === 'clinicadmin') return 'Clinicadmin';
   if (r === 'doctor' || r === 'hmis_doctor') return 'Doctor';
   if (r === 'receptionist') return 'Receptionist';
+  if (r === 'patient') return 'Patient';
   return null;
 }
 
@@ -120,6 +129,7 @@ function getRoleLabel(role: UserRole | null): string {
     Clinicadmin: '🏥 Clinic Admin',
     Doctor: '🩺 Doctor',
     Receptionist: '📋 Receptionist',
+    Patient: '👤 Patient',
   };
   return labels[role];
 }
@@ -135,7 +145,7 @@ function normalizeNavPath(path: string): { pathname: string; search: string } {
 }
 
 function isGroupActive(group: NavGroup, currentLocation: string): boolean {
-  return group.children.some(c => {
+  return group.children.some((c) => {
     const target = normalizeNavPath(c.path);
     if (target.pathname === '/') return currentLocation === '/';
     return currentLocation.startsWith(target.pathname + target.search);
@@ -155,7 +165,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       return data.data as { count: number };
     },
     refetchInterval: 5 * 60_000, // 5 min — remote DB is slow
-    enabled: !!user
+    enabled: !!user,
   });
   const unreadCount = unreadResponse?.count || 0;
 
@@ -165,7 +175,36 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: '/',
       label: 'Dashboard',
       icon: LayoutDashboard,
-      roles: ALL,
+      roles: [...ALL, ...PATIENT],
+    },
+    // Patient-specific links
+    {
+      type: 'link',
+      path: '/appointments',
+      label: 'Appointment',
+      icon: CalendarClock,
+      roles: PATIENT,
+    },
+    {
+      type: 'link',
+      path: '/reports',
+      label: 'Report',
+      icon: FileText,
+      roles: PATIENT,
+    },
+    {
+      type: 'link',
+      path: '/prescriptions',
+      label: 'Prescription',
+      icon: Pill,
+      roles: PATIENT,
+    },
+    {
+      type: 'link',
+      path: '/follow-up',
+      label: 'Follow-up',
+      icon: Stethoscope,
+      roles: PATIENT,
     },
 
     {
@@ -283,7 +322,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               { path: '/analytics/reports/dues', label: 'Outstanding Dues', icon: CreditCard },
               { path: '/analytics/reports/birthdays', label: 'Birthday List', icon: Gift },
               { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
-            ]
+            ],
           },
           { path: '/analytics/export', label: 'Export Data', icon: FileJson },
           { path: '/analytics/stocks', label: 'Inventory Logs', icon: Database },
@@ -299,14 +338,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'],
         children: [
           {
-            path: '/billing', label: 'Billing', icon: Receipt,
+            path: '/billing',
+            label: 'Billing',
+            icon: Receipt,
             children: [
               { path: '/billing', label: 'Bill List', icon: Receipt },
               { path: '/billing/additional-charges', label: 'Additional Charges', icon: Receipt },
               { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar },
               { path: '/billing/deposits', label: 'Deposits', icon: Building },
               { path: '/billing/expenses', label: 'Expenses', icon: DollarSign },
-            ]
+            ],
           },
           { path: '/payments', label: 'Payment Ledger', icon: Banknote },
           { path: '/settings/expenses', label: 'Expense Categories', icon: Wallet },
@@ -396,7 +437,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const userRole = normalizeRole((user as any)?.type || (user as any)?.role);
 
-  const visibleNav = NAV_STRUCTURE.filter(item => {
+  const visibleNav = NAV_STRUCTURE.filter((item) => {
     if (item.type === 'link') {
       return !item.roles || (userRole && item.roles.includes(userRole));
     }
@@ -406,14 +447,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const currentLocation = location.pathname + location.search;
   const defaultOpen = visibleNav
     .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
-    .filter(item => isGroupActive(item.group, currentLocation))
-    .map(item => item.group.id);
+    .filter((item) => isGroupActive(item.group, currentLocation))
+    .map((item) => item.group.id);
 
   const defaultOpenSub = visibleNav
     .filter((item): item is { type: 'group'; group: NavGroup } => item.type === 'group')
-    .flatMap(item => item.group.children)
-    .filter(child => child.children?.some(sc => location.pathname.startsWith(sc.path)))
-    .map(child => child.path);
+    .flatMap((item) => item.group.children)
+    .filter((child) => child.children?.some((sc) => location.pathname.startsWith(sc.path)))
+    .map((child) => child.path);
 
   const [openGroups, setOpenGroups] = useState<string[]>(defaultOpen);
   const [openSubGroups, setOpenSubGroups] = useState<string[]>(defaultOpenSub);
@@ -424,13 +465,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const toggleGroup = (id: string, isSubGroup = false) => {
     if (isSubGroup) {
-      setOpenSubGroups(prev =>
-        prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
+      setOpenSubGroups((prev) =>
+        prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id],
       );
     } else {
-      setOpenGroups(prev =>
-        prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
-      );
+      setOpenGroups((prev) => (prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]));
     }
   };
 
@@ -444,7 +483,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     const ChildIcon = child.icon;
     const hasChildren = child.children && child.children.length > 0;
     const isSubOpen = openSubGroups.includes(child.path);
-    const subActive = child.children?.some(sc => location.pathname.startsWith(sc.path));
+    const subActive = child.children?.some((sc) => location.pathname.startsWith(sc.path));
 
     if (hasChildren) {
       return (
@@ -472,7 +511,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {isSubOpen && (
             <div className="sidebar-sub-children" style={{ paddingLeft: '24px' }}>
-              {child.children?.map(subChild => renderNavChild(subChild, true))}
+              {child.children?.map((subChild) => renderNavChild(subChild, true))}
             </div>
           )}
         </div>
@@ -483,12 +522,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <NavLink
         key={child.path}
         to={child.path}
-        end={['/', '/analytics', '/billing', '/patients', '/packages', '/appointments'].includes(child.path)}
+        end={['/', '/analytics', '/billing', '/patients', '/packages', '/appointments'].includes(
+          child.path,
+        )}
         className={({ isActive }) => {
           const currentFull = location.pathname + location.search;
-          const isMatch = child.path.includes('?')
-            ? currentFull === child.path
-            : isActive;
+          const isMatch = child.path.includes('?') ? currentFull === child.path : isActive;
           return `sidebar-child-item ${isMatch ? 'active' : ''} ${isSubItem ? 'sub-item' : ''}`;
         }}
         onClick={handleNavClick}
@@ -503,35 +542,49 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      <div
-        className={`sidebar-overlay ${isOpen ? 'active' : ''}`}
-        onClick={onClose}
-      />
+      <div className={`sidebar-overlay ${isOpen ? 'active' : ''}`} onClick={onClose} />
 
-      <aside className={`sidebar ${isOpen ? 'is-open' : ''} ${effectiveCollapsed ? 'collapsed' : ''}`}>
+      <aside
+        className={`sidebar ${isOpen ? 'is-open' : ''} ${effectiveCollapsed ? 'collapsed' : ''}`}
+      >
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
-            <div 
-              className="sidebar-logo" 
-              style={{ 
-                background: 'transparent', 
+            <div
+              className="sidebar-logo"
+              style={{
+                background: 'transparent',
                 padding: '0',
                 width: '32px',
                 height: '32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexShrink: 0
+                flexShrink: 0,
               }}
             >
-              <img src={mmcIconOrange} alt="MMC Icon" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.6)' }} />
+              <img
+                src={mmcIconOrange}
+                alt="MMC Icon"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  transform: 'scale(1.6)',
+                }}
+              />
             </div>
-            {!effectiveCollapsed && <span className="sidebar-brand">{user?.clinicName || 'MMC'}</span>}
+            {!effectiveCollapsed && (
+              <span className="sidebar-brand">{user?.clinicName || 'MMC'}</span>
+            )}
           </div>
           <div className="sidebar-header-actions">
             {!isMobile && (
               <button className="collapse-toggle-btn" onClick={toggleSidebarCollapse}>
-                {effectiveCollapsed ? <ChevronRight size={18} strokeWidth={2} /> : <ChevronRight size={18} strokeWidth={2} className="rotate-180" />}
+                {effectiveCollapsed ? (
+                  <ChevronRight size={18} strokeWidth={2} />
+                ) : (
+                  <ChevronRight size={18} strokeWidth={2} className="rotate-180" />
+                )}
               </button>
             )}
             <button className="mh-menu-btn sidebar-header-close" onClick={onClose}>
@@ -556,7 +609,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   {!effectiveCollapsed && <span>{item.label}</span>}
                   {effectiveCollapsed && <span className="sidebar-hover-label">{item.label}</span>}
                   {item.badge !== undefined && item.badge > 0 && !effectiveCollapsed && (
-                    <span className="nav-badge" style={{ marginLeft: 'auto' }}>{item.badge}</span>
+                    <span className="nav-badge" style={{ marginLeft: 'auto' }}>
+                      {item.badge}
+                    </span>
                   )}
                 </NavLink>
               );
@@ -579,7 +634,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <div className="sidebar-group-trigger-left">
                     <GroupIcon className="sidebar-item-icon" strokeWidth={1.8} />
                     {!effectiveCollapsed && <span>{group.label}</span>}
-                    {effectiveCollapsed && <span className="sidebar-hover-label">{group.label}</span>}
+                    {effectiveCollapsed && (
+                      <span className="sidebar-hover-label">{group.label}</span>
+                    )}
                   </div>
                   {!effectiveCollapsed && (
                     <span className={`sidebar-chevron ${isOpen_ ? 'open' : ''}`}>
@@ -590,7 +647,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                 <div className={`sidebar-group-children ${isOpen_ ? 'expanded' : ''}`}>
                   <div className="sidebar-group-children-inner">
-                    {group.children.map(child => renderNavChild(child))}
+                    {group.children.map((child) => renderNavChild(child))}
                   </div>
                 </div>
               </div>
@@ -604,18 +661,24 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>
                 {user?.name?.substring(0, 2).toUpperCase() || 'UX'}
               </span>
-              {effectiveCollapsed && <span className="sidebar-hover-label">{user?.name || 'Practitioner'}</span>}
+              {effectiveCollapsed && (
+                <span className="sidebar-hover-label">{user?.name || 'Practitioner'}</span>
+              )}
             </div>
             {!effectiveCollapsed && (
               <div className="user-info">
                 <div className="user-name">{user?.name || 'Practitioner'}</div>
-                <div className="user-role">{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</div>
+                <div className="user-role">
+                  {getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}
+                </div>
               </div>
             )}
 
             <button className="theme-toggle-btn" onClick={toggleDarkMode}>
               {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
-              {effectiveCollapsed && <span className="sidebar-hover-label">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
+              {effectiveCollapsed && (
+                <span className="sidebar-hover-label">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+              )}
             </button>
 
             <button className="logout-btn" onClick={logout}>

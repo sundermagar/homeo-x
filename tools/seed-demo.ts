@@ -1,20 +1,17 @@
-
 import { drizzle } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import dotenv from 'dotenv';
 import path from 'path';
-import { 
-  doctorsLegacy, 
-  employeesLegacy 
-} from '../packages/database/src/schema/legacy/index';
+import { doctorsLegacy, employeesLegacy } from '../packages/database/src/schema/legacy/index';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:0709@localhost:5432/homeo_x';
+const DATABASE_URL =
+  process.env.DATABASE_URL || 'postgresql://postgres:0709@localhost:5432/homeo_x';
 
 async function seed() {
   const client = new pg.Client({ connectionString: DATABASE_URL });
-  
+
   try {
     await client.connect();
     console.log('Connected to database');
@@ -46,7 +43,7 @@ async function seed() {
         dateBirth: '1985-05-15',
         dateLeft: '1990-01-01',
         salaryCur: 75000,
-        consultationFee: '500'
+        consultationFee: '500',
       },
       {
         id: 2,
@@ -67,15 +64,18 @@ async function seed() {
         dateBirth: '1990-08-22',
         dateLeft: '1990-01-01',
         salaryCur: 60000,
-        consultationFee: '400'
-      }
+        consultationFee: '400',
+      },
     ];
 
     for (const doc of doctors) {
-      await db.insert(doctorsLegacy).values(doc as any).onConflictDoUpdate({
-        target: doctorsLegacy.id,
-        set: doc as any
-      });
+      await db
+        .insert(doctorsLegacy)
+        .values(doc as any)
+        .onConflictDoUpdate({
+          target: doctorsLegacy.id,
+          set: doc as any,
+        });
     }
 
     // --- Seed Employees ---
@@ -96,7 +96,7 @@ async function seed() {
         dateBirth: '1995-02-10',
         dateLeft: '1990-01-01',
         salaryCur: 25000,
-        packages: ''
+        packages: '',
       },
       {
         id: 2,
@@ -113,15 +113,18 @@ async function seed() {
         dateBirth: '1993-11-30',
         dateLeft: '1990-01-01',
         salaryCur: 22000,
-        packages: ''
-      }
+        packages: '',
+      },
     ];
 
     for (const emp of employees) {
-      await db.insert(employeesLegacy).values(emp as any).onConflictDoUpdate({
-        target: employeesLegacy.id,
-        set: emp as any
-      });
+      await db
+        .insert(employeesLegacy)
+        .values(emp as any)
+        .onConflictDoUpdate({
+          target: employeesLegacy.id,
+          set: emp as any,
+        });
     }
 
     console.log('Seed completed successfully!');

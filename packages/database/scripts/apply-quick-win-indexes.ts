@@ -281,7 +281,9 @@ async function main() {
       trgmAvailable = true;
       console.log('   ✅ pg_trgm available — trigram indexes will be created');
     } catch (err: any) {
-      console.warn(`   ⚠️  pg_trgm unavailable (${err?.message || err}). Trigram indexes will be skipped.`);
+      console.warn(
+        `   ⚠️  pg_trgm unavailable (${err?.message || err}). Trigram indexes will be skipped.`,
+      );
     }
 
     // Re-check in case extension was already installed by superuser earlier
@@ -333,7 +335,9 @@ async function main() {
         `;
 
         if (tableCheck.length === 0) {
-          console.log(`   ⏩ SKIP  ${idx.name} — table "${schemaName}".${idx.table} does not exist`);
+          console.log(
+            `   ⏩ SKIP  ${idx.name} — table "${schemaName}".${idx.table} does not exist`,
+          );
           totalSkipped++;
           continue;
         }

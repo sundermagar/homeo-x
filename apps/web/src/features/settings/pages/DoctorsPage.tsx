@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { Stethoscope, Plus, Edit2, Trash2, RefreshCw, Mail, Phone, MapPin, Search } from 'lucide-react';
+import {
+  Stethoscope,
+  Plus,
+  Edit2,
+  Trash2,
+  RefreshCw,
+  Mail,
+  Phone,
+  MapPin,
+  Search,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAccounts, useDeleteAccount } from '../../platform/hooks/use-accounts';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
@@ -22,24 +32,25 @@ export default function DoctorsPage() {
   const deleteAccount = useDeleteAccount();
 
   const safeDoctors = Array.isArray(doctors) ? doctors : [];
-  const filteredDoctors = safeDoctors.filter((doc: any) =>
-    doc.name?.toLowerCase().includes(search.toLowerCase()) ||
-    doc.email?.toLowerCase().includes(search.toLowerCase()) ||
-    doc.mobile?.toLowerCase().includes(search.toLowerCase()) ||
-    doc.designation?.toLowerCase().includes(search.toLowerCase())
+  const filteredDoctors = safeDoctors.filter(
+    (doc: any) =>
+      doc.name?.toLowerCase().includes(search.toLowerCase()) ||
+      doc.email?.toLowerCase().includes(search.toLowerCase()) ||
+      doc.mobile?.toLowerCase().includes(search.toLowerCase()) ||
+      doc.designation?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filteredDoctors);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filteredDoctors);
 
-  const openCreate = () => { setEditing(undefined); setModalOpen(true); };
-  const openEdit = (d: any) => { setEditing(d); setModalOpen(true); };
+  const openCreate = () => {
+    setEditing(undefined);
+    setModalOpen(true);
+  };
+  const openEdit = (d: any) => {
+    setEditing(d);
+    setModalOpen(true);
+  };
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Remove "${name}" from the Doctors Directory?`)) return;
@@ -48,15 +59,15 @@ export default function DoctorsPage() {
 
   return (
     <div className="plat-page fade-in">
-
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
             <Stethoscope size={20} className="color-primary" />
             Doctors Directory
           </h1>
-          <p className="plat-header-sub">Manage clinical staff, specializations, and clinic assignments.</p>
+          <p className="plat-header-sub">
+            Manage clinical staff, specializations, and clinic assignments.
+          </p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={openCreate}>
@@ -73,9 +84,7 @@ export default function DoctorsPage() {
         </div>
         <div className="plat-stat-card">
           <p className="plat-stat-label">Active Listing</p>
-          <p className="plat-stat-value plat-stat-value-success">
-            {filteredDoctors.length}
-          </p>
+          <p className="plat-stat-value plat-stat-value-success">{filteredDoctors.length}</p>
         </div>
       </div>
 
@@ -101,62 +110,77 @@ export default function DoctorsPage() {
           </div>
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '60px' }}>#</th>
-                  <th>Name & Designation</th>
-                  <th>Contact Information</th>
-                  <th>Clinic Assignment</th>
-                  <th style={{ width: '120px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((doc: any, idx: number) => (
-                  <tr key={doc.id} className="plat-table-row">
-                    <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                    <td data-label="Doctor" className="plat-table-cell">
-                      <div className="font-semibold">{doc.name}</div>
-                      <div className="text-xs color-muted">{doc.designation || 'General Physician'}</div>
-                    </td>
-                    <td data-label="Contact" className="plat-table-cell">
-                      <div className="flex flex-col gap-1">
-                        {doc.email && <div className="text-xs flex items-center gap-1.5"><Mail size={12} className="color-muted" /> {doc.email}</div>}
-                        {doc.mobile && (
-                          <div className="text-xs flex items-center gap-1.5 font-mono">
-                            <Phone size={12} className="color-muted" /> {doc.mobile}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td data-label="Clinic" className="plat-table-cell text-secondary">
-                      {orgs.find((o: any) => o.id === doc.clinicId)?.name || 'Multi-clinic Access'}
-                    </td>
-                    <td className="plat-table-cell">
-                      <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => openEdit(doc)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(doc.id, doc.name)}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px' }}>#</th>
+                    <th>Name & Designation</th>
+                    <th>Contact Information</th>
+                    <th>Clinic Assignment</th>
+                    <th style={{ width: '120px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((doc: any, idx: number) => (
+                    <tr key={doc.id} className="plat-table-row">
+                      <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">
+                        {(currentPage - 1) * itemsPerPage + idx + 1}
+                      </td>
+                      <td data-label="Doctor" className="plat-table-cell">
+                        <div className="font-semibold">{doc.name}</div>
+                        <div className="text-xs color-muted">
+                          {doc.designation || 'General Physician'}
+                        </div>
+                      </td>
+                      <td data-label="Contact" className="plat-table-cell">
+                        <div className="flex flex-col gap-1">
+                          {doc.email && (
+                            <div className="text-xs flex items-center gap-1.5">
+                              <Mail size={12} className="color-muted" /> {doc.email}
+                            </div>
+                          )}
+                          {doc.mobile && (
+                            <div className="text-xs flex items-center gap-1.5 font-mono">
+                              <Phone size={12} className="color-muted" /> {doc.mobile}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td data-label="Clinic" className="plat-table-cell text-secondary">
+                        {orgs.find((o: any) => o.id === doc.clinicId)?.name ||
+                          'Multi-clinic Access'}
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="flex justify-end gap-3">
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon"
+                            onClick={() => openEdit(doc)}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(doc.id, doc.name)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
@@ -166,7 +190,10 @@ export default function DoctorsPage() {
           mode={editing ? 'edit' : 'create'}
           account={editing}
           organizations={orgs}
-          onClose={() => { setModalOpen(false); setEditing(undefined); }}
+          onClose={() => {
+            setModalOpen(false);
+            setEditing(undefined);
+          }}
         />
       )}
     </div>

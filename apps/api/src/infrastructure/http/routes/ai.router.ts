@@ -44,16 +44,19 @@ aiRouter.post('/suggest/soap', async (req: Request, res: Response, next: NextFun
       // Sanitize SOAP: ensure all fields are strings, not objects
       const sanitizedSoap: Record<string, any> = {};
       for (const [key, val] of Object.entries(result as Record<string, any>)) {
-        sanitizedSoap[key] = (val !== null && typeof val === 'object' && !Array.isArray(val))
-          ? JSON.stringify(val)
-          : val;
+        sanitizedSoap[key] =
+          val !== null && typeof val === 'object' && !Array.isArray(val)
+            ? JSON.stringify(val)
+            : val;
       }
       mlTrainingLogger.logPhase(getTenant(req), req.body.visitId, {
         soapNotes: sanitizedSoap,
       });
     }
     sendSuccess(res, result);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/ai/consult/homeopathy — Full 7-phase pipeline
@@ -66,40 +69,46 @@ aiRouter.post('/consult/homeopathy', async (req: Request, res: Response, next: N
     const uc = getConsultationUseCase();
     const result = await uc.consultHomeopathy(getTenant(req), getUserId(req), req.body);
     // Full consultation handles its own ML logging if needed, or we can log the final result here.
-      if (req.body.visitId) {
-        // Extract rubrics from the scoring result coverage
-        const allRubrics: any[] = [];
-        const seenRubricIds = new Set<string>();
-        const scoredRemedies = (result.remedyScores as any)?.scoredRemedies;
-        if (Array.isArray(scoredRemedies)) {
-          for (const remedy of scoredRemedies) {
-            if (Array.isArray(remedy.coverage)) {
-              for (const c of remedy.coverage) {
-                if (c.rubricId && !seenRubricIds.has(c.rubricId)) {
-                  seenRubricIds.add(c.rubricId);
-                  allRubrics.push({
-                    rubricId: c.rubricId,
-                    rubricName: c.rubricDescription,
-                    category: c.rubricCategory,
-                    importance: c.importance,
-                    grade: c.grade,
-                  });
-                }
+    if (req.body.visitId) {
+      // Extract rubrics from the scoring result coverage
+      const allRubrics: any[] = [];
+      const seenRubricIds = new Set<string>();
+      const scoredRemedies = (result.remedyScores as any)?.scoredRemedies;
+      if (Array.isArray(scoredRemedies)) {
+        for (const remedy of scoredRemedies) {
+          if (Array.isArray(remedy.coverage)) {
+            for (const c of remedy.coverage) {
+              if (c.rubricId && !seenRubricIds.has(c.rubricId)) {
+                seenRubricIds.add(c.rubricId);
+                allRubrics.push({
+                  rubricId: c.rubricId,
+                  rubricName: c.rubricDescription,
+                  category: c.rubricCategory,
+                  importance: c.importance,
+                  grade: c.grade,
+                });
               }
             }
           }
         }
-
-        mlTrainingLogger.logPhase(getTenant(req), req.body.visitId, {
-          soapNotes: result.soap,
-          extractedSymptoms: { mental: result.clinicalData.mentalState, physical: result.clinicalData.generalSymptoms, particular: result.clinicalData.physicalSymptoms },
-          repertorizationMatrix: result.remedyScores,
-          aiSuggestedRemedy: result.prescriptionDraft.suggestedRemedy,
-          ...(allRubrics.length > 0 ? { mappedRubrics: allRubrics } : {}),
-        });
       }
+
+      mlTrainingLogger.logPhase(getTenant(req), req.body.visitId, {
+        soapNotes: result.soap,
+        extractedSymptoms: {
+          mental: result.clinicalData.mentalState,
+          physical: result.clinicalData.generalSymptoms,
+          particular: result.clinicalData.physicalSymptoms,
+        },
+        repertorizationMatrix: result.remedyScores,
+        aiSuggestedRemedy: result.prescriptionDraft.suggestedRemedy,
+        ...(allRubrics.length > 0 ? { mappedRubrics: allRubrics } : {}),
+      });
+    }
     sendSuccess(res, result);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/ai/repertorize/extract — Rubric extraction
@@ -113,7 +122,9 @@ aiRouter.post('/repertorize/extract', async (req: Request, res: Response, next: 
       });
     }
     sendSuccess(res, result);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/ai/repertorize/score — Remedy scoring
@@ -151,7 +162,9 @@ aiRouter.post('/repertorize/score', async (req: Request, res: Response, next: Ne
       });
     }
     sendSuccess(res, result);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/ai/case/extract — Clinical extraction (full shape)
@@ -160,7 +173,9 @@ aiRouter.post('/case/extract', async (req: Request, res: Response, next: NextFun
     const uc = getConsultationUseCase();
     const result = await uc.extractCase(getTenant(req), getUserId(req), req.body);
     sendSuccess(res, result);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/ai/extract/symptoms — Live symptom extraction for the right-side
@@ -172,7 +187,8 @@ aiRouter.post('/case/extract', async (req: Request, res: Response, next: NextFun
 // Output: full merged list { mental: string[], physical: string[], particular: string[] }
 aiRouter.post('/extract/symptoms', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { consultationMode, question, answer, existingSymptoms, labContext, visitId } = req.body ?? {};
+    const { consultationMode, question, answer, existingSymptoms, labContext, visitId } =
+      req.body ?? {};
     const existing = {
       mental: Array.isArray(existingSymptoms?.mental) ? existingSymptoms.mental : [],
       physical: Array.isArray(existingSymptoms?.physical) ? existingSymptoms.physical : [],
@@ -180,7 +196,10 @@ aiRouter.post('/extract/symptoms', async (req: Request, res: Response, next: Nex
     };
 
     // Nothing new to look at — return existing as-is to keep panel stable.
-    if (!question && !answer && !labContext) { sendSuccess(res, existing); return; }
+    if (!question && !answer && !labContext) {
+      sendSuccess(res, existing);
+      return;
+    }
 
     if (visitId) {
       // Log Q&A transcript and consultation mode
@@ -200,9 +219,12 @@ aiRouter.post('/extract/symptoms', async (req: Request, res: Response, next: Nex
     const mode = (consultationMode || 'acute') as 'acute' | 'chronic' | 'followup';
 
     const MODE_HINT: Record<typeof mode, string> = {
-      acute: 'When the patient mentions any of these, they belong here: sensation, modalities (worse/better from), concomitants, onset triggers. Do NOT add these unless the patient said them.',
-      chronic: 'When the patient mentions any of these, they belong here: constitutional themes, thermals, thirst, food desires/aversions, sleep position, dreams, "Never Well Since". Do NOT add these unless the patient said them.',
-      followup: 'When the patient mentions any of these, they belong here: improvement %, direction-of-cure (Hering\'s Law), returning old symptoms, NEW symptoms. Do NOT add these unless the patient said them.',
+      acute:
+        'When the patient mentions any of these, they belong here: sensation, modalities (worse/better from), concomitants, onset triggers. Do NOT add these unless the patient said them.',
+      chronic:
+        'When the patient mentions any of these, they belong here: constitutional themes, thermals, thirst, food desires/aversions, sleep position, dreams, "Never Well Since". Do NOT add these unless the patient said them.',
+      followup:
+        "When the patient mentions any of these, they belong here: improvement %, direction-of-cure (Hering's Law), returning old symptoms, NEW symptoms. Do NOT add these unless the patient said them.",
     };
 
     const labBlock = labContext
@@ -222,8 +244,9 @@ DO NOT emit a rubric for any test that is normal or not present in the lab text.
 DO NOT invent reference ranges. If the value's status is unclear, skip it.`
       : '';
 
-    const mergeRule = (existing.mental.length || existing.physical.length || existing.particular.length)
-      ? `
+    const mergeRule =
+      existing.mental.length || existing.physical.length || existing.particular.length
+        ? `
 
 ## MERGE WITH EXISTING (CRITICAL)
 You will receive an EXISTING symptom list. Return the FULL merged list:
@@ -231,7 +254,7 @@ You will receive an EXISTING symptom list. Return the FULL merged list:
 - If the new Q&A adds detail (more specific location, modality, time), REPLACE the matching existing entry with the more specific version — do NOT emit both.
 - Do NOT emit synonyms or rewordings of an existing entry.
 - Do NOT add new entries unless they have direct verbal evidence in the Q&A.`
-      : '';
+        : '';
 
     const systemPrompt = `You are a homeopathic symptom extraction engine trained on Complete Repertory (primary), Murphy's Repertory, and Boericke's Materia Medica.
 
@@ -285,10 +308,14 @@ ${MODE_HINT[mode]}${labBlock}${mergeRule}
 LAB REPORT TEXT (the ONLY source you are allowed to extract from):
 """
 ${labContext}
-"""${(existing.mental.length || existing.physical.length || existing.particular.length) ? `
+"""${
+          existing.mental.length || existing.physical.length || existing.particular.length
+            ? `
 
 EXISTING SYMPTOMS (already on the panel — keep, do not re-emit):
-${JSON.stringify(existing, null, 2)}` : ''}
+${JSON.stringify(existing, null, 2)}`
+            : ''
+        }
 
 TASK: Extract rubrics ONLY for abnormal lab values that are explicitly listed above. If a value isn't there, don't emit a rubric for it. If no abnormalities are listed, return empty arrays. Reply with ONLY the JSON.`
       : `${dynamicInstructions}
@@ -296,15 +323,23 @@ THE ONLY SOURCE YOU ARE ALLOWED TO EXTRACT FROM is the conversation below.
 Do NOT add anything that is not literally in these two lines. Empty answer = empty arrays.
 
 Doctor's Question: "${question || ''}"
-Patient's Answer: "${answer || ''}"${labContext ? `
+Patient's Answer: "${answer || ''}"${
+          labContext
+            ? `
 
 LAB REPORT TEXT (also a valid source — only abnormal values):
 """
 ${labContext}
-"""` : ''}${(existing.mental.length || existing.physical.length || existing.particular.length) ? `
+"""`
+            : ''
+        }${
+          existing.mental.length || existing.physical.length || existing.particular.length
+            ? `
 
 EXISTING SYMPTOMS (already on the panel — keep, only update if new Q&A adds explicit detail):
-${JSON.stringify(existing, null, 2)}` : ''}
+${JSON.stringify(existing, null, 2)}`
+            : ''
+        }
 
 Reminder before you answer:
 - Every rubric must trace back to a phrase in the Patient's Answer (or the lab text).
@@ -323,14 +358,24 @@ Reply with ONLY the JSON object.`;
       useCache: false, // each Q&A pair is a unique extraction call
     });
 
-    const parsed = extractJson<{ mental?: string[]; physical?: string[]; particular?: string[] }>(response.content);
-    if (!parsed) { sendSuccess(res, existing); return; }
+    const parsed = extractJson<{ mental?: string[]; physical?: string[]; particular?: string[] }>(
+      response.content,
+    );
+    if (!parsed) {
+      sendSuccess(res, existing);
+      return;
+    }
 
     // ── Token-set subset dedup ──
     // Smarter than plain string-match — handles word-order & rephrasings.
-    const normalize = (s: string) => s.toLowerCase().replace(/[.,;:!?()\[\]"']/g, ' ').replace(/\s+/g, ' ').trim();
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[.,;:!?()\[\]"']/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
     const tokenSet = (s: string) => new Set(normalize(s).split(' ').filter(Boolean));
-    
+
     // a is a subset of b if all tokens in a are in b.
     // Includes equality (a is a subset of itself).
     const isSubsetOf = (a: Set<string>, b: Set<string>) => {
@@ -344,22 +389,22 @@ Reply with ONLY the JSON object.`;
     // Stage 3 — This also naturally handles exact duplicates (isSubsetOf(a, b) && isSubsetOf(b, a)).
     const mergeAndDedup = (existingList: string[], incomingList: string[]): string[] => {
       const all = [...existingList, ...incomingList];
-      const sets = all.map(s => ({ s, t: tokenSet(s) }));
+      const sets = all.map((s) => ({ s, t: tokenSet(s) }));
       const result: typeof sets = [];
-      
+
       for (const cand of sets) {
         let dominated = false;
         for (let i = result.length - 1; i >= 0; i--) {
           const kept = result[i];
           if (!kept) continue;
-          
+
           // If candidate is a subset of (or identical to) something we already kept, skip it.
           if (isSubsetOf(cand.t, kept.t)) {
             dominated = true;
             break;
           }
-          
-          // If what we kept is a subset of the new candidate, remove the old one 
+
+          // If what we kept is a subset of the new candidate, remove the old one
           // (replace with the more specific variant).
           if (isSubsetOf(kept.t, cand.t)) {
             result.splice(i, 1);
@@ -367,16 +412,29 @@ Reply with ONLY the JSON object.`;
         }
         if (!dominated) result.push(cand);
       }
-      return result.map(r => r.s);
+      return result.map((r) => r.s);
     };
 
-    const mergedMental     = mergeAndDedup(existing.mental,     Array.isArray(parsed.mental)     ? parsed.mental     : []);
-    const mergedPhysical   = mergeAndDedup(existing.physical,   Array.isArray(parsed.physical)   ? parsed.physical   : []);
-    const mergedParticular = mergeAndDedup(existing.particular, Array.isArray(parsed.particular) ? parsed.particular : []);
+    const mergedMental = mergeAndDedup(
+      existing.mental,
+      Array.isArray(parsed.mental) ? parsed.mental : [],
+    );
+    const mergedPhysical = mergeAndDedup(
+      existing.physical,
+      Array.isArray(parsed.physical) ? parsed.physical : [],
+    );
+    const mergedParticular = mergeAndDedup(
+      existing.particular,
+      Array.isArray(parsed.particular) ? parsed.particular : [],
+    );
 
     if (visitId) {
       mlTrainingLogger.logPhase(getTenant(req), visitId, {
-        extractedSymptoms: { mental: mergedMental, physical: mergedPhysical, particular: mergedParticular }
+        extractedSymptoms: {
+          mental: mergedMental,
+          physical: mergedPhysical,
+          particular: mergedParticular,
+        },
       });
     }
 
@@ -391,7 +449,9 @@ Reply with ONLY the JSON object.`;
       success: false,
       error: {
         code: 'AI_PROVIDER_FAILED',
-        message: err?.message || 'AI providers unavailable. Check ANTHROPIC_API_KEY / GROQ_API_KEY / GEMINI_API_KEY in .env.',
+        message:
+          err?.message ||
+          'AI providers unavailable. Check ANTHROPIC_API_KEY / GROQ_API_KEY / GEMINI_API_KEY in .env.',
       },
     });
   }
@@ -403,7 +463,9 @@ aiRouter.post('/case/summary', async (req: Request, res: Response, next: NextFun
     const uc = getConsultationUseCase();
     const result = await uc.generateSummary(getTenant(req), getUserId(req), req.body);
     sendSuccess(res, result);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/ai/translate — Text translation
@@ -412,7 +474,9 @@ aiRouter.post('/translate', async (req: Request, res: Response, next: NextFuncti
     const uc = getConsultationUseCase();
     const result = await uc.translateText(getTenant(req), getUserId(req), req.body);
     sendSuccess(res, result);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/ai/suggest/questions — Mode-aware case-taking question generator.
@@ -533,15 +597,18 @@ EXAMPLE SET — chief complaint "recurring asthma 5 years (follow-up after Pulsa
     };
 
     const ccTrim = String(chiefComplaint || '').trim();
-    const ageGenderLine = [patientAge ? `Age ${patientAge}` : '', patientGender || ''].filter(Boolean).join(', ');
+    const ageGenderLine = [patientAge ? `Age ${patientAge}` : '', patientGender || '']
+      .filter(Boolean)
+      .join(', ');
 
     // ── System prompt — chief complaint moved here so Claude weights it as
     // the highest-priority instruction. The model gives FAR more attention to
     // the system message than to anything inside the user message.
     const systemPrompt = `You are a senior homeopathic physician conducting a high-fidelity case-taking session for a SPECIFIC patient.
 
-${ccTrim
-  ? `THE PATIENT'S CHIEF COMPLAINT IS: "${ccTrim}"${ageGenderLine ? ` (${ageGenderLine})` : ''}
+${
+  ccTrim
+    ? `THE PATIENT'S CHIEF COMPLAINT IS: "${ccTrim}"${ageGenderLine ? ` (${ageGenderLine})` : ''}
 
 This is the primary clinical focus. However, you MUST also carefully analyze the "Conversation so far" (transcript). If the patient mentions new symptoms, different problems, or if the conversation has shifted to a new concern not mentioned in the initial complaint, you MUST adapt your questions to follow up on these new developments. 
 
@@ -551,7 +618,8 @@ PHRASING LOGIC:
 - Extract core conditions from both the chief complaint AND any new issues identified in the transcript.
 - Use natural phrasing like "the fever" or "your headache" instead of repeating the full string "${ccTrim}".
 - If the patient already gave a duration in the complaint or transcript, do not ask "How long have you had it?"`
-  : 'No chief complaint was provided at intake. You MUST carefully analyze the provided "Conversation so far" (transcript) to identify the patient\'s main reason for visiting and generate questions based on that detected complaint. If the transcript is also empty, generate 5 generic mode-appropriate opening questions to begin the case-taking.'}
+    : 'No chief complaint was provided at intake. You MUST carefully analyze the provided "Conversation so far" (transcript) to identify the patient\'s main reason for visiting and generate questions based on that detected complaint. If the transcript is also empty, generate 5 generic mode-appropriate opening questions to begin the case-taking.'
+}
 
 DO NOT produce a generic case-taking template. EACH question must be rooted in the specific pathology / phenomenology of the core condition.
 
@@ -662,17 +730,20 @@ Output the JSON now. ${ccTrim ? `Anchor your questions to "${ccTrim}" and any ne
       let arr: string[] = [];
       if (Array.isArray(rawOpts)) {
         arr = rawOpts
-          .map((o: any) => (typeof o === 'string' ? o : (o?.label || o?.text || o?.value || '')))
+          .map((o: any) => (typeof o === 'string' ? o : o?.label || o?.text || o?.value || ''))
           .filter((s: string) => typeof s === 'string' && s.trim().length > 0);
       } else if (typeof rawOpts === 'string' && rawOpts.trim()) {
-        arr = rawOpts.split(/\n|;|\|/).map((s: string) => s.trim()).filter(Boolean);
+        arr = rawOpts
+          .split(/\n|;|\|/)
+          .map((s: string) => s.trim())
+          .filter(Boolean);
       }
       // Strip any model-supplied prefix, dedupe (case-insensitive), keep first 4.
       const seen = new Set<string>();
       const cleaned: string[] = [];
       for (const o of arr) {
         const text = cleanOption(o);
-        if (!text || text.length > 80) continue;     // sanity bound
+        if (!text || text.length > 80) continue; // sanity bound
         const key = text.toLowerCase();
         if (seen.has(key)) continue;
         seen.add(key);
@@ -685,14 +756,24 @@ Output the JSON now. ${ccTrim ? `Anchor your questions to "${ccTrim}" and any ne
       return cleaned.map((text, i) => `${LETTERS[i]}) ${text}`);
     };
 
-    const normalized = questions.slice(0, 5).map((q: any) => ({
-      question: String(q.question || q.q || '').trim(),
-      category: ['symptom', 'modality', 'mental', 'general', 'history', 'followup'].includes(q.category) ? q.category : (q.c || 'symptom'),
-      alternates: Array.isArray(q.alternates)
-        ? q.alternates.map((a: any) => String(a).trim()).filter(Boolean).slice(0, 2)
-        : [],
-      options: normalizeOptions(q.options),
-    })).filter((q) => q.question);
+    const normalized = questions
+      .slice(0, 5)
+      .map((q: any) => ({
+        question: String(q.question || q.q || '').trim(),
+        category: ['symptom', 'modality', 'mental', 'general', 'history', 'followup'].includes(
+          q.category,
+        )
+          ? q.category
+          : q.c || 'symptom',
+        alternates: Array.isArray(q.alternates)
+          ? q.alternates
+              .map((a: any) => String(a).trim())
+              .filter(Boolean)
+              .slice(0, 2)
+          : [],
+        options: normalizeOptions(q.options),
+      }))
+      .filter((q) => q.question);
 
     sendSuccess(res, { questions: normalized, consultationMode: mode });
   } catch (err: any) {
@@ -701,7 +782,9 @@ Output the JSON now. ${ccTrim ? `Anchor your questions to "${ccTrim}" and any ne
       success: false,
       error: {
         code: 'AI_PROVIDER_FAILED',
-        message: err?.message || 'AI providers unavailable. Check ANTHROPIC_API_KEY / GROQ_API_KEY / GEMINI_API_KEY in .env.',
+        message:
+          err?.message ||
+          'AI providers unavailable. Check ANTHROPIC_API_KEY / GROQ_API_KEY / GEMINI_API_KEY in .env.',
       },
     });
   }
@@ -715,13 +798,20 @@ aiRouter.post('/parse-lab-report', async (req: Request, res: Response, next: Nex
     if (!base64 || typeof base64 !== 'string' || base64.length < 50) {
       res.status(400).json({
         success: false,
-        error: { code: 'INVALID_INPUT', message: 'No PDF data received (base64 missing or too short).' },
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'No PDF data received (base64 missing or too short).',
+        },
       });
       return;
     }
 
     const uc = getConsultationUseCase();
-    const result = await uc.parseLabReport(getTenant(req), getUserId(req), { filename, mimeType, base64 });
+    const result = await uc.parseLabReport(getTenant(req), getUserId(req), {
+      filename,
+      mimeType,
+      base64,
+    });
     sendSuccess(res, result);
   } catch (err: any) {
     logger.error({ err: err?.message, stack: err?.stack }, '[parse-lab-report] failed');
@@ -743,7 +833,9 @@ aiRouter.get('/rubrics/kent-search', async (req: Request, res: Response, next: N
     const uc = getConsultationUseCase();
     const result = await uc.searchKentRubrics(String(req.query.q || ''));
     sendSuccess(res, result);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/ai/feedback — Doctor feedback on AI suggestion
@@ -751,7 +843,9 @@ aiRouter.post('/feedback', async (req: Request, res: Response, next: NextFunctio
   try {
     logger.info({ tenantId: getTenant(req), feedback: req.body }, 'AI feedback recorded');
     sendSuccess(res, { recorded: true });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
@@ -772,20 +866,24 @@ aiRouter.post('/similar-cases', async (req: Request, res: Response) => {
         .from(mlTrainingLogs)
         .where(eq(mlTrainingLogs.visitId, String(visitId)))
         .limit(1);
-      
+
       if (record) {
         queryText = embeddingService.createFingerprint(record);
       }
     }
 
     if (!queryText) {
-      return res.status(400).json({ success: false, message: 'Query text or valid visitId required' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'Query text or valid visitId required' });
     }
 
     // Generate embedding for the query
     const queryVector = await embeddingService.generateEmbedding(queryText);
     if (!queryVector || queryVector.length === 0) {
-      return res.status(502).json({ success: false, message: 'Failed to generate query embedding' });
+      return res
+        .status(502)
+        .json({ success: false, message: 'Failed to generate query embedding' });
     }
 
     // Perform vector similarity search (cosine distance) by joining the
@@ -803,9 +901,7 @@ aiRouter.post('/similar-cases', async (req: Request, res: Response) => {
       })
       .from(mlTrainingEmbeddings)
       .innerJoin(mlTrainingLogs, eq(mlTrainingLogs.id, mlTrainingEmbeddings.mlTrainingLogId))
-      .where(
-        visitId ? not(eq(mlTrainingLogs.visitId, String(visitId))) : undefined
-      )
+      .where(visitId ? not(eq(mlTrainingLogs.visitId, String(visitId))) : undefined)
       .orderBy((t) => desc(t.similarity))
       .limit(limit);
 
@@ -824,7 +920,10 @@ aiRouter.post('/parse-prescription', async (req: Request, res: Response, next: N
     if (!base64 || typeof base64 !== 'string' || base64.length < 50) {
       res.status(400).json({
         success: false,
-        error: { code: 'INVALID_INPUT', message: 'No prescription image data received (base64 missing or too short).' },
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'No prescription image data received (base64 missing or too short).',
+        },
       });
       return;
     }
@@ -872,13 +971,14 @@ OUTPUT FORMAT:
 
     const response = await chain.complete({
       systemPrompt,
-      userPrompt: 'Scan the attached prescription image and return the extracted clinical details as raw JSON matching the schema.',
+      userPrompt:
+        'Scan the attached prescription image and return the extracted clinical details as raw JSON matching the schema.',
       documents: [{ base64, mimeType: mimeType || 'image/jpeg' }],
       temperature: 0.1,
       maxTokens: 1000,
       responseFormat: 'json',
       useCache: false,
-      preferredProvider: 'groq'
+      preferredProvider: 'groq',
     });
 
     const parsed = extractJson<{
@@ -899,9 +999,9 @@ OUTPUT FORMAT:
       success: false,
       error: {
         code: 'AI_PROVIDER_FAILED',
-        message: err?.message || 'AI providers unavailable or failed to process prescription image.',
+        message:
+          err?.message || 'AI providers unavailable or failed to process prescription image.',
       },
     });
   }
 });
-

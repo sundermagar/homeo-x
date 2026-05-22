@@ -4,17 +4,17 @@ import { cn } from '../../lib/cn';
 import './button.css';
 
 const variantClass: Record<string, string> = {
-  default:     'btn--default',
+  default: 'btn--default',
   destructive: 'btn--destructive',
-  outline:     'btn--outline',
-  ghost:       'btn--ghost',
-  link:        'btn--link',
+  outline: 'btn--outline',
+  ghost: 'btn--ghost',
+  link: 'btn--link',
 };
 
 const sizeClass: Record<string, string> = {
-  sm:   'btn--sm',
-  md:   'btn--md',
-  lg:   'btn--lg',
+  sm: 'btn--sm',
+  md: 'btn--md',
+  lg: 'btn--lg',
   icon: 'btn--icon',
 };
 

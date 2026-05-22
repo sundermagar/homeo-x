@@ -22,7 +22,10 @@ export function ConsultationSkeleton() {
         {/* Step Navigation Skeleton */}
         <nav className="flex-none lg:flex-1 px-4 py-3 lg:py-4 flex flex-wrap lg:flex-col gap-2 lg:gap-0 lg:space-y-1 border-b lg:border-b-0 border-[#E3E2DF]">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex-none lg:w-full flex items-center gap-2 lg:gap-3 px-3 py-2.5 rounded-md">
+            <div
+              key={i}
+              className="flex-none lg:w-full flex items-center gap-2 lg:gap-3 px-3 py-2.5 rounded-md"
+            >
               <div className="w-5 h-5 rounded-full pp-skeleton shrink-0" />
               <div className="h-3 w-28 pp-skeleton rounded" />
             </div>
@@ -42,7 +45,6 @@ export function ConsultationSkeleton() {
       <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
         <div className="flex-1 overflow-y-auto overflow-x-hidden w-full">
           <div className="max-w-[1200px] mx-auto px-4 lg:px-5 py-5 pb-8 space-y-8">
-            
             {/* Top Progress / Stepper */}
             <div className="space-y-3">
               <div className="h-3 w-16 pp-skeleton rounded" />
@@ -69,12 +71,12 @@ export function ConsultationSkeleton() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                       <div className="h-3 w-8 pp-skeleton rounded" />
-                       <div className="h-10 w-full pp-skeleton rounded-lg border border-[#E3E2DF]" />
+                      <div className="h-3 w-8 pp-skeleton rounded" />
+                      <div className="h-10 w-full pp-skeleton rounded-lg border border-[#E3E2DF]" />
                     </div>
                     <div className="space-y-2">
-                       <div className="h-3 w-12 pp-skeleton rounded" />
-                       <div className="h-10 w-full pp-skeleton rounded-lg border border-[#E3E2DF]" />
+                      <div className="h-3 w-12 pp-skeleton rounded" />
+                      <div className="h-10 w-full pp-skeleton rounded-lg border border-[#E3E2DF]" />
                     </div>
                   </div>
                 </div>

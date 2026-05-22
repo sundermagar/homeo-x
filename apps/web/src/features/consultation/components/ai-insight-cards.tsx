@@ -54,10 +54,13 @@ function parseLifestyleAdvice(plan: string): string[] {
     advice.push('Regular physical activity advised');
   if (planLower.includes('monitor') || planLower.includes('bp') || planLower.includes('sugar'))
     advice.push('Regular self-monitoring');
-  if (planLower.includes('stress') || planLower.includes('meditation') || planLower.includes('sleep'))
+  if (
+    planLower.includes('stress') ||
+    planLower.includes('meditation') ||
+    planLower.includes('sleep')
+  )
     advice.push('Stress management / sleep hygiene');
-  if (planLower.includes('weight') || planLower.includes('bmi'))
-    advice.push('Weight management');
+  if (planLower.includes('weight') || planLower.includes('bmi')) advice.push('Weight management');
   if (planLower.includes('smoking') || planLower.includes('alcohol'))
     advice.push('Cessation counseling');
   return advice;
@@ -66,7 +69,9 @@ function parseLifestyleAdvice(plan: string): string[] {
 function parseFollowUp(assessment: string, plan: string): string[] {
   const combined = `${assessment} ${plan}`.toLowerCase();
   const items: string[] = [];
-  const followUpMatch = combined.match(/follow[- ]?up\s+(?:in|after)\s+(\d+\s*(?:days?|weeks?|months?))/i);
+  const followUpMatch = combined.match(
+    /follow[- ]?up\s+(?:in|after)\s+(\d+\s*(?:days?|weeks?|months?))/i,
+  );
   if (followUpMatch) items.push(`Next visit: ${followUpMatch[1]}`);
   if (combined.includes('review') || combined.includes('reassess'))
     items.push('Clinical reassessment recommended');
@@ -107,9 +112,7 @@ export function AIInsightCards({
     const diagContent: string[] = [];
     if (soapSuggestion?.assessment) diagContent.push(soapSuggestion.assessment);
     if (soapSuggestion?.icdCodes?.length) {
-      diagContent.push(
-        ...soapSuggestion.icdCodes.map((c) => `${c.code}: ${c.description}`),
-      );
+      diagContent.push(...soapSuggestion.icdCodes.map((c) => `${c.code}: ${c.description}`));
     }
     result.push({
       id: 'diagnosis',
@@ -176,9 +179,7 @@ export function AIInsightCards({
     });
 
     // 4. AI Lifestyle Advice
-    const lifestyleItems = soapSuggestion?.plan
-      ? parseLifestyleAdvice(soapSuggestion.plan)
-      : [];
+    const lifestyleItems = soapSuggestion?.plan ? parseLifestyleAdvice(soapSuggestion.plan) : [];
     result.push({
       id: 'lifestyle',
       title: 'AI Lifestyle Advice',
@@ -276,7 +277,15 @@ export function AIInsightCards({
           break;
       }
     },
-    [soapSuggestion, liveExtraction, onAcceptDiagnosis, onAcceptPlan, onAcceptLabs, onAcceptAdvice, onAcceptFollowUp],
+    [
+      soapSuggestion,
+      liveExtraction,
+      onAcceptDiagnosis,
+      onAcceptPlan,
+      onAcceptLabs,
+      onAcceptAdvice,
+      onAcceptFollowUp,
+    ],
   );
 
   if (visibleCards.length === 0) return null;

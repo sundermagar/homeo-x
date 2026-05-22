@@ -15,13 +15,13 @@ interface CustomSearchSelectProps {
   maxHeight?: string;
 }
 
-export function CustomSearchSelect({ 
-  label, 
-  value, 
-  options, 
-  onChange, 
+export function CustomSearchSelect({
+  label,
+  value,
+  options,
+  onChange,
   placeholder = 'Select option',
-  maxHeight = '230px'
+  maxHeight = '230px',
 }: CustomSearchSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -46,35 +46,38 @@ export function CustomSearchSelect({
 
   const filtered = useMemo(() => {
     if (!search) return options;
-    return options.filter(opt => 
-      opt.name.toLowerCase().includes(search.toLowerCase())
-    );
+    return options.filter((opt) => opt.name.toLowerCase().includes(search.toLowerCase()));
   }, [options, search]);
 
   return (
     <div className="plat-form-group" ref={containerRef}>
       <label className="plat-form-label">{label}</label>
       <div style={{ position: 'relative' }}>
-        <div 
+        <div
           className="plat-form-input flex items-center justify-between cursor-pointer"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+          }}
           onClick={() => setIsOpen(!isOpen)}
         >
           <span style={{ fontSize: '13px', color: value ? 'var(--pp-ink)' : 'var(--pp-text-4)' }}>
             {value || placeholder}
           </span>
-          <ChevronDown 
-            size={14} 
-            style={{ 
-              transition: 'transform 0.2s', 
+          <ChevronDown
+            size={14}
+            style={{
+              transition: 'transform 0.2s',
               transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
-              color: 'var(--pp-text-4)'
-            }} 
+              color: 'var(--pp-text-4)',
+            }}
           />
         </div>
-        
+
         {isOpen && (
-          <div 
+          <div
             className="plat-custom-dropdown"
             style={{
               position: 'absolute',
@@ -89,7 +92,7 @@ export function CustomSearchSelect({
               boxShadow: 'var(--pp-shadow-lg)',
               maxHeight: maxHeight,
               overflowY: 'auto',
-              animation: 'fadeIn 0.2s ease'
+              animation: 'fadeIn 0.2s ease',
             }}
           >
             <style>{`
@@ -128,32 +131,54 @@ export function CustomSearchSelect({
                 to { opacity: 1; transform: translateY(0); }
               }
             `}</style>
-            
-            <div style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', padding: '8px', borderBottom: '1px solid var(--pp-warm-4)', zIndex: 10 }}>
+
+            <div
+              style={{
+                position: 'sticky',
+                top: 0,
+                background: 'var(--bg-card)',
+                padding: '8px',
+                borderBottom: '1px solid var(--pp-warm-4)',
+                zIndex: 10,
+              }}
+            >
               <div style={{ position: 'relative' }}>
-                <Search size={12} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--pp-text-4)' }} />
+                <Search
+                  size={12}
+                  style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--pp-text-4)',
+                  }}
+                />
                 <input
                   ref={searchInputRef}
                   className="plat-form-input"
                   style={{ width: '100%', height: '30px', paddingLeft: '28px', fontSize: '12px' }}
                   placeholder="Search..."
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  onClick={e => e.stopPropagation()}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
 
-            <div 
-              className="plat-dropdown-item" 
-              onClick={() => { onChange(''); setIsOpen(false); setSearch(''); }}
+            <div
+              className="plat-dropdown-item"
+              onClick={() => {
+                onChange('');
+                setIsOpen(false);
+                setSearch('');
+              }}
             >
               {placeholder}
             </div>
-            
+
             {filtered.map((opt) => (
-              <div 
-                key={opt.id} 
+              <div
+                key={opt.id}
                 className={`plat-dropdown-item ${value === opt.name ? 'active' : ''}`}
                 onClick={() => {
                   onChange(opt.name, opt.id);
@@ -164,9 +189,16 @@ export function CustomSearchSelect({
                 {opt.name}
               </div>
             ))}
-            
+
             {filtered.length === 0 && (
-              <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: 'var(--pp-text-4)' }}>
+              <div
+                style={{
+                  padding: '20px',
+                  textAlign: 'center',
+                  fontSize: '12px',
+                  color: 'var(--pp-text-4)',
+                }}
+              >
                 No results for "{search}"
               </div>
             )}

@@ -82,9 +82,12 @@ export function useNotificationSocket() {
       toast({
         title: notification.title,
         description: notification.message,
-        variant: notification.type === 'WHATSAPP'
-          ? 'whatsapp'
-          : (notification.type === 'error' || notification.type === 'warning') ? 'error' : 'default',
+        variant:
+          notification.type === 'WHATSAPP'
+            ? 'whatsapp'
+            : notification.type === 'error' || notification.type === 'warning'
+              ? 'error'
+              : 'default',
       });
 
       // Optimistically prepend notification & increment unread badge count
@@ -106,8 +109,7 @@ export function useNotificationSocket() {
     };
 
     socket.on('notification:new', handleNew);
-    socket.on('connected', (data: { userId: number }) => {
-    });
+    socket.on('connected', (data: { userId: number }) => {});
     socket.on('error', (err: { message: string }) => {
       console.warn('[Socket] Notification error:', err.message);
     });

@@ -10,7 +10,13 @@ export class ManageAppointmentUseCase {
     private readonly notifRepo?: NotificationsRepository,
   ) {}
 
-  private async notifyDoctor(doctorId: number, clinicId: number | undefined, type: 'APPOINTMENT_REMINDER' | 'APPOINTMENT_CANCELLED' | 'VISIT_COMPLETED', title: string, message: string): Promise<void> {
+  private async notifyDoctor(
+    doctorId: number,
+    clinicId: number | undefined,
+    type: 'APPOINTMENT_REMINDER' | 'APPOINTMENT_CANCELLED' | 'VISIT_COMPLETED',
+    title: string,
+    message: string,
+  ): Promise<void> {
     if (!this.notifRepo) return;
     const userId = this.notifRepo.resolveUserIdForDoctor
       ? await this.notifRepo.resolveUserIdForDoctor(doctorId)
@@ -45,7 +51,11 @@ export class ManageAppointmentUseCase {
     return ok(undefined);
   }
 
-  async updateStatus(id: number, status: string, cancellationReason?: string): Promise<Result<void>> {
+  async updateStatus(
+    id: number,
+    status: string,
+    cancellationReason?: string,
+  ): Promise<Result<void>> {
     const appt = await this.repo.findById(id);
     if (!appt) return fail('Appointment not found', 'NOT_FOUND');
 
@@ -56,7 +66,9 @@ export class ManageAppointmentUseCase {
 
     await this.repo.updateStatus(id, status, cancellationReason);
 
-    if ([AppointmentStatus.Cancelled, AppointmentStatus.Absent].includes(status as AppointmentStatus)) {
+    if (
+      [AppointmentStatus.Cancelled, AppointmentStatus.Absent].includes(status as AppointmentStatus)
+    ) {
       if (appt.doctorId && appt.bookingDate) {
         await this.repo.promoteWaitlist(appt.doctorId, appt.bookingDate, appt.bookingTime);
 

@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { PlusCircle, X, RefreshCw, Trash2, Edit2, Search, Receipt } from 'lucide-react';
-import { useAdditionalCharges, useCreateAdditionalCharge, useUpdateAdditionalCharge, useDeleteAdditionalCharge, useCharges } from '../hooks/use-accounts';
+import {
+  useAdditionalCharges,
+  useCreateAdditionalCharge,
+  useUpdateAdditionalCharge,
+  useDeleteAdditionalCharge,
+  useCharges,
+} from '../hooks/use-accounts';
 import { usePatient } from '../../patients/hooks/use-patients';
 import type { AdditionalChargeWithPatient, Charge } from '@mmc/types';
 import type { CreateAdditionalChargeInput } from '@mmc/validation';
@@ -30,20 +36,22 @@ export default function AdditionalChargesPage() {
 
   const query = { page, limit: 10, regid: regidFilter ? parseInt(regidFilter, 10) : undefined };
   const { data, isLoading } = useAdditionalCharges(query);
-  
+
   // Fetch Predefined Charges Catalog
   const { data: chargesCatalog } = useCharges();
   const predefinedCharges: Charge[] = chargesCatalog ?? [];
-  
+
   const createCharge = useCreateAdditionalCharge();
   const updateCharge = useUpdateAdditionalCharge();
   const deleteCharge = useDeleteAdditionalCharge();
 
   const charges: AdditionalChargeWithPatient[] = data?.data ?? [];
   const total = data?.total ?? 0;
-  const filtered = charges.filter(c =>
-    !search || (c.additionalName ?? '').toLowerCase().includes(search.toLowerCase()) ||
-    (c.patientName && c.patientName.toLowerCase().includes(search.toLowerCase()))
+  const filtered = charges.filter(
+    (c) =>
+      !search ||
+      (c.additionalName ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.patientName && c.patientName.toLowerCase().includes(search.toLowerCase())),
   );
 
   const handleOpenCreate = () => {
@@ -75,7 +83,7 @@ export default function AdditionalChargesPage() {
       setIsModalOpen(false);
     } catch (err: any) {
       console.error('Submission failed:', err);
-      // The error is handled by the mutation's onError if configured, 
+      // The error is handled by the mutation's onError if configured,
       // but we can also handle it here for direct UX feedback.
     }
   };
@@ -129,7 +137,7 @@ export default function AdditionalChargesPage() {
             className="plat-filter-input plat-search-input"
             placeholder="Search charges..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <input
@@ -138,7 +146,10 @@ export default function AdditionalChargesPage() {
           style={{ width: 140, fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }}
           placeholder="Filter by Reg ID..."
           value={regidFilter}
-          onChange={e => { setRegidFilter(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setRegidFilter(e.target.value);
+            setPage(1);
+          }}
         />
       </div>
 
@@ -146,12 +157,23 @@ export default function AdditionalChargesPage() {
         {isLoading ? (
           <TableSkeleton rows={8} columns={7} />
         ) : filtered.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={PlusCircle}
-            title={search || regidFilter ? "No matches found" : "No additional charges"}
-            description={search || regidFilter ? `No charges matching your search filters were found.` : "Manage extra clinical services by adding your first additional charge."}
-            actionLabel={search || regidFilter ? "Clear Filters" : "Add Charge"}
-            onAction={search || regidFilter ? () => { setSearch(''); setRegidFilter(''); } : handleOpenCreate}
+            title={search || regidFilter ? 'No matches found' : 'No additional charges'}
+            description={
+              search || regidFilter
+                ? `No charges matching your search filters were found.`
+                : 'Manage extra clinical services by adding your first additional charge.'
+            }
+            actionLabel={search || regidFilter ? 'Clear Filters' : 'Add Charge'}
+            onAction={
+              search || regidFilter
+                ? () => {
+                    setSearch('');
+                    setRegidFilter('');
+                  }
+                : handleOpenCreate
+            }
             variant="card"
             className="my-8"
           />
@@ -170,7 +192,7 @@ export default function AdditionalChargesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(c => (
+                {filtered.map((c) => (
                   <tr key={c.id}>
                     <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>
                       <div>#{c.id}</div>
@@ -184,19 +206,34 @@ export default function AdditionalChargesPage() {
                     <td data-label="Qty" style={{ fontFamily: 'var(--pp-font-mono)' }}>
                       <div className="plat-cell-val">{c.additionalQuantity}</div>
                     </td>
-                    <td data-label="Price" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>
+                    <td
+                      data-label="Price"
+                      style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}
+                    >
                       <div className="plat-cell-val">₹{c.additionalPrice.toLocaleString()}</div>
                     </td>
-                    <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', color: 'var(--pp-success-fg)' }}>
+                    <td
+                      data-label="Received"
+                      style={{ fontFamily: 'var(--pp-font-mono)', color: 'var(--pp-success-fg)' }}
+                    >
                       <div className="plat-cell-val">₹{c.receivedPrice.toLocaleString()}</div>
                     </td>
                     <td data-label="Actions">
                       <div className="plat-cell-val">
                         <div className="flex justify-end gap-3" style={{ width: '100%' }}>
-                          <button className="plat-btn plat-btn-sm plat-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(c)}>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon"
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                            onClick={() => handleOpenEdit(c)}
+                          >
                             <Edit2 size={13} />
                           </button>
-                          <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={(e) => handleDelete(e, c.id, c.additionalName ?? '')}>
+                          <button
+                            type="button"
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                            onClick={(e) => handleDelete(e, c.id, c.additionalName ?? '')}
+                          >
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -227,88 +264,111 @@ export default function AdditionalChargesPage() {
         <form onSubmit={handleSubmit} className="plat-form">
           <div className="plat-form-group">
             <label className="plat-form-label">Patient Reg ID</label>
-            <input 
-              className="plat-form-input" 
-              type="number" 
-              value={form.regid ?? ''} 
-              onChange={e => setForm(f => ({ ...f, regid: e.target.value ? parseInt(e.target.value) : undefined }))} 
+            <input
+              className="plat-form-input"
+              type="number"
+              value={form.regid ?? ''}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  regid: e.target.value ? parseInt(e.target.value) : undefined,
+                }))
+              }
               style={{ fontSize: '1rem', fontWeight: 700, fontFamily: 'var(--pp-font-mono)' }}
             />
             <PatientPreview regid={form.regid} />
           </div>
-          
+
           <div className="plat-form-group plat-form-full">
-            <label className="plat-form-label">Charge Name <span className="plat-form-required">*</span></label>
-            <select 
-              className="plat-form-input" 
-              value={form.additionalName} 
-              onChange={e => {
+            <label className="plat-form-label">
+              Charge Name <span className="plat-form-required">*</span>
+            </label>
+            <select
+              className="plat-form-input"
+              value={form.additionalName}
+              onChange={(e) => {
                 const selectedName = e.target.value;
-                const charge = predefinedCharges.find(c => c.charges === selectedName);
-                
-                setForm(f => ({ 
-                  ...f, 
+                const charge = predefinedCharges.find((c) => c.charges === selectedName);
+
+                setForm((f) => ({
+                  ...f,
                   additionalName: selectedName,
                   additionalPrice: charge ? (charge.amount ?? 0) : f.additionalPrice,
-                  additionalQuantity: charge?.type === 'Product' ? 1 : 0
+                  additionalQuantity: charge?.type === 'Product' ? 1 : 0,
                 }));
-              }} 
+              }}
               required
               style={{ height: 44, borderRadius: 10 }}
             >
               <option value="">Select Charge Type...</option>
-              {predefinedCharges.map(charge => (
+              {predefinedCharges.map((charge) => (
                 <option key={charge.id} value={charge.charges ?? ''}>
                   {charge.charges}
                 </option>
               ))}
             </select>
           </div>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div className="plat-form-group">
               <label className="plat-form-label">Price (₹)</label>
-              <input 
-                className="plat-form-input" 
-                type="number" 
-                min={0} 
-                value={form.additionalPrice} 
-                onChange={e => setForm(f => ({ ...f, additionalPrice: Number(e.target.value) }))} 
+              <input
+                className="plat-form-input"
+                type="number"
+                min={0}
+                value={form.additionalPrice}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, additionalPrice: Number(e.target.value) }))
+                }
                 style={{ fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }}
               />
             </div>
-            {predefinedCharges.find(c => c.charges === form.additionalName)?.type === 'Product' && (
+            {predefinedCharges.find((c) => c.charges === form.additionalName)?.type ===
+              'Product' && (
               <div className="plat-form-group fade-in">
                 <label className="plat-form-label">Quantity</label>
-                <input 
-                  className="plat-form-input" 
-                  type="number" 
-                  min={1} 
-                  value={form.additionalQuantity} 
-                  onChange={e => setForm(f => ({ ...f, additionalQuantity: Number(e.target.value) }))} 
+                <input
+                  className="plat-form-input"
+                  type="number"
+                  min={1}
+                  value={form.additionalQuantity}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, additionalQuantity: Number(e.target.value) }))
+                  }
                   style={{ fontFamily: 'var(--pp-font-mono)' }}
                 />
               </div>
             )}
           </div>
-          
+
           <div className="plat-form-group mt-3">
             <label className="plat-form-label">Received Amount (₹)</label>
-            <input 
-              className="plat-form-input" 
-              type="number" 
-              min={0} 
-              value={form.receivedPrice} 
-              onChange={e => setForm(f => ({ ...f, receivedPrice: Number(e.target.value) }))} 
-              style={{ fontWeight: 800, color: 'var(--pp-blue)', fontFamily: 'var(--pp-font-mono)' }}
+            <input
+              className="plat-form-input"
+              type="number"
+              min={0}
+              value={form.receivedPrice}
+              onChange={(e) => setForm((f) => ({ ...f, receivedPrice: Number(e.target.value) }))}
+              style={{
+                fontWeight: 800,
+                color: 'var(--pp-blue)',
+                fontFamily: 'var(--pp-font-mono)',
+              }}
             />
           </div>
 
           <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
-            <button type="button" className="plat-btn" style={{ flex: 1, height: 48, borderRadius: 14 }} onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button 
-              type="submit" 
-              className="plat-btn plat-btn-primary" 
+            <button
+              type="button"
+              className="plat-btn"
+              style={{ flex: 1, height: 48, borderRadius: 14 }}
+              onClick={() => setIsModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
               style={{ flex: 2, height: 48, borderRadius: 14 }}
               disabled={createCharge.isPending || updateCharge.isPending}
             >
@@ -325,19 +385,26 @@ export default function AdditionalChargesPage() {
             </div>
             <div className="plat-modal-body">
               <p style={{ margin: 0, color: 'var(--pp-text-2)', fontSize: '13px' }}>
-                Are you sure you want to delete this additional charge entry? This action cannot be undone.
+                Are you sure you want to delete this additional charge entry? This action cannot be
+                undone.
               </p>
             </div>
             <div className="plat-modal-footer">
-              <button type="button" className="plat-btn" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
-              <button type="button" className="plat-btn plat-btn-danger" onClick={confirmDelete} disabled={deleteCharge.isPending}>
+              <button type="button" className="plat-btn" onClick={() => setDeleteConfirmId(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="plat-btn plat-btn-danger"
+                onClick={confirmDelete}
+                disabled={deleteCharge.isPending}
+              >
                 {deleteCharge.isPending ? 'Deleting...' : 'Delete Permanently'}
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
@@ -345,12 +412,38 @@ export default function AdditionalChargesPage() {
 function PatientPreview({ regid }: { regid?: number }) {
   const { data: patient, isLoading, isError } = usePatient(regid ?? 0);
   if (!regid) return null;
-  if (isLoading) return <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4 }}>Checking ID...</div>;
-  if (isError || !patient) return <div style={{ fontSize: '11px', color: 'var(--pp-danger-fg)', marginTop: 4 }}>Patient not found</div>;
+  if (isLoading)
+    return (
+      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4 }}>
+        Checking ID...
+      </div>
+    );
+  if (isError || !patient)
+    return (
+      <div style={{ fontSize: '11px', color: 'var(--pp-danger-fg)', marginTop: 4 }}>
+        Patient not found
+      </div>
+    );
   return (
-    <div style={{ fontSize: '11px', color: 'var(--pp-success-fg)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pp-success-bg)', padding: '4px 8px', borderRadius: '4px', width: 'fit-content' }}>
+    <div
+      style={{
+        fontSize: '11px',
+        color: 'var(--pp-success-fg)',
+        marginTop: 6,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        background: 'var(--pp-success-bg)',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        width: 'fit-content',
+      }}
+    >
       <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-      Patient Found: <strong>{patient.firstName} {patient.surname}</strong>
+      Patient Found:{' '}
+      <strong>
+        {patient.firstName} {patient.surname}
+      </strong>
     </div>
   );
 }

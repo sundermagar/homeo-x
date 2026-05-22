@@ -34,7 +34,6 @@ export interface Dispensary {
   updatedAt?: Date | null;
 }
 
-
 export interface ReferralSource {
   id: number;
   name: string;
@@ -129,8 +128,6 @@ export interface Frequency {
   updatedAt?: Date | null;
 }
 
-
-
 export interface MessageTemplate {
   id: number;
   name: string;
@@ -205,7 +202,9 @@ export interface ISettingsRepository {
   // Package Periods
   listPackagePeriods(): Promise<PackagePeriod[]>;
   getPackagePeriod(id: number): Promise<PackagePeriod | undefined>;
-  createPackagePeriod(data: Omit<PackagePeriod, 'id' | 'createdAt' | 'updatedAt'>): Promise<PackagePeriod>;
+  createPackagePeriod(
+    data: Omit<PackagePeriod, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<PackagePeriod>;
   updatePackagePeriod(id: number, data: Partial<Omit<PackagePeriod, 'id'>>): Promise<PackagePeriod>;
   deletePackagePeriod(id: number): Promise<void>;
 
@@ -227,7 +226,10 @@ export interface ISettingsRepository {
   listReferralSources(): Promise<ReferralSource[]>;
   getReferralSource(id: number): Promise<ReferralSource | undefined>;
   createReferralSource(data: Omit<ReferralSource, 'id'>): Promise<ReferralSource>;
-  updateReferralSource(id: number, data: Partial<Omit<ReferralSource, 'id'>>): Promise<ReferralSource>;
+  updateReferralSource(
+    id: number,
+    data: Partial<Omit<ReferralSource, 'id'>>,
+  ): Promise<ReferralSource>;
   deleteReferralSource(id: number): Promise<void>;
 
   // Stickers
@@ -287,13 +289,14 @@ export interface ISettingsRepository {
   updateFrequency(id: number, data: Partial<Omit<Frequency, 'id'>>): Promise<Frequency>;
   deleteFrequency(id: number): Promise<void>;
 
-
-
   // Message Templates
   listMessageTemplates(): Promise<MessageTemplate[]>;
   getMessageTemplate(id: number): Promise<MessageTemplate | undefined>;
   createMessageTemplate(data: Omit<MessageTemplate, 'id'>): Promise<MessageTemplate>;
-  updateMessageTemplate(id: number, data: Partial<Omit<MessageTemplate, 'id'>>): Promise<MessageTemplate>;
+  updateMessageTemplate(
+    id: number,
+    data: Partial<Omit<MessageTemplate, 'id'>>,
+  ): Promise<MessageTemplate>;
   deleteMessageTemplate(id: number): Promise<void>;
 
   // Stock Logs
@@ -324,4 +327,3 @@ export interface ISettingsRepository {
   updateVaccine(id: number, data: Partial<Omit<Vaccine, 'id'>>): Promise<Vaccine>;
   deleteVaccine(id: number): Promise<void>;
 }
-

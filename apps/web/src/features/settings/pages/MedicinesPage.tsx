@@ -1,7 +1,30 @@
 import React, { useMemo, useState } from 'react';
-import { Pill, Plus, X, RefreshCw, Trash2, Edit2, Info, Package, IndianRupee, Search, AlertCircle, CheckCircle2, History, ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+import {
+  Pill,
+  Plus,
+  X,
+  RefreshCw,
+  Trash2,
+  Edit2,
+  Info,
+  Package,
+  IndianRupee,
+  Search,
+  AlertCircle,
+  CheckCircle2,
+  History,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useMedicines, useCreateMedicine, useUpdateMedicine, useDeleteMedicine, usePotencies } from '../hooks/use-settings';
+import {
+  useMedicines,
+  useCreateMedicine,
+  useUpdateMedicine,
+  useDeleteMedicine,
+  usePotencies,
+} from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -50,24 +73,30 @@ export default function MedicinesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
 
-  const filtered = useMemo(() => medicines.filter((m: Medicine) =>
-    m.name?.toLowerCase().includes(search.toLowerCase()) ||
-    m.disease?.toLowerCase().includes(search.toLowerCase()) ||
-    m.category?.toLowerCase().includes(search.toLowerCase()) ||
-    m.snomedLabel?.toLowerCase().includes(search.toLowerCase())
-  ), [medicines, search]);
+  const filtered = useMemo(
+    () =>
+      medicines.filter(
+        (m: Medicine) =>
+          m.name?.toLowerCase().includes(search.toLowerCase()) ||
+          m.disease?.toLowerCase().includes(search.toLowerCase()) ||
+          m.category?.toLowerCase().includes(search.toLowerCase()) ||
+          m.snomedLabel?.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [medicines, search],
+  );
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filtered);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filtered);
 
-  const lowStockCount = useMemo(() => medicines.filter((m: Medicine) => (m.stockLevel || 0) > 0 && (m.stockLevel || 0) < 10).length, [medicines]);
-  const outOfStockCount = useMemo(() => medicines.filter((m: Medicine) => (m.stockLevel || 0) === 0).length, [medicines]);
+  const lowStockCount = useMemo(
+    () =>
+      medicines.filter((m: Medicine) => (m.stockLevel || 0) > 0 && (m.stockLevel || 0) < 10).length,
+    [medicines],
+  );
+  const outOfStockCount = useMemo(
+    () => medicines.filter((m: Medicine) => (m.stockLevel || 0) === 0).length,
+    [medicines],
+  );
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -97,7 +126,7 @@ export default function MedicinesPage() {
         ...form,
         potencyId: form.potencyId ? parseInt(form.potencyId) : null,
         price: Number(form.price) || 0,
-        stockLevel: Number(form.stockLevel) || 0
+        stockLevel: Number(form.stockLevel) || 0,
       };
 
       if (editingId) {
@@ -118,14 +147,15 @@ export default function MedicinesPage() {
 
   return (
     <div className="plat-page fade-in">
-
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
             <Pill size={22} strokeWidth={1.8} />
             Clinical Medicine Catalog
           </h1>
-          <p className="pp-page-hero-sub">Manage clinical inventory, pricing strategies, and standardized disease indications.</p>
+          <p className="pp-page-hero-sub">
+            Manage clinical inventory, pricing strategies, and standardized disease indications.
+          </p>
         </div>
         <div className="pp-page-hero-actions">
           <button className="btn-primary" onClick={handleOpenCreate}>
@@ -135,20 +165,55 @@ export default function MedicinesPage() {
       </div>
 
       <div className="pp-stat-grid">
-        <div className="pp-stat-card-enhanced" style={{ '--stat-accent': 'var(--pp-blue)' } as React.CSSProperties}>
-          <div className="pp-stat-icon"><Package size={16} /></div>
+        <div
+          className="pp-stat-card-enhanced"
+          style={{ '--stat-accent': 'var(--pp-blue)' } as React.CSSProperties}
+        >
+          <div className="pp-stat-icon">
+            <Package size={16} />
+          </div>
           <div className="pp-stat-label">Total Catalog</div>
           <div className="pp-stat-value is-primary">{medicines.length}</div>
         </div>
-        <div className="pp-stat-card-enhanced" style={{ '--stat-accent': 'var(--pp-warning-fg)' } as React.CSSProperties}>
-          <div className="pp-stat-icon" style={{ '--stat-icon-color': 'var(--pp-warning-fg)', '--stat-icon-bg': 'rgba(245,158,11,0.1)' } as React.CSSProperties}><AlertCircle size={16} /></div>
+        <div
+          className="pp-stat-card-enhanced"
+          style={{ '--stat-accent': 'var(--pp-warning-fg)' } as React.CSSProperties}
+        >
+          <div
+            className="pp-stat-icon"
+            style={
+              {
+                '--stat-icon-color': 'var(--pp-warning-fg)',
+                '--stat-icon-bg': 'rgba(245,158,11,0.1)',
+              } as React.CSSProperties
+            }
+          >
+            <AlertCircle size={16} />
+          </div>
           <div className="pp-stat-label">Low Stock Alerts</div>
-          <div className={`pp-stat-value ${lowStockCount > 0 ? 'is-warning' : ''}`}>{lowStockCount}</div>
+          <div className={`pp-stat-value ${lowStockCount > 0 ? 'is-warning' : ''}`}>
+            {lowStockCount}
+          </div>
         </div>
-        <div className="pp-stat-card-enhanced" style={{ '--stat-accent': 'var(--pp-danger-fg)' } as React.CSSProperties}>
-          <div className="pp-stat-icon" style={{ '--stat-icon-color': 'var(--pp-danger-fg)', '--stat-icon-bg': 'rgba(220,38,38,0.08)' } as React.CSSProperties}><Trash2 size={16} /></div>
+        <div
+          className="pp-stat-card-enhanced"
+          style={{ '--stat-accent': 'var(--pp-danger-fg)' } as React.CSSProperties}
+        >
+          <div
+            className="pp-stat-icon"
+            style={
+              {
+                '--stat-icon-color': 'var(--pp-danger-fg)',
+                '--stat-icon-bg': 'rgba(220,38,38,0.08)',
+              } as React.CSSProperties
+            }
+          >
+            <Trash2 size={16} />
+          </div>
           <div className="pp-stat-label">Depleted Stock</div>
-          <div className={`pp-stat-value ${outOfStockCount > 0 ? 'is-danger' : ''}`}>{outOfStockCount}</div>
+          <div className={`pp-stat-value ${outOfStockCount > 0 ? 'is-danger' : ''}`}>
+            {outOfStockCount}
+          </div>
         </div>
       </div>
 
@@ -163,7 +228,9 @@ export default function MedicinesPage() {
           />
         </div>
         {search && (
-          <button onClick={() => setSearch('')} className="btn-secondary">Reset</button>
+          <button onClick={() => setSearch('')} className="btn-secondary">
+            Reset
+          </button>
         )}
       </div>
 
@@ -171,114 +238,149 @@ export default function MedicinesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={6} />
         ) : filtered.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Pill}
-            title={search ? "No medicine matches your search" : "Medicine catalog is empty"}
-            description={search ? `No remedies matching "${search}" were found in your dispensary.` : "Start building your clinical pharmacy by adding your first medicine."}
-            actionLabel={search ? "Clear Search" : "Register Remedy"}
+            title={search ? 'No medicine matches your search' : 'Medicine catalog is empty'}
+            description={
+              search
+                ? `No remedies matching "${search}" were found in your dispensary.`
+                : 'Start building your clinical pharmacy by adding your first medicine.'
+            }
+            actionLabel={search ? 'Clear Search' : 'Register Remedy'}
             onAction={search ? () => setSearch('') : handleOpenCreate}
             variant="card"
             className="my-8"
           />
         ) : (
           <>
-          <div className="pp-table-container-enhanced">
-            <table className="pp-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '60px', paddingLeft: '20px' }}>#</th>
-                  <th>Remedy & Indication</th>
-                  <th style={{ width: '200px' }}>Categorization</th>
-                  <th style={{ width: '160px' }}>Stock Status</th>
-                  <th style={{ width: '130px' }}>Unit Price</th>
-                  <th style={{ width: '120px', textAlign: 'right', paddingRight: '20px' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((med: Medicine, idx: number) => {
-                  const potencyName = potencies.find((p: any) => p.id === Number(med.potencyId))?.name || '—';
-                  const stock = med.stockLevel || 0;
-                  const isOutOfStock = stock === 0;
-                  const isLowStock = stock > 0 && stock < 10;
+            <div className="pp-table-container-enhanced">
+              <table className="pp-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px', paddingLeft: '20px' }}>#</th>
+                    <th>Remedy & Indication</th>
+                    <th style={{ width: '200px' }}>Categorization</th>
+                    <th style={{ width: '160px' }}>Stock Status</th>
+                    <th style={{ width: '130px' }}>Unit Price</th>
+                    <th style={{ width: '120px', textAlign: 'right', paddingRight: '20px' }}>
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedData.map((med: Medicine, idx: number) => {
+                    const potencyName =
+                      potencies.find((p: any) => p.id === Number(med.potencyId))?.name || '—';
+                    const stock = med.stockLevel || 0;
+                    const isOutOfStock = stock === 0;
+                    const isLowStock = stock > 0 && stock < 10;
 
-                  return (
-                    <tr key={med.id} className="plat-table-row hover-row-premium">
-                      <td data-label="#" style={{ paddingLeft: '20px' }} className="color-muted font-mono text-[10px]">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                      <td data-label="Remedy & Indication" className="plat-table-cell">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div className="med-avatar-icon" style={{ width: '32px', height: '32px', fontSize: '13px' }}>
-                            {med.name?.[0]?.toUpperCase() || 'M'}
-                          </div>
-                          <div>
-                            <div className="font-bold text-[14px] color-main">{med.name}</div>
-                            <div className="text-[10px] color-muted mt-0.5 flex items-center gap-1.5 font-medium">
-                              <Info size={10} className="opacity-50" /> {med.disease || 'General Medical Remedy'}
+                    return (
+                      <tr key={med.id} className="plat-table-row hover-row-premium">
+                        <td
+                          data-label="#"
+                          style={{ paddingLeft: '20px' }}
+                          className="color-muted font-mono text-[10px]"
+                        >
+                          {(currentPage - 1) * itemsPerPage + idx + 1}
+                        </td>
+                        <td data-label="Remedy & Indication" className="plat-table-cell">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div
+                              className="med-avatar-icon"
+                              style={{ width: '32px', height: '32px', fontSize: '13px' }}
+                            >
+                              {med.name?.[0]?.toUpperCase() || 'M'}
                             </div>
-                            {med.snomedLabel && (
-                              <div className="med-snomed-tag">
-                                {med.snomedLabel}
+                            <div>
+                              <div className="font-bold text-[14px] color-main">{med.name}</div>
+                              <div className="text-[10px] color-muted mt-0.5 flex items-center gap-1.5 font-medium">
+                                <Info size={10} className="opacity-50" />{' '}
+                                {med.disease || 'General Medical Remedy'}
                               </div>
+                              {med.snomedLabel && (
+                                <div className="med-snomed-tag">{med.snomedLabel}</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td data-label="Categorization" className="plat-table-cell">
+                          <div className="flex flex-wrap gap-1">
+                            {med.category && (
+                              <span className="med-pill-badge category">{med.category}</span>
+                            )}
+                            {med.type && <span className="med-pill-badge type">{med.type}</span>}
+                            <span className="med-pill-badge potency">{potencyName}</span>
+                          </div>
+                        </td>
+                        <td data-label="Stock Status" className="plat-table-cell">
+                          <div
+                            className={`med-stock-wrap ${isOutOfStock ? 'depleted' : isLowStock ? 'low' : 'ok'}`}
+                            style={{ fontSize: '12px' }}
+                          >
+                            <Package size={12} />
+                            <span>{stock} Units</span>
+                          </div>
+                          <div className="mt-1">
+                            {isOutOfStock ? (
+                              <span className="med-status-tag status-danger">Depleted</span>
+                            ) : isLowStock ? (
+                              <span className="med-status-tag status-warning">Low Inventory</span>
+                            ) : (
+                              <span className="med-status-tag status-success">Optimal</span>
                             )}
                           </div>
-                        </div>
-                      </td>
-                      <td data-label="Categorization" className="plat-table-cell">
-                        <div className="flex flex-wrap gap-1">
-                          {med.category && <span className="med-pill-badge category">{med.category}</span>}
-                          {med.type && <span className="med-pill-badge type">{med.type}</span>}
-                          <span className="med-pill-badge potency">{potencyName}</span>
-                        </div>
-                      </td>
-                      <td data-label="Stock Status" className="plat-table-cell">
-                        <div className={`med-stock-wrap ${isOutOfStock ? 'depleted' : isLowStock ? 'low' : 'ok'}`} style={{ fontSize: '12px' }}>
-                          <Package size={12} />
-                          <span>{stock} Units</span>
-                        </div>
-                        <div className="mt-1">
-                          {isOutOfStock ? (
-                            <span className="med-status-tag status-danger">Depleted</span>
-                          ) : isLowStock ? (
-                            <span className="med-status-tag status-warning">Low Inventory</span>
-                          ) : (
-                            <span className="med-status-tag status-success">Optimal</span>
-                          )}
-                        </div>
-                      </td>
-                      <td data-label="Unit Price" className="plat-table-cell">
-                        <div className="med-price-tag" style={{ fontSize: '14px' }}>
-                          <IndianRupee size={11} /> {med.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
-                        </div>
-                      </td>
-                      <td data-label="Action" style={{ textAlign: 'right', paddingRight: '20px' }}>
-                        <div className="med-action-cluster">
-                          <button className="med-btn-icon edit" onClick={() => handleOpenEdit(med)} title="Edit Medicine" style={{ width: '30px', height: '30px' }}>
-                            <Edit2 size={13} />
-                          </button>
-                          <button className="med-btn-icon remove" onClick={() => handleDelete(med.id, med.name)} title="Remove from Catalog" style={{ width: '30px', height: '30px' }}>
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td data-label="Unit Price" className="plat-table-cell">
+                          <div className="med-price-tag" style={{ fontSize: '14px' }}>
+                            <IndianRupee size={11} />{' '}
+                            {med.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) ||
+                              '0.00'}
+                          </div>
+                        </td>
+                        <td
+                          data-label="Action"
+                          style={{ textAlign: 'right', paddingRight: '20px' }}
+                        >
+                          <div className="med-action-cluster">
+                            <button
+                              className="med-btn-icon edit"
+                              onClick={() => handleOpenEdit(med)}
+                              title="Edit Medicine"
+                              style={{ width: '30px', height: '30px' }}
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              className="med-btn-icon remove"
+                              onClick={() => handleDelete(med.id, med.name)}
+                              title="Remove from Catalog"
+                              style={{ width: '30px', height: '30px' }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-              totalItems={totalItems}
-              itemsPerPage={itemsPerPage}
-              currentPage={currentPage}
-              onPageChange={setCurrentPage}
-              onLimitChange={setItemsPerPage}
-            />
-          </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
-      
+
       <Drawer
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -289,14 +391,16 @@ export default function MedicinesPage() {
           <div className="plat-modal-body" style={{ padding: '4px' }}>
             <div className="med-form-card">
               <div className="med-form-group">
-                <label className="med-label">Clinical Remedy Name <span className="required-dot"></span></label>
+                <label className="med-label">
+                  Clinical Remedy Name <span className="required-dot"></span>
+                </label>
                 <div className="med-input-wrap">
                   <Pill size={16} className="med-input-icon-left" />
                   <input
                     className="med-input"
                     required
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="e.g. Arsenicum Album"
                   />
                 </div>
@@ -307,17 +411,28 @@ export default function MedicinesPage() {
                 <CodeAutocomplete
                   type="snomed"
                   placeholder="Search standard clinical codes..."
-                  value={form.snomedCodeId ? { id: form.snomedCodeId, term: medicines.find(m => m.snomedCodeId === form.snomedCodeId)?.snomedLabel || '' } as any : null}
+                  value={
+                    form.snomedCodeId
+                      ? ({
+                          id: form.snomedCodeId,
+                          term:
+                            medicines.find((m) => m.snomedCodeId === form.snomedCodeId)
+                              ?.snomedLabel || '',
+                        } as any)
+                      : null
+                  }
                   onSelect={(code) => {
                     const snomed = code as SnomedConceptResult;
-                    setForm(f => ({ 
-                      ...f, 
+                    setForm((f) => ({
+                      ...f,
                       snomedCodeId: snomed ? Number(snomed.id) : null,
-                      name: f.name || (snomed ? snomed.term : '')
+                      name: f.name || (snomed ? snomed.term : ''),
                     }));
                   }}
                 />
-                <p className="med-input-hint">Ensures data interoperability for AI-driven clinical research.</p>
+                <p className="med-input-hint">
+                  Ensures data interoperability for AI-driven clinical research.
+                </p>
               </div>
 
               <div className="med-form-group">
@@ -327,7 +442,7 @@ export default function MedicinesPage() {
                   <input
                     className="med-input"
                     value={form.disease}
-                    onChange={e => setForm(f => ({ ...f, disease: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, disease: e.target.value }))}
                     placeholder="e.g. Chronic Cough, Anxiety"
                   />
                 </div>
@@ -340,11 +455,13 @@ export default function MedicinesPage() {
                 <select
                   className="med-select"
                   value={form.potencyId}
-                  onChange={e => setForm(f => ({ ...f, potencyId: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, potencyId: e.target.value }))}
                 >
                   <option value="">Select</option>
                   {potencies.map((p: any) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -353,7 +470,7 @@ export default function MedicinesPage() {
                 <select
                   className="med-select"
                   value={form.category}
-                  onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                 >
                   <option value="">Select</option>
                   <option value="Dilution">Dilution</option>
@@ -374,7 +491,7 @@ export default function MedicinesPage() {
                     type="number"
                     className="med-input"
                     value={form.price}
-                    onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))}
+                    onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
                     style={{ paddingLeft: '32px' }}
                   />
                 </div>
@@ -387,7 +504,7 @@ export default function MedicinesPage() {
                     type="number"
                     className="med-input"
                     value={form.stockLevel}
-                    onChange={e => setForm(f => ({ ...f, stockLevel: Number(e.target.value) }))}
+                    onChange={(e) => setForm((f) => ({ ...f, stockLevel: Number(e.target.value) }))}
                   />
                 </div>
               </div>
@@ -395,8 +512,14 @@ export default function MedicinesPage() {
           </div>
 
           <div className="med-drawer-footer">
-            <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Discard</button>
-            <button type="submit" className="plat-btn-primary med-submit-btn" disabled={createMed.isPending || updateMed.isPending}>
+            <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+              Discard
+            </button>
+            <button
+              type="submit"
+              className="plat-btn-primary med-submit-btn"
+              disabled={createMed.isPending || updateMed.isPending}
+            >
               {editingId ? 'Update Remedy' : 'Register Remedy'}
             </button>
           </div>

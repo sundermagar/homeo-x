@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { PlusCircle, X, RefreshCw, Trash2, Edit2, Search, Calendar } from 'lucide-react';
-import { useDayCharges, useCreateDayCharge, useUpdateDayCharge, useDeleteDayCharge } from '../hooks/use-accounts';
+import {
+  useDayCharges,
+  useCreateDayCharge,
+  useUpdateDayCharge,
+  useDeleteDayCharge,
+} from '../hooks/use-accounts';
 import type { DayCharge } from '@mmc/types';
 import type { CreateDayChargeInput } from '@mmc/validation';
 import { Drawer } from '@/shared/components/drawer';
@@ -26,8 +31,8 @@ export default function DayChargesPage() {
 
   const [page, setPage] = useState(1);
 
-  const filtered = charges.filter(c =>
-    !search || (c.days ?? '').toLowerCase().includes(search.toLowerCase())
+  const filtered = charges.filter(
+    (c) => !search || (c.days ?? '').toLowerCase().includes(search.toLowerCase()),
   );
 
   const paginated = filtered.slice((page - 1) * 10, page * 10);
@@ -99,7 +104,12 @@ export default function DayChargesPage() {
       <div className="plat-filters">
         <div className="plat-search-wrap">
           <Search size={16} className="plat-search-icon" />
-          <input className="plat-filter-input plat-search-input" placeholder="Search by days..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input
+            className="plat-filter-input plat-search-input"
+            placeholder="Search by days..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
 
@@ -107,11 +117,15 @@ export default function DayChargesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : filtered.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Calendar}
-            title={search ? "No matches found" : "No day charges configured"}
-            description={search ? `No duration-based plans matching "${search}" were found.` : "Start configuring your clinical treatment pricing by adding your first day charge plan."}
-            actionLabel={search ? "Clear Search" : "Add Day Charge"}
+            title={search ? 'No matches found' : 'No day charges configured'}
+            description={
+              search
+                ? `No duration-based plans matching "${search}" were found.`
+                : 'Start configuring your clinical treatment pricing by adding your first day charge plan.'
+            }
+            actionLabel={search ? 'Clear Search' : 'Add Day Charge'}
             onAction={search ? () => setSearch('') : handleOpenCreate}
             variant="card"
             className="my-8"
@@ -128,7 +142,7 @@ export default function DayChargesPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginated.map(c => (
+                {paginated.map((c) => (
                   <tr key={c.id}>
                     <td data-label="ID" style={{ fontFamily: 'var(--pp-font-mono)' }}>
                       <div>#{c.id}</div>
@@ -136,16 +150,30 @@ export default function DayChargesPage() {
                     <td data-label="Days" style={{ fontWeight: 500 }}>
                       <div>{c.days}</div>
                     </td>
-                    <td data-label="Charges" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>
-                      <div className="plat-cell-val">₹{(c.regularCharges ?? 0).toLocaleString()}</div>
+                    <td
+                      data-label="Charges"
+                      style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}
+                    >
+                      <div className="plat-cell-val">
+                        ₹{(c.regularCharges ?? 0).toLocaleString()}
+                      </div>
                     </td>
                     <td data-label="Actions">
                       <div className="plat-cell-val">
                         <div className="flex justify-end gap-3" style={{ width: '100%' }}>
-                          <button className="plat-btn plat-btn-sm plat-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(c)}>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon"
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                            onClick={() => handleOpenEdit(c)}
+                          >
                             <Edit2 size={13} />
                           </button>
-                          <button type="button" className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={(e) => handleDelete(e, c.id)}>
+                          <button
+                            type="button"
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                            onClick={(e) => handleDelete(e, c.id)}
+                          >
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -175,14 +203,36 @@ export default function DayChargesPage() {
       >
         <form onSubmit={handleSubmit} className="bill-form">
           <div className="bill-form-group">
-            <label className="bill-form-label">Duration (Days) <span className="plat-form-required">*</span></label>
-            <input className="bill-form-input" value={form.days} onChange={e => setForm(f => ({ ...f, days: e.target.value }))} required placeholder="e.g. 1 day, 5 days, 2 weeks" />
+            <label className="bill-form-label">
+              Duration (Days) <span className="plat-form-required">*</span>
+            </label>
+            <input
+              className="bill-form-input"
+              value={form.days}
+              onChange={(e) => setForm((f) => ({ ...f, days: e.target.value }))}
+              required
+              placeholder="e.g. 1 day, 5 days, 2 weeks"
+            />
           </div>
           <div className="bill-form-group">
-            <label className="bill-form-label">Charges (₹) <span className="plat-form-required">*</span></label>
-            <input className="bill-form-input" type="number" min={0} value={form.regularCharges} onChange={e => setForm(f => ({ ...f, regularCharges: Number(e.target.value) }))} required />
+            <label className="bill-form-label">
+              Charges (₹) <span className="plat-form-required">*</span>
+            </label>
+            <input
+              className="bill-form-input"
+              type="number"
+              min={0}
+              value={form.regularCharges}
+              onChange={(e) => setForm((f) => ({ ...f, regularCharges: Number(e.target.value) }))}
+              required
+            />
           </div>
-          <button type="submit" className="bill-btn bill-btn-primary" style={{ marginTop: 24, width: '100%', height: 44 }} disabled={createCharge.isPending || updateCharge.isPending}>
+          <button
+            type="submit"
+            className="bill-btn bill-btn-primary"
+            style={{ marginTop: 24, width: '100%', height: 44 }}
+            disabled={createCharge.isPending || updateCharge.isPending}
+          >
             {editingId ? 'Save Changes' : 'Create'}
           </button>
         </form>
@@ -199,15 +249,21 @@ export default function DayChargesPage() {
               </p>
             </div>
             <div className="plat-modal-footer">
-              <button type="button" className="plat-btn" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
-              <button type="button" className="plat-btn plat-btn-danger" onClick={confirmDelete} disabled={deleteCharge.isPending}>
+              <button type="button" className="plat-btn" onClick={() => setDeleteConfirmId(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="plat-btn plat-btn-danger"
+                onClick={confirmDelete}
+                disabled={deleteCharge.isPending}
+              >
                 {deleteCharge.isPending ? 'Deleting...' : 'Delete Permanently'}
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

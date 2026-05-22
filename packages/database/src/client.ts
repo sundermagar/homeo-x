@@ -72,13 +72,13 @@ export async function warmDbPools(): Promise<void> {
   if (rawClients.length === 0) return;
   // Two SELECT 1's per pool establishes a couple of live connections.
   await Promise.all(
-    rawClients.flatMap(sql => [sql`SELECT 1`.catch(() => { }), sql`SELECT 1`.catch(() => { })]),
+    rawClients.flatMap((sql) => [sql`SELECT 1`.catch(() => {}), sql`SELECT 1`.catch(() => {})]),
   );
 
   if (keepAliveTimer) return;
   keepAliveTimer = setInterval(() => {
     for (const sql of rawClients) {
-      sql`SELECT 1`.catch(() => { });
+      sql`SELECT 1`.catch(() => {});
     }
   }, 4 * 60_000);
   if (typeof keepAliveTimer.unref === 'function') keepAliveTimer.unref();
@@ -91,7 +91,7 @@ export async function warmDbPools(): Promise<void> {
  */
 export async function closeAllDbClients(): Promise<void> {
   if (keepAliveTimer) clearInterval(keepAliveTimer);
-  await Promise.all(rawClients.map(sql => sql.end()));
+  await Promise.all(rawClients.map((sql) => sql.end()));
   rawClients.length = 0;
   clients.clear();
 }

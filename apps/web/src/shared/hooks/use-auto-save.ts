@@ -20,25 +20,28 @@ export function useAutoSave<T>({ value, onSave, delay = 1000 }: UseAutoSaveProps
     valueRef.current = value;
   }, [value]);
 
-  const triggerSave = useCallback(async (currentValue: T) => {
-    // Don't save if value hasn't changed since last successful save
-    if (currentValue === lastSavedValue.current) {
-      return;
-    }
+  const triggerSave = useCallback(
+    async (currentValue: T) => {
+      // Don't save if value hasn't changed since last successful save
+      if (currentValue === lastSavedValue.current) {
+        return;
+      }
 
-    try {
-      setStatus('saving');
-      await onSave(currentValue);
-      lastSavedValue.current = currentValue;
-      setStatus('saved');
-      
-      // Reset back to idle after showing 'saved' for a bit
-      setTimeout(() => setStatus('idle'), 2000);
-    } catch (err) {
-      console.error('Auto-save failed:', err);
-      setStatus('error');
-    }
-  }, [onSave]);
+      try {
+        setStatus('saving');
+        await onSave(currentValue);
+        lastSavedValue.current = currentValue;
+        setStatus('saved');
+
+        // Reset back to idle after showing 'saved' for a bit
+        setTimeout(() => setStatus('idle'), 2000);
+      } catch (err) {
+        console.error('Auto-save failed:', err);
+        setStatus('error');
+      }
+    },
+    [onSave],
+  );
 
   useEffect(() => {
     // Skip initial mount save

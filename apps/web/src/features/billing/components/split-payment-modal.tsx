@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Plus, Trash2, IndianRupee, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -28,7 +40,7 @@ const PAYMENT_MODES = [
   'UPI',
   'Online',
   'Bank Transfer',
-  'Referral Bonus'
+  'Referral Bonus',
 ];
 
 export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
@@ -37,10 +49,10 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
   totalDue,
   onConfirm,
   patientName,
-  regid
+  regid,
 }) => {
   const [payments, setPayments] = useState<SplitPayment[]>([
-    { amount: totalDue > 0 ? totalDue : 0, paymentMode: 'Cash' }
+    { amount: totalDue > 0 ? totalDue : 0, paymentMode: 'Cash' },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,9 +79,9 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
   const handleConfirm = async () => {
     if (totalEntered <= 0) {
       toast({
-        title: "Invalid Amount",
-        description: "Please enter a total amount greater than 0.",
-        variant: "error"
+        title: 'Invalid Amount',
+        description: 'Please enter a total amount greater than 0.',
+        variant: 'error',
       });
       return;
     }
@@ -81,9 +93,9 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
     } catch (error) {
       console.error('Payment failed:', error);
       toast({
-        title: "Payment Failed",
-        description: "There was an error recording the payment.",
-        variant: "error"
+        title: 'Payment Failed',
+        description: 'There was an error recording the payment.',
+        variant: 'error',
       });
     } finally {
       setIsSubmitting(false);
@@ -100,7 +112,8 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
           </DialogTitle>
           {patientName && (
             <p className="text-sm text-gray-500">
-              Patient: <span className="font-semibold text-gray-900">{patientName}</span> (RegID: {regid})
+              Patient: <span className="font-semibold text-gray-900">{patientName}</span> (RegID:{' '}
+              {regid})
             </p>
           )}
         </DialogHeader>
@@ -113,7 +126,9 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-500 uppercase font-bold">Remaining</p>
-              <p className={`text-xl font-black ${remaining > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <p
+                className={`text-xl font-black ${remaining > 0 ? 'text-red-600' : 'text-green-600'}`}
+              >
                 ₹{remaining.toLocaleString()}
               </p>
             </div>
@@ -121,7 +136,10 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
 
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
             {payments.map((payment, index) => (
-              <div key={index} className="flex items-end gap-3 p-3 bg-white border rounded-xl shadow-sm group">
+              <div
+                key={index}
+                className="flex items-end gap-3 p-3 bg-white border rounded-xl shadow-sm group"
+              >
                 <div className="flex-1 space-y-2">
                   <Label className="text-xs">Payment Mode</Label>
                   <Select
@@ -132,8 +150,10 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
                       <SelectValue placeholder="Select Mode" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PAYMENT_MODES.map(mode => (
-                        <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+                      {PAYMENT_MODES.map((mode) => (
+                        <SelectItem key={mode} value={mode}>
+                          {mode}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -144,7 +164,9 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
                   <Input
                     type="number"
                     value={payment.amount || ''}
-                    onChange={(e) => updatePayment(index, 'amount', parseFloat(e.target.value) || 0)}
+                    onChange={(e) =>
+                      updatePayment(index, 'amount', parseFloat(e.target.value) || 0)
+                    }
                     className="h-9 font-medium"
                     placeholder="0.00"
                   />
@@ -186,7 +208,7 @@ export const SplitPaymentModal: React.FC<SplitPaymentModalProps> = ({
           <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button 
+          <Button
             className="bg-green-600 hover:bg-green-700 text-white font-bold"
             onClick={handleConfirm}
             disabled={isSubmitting}

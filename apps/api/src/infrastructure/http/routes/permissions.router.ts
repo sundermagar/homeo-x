@@ -51,7 +51,9 @@ permissionsRouter.put('/:id', async (req: Request, res: Response) => {
     const [updated] = await req.tenantDb
       .update(schema.permissions)
       .set({ name, description: description || '', module: module || 'CORE' })
-      .where(and(eq(schema.permissions.id, Number(req.params.id)), isNull(schema.permissions.deletedAt)))
+      .where(
+        and(eq(schema.permissions.id, Number(req.params.id)), isNull(schema.permissions.deletedAt)),
+      )
       .returning();
 
     if (!updated) return sendError(res, 'Permission not found', 404);
@@ -67,7 +69,9 @@ permissionsRouter.delete('/:id', async (req: Request, res: Response) => {
     await req.tenantDb
       .update(schema.permissions)
       .set({ deletedAt: new Date() })
-      .where(and(eq(schema.permissions.id, Number(req.params.id)), isNull(schema.permissions.deletedAt)));
+      .where(
+        and(eq(schema.permissions.id, Number(req.params.id)), isNull(schema.permissions.deletedAt)),
+      );
 
     // Remove all role mappings
     await req.tenantDb

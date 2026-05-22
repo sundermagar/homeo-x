@@ -39,19 +39,31 @@ const WhatsAppIcon = ({ size = 14, ...props }: { size?: number; [key: string]: a
 /** Map notification types to icons and colors */
 function getTypeIcon(type: NotificationType) {
   switch (type) {
-    case 'APPOINTMENT_REMINDER': return { Icon: Calendar, color: 'notif-icon-blue' };
-    case 'APPOINTMENT_CANCELLED': return { Icon: CalendarX, color: 'notif-icon-red' };
-    case 'QUEUE_CALLED': return { Icon: Users, color: 'notif-icon-green' };
-    case 'VISIT_COMPLETED': return { Icon: ClipboardCheck, color: 'notif-icon-emerald' };
-    case 'PRESCRIPTION_READY': return { Icon: Pill, color: 'notif-icon-purple' };
-    case 'INVOICE_GENERATED': return { Icon: FileText, color: 'notif-icon-orange' };
-    case 'PAYMENT_RECEIVED': return { Icon: CreditCard, color: 'notif-icon-green' };
-    case 'LAB_RESULT_READY': return { Icon: FlaskConical, color: 'notif-icon-cyan' };
-    case 'WAITLIST_OFFER': return { Icon: Clock, color: 'notif-icon-yellow' };
-    case 'SYSTEM': return { Icon: Info, color: 'notif-icon-gray' };
-    case 'WHATSAPP': return { Icon: WhatsAppIcon, color: 'notif-icon-whatsapp' };
+    case 'APPOINTMENT_REMINDER':
+      return { Icon: Calendar, color: 'notif-icon-blue' };
+    case 'APPOINTMENT_CANCELLED':
+      return { Icon: CalendarX, color: 'notif-icon-red' };
+    case 'QUEUE_CALLED':
+      return { Icon: Users, color: 'notif-icon-green' };
+    case 'VISIT_COMPLETED':
+      return { Icon: ClipboardCheck, color: 'notif-icon-emerald' };
+    case 'PRESCRIPTION_READY':
+      return { Icon: Pill, color: 'notif-icon-purple' };
+    case 'INVOICE_GENERATED':
+      return { Icon: FileText, color: 'notif-icon-orange' };
+    case 'PAYMENT_RECEIVED':
+      return { Icon: CreditCard, color: 'notif-icon-green' };
+    case 'LAB_RESULT_READY':
+      return { Icon: FlaskConical, color: 'notif-icon-cyan' };
+    case 'WAITLIST_OFFER':
+      return { Icon: Clock, color: 'notif-icon-yellow' };
+    case 'SYSTEM':
+      return { Icon: Info, color: 'notif-icon-gray' };
+    case 'WHATSAPP':
+      return { Icon: WhatsAppIcon, color: 'notif-icon-whatsapp' };
     case 'GENERAL':
-    default: return { Icon: MessageSquare, color: 'notif-icon-gray' };
+    default:
+      return { Icon: MessageSquare, color: 'notif-icon-gray' };
   }
 }
 
@@ -71,22 +83,38 @@ export function NotificationBell() {
 
   const handleNotificationClick = async (id: string | number, isRead: boolean) => {
     if (!isRead) {
-      try { await markAsRead.mutateAsync(id); } catch { /* silent */ }
+      try {
+        await markAsRead.mutateAsync(id);
+      } catch {
+        /* silent */
+      }
     }
   };
 
   const handleMarkAllAsRead = async () => {
-    try { await markAllAsRead.mutateAsync(); } catch { /* silent */ }
+    try {
+      await markAllAsRead.mutateAsync();
+    } catch {
+      /* silent */
+    }
   };
 
   const handleDeleteAll = async () => {
     if (!window.confirm('Are you sure you want to delete all notifications?')) return;
-    try { await deleteAllNotifications.mutateAsync(); } catch { /* silent */ }
+    try {
+      await deleteAllNotifications.mutateAsync();
+    } catch {
+      /* silent */
+    }
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string | number) => {
     e.stopPropagation();
-    try { await deleteNotification.mutateAsync(id); } catch { /* silent */ }
+    try {
+      await deleteNotification.mutateAsync(id);
+    } catch {
+      /* silent */
+    }
   };
 
   return (
@@ -99,9 +127,7 @@ export function NotificationBell() {
       >
         <Bell size={18} />
         {unreadCount > 0 && (
-          <span className="notif-badge">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
+          <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
         )}
       </button>
 
@@ -123,7 +149,11 @@ export function NotificationBell() {
                   </button>
                 )}
                 {notifications.length > 0 && (
-                  <button className="notif-mark-all-btn notif-delete-all-btn" onClick={handleDeleteAll} style={{ color: 'var(--pp-danger-fg)' }}>
+                  <button
+                    className="notif-mark-all-btn notif-delete-all-btn"
+                    onClick={handleDeleteAll}
+                    style={{ color: 'var(--pp-danger-fg)' }}
+                  >
                     <Trash2 size={13} />
                     Delete all
                   </button>
@@ -164,7 +194,9 @@ export function NotificationBell() {
                       {/* Content */}
                       <div className="notif-item-body">
                         <div className="notif-item-top">
-                          <p className={`notif-item-title${!notification.isRead ? ' notif-item-title--bold' : ''}`}>
+                          <p
+                            className={`notif-item-title${!notification.isRead ? ' notif-item-title--bold' : ''}`}
+                          >
                             {notification.title}
                           </p>
                           {!notification.isRead && <span className="notif-unread-dot" />}

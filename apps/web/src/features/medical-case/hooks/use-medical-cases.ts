@@ -6,10 +6,25 @@ export function useFullMedicalCase(regid: number) {
   return useQuery({
     queryKey: ['medical-case', 'full', regid],
     queryFn: async () => {
-      const res = await api.get<{ success: boolean; data: any }>(`/medical-cases/patient/${regid}/full`);
+      const res = await api.get<{ success: boolean; data: any }>(
+        `/medical-cases/patient/${regid}/full`,
+      );
       return res.data.data;
     },
     enabled: !!regid,
+  });
+}
+
+export function useMyMedicalRecords() {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['medical-case', 'my-records'],
+    queryFn: async () => {
+      const res = await api.get<{ success: boolean; data: any }>(
+        '/medical-cases/my-records',
+      );
+      return res.data.data;
+    },
   });
 }
 
@@ -18,7 +33,9 @@ export function useMasterVaccines() {
   return useQuery({
     queryKey: ['vaccines', 'master'],
     queryFn: async () => {
-      const res = await api.get<{ success: boolean; data: any[] }>('/medical-cases/vaccines/master');
+      const res = await api.get<{ success: boolean; data: any[] }>(
+        '/medical-cases/vaccines/master',
+      );
       return res.data.data;
     },
   });
@@ -29,7 +46,9 @@ export function useExaminations(regid: number) {
   return useQuery({
     queryKey: ['medical-case', 'examinations', regid],
     queryFn: async () => {
-      const res = await api.get<{ success: boolean; data: any[] }>(`/medical-cases/examination/${regid}`);
+      const res = await api.get<{ success: boolean; data: any[] }>(
+        `/medical-cases/examination/${regid}`,
+      );
       return res.data.data;
     },
     enabled: !!regid,
@@ -41,7 +60,9 @@ export function usePackageHistory(regid: number) {
   return useQuery({
     queryKey: ['medical-case', 'packages', regid],
     queryFn: async () => {
-      const res = await api.get<{ success: boolean; data: any[] }>(`/medical-cases/packages/${regid}`);
+      const res = await api.get<{ success: boolean; data: any[] }>(
+        `/medical-cases/packages/${regid}`,
+      );
       return res.data.data;
     },
     enabled: !!regid,
@@ -53,7 +74,9 @@ export function useAdditionalCharges(regid: number) {
   return useQuery({
     queryKey: ['medical-case', 'additional-charges', regid],
     queryFn: async () => {
-      const res = await api.get<{ success: boolean; data: any[] }>(`/medical-cases/additional-charges/${regid}`);
+      const res = await api.get<{ success: boolean; data: any[] }>(
+        `/medical-cases/additional-charges/${regid}`,
+      );
       return res.data.data;
     },
     enabled: !!regid,
@@ -109,14 +132,19 @@ export function useManageClinicalRecords() {
   const saveInvestigation = useMutation({
     mutationFn: (data: any) => api.post('/medical-cases/records/investigations', data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', variables.regid] });
+      if (variables.regid) {
+        queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', variables.regid] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'my-records'] });
     },
   });
 
   const deleteRecord = useMutation({
-    mutationFn: ({ type, id }: { type: string; id: number }) => api.delete(`/medical-cases/records/${type}/${id}`),
+    mutationFn: ({ type, id }: { type: string; id: number }) =>
+      api.delete(`/medical-cases/records/${type}/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'my-records'] });
     },
   });
 
@@ -158,7 +186,9 @@ export function useManageClinicalRecords() {
   const saveExamination = useMutation({
     mutationFn: (data: any) => api.post('/medical-cases/records/examination', data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['medical-case', 'examinations', variables.regid] });
+      queryClient.invalidateQueries({
+        queryKey: ['medical-case', 'examinations', variables.regid],
+      });
     },
   });
 
@@ -172,7 +202,9 @@ export function useManageClinicalRecords() {
   const saveAdditionalCharge = useMutation({
     mutationFn: (data: any) => api.post('/medical-cases/additional-charges', data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['medical-case', 'additional-charges', variables.regid] });
+      queryClient.invalidateQueries({
+        queryKey: ['medical-case', 'additional-charges', variables.regid],
+      });
     },
   });
 
@@ -184,12 +216,16 @@ export function useManageClinicalRecords() {
   });
 
   const saveImage = useMutation({
-    mutationFn: (data: FormData) => api.post('/medical-cases/records/images', data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    mutationFn: (data: FormData) =>
+      api.post('/medical-cases/records/images', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }),
     onSuccess: (_, variables) => {
       const regid = (variables as any).get('regid');
-      queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', Number(regid)] });
+      if (regid) {
+        queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', Number(regid)] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'my-records'] });
     },
   });
 
@@ -197,9 +233,10 @@ export function useManageClinicalRecords() {
     mutationFn: (id: number) => api.delete(`/medical-cases/records/images/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medical-case', 'full'] });
+      queryClient.invalidateQueries({ queryKey: ['medical-case', 'my-records'] });
     },
   });
-  
+
   const updateImage = useMutation({
     mutationFn: ({ id, ...data }: any) => api.put(`/medical-cases/records/images/${id}`, data),
     onSuccess: () => {
@@ -246,7 +283,9 @@ export function useCommunicationLogs(regid: number) {
     queryKey: ['medical-case', 'communication', regid],
     queryFn: async () => {
       try {
-        const res = await api.get<{ success: boolean; data: any[] }>(`/medical-cases/${regid}/communication`);
+        const res = await api.get<{ success: boolean; data: any[] }>(
+          `/medical-cases/${regid}/communication`,
+        );
         return res.data.data;
       } catch {
         // Backend route may not exist yet — gracefully return empty
@@ -261,10 +300,12 @@ export function useSendWhatsApp() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { phone: string; message: string; regid: number }) => 
+    mutationFn: (data: { phone: string; message: string; regid: number }) =>
       api.post('/whatsapp/send-text', data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['medical-case', 'communication', variables.regid] });
+      queryClient.invalidateQueries({
+        queryKey: ['medical-case', 'communication', variables.regid],
+      });
     },
   });
 }

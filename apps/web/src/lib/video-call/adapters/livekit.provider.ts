@@ -1,11 +1,18 @@
 // @ts-nocheck
-import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack, createLocalVideoTrack, createLocalAudioTrack } from 'livekit-client';
+import {
+  Room,
+  RoomEvent,
+  LocalVideoTrack,
+  LocalAudioTrack,
+  createLocalVideoTrack,
+  createLocalAudioTrack,
+} from 'livekit-client';
 import { VideoProvider, VideoProviderCallbacks } from '../core/video-provider.interface';
 
 export class LiveKitProvider implements VideoProvider {
   private client: Room | null = null;
   private callbacks?: VideoProviderCallbacks;
-  
+
   private isConnected = false;
   private isMicOn = true;
   private isCameraOn = true;
@@ -19,7 +26,7 @@ export class LiveKitProvider implements VideoProvider {
   }
 
   init(config: any) {
-    console.log("LiveKit initialized", config);
+    console.log('LiveKit initialized', config);
     if (config.video !== undefined) this.isCameraOn = config.video;
     if (config.audio !== undefined) this.isMicOn = config.audio;
 
@@ -32,12 +39,12 @@ export class LiveKitProvider implements VideoProvider {
 
   private getMappedParticipants() {
     if (!this.client) return [];
-    
+
     // Map LiveKit RemoteParticipant to UI expected {uid, videoTrack, audioTrack}
-    return Array.from(this.client.remoteParticipants.values()).map(participant => {
+    return Array.from(this.client.remoteParticipants.values()).map((participant) => {
       const videoPub = Array.from(participant.videoTrackPublications.values())[0];
       const audioPub = Array.from(participant.audioTrackPublications.values())[0];
-      
+
       return {
         uid: participant.identity,
         videoTrack: videoPub?.track,
@@ -49,7 +56,7 @@ export class LiveKitProvider implements VideoProvider {
 
   private setupLiveKitEvents() {
     if (!this.client) return;
-    
+
     // Update UI whenever participants change
     const updateParticipants = () => {
       this.callbacks?.onRemoteUsersChanged?.(this.getMappedParticipants());
@@ -73,32 +80,32 @@ export class LiveKitProvider implements VideoProvider {
       if (!this.client) {
         this.init({});
       }
-      
-      console.log("Connecting to LiveKit Room...");
-      
+
+      console.log('Connecting to LiveKit Room...');
+
       // LiveKit uses WS URL (we passed livekitUrl inside channel from the backend mapping)
       // The backend sends `channel: this.livekitUrl`. It's passed as the first argument `_roomId` via DI mapping.
-      const wsUrl = _roomId || "ws://localhost:7880"; 
+      const wsUrl = _roomId || 'ws://localhost:7880';
       const token = credentials?.token;
 
-      if (!token) throw new Error("LiveKit token missing");
+      if (!token) throw new Error('LiveKit token missing');
 
       await this.client!.connect(wsUrl, token);
 
       // Start Video
       if (this.isCameraOn) {
-        console.log("[LiveKit] Creating local video track...");
+        console.log('[LiveKit] Creating local video track...');
         this.localVideoTrack = await createLocalVideoTrack();
-        console.log("[LiveKit] Publishing video track...");
+        console.log('[LiveKit] Publishing video track...');
         await this.client!.localParticipant.publishTrack(this.localVideoTrack);
         this.callbacks?.onLocalVideoTrack?.(this.localVideoTrack);
       }
-      
+
       // Start Audio
       if (this.isMicOn) {
-        console.log("[LiveKit] Creating local audio track...");
+        console.log('[LiveKit] Creating local audio track...');
         this.localAudioTrack = await createLocalAudioTrack();
-        console.log("[LiveKit] Publishing audio track...");
+        console.log('[LiveKit] Publishing audio track...');
         await this.client!.localParticipant.publishTrack(this.localAudioTrack);
         this.callbacks?.onLocalAudioTrack?.(this.localAudioTrack);
       }
@@ -106,7 +113,6 @@ export class LiveKitProvider implements VideoProvider {
       this.isConnected = true;
       this.callbacks?.onConnected?.(true);
       this.callbacks?.onRemoteUsersChanged?.(this.getMappedParticipants());
-
     } catch (err: any) {
       console.error('LiveKit join error:', err);
       this.callbacks?.onError?.(err?.message || 'Failed to join LiveKit room');
@@ -116,7 +122,7 @@ export class LiveKitProvider implements VideoProvider {
   }
 
   async leave() {
-    console.log("Leaving LiveKit");
+    console.log('Leaving LiveKit');
     if (!this.client) return;
 
     try {
@@ -130,13 +136,13 @@ export class LiveKitProvider implements VideoProvider {
       }
 
       await this.client.disconnect();
-      
+
       this.isConnected = false;
       this.callbacks?.onConnected?.(false);
       this.callbacks?.onLocalVideoTrack?.(null);
       this.callbacks?.onRemoteUsersChanged?.([]);
     } catch (err) {
-      console.error("LiveKit leave error:", err);
+      console.error('LiveKit leave error:', err);
     }
   }
 
@@ -190,4 +196,3 @@ export class LiveKitProvider implements VideoProvider {
     }
   }
 }
-

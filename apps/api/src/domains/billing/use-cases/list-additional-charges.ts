@@ -1,5 +1,9 @@
 import type { AdditionalChargeRepository } from '../ports/accounts.repository.js';
-import type { CreateAdditionalChargeInput, UpdateAdditionalChargeInput, ListAdditionalChargesQuery } from '@mmc/validation';
+import type {
+  CreateAdditionalChargeInput,
+  UpdateAdditionalChargeInput,
+  ListAdditionalChargesQuery,
+} from '@mmc/validation';
 import type { AdditionalCharge, AdditionalChargeWithPatient } from '@mmc/types';
 
 export interface AdditionalChargeResult {
@@ -63,7 +67,8 @@ export class UpdateAdditionalChargeUseCase {
   async execute(id: number, input: UpdateAdditionalChargeInput): Promise<AdditionalChargeResult> {
     try {
       const updated = await this.repo.update(id, input);
-      if (!updated) return { success: false, error: 'Additional charge not found or already deleted' };
+      if (!updated)
+        return { success: false, error: 'Additional charge not found or already deleted' };
       return { success: true, data: updated };
     } catch (err) {
       return { success: false, error: (err as Error).message };

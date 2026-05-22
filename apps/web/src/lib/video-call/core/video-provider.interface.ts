@@ -19,4 +19,3 @@ export interface VideoProvider {
   setVideo(enabled: boolean): Promise<void> | void;
   setCallbacks?(callbacks: VideoProviderCallbacks): void;
 }
-

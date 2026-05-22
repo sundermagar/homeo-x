@@ -9,7 +9,11 @@ const logger = createLogger('NotificationsRepository');
 export class NotificationsRepositoryPg implements NotificationsRepository {
   constructor(private readonly db: DbClient) {}
 
-  async getNotifications(userId: number, limit: number, offset: number): Promise<{ notifications: Notification[], total: number }> {
+  async getNotifications(
+    userId: number,
+    limit: number,
+    offset: number,
+  ): Promise<{ notifications: Notification[]; total: number }> {
     try {
       const rows = await this.db.execute(sql`
         SELECT id, user_id, clinic_id, type, title, message, is_read, created_at
@@ -26,7 +30,7 @@ export class NotificationsRepositoryPg implements NotificationsRepository {
       `);
 
       return {
-        notifications: (rows as any[]).map(r => ({
+        notifications: (rows as any[]).map((r) => ({
           id: r.id,
           userId: r.user_id,
           clinicId: r.clinic_id,
@@ -34,7 +38,7 @@ export class NotificationsRepositoryPg implements NotificationsRepository {
           title: r.title,
           message: r.message,
           isRead: r.is_read,
-          createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
+          createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
         })),
         total: (countResult as any[])[0]?.count ?? 0,
       };
@@ -114,7 +118,13 @@ export class NotificationsRepositoryPg implements NotificationsRepository {
     }
   }
 
-  async createNotification(data: { userId: number, clinicId?: number, type: string, title: string, message: string }): Promise<number | undefined> {
+  async createNotification(data: {
+    userId: number;
+    clinicId?: number;
+    type: string;
+    title: string;
+    message: string;
+  }): Promise<number | undefined> {
     try {
       const result = await this.db.execute(sql`
         INSERT INTO notifications (user_id, clinic_id, type, title, message)
@@ -131,25 +141,32 @@ export class NotificationsRepositoryPg implements NotificationsRepository {
   async findUserIdsByRole(roles: string[], clinicId?: number): Promise<number[]> {
     if (roles.length === 0) return [];
     try {
-      const lowerRoles = roles.map(r => r.toLowerCase());
-      const rolesList = lowerRoles.map(r => `'${r.replace(/'/g, "''")}'`).join(', ');
-      const clinicCondition = (clinicId && clinicId !== 0)
-        ? `AND (context_id = ${clinicId} OR context_id IS NULL)`
-        : '';
-      const rows = await this.db.execute(sql.raw(`
+      const lowerRoles = roles.map((r) => r.toLowerCase());
+      const rolesList = lowerRoles.map((r) => `'${r.replace(/'/g, "''")}'`).join(', ');
+      const clinicCondition =
+        clinicId && clinicId !== 0 ? `AND (context_id = ${clinicId} OR context_id IS NULL)` : '';
+      const rows = await this.db.execute(
+        sql.raw(`
         SELECT id FROM users
         WHERE LOWER(type) IN (${rolesList})
           AND (deleted_at IS NULL OR deleted_at::text = '')
           ${clinicCondition}
-      `));
-      return (rows as any[]).map(r => r.id).filter((x): x is number => typeof x === 'number');
+      `),
+      );
+      return (rows as any[]).map((r) => r.id).filter((x): x is number => typeof x === 'number');
     } catch (err: any) {
       logger.error({ err: err.message }, `Failed to find users by role ${roles.join(',')}`);
       return [];
     }
   }
 
-  async getWaitlistContext(waitlistId: number): Promise<{ doctorId: number | null; patientName: string | null; bookingTime: string | null } | null> {
+  async getWaitlistContext(
+    waitlistId: number,
+  ): Promise<{
+    doctorId: number | null;
+    patientName: string | null;
+    bookingTime: string | null;
+  } | null> {
     try {
       const rows = await this.db.execute(sql`
         SELECT

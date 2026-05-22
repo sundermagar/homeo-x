@@ -39,7 +39,13 @@ export interface PatientRepository {
   removeFamilyMember(id: number): Promise<boolean>;
 
   // Unregistered patients
-  createUnregistered(data: { name: string; phone?: string; email?: string; gender?: string; clinicId?: number }): Promise<{ id: number; name: string }>;
+  createUnregistered(data: {
+    name: string;
+    phone?: string;
+    email?: string;
+    gender?: string;
+    clinicId?: number;
+  }): Promise<{ id: number; name: string }>;
   findUnregistered(params: { clinicId?: number; search?: string }): Promise<any[]>;
   linkUnregisteredToFormal(unregisteredId: number, formalId: number): Promise<void>;
 }

@@ -1,17 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Wallet, Building2, DollarSign, TrendingUp, TrendingDown,
-  Calendar, RefreshCw, Download, ArrowRight, PieChart
+  Wallet,
+  Building2,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  RefreshCw,
+  Download,
+  ArrowRight,
+  PieChart,
 } from 'lucide-react';
 import { useBalanceSummary, useDailyCollection } from '../hooks/use-billing';
 import '../styles/billing.css';
 
 export default function ViewBalancePage() {
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState(
-    () => new Date().toISOString().split('T')[0]
-  );
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const { data: collection } = useDailyCollection(selectedDate);
   const { data: balanceSummary } = useBalanceSummary(selectedDate);
@@ -47,7 +53,9 @@ export default function ViewBalancePage() {
             <Wallet size={24} />
             View Balance
           </h1>
-          <p className="billing-subtitle">Daily balance overview - Cash in hand and bank positions</p>
+          <p className="billing-subtitle">
+            Daily balance overview - Cash in hand and bank positions
+          </p>
         </div>
         <div className="billing-header-actions">
           <button className="billing-btn secondary">
@@ -84,9 +92,7 @@ export default function ViewBalancePage() {
             <DollarSign size={28} />
             <span className="balance-card-badge">Cash</span>
           </div>
-          <div className="balance-card-amount">
-            ₹{cashInHand.toLocaleString('en-IN')}
-          </div>
+          <div className="balance-card-amount">₹{cashInHand.toLocaleString('en-IN')}</div>
           <div className="balance-card-label">Cash in Hand</div>
           <div className="balance-card-breakdown">
             <span>Received: ₹{totalReceived.toLocaleString('en-IN')}</span>
@@ -99,9 +105,7 @@ export default function ViewBalancePage() {
             <Building2 size={28} />
             <span className="balance-card-badge">Bank</span>
           </div>
-          <div className="balance-card-amount">
-            ₹{bankBalance.toLocaleString('en-IN')}
-          </div>
+          <div className="balance-card-amount">₹{bankBalance.toLocaleString('en-IN')}</div>
           <div className="balance-card-label">Bank Deposits</div>
           <div className="balance-card-breakdown">
             <span>Total: ₹{totalReceived.toLocaleString('en-IN')}</span>
@@ -114,9 +118,7 @@ export default function ViewBalancePage() {
             <TrendingUp size={28} />
             <span className="balance-card-badge">Collection</span>
           </div>
-          <div className="balance-card-amount">
-            ₹{totalReceived.toLocaleString('en-IN')}
-          </div>
+          <div className="balance-card-amount">₹{totalReceived.toLocaleString('en-IN')}</div>
           <div className="balance-card-label">Total Collection</div>
           <div className="balance-card-breakdown">
             <span>Charges: ₹{totalCharges.toLocaleString('en-IN')}</span>
@@ -129,9 +131,7 @@ export default function ViewBalancePage() {
             <TrendingDown size={28} />
             <span className="balance-card-badge">Pending</span>
           </div>
-          <div className="balance-card-amount">
-            ₹{totalBalance.toLocaleString('en-IN')}
-          </div>
+          <div className="balance-card-amount">₹{totalBalance.toLocaleString('en-IN')}</div>
           <div className="balance-card-label">Balance Pending</div>
           <div className="balance-card-breakdown">
             <span>{collection?.recordCount || 0} transactions</span>
@@ -143,7 +143,12 @@ export default function ViewBalancePage() {
       <div className="balance-summary-section">
         <h3 className="section-title">
           <PieChart size={20} />
-          Balance Summary for {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
+          Balance Summary for{' '}
+          {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+          })}
         </h3>
 
         <div className="balance-summary-grid">
