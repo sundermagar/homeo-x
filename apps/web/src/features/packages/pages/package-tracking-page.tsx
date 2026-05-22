@@ -17,6 +17,11 @@ function getDaysLabel(days: number) {
   return `${days}d remaining`;
 }
 
+function formatStatus(status: string) {
+  if (status === 'ExpiringSoon') return 'Expiring Soon';
+  return status;
+}
+
 function getStatusBadgeClass(status: string) {
   if (status === 'Expired')       return 'expired';
   if (status === 'ExpiringSoon')  return 'expiring-soon';
@@ -256,7 +261,7 @@ export default function PackageTrackingPage() {
                       </td>
                       <td data-label="STATUS" className="pkg-status-cell">
                         <span className={`pkg-expiry-badge ${getStatusBadgeClass(r.status)}`}>
-                          {getStatusIcon(r.status)} {r.status}
+                          {getStatusIcon(r.status)} {formatStatus(r.status)}
                         </span>
                       </td>
                       <td data-label="ACTION" className="pkg-actions-cell">
@@ -336,7 +341,7 @@ export default function PackageTrackingPage() {
                 <label className="drawer-label">Current Status</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className={`pkg-expiry-badge ${getStatusBadgeClass(selectedRecord.status)}`} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
-                    {getStatusIcon(selectedRecord.status)} {selectedRecord.status}
+                    {getStatusIcon(selectedRecord.status)} {formatStatus(selectedRecord.status)}
                   </span>
                   <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--pp-text-3)' }}>
                     ({getDaysLabel(selectedRecord.daysRemaining)})
