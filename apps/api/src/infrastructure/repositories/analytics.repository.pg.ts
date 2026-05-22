@@ -320,15 +320,47 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
     const toStr = t.toISOString().split('T')[0];
     try {
       const res = await this.db.execute(sql`
-        SELECT COALESCE(p.reference, 'Direct') as reference, count(*)::int as count, sum(CAST(NULLIF(r.amount, '') AS numeric))::int as totalcollection
+        SELECT 
+          COALESCE(NULLIF(p.reference, ''), 'Direct') as reference, 
+          count(DISTINCT p.regid)::int as count, 
+          sum(b.received)::int as totalcollection
         FROM case_datas p
-        LEFT JOIN receipt r ON r.regid = p.regid AND (r.deleted_at IS NULL OR r.deleted_at::text = '') AND r.created_at::date BETWEEN ${fromStr} AND ${toStr}
-        WHERE p.created_at::date BETWEEN ${fromStr} AND ${toStr} AND (p.deleted_at IS NULL OR p.deleted_at::text = '')
+        LEFT JOIN bills b ON b.regid = p.regid 
+          AND (b.deleted_at IS NULL OR b.deleted_at::text = '') 
+        WHERE p.created_at::date BETWEEN ${fromStr} AND ${toStr} 
+          AND (p.deleted_at IS NULL OR p.deleted_at::text = '')
         ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
-        GROUP BY p.reference
+        GROUP BY COALESCE(NULLIF(p.reference, ''), 'Direct')
         ORDER BY count DESC
       `);
       return res as any as ReferenceListResult[];
+    } catch { return []; }
+  }
+
+  async getReferenceDetails(clinicId?: number, reference?: string, from?: Date, to?: Date): Promise<any[]> {
+    const f = from || new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const t = to || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+    const fromStr = f.toISOString().split('T')[0];
+    const toStr = t.toISOString().split('T')[0];
+    try {
+      const res = await this.db.execute(sql`
+        SELECT 
+          p.regid, 
+          b.created_at as date,
+          p.first_name, 
+          p.surname, 
+          b.payment_mode as payment_method, 
+          b.received as amount
+        FROM case_datas p
+        JOIN bills b ON b.regid = p.regid 
+          AND (b.deleted_at IS NULL OR b.deleted_at::text = '') 
+        WHERE p.created_at::date BETWEEN ${fromStr} AND ${toStr} 
+          AND (p.deleted_at IS NULL OR p.deleted_at::text = '')
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          AND COALESCE(NULLIF(p.reference, ''), 'Direct') = ${reference || 'Direct'}
+        ORDER BY b.created_at DESC
+      `);
+      return res as any[];
     } catch { return []; }
   }
 }

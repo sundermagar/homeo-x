@@ -67,6 +67,15 @@ export interface ReferenceListResult {
   totalcollection: number;
 }
 
+export interface ReferenceDetailResult {
+  regid: number;
+  date: string;
+  first_name: string;
+  surname: string;
+  payment_method: string;
+  amount: number;
+}
+
 export interface DashboardKpis {
   newPatientsCount: number;
   followUpsCount: number;
