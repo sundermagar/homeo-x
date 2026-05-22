@@ -302,6 +302,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             path: '/billing', label: 'Billing', icon: Receipt,
             children: [
               { path: '/billing', label: 'Bill List', icon: Receipt },
+              { path: '/billing/collection', label: 'View Collection', icon: DollarSign },
               { path: '/billing/additional-charges', label: 'Additional Charges', icon: Receipt },
               { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar },
               { path: '/billing/deposits', label: 'Deposits', icon: Building },
