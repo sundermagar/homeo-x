@@ -604,10 +604,50 @@ export default function MedicalCaseDetailPage() {
     }) || null;
   }, [followupNotes, displayDate, toClinicDateString]);
 
-  // Sync followUpNote with activeNote when activeNote changes
+  const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
+
+  const currentVisitSoaps = useMemo(() => {
+    const soap = fullData?.soap || [];
+    if (!displayDate || !soap.length) return [];
+    return filterByDate(soap, displayDate);
+  }, [displayDate, fullData?.soap, filterByDate]);
+
+  const currentVisitSoap = currentVisitSoaps[0] || null;
+
+  const currentVisitPrescriptions = useMemo(() => {
+    if (!displayDate) return [];
+    const fromHistory = prescriptionsHistory || [];
+    const fromFull = fullData?.prescriptions || [];
+    const all = [...fromHistory, ...fromFull];
+    return filterByDate(all, displayDate);
+  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, filterByDate]);
+
+  const currentVisitId = useMemo(() => {
+    // Attempt to extract visit ID from any clinical record on the currently viewed date
+    const rx = currentVisitPrescriptions?.[0];
+    const soap = currentVisitSoaps?.[0];
+
+    // Check various common field names for visit IDs
+    const idFromRx = rx ? (rx.visitId ?? rx.visit_id ?? rx.consultationId ?? rx.consultation_id) : null;
+    const idFromSoap = soap ? (soap.visitId ?? soap.visit_id) : null;
+
+    // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
+    return idFromRx ?? idFromSoap ?? medicalCase?.id;
+  }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
+
+  const lastEncounterDateRef = React.useRef<string | null>(null);
+  const lastSavedOrLoadedValueRef = React.useRef<string>('');
+
+  // Sync followUpNote with activeNote when activeNote changes, but only when switching encounter dates or when not dirty
   React.useEffect(() => {
-    setFollowUpNote(activeNote?.notes || '');
-  }, [activeNote]);
+    const dateStr = displayDate ? toClinicDateString(displayDate) : 'none';
+    const newNotes = activeNote?.notes || '';
+    if (lastEncounterDateRef.current !== dateStr || followUpNote === lastSavedOrLoadedValueRef.current) {
+      setFollowUpNote(newNotes);
+      lastSavedOrLoadedValueRef.current = newNotes;
+      lastEncounterDateRef.current = dateStr;
+    }
+  }, [activeNote, displayDate, toClinicDateString, followUpNote]);
 
 
   const appendNote = (text: string) => {
@@ -618,7 +658,7 @@ export default function MedicalCaseDetailPage() {
   };
 
   const handleSaveNote = React.useCallback(async (content: string) => {
-    if (!content.trim() || !currentVisitId) return;
+    if (!content.trim()) return;
     try {
       // Use displayDate for dateval so notes are linked to the viewed encounter
       const noteDate = displayDate ? displayDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
@@ -630,11 +670,12 @@ export default function MedicalCaseDetailPage() {
         notes: content.trim(),
         dateval: noteDate
       });
+      lastSavedOrLoadedValueRef.current = content;
     } catch (err) {
       console.error('Failed to save follow-up note', err);
       throw err;
     }
-  }, [regid, medicalCase?.id, activeNote?.id, saveNote, displayDate]);
+  }, [regid, activeNote?.id, saveNote, displayDate, currentVisitId]);
 
   const latestRx = useMemo(() => {
     const all = [...(prescriptionsHistory || []), ...(prescriptionsFromFull || [])];
@@ -779,36 +820,7 @@ export default function MedicalCaseDetailPage() {
     if (months > 0) return `${months} Month${months > 1 ? 's' : ''}`;
     return `${Math.max(days, 1)} Day${days > 1 ? 's' : ''}`;
   }, [medicalCase?.dateOfBirth, medicalCase?.dob]);
-  const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
 
-  const currentVisitSoaps = useMemo(() => {
-    const soap = fullData?.soap || [];
-    if (!displayDate || !soap.length) return [];
-    return filterByDate(soap, displayDate);
-  }, [displayDate, fullData?.soap, filterByDate]);
-
-  const currentVisitSoap = currentVisitSoaps[0] || null;
-
-  const currentVisitPrescriptions = useMemo(() => {
-    if (!displayDate) return [];
-    const fromHistory = prescriptionsHistory || [];
-    const fromFull = fullData?.prescriptions || [];
-    const all = [...fromHistory, ...fromFull];
-    return filterByDate(all, displayDate);
-  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, filterByDate]);
-
-  const currentVisitId = useMemo(() => {
-    // Attempt to extract visit ID from any clinical record on the currently viewed date
-    const rx = currentVisitPrescriptions?.[0];
-    const soap = currentVisitSoaps?.[0];
-
-    // Check various common field names for visit IDs
-    const idFromRx = rx ? (rx.visitId ?? rx.visit_id ?? rx.consultationId ?? rx.consultation_id) : null;
-    const idFromSoap = soap ? (soap.visitId ?? soap.visit_id) : null;
-
-    // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
-    return idFromRx ?? idFromSoap ?? medicalCase?.id;
-  }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
 
   // tabContent MUST be declared before any early returns (Rules of Hooks)
   const tabContent = useMemo(() => {
@@ -926,7 +938,9 @@ export default function MedicalCaseDetailPage() {
               title="Assign or view package"
             >
               {activePackage?.status === 'Active' ? <Award size={12} /> : <Clock size={12} />}
-              {activePackage?.packageName ? `${activePackage.packageName} (${activePackage.status})` : 'No active plan'}
+              {activePackage?.packageName 
+                ? `${activePackage.packageName} (${activePackage.status})${activePackage.expiryDate ? ` • Expires ${new Date(activePackage.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : ''}`
+                : 'No active plan'}
             </button>
           </div>
 
@@ -973,14 +987,7 @@ export default function MedicalCaseDetailPage() {
               return new Date(regDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             })()}</span>
           </div>
-          {activePackage?.expiryDate && (
-            <div className="profile-info-cell">
-              <label>EXPIRES</label>
-              <div className="info-with-icon">
-                <Clock size={14} /> {new Date(activePackage.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-              </div>
-            </div>
-          )}
+
           <div className="profile-info-cell">
             <label>ADDRESS</label>
             <span title={medicalCase.address}>{medicalCase.address || 'Not provided'}</span>

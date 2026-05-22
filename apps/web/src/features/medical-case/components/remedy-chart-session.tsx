@@ -3,8 +3,31 @@ import {
   Search, BookOpen, ChevronRight, Activity,
   FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X,
   History, Edit, MoreHorizontal, Truck, Home, Package, AlertTriangle, CheckCircle2,
-  Upload, Loader2, IndianRupee
+  Upload, Loader2
 } from 'lucide-react';
+
+/** A custom, premium Circle-A icon indicating "Additional Charge" or "Add" */
+function AdditionalChargeIcon({ size = 14, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8l-3.5 8" />
+      <path d="M12 8l3.5 8" />
+      <path d="M9.5 13.5h5" />
+    </svg>
+  );
+}
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
 import {
   useAlphabetIndex,
@@ -271,9 +294,20 @@ export function RemedyChartSession({
       {(activeTab === 'rx' || activeTab === null) && (
         <div>
           {/* Inline Form - Only visible when Rx tab is active */}
-          {activeTab === 'rx' && (
+          {activeTab === 'rx' && isSelectedDateToday && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '16px', alignItems: 'flex-start', marginBottom: '24px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', 
+                gap: '16px', 
+                alignItems: 'flex-start', 
+                marginBottom: '24px',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                boxShadow: 'none',
+                borderRadius: 0
+              }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Remedy:</label>
                   <SearchableSelect
@@ -489,7 +523,7 @@ export function RemedyChartSession({
                                                 className="mc-action-btn" 
                                                 title="Add Additional Charge"
                                               >
-                                                <IndianRupee size={14} />
+                                                <AdditionalChargeIcon size={14} />
                                               </button>
                                               <button onClick={(e) => { e.stopPropagation(); startNewRx(); }} className="mc-action-btn" title="Add Extra"><Plus size={14} /></button>
                                               <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
@@ -514,7 +548,7 @@ export function RemedyChartSession({
                                             {isToday && (
                                               <>
                                                 <button onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }}>
-                                                  <IndianRupee size={14} /> Add Charge
+                                                  <AdditionalChargeIcon size={14} /> Add Charge
                                                 </button>
                                                 <button onClick={(e) => { e.stopPropagation(); startNewRx(); }}><Plus size={14} /> Add Extra</button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }}><Edit size={14} /> Edit</button>

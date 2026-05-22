@@ -453,10 +453,19 @@ router.put('/:regid/diagnosis', asyncHandler(async (req, res) => {
 
   // Find the active medical case for this patient
   const cases = await repo.findByRegId(regid);
-  const activeCase = cases.find((c: any) => c.status === 'Active') || cases[0];
+  let activeCase = cases.find((c: any) => c.status === 'Active') || cases[0];
 
   if (!activeCase) {
-    res.status(404).json({ success: false, error: 'No medical case found for this patient' });
+    const clinicId = (req as any).user?.contextId;
+    const doctorId = (req as any).user?.id;
+    await repo.create({
+      regid,
+      clinicId,
+      doctorId,
+      status: 'Active',
+      condition,
+    });
+    sendSuccess(res, { condition }, 'Diagnosis updated successfully');
     return;
   }
 
