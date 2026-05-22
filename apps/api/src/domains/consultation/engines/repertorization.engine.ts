@@ -641,7 +641,8 @@ CRITICAL RULES:
 5. DYNAMIC MATERIA MEDICA PROPERTIES: You MUST dynamically assign the accurate, classical "thermalType" (e.g. 'Hot', 'Chilly', or 'Ambithermal') and dominant "miasm" (e.g. 'Psora', 'Sycosis', 'Syphilis', or 'Tubercular') matching Homeopathic Materia Medica for each remedy. Do NOT blindly copy example values.
 6. NO DUPLICATIONS: Each remedy in the list MUST represent its actual clinical profile. The coverage, keynotes, miasm, and thermalType must be distinct and specific to the individual remedy.
 7. Strictly return JSON format.
-8. CONSTITUTIONAL MATCHING (MANDATORY): If the patient's constitutional factors (thermal reaction, miasm, thirst, perspiration, sleep position) are provided, you MUST strongly prefer remedies that MATCH these factors. At least 4-5 of the 8 remedies should match the patient's thermal type. Remedies matching both thermal AND miasm should be ranked highest. Do NOT place a Chilly remedy at #1 when the patient is Hot, or a Psoric remedy at #1 when the patient's miasm is Syphilis — unless rubric coverage is overwhelmingly superior.
+8. CONSTITUTIONAL MATCHING: If the patient's constitutional factors (thermal reaction, miasm, thirst, perspiration, sleep position) are provided, use them as helpful guidance and tiebreakers when selecting and ranking remedies. Remedies matching the patient's thermal type and miasm should be preferred when rubric coverage is similar. Do NOT rank a poorly-matching remedy high just because of constitutional factors; rubric coverage is the primary selection criteria.
+
 
 JSON Output Template:
 {
@@ -731,38 +732,48 @@ JSON Output Template:
       const finalKeynotes = localData ? localData.keynotes : (Array.isArray(rem.keynotes) ? rem.keynotes : []);
 
       // ─── Constitutional Factor Scoring ─────────────────────────────────
-      // Bonuses are proportional to maxPossibleScore so they meaningfully
-      // shift remedy rankings (not just +1 or +2 on a 200-point scale).
-      // A full constitutional match can add ~25% to the score; mismatches
-      // penalize by ~10%, creating a significant differentiation swing.
-      const baseUnit = Math.max(maxPossibleScore * 0.06, 4); // ~6% of max per factor
+      // Calibrated to act as a gentle tiebreaker (maximum ~3% of total score)
+      // rather than overriding rubric matching scores.
+      const baseUnit = Math.max(maxPossibleScore * 0.015, 1); // ~1.5% of max per factor
 
-      // Thermal reaction: strongest constitutional signal
-      if (typeof input.thermalReaction === 'string' && input.thermalReaction && finalThermalType) {
-        const patientThermal = input.thermalReaction.toLowerCase();
-        const remedyThermal = finalThermalType.toLowerCase();
+      const isThermalValid = (val: any) => {
+        if (!val) return false;
+        const s = String(val).toLowerCase().trim();
+        return s && s !== 'null' && s !== 'undefined' && s !== 'none' && s !== 'unknown' && s !== 'any';
+      };
+
+      const isMiasmValid = (val: any) => {
+        if (!val) return false;
+        const s = String(val).toLowerCase().trim();
+        return s && s !== 'null' && s !== 'undefined' && s !== 'none' && s !== 'unknown' && s !== 'any';
+      };
+
+      // Thermal reaction: minor tiebreaker
+      if (isThermalValid(input.thermalReaction) && finalThermalType) {
+        const patientThermal = String(input.thermalReaction).toLowerCase().trim();
+        const remedyThermal = finalThermalType.toLowerCase().trim();
         if (patientThermal === remedyThermal) {
-          totalScore += baseUnit * 1.8; // ~10.8% of max
+          totalScore += baseUnit * 1.0; // ~1.5% of max
           hasThermalBonus = true;
         } else if (remedyThermal === 'ambithermal') {
           // Ambithermal remedies partially match any patient thermal
-          totalScore += baseUnit * 0.5;
+          totalScore += baseUnit * 0.3;
         } else {
-          // Mismatch penalty: Hot patient → Chilly remedy is wrong
-          totalScore -= baseUnit * 1.0;
+          // Mismatch penalty (very mild tiebreaker penalty)
+          totalScore -= baseUnit * 0.5; // ~0.75% of max
         }
       }
 
-      // Dominant miasm: second strongest
-      if (typeof input.miasm === 'string' && input.miasm && finalMiasm) {
-        const patientMiasm = input.miasm.toLowerCase();
-        const remedyMiasm = finalMiasm.toLowerCase();
+      // Dominant miasm: minor tiebreaker
+      if (isMiasmValid(input.miasm) && finalMiasm) {
+        const patientMiasm = String(input.miasm).toLowerCase().trim();
+        const remedyMiasm = finalMiasm.toLowerCase().trim();
         if (patientMiasm === remedyMiasm) {
-          totalScore += baseUnit * 1.5; // ~9% of max
+          totalScore += baseUnit * 0.8; // ~1.2% of max
           hasMiasmBonus = true;
         } else {
           // Mismatch penalty
-          totalScore -= baseUnit * 0.6;
+          totalScore -= baseUnit * 0.3; // ~0.45% of max
         }
       }
 
@@ -770,35 +781,37 @@ JSON Output Template:
       // These match against known remedy profiles in MATERIA_MEDICA_DB keynotes.
       if (input.thirstPattern && localData) {
         const keynoteStr = localData.keynotes.join(' ').toLowerCase();
-        const thirst = input.thirstPattern.toLowerCase();
+        const thirst = input.thirstPattern.toLowerCase().trim();
         if (
           (thirst === 'thirsty' && (keynoteStr.includes('great thirst') || keynoteStr.includes('thirst for') || keynoteStr.includes('craves cold drinks'))) ||
           (thirst === 'thirstless' && keynoteStr.includes('thirstless')) ||
           (thirst === 'sips' && keynoteStr.includes('small sips'))
         ) {
-          totalScore += baseUnit * 1.2; // ~7.2% of max
+          totalScore += baseUnit * 0.6; // ~0.9% of max
         }
       }
       if (input.sleepPosition && localData) {
         const keynoteStr = localData.keynotes.join(' ').toLowerCase();
+        const sleep = input.sleepPosition.toLowerCase().trim();
         if (
-          (input.sleepPosition === 'knees' && keynoteStr.includes('knee-chest')) ||
-          (input.sleepPosition === 'abdomen' && keynoteStr.includes('abdomen')) ||
-          (input.sleepPosition === 'left' && keynoteStr.includes('left side')) ||
-          (input.sleepPosition === 'right' && keynoteStr.includes('right'))
+          (sleep === 'knees' && keynoteStr.includes('knee-chest')) ||
+          (sleep === 'abdomen' && keynoteStr.includes('abdomen')) ||
+          (sleep === 'left' && keynoteStr.includes('left side')) ||
+          (sleep === 'right' && keynoteStr.includes('right'))
         ) {
-          totalScore += baseUnit * 0.8; // ~4.8% of max
+          totalScore += baseUnit * 0.4; // ~0.6% of max
         }
       }
       if (input.perspiration && localData) {
         const keynoteStr = localData.keynotes.join(' ').toLowerCase();
+        const sweat = input.perspiration.toLowerCase().trim();
         if (
-          (input.perspiration === 'offensive' && (keynoteStr.includes('offensive') || keynoteStr.includes('sour sweat'))) ||
-          (input.perspiration === 'profuse' && (keynoteStr.includes('profuse') || keynoteStr.includes('sweat'))) ||
-          (input.perspiration === 'head' && keynoteStr.includes('sweat on scalp')) ||
-          (input.perspiration === 'staining' && keynoteStr.includes('staining'))
+          (sweat === 'offensive' && (keynoteStr.includes('offensive') || keynoteStr.includes('sour sweat'))) ||
+          (sweat === 'profuse' && (keynoteStr.includes('profuse') || keynoteStr.includes('sweat'))) ||
+          (sweat === 'head' && keynoteStr.includes('sweat on scalp')) ||
+          (sweat === 'staining' && keynoteStr.includes('staining'))
         ) {
-          totalScore += baseUnit * 0.8; // ~4.8% of max
+          totalScore += baseUnit * 0.4; // ~0.6% of max
         }
       }
 

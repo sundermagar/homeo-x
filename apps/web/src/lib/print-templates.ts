@@ -358,9 +358,16 @@ const PRINT_STYLES = `
   .rx-page {
     width: 100%;
     max-width: 210mm;
+    min-height: 262mm;
     margin: 0 auto;
     color: #111827;
     font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  .rx-footer-wrapper {
+    margin-top: auto;
+    width: 100%;
   }
   .rx-letterhead {
     display: flex;
@@ -671,8 +678,13 @@ function renderClinicFooter(clinic: ClinicInfo): string {
 
 // ─── Escape HTML ─────────────────────────────────────────────────────────
 
-function escapeHtml(str: string): string {
-  return str
+function escapeHtml(str: any): string {
+  if (str === null || str === undefined) return '';
+  if (Array.isArray(str)) {
+    return str.map(item => escapeHtml(item)).join('\n');
+  }
+  const s = typeof str === 'string' ? str : String(str);
+  return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -898,7 +910,7 @@ ${PRINT_STYLES}
       </div>
       <div class="rx-patient-cell">
         <span class="rx-cell-label">Patient ID</span>
-        <p class="rx-cell-value">${safe(data.patient.mrn) || '—'}</p>
+        <p class="rx-cell-value">${safe(data.patient.mrn || (data.patient as any).id) || '—'}</p>
       </div>
       <div class="rx-patient-cell">
         <span class="rx-cell-label">Visit Date</span>
@@ -958,15 +970,17 @@ ${PRINT_STYLES}
     </section>
   ` : ''}
 
-  <footer class="rx-signature">
-    <p class="rx-sig-name">Dr. ${safe(data.doctor.name)}</p>
-    ${data.doctor.qualification ? `<p class="rx-sig-meta">${safe(data.doctor.qualification)}</p>` : ''}
-    ${data.doctor.registrationNumber ? `<p class="rx-sig-meta">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
-  </footer>
+  <div class="rx-footer-wrapper">
+    <footer class="rx-signature">
+      <p class="rx-sig-name">Dr. ${safe(data.doctor.name)}</p>
+      ${data.doctor.qualification ? `<p class="rx-sig-meta">${safe(data.doctor.qualification)}</p>` : ''}
+      ${data.doctor.registrationNumber ? `<p class="rx-sig-meta">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
+    </footer>
 
-  <div class="rx-print-footer">
-    ${safe(data.clinic.footer || `${data.clinic.name}${data.clinic.phone ? ` · ${data.clinic.phone}` : ''}`)}
-    &nbsp;·&nbsp; Printed ${new Date().toLocaleString('en-IN')}
+    <div class="rx-print-footer">
+      ${safe(data.clinic.footer || `${data.clinic.name}${data.clinic.phone ? ` · ${data.clinic.phone}` : ''}`)}
+      &nbsp;·&nbsp; Printed ${new Date().toLocaleString('en-IN')}
+    </div>
   </div>
 </div>
   `;
@@ -1014,7 +1028,9 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
 
   const rows = meds.map((med, i) => {
     const numCell = `<td class="rx-md-num">${i + 1}.</td>`;
-    const dateStr = med.date ? new Date(med.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—';
+    const dateStr = (med.date && med.date !== '—' && med.date !== '')
+      ? new Date(med.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+      : new Date(data.visit.date || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
     const dateCell = `<td style="white-space:nowrap; color:#6B7280; font-size:9.5px; font-weight:700;">${dateStr}</td>`;
     const nameCell = `
       <td class="rx-md-name">

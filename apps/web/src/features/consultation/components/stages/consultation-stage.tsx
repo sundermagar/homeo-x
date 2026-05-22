@@ -345,15 +345,22 @@ export function ConsultationStage({
 
   // --- Mode-specific question generation ---
   const modeQuestions = useModeQuestions();
+  const [suggestedQuestions, setSuggestedQuestions] = useState<any[]>([]);
   const symptomExtraction = useSymptomExtraction();
   const [answeredQuestions, setAnsweredQuestions] = useState<string[]>([]);
   const lastQuestionRef = useRef<string>('');
+
+  // Sync mode questions to local state so they persist and don't disappear during thinking state
+  useEffect(() => {
+    if (modeQuestions.data?.questions) {
+      setSuggestedQuestions(modeQuestions.data.questions);
+    }
+  }, [modeQuestions.data]);
 
   // --- Auto-extract symptoms from live transcript during calls ---
   const lastExtractedSegCountRef = useRef(0);
   const extractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /*
   useEffect(() => {
     // Auto-extract for ALL modes:
     // - AUDIO/VIDEO: dual-mic, segments are labeled DOCTOR vs PATIENT
@@ -437,9 +444,9 @@ export function ConsultationStage({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [segments.length, callMode, binaryTranscriber.isRecording]);
-  */
 
   const handleLoadModeQuestions = useCallback(() => {
+    setSuggestedQuestions([]);
     modeQuestions.mutate({
       consultationMode,
       transcript: segments.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
@@ -448,15 +455,14 @@ export function ConsultationStage({
       patientAge,
       patientGender: patient?.gender,
     });
-  }, [consultationMode, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions]);
+  }, [consultationMode, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions, setSuggestedQuestions]);
 
   // Auto-load questions when mode changes
-  /*
   useEffect(() => {
+    setSuggestedQuestions([]);
     handleLoadModeQuestions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consultationMode]);
-  */
 
   const totalSymptoms = categorizedSymptoms.mental.length + categorizedSymptoms.physical.length + categorizedSymptoms.particular.length;
 
@@ -466,14 +472,13 @@ export function ConsultationStage({
   }, [segments, drInterimText, ptInterimText]);
 
   // Combine AI and mode questions with deduplication
-  const modeQList = (modeQuestions.data as any)?.questions || [];
-
-  const allQuestions = modeQList.map((q: any, i: number) => {
+  const allQuestions = suggestedQuestions.map((q: any, i: number) => {
     const qText = typeof q === 'string' ? q : q.question;
     const isAnswered = answeredQuestions.includes(qText);
     return {
       id: `mode-${i}`,
       question: qText,
+      category: (q as any).category || 'symptom',
       options: (q as any).options,
       answered: isAnswered,
       isLive: false,
@@ -600,18 +605,31 @@ export function ConsultationStage({
       },
     );
 
-    // Regenerate next questions based on updated transcript (includes the new answer)
-    setTimeout(() => {
-      modeQuestions.mutate({
-        consultationMode,
-        transcript: [...segments, ...newSegments].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-        answeredQuestions: [...answeredQuestions, questionText],
-        chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
-        patientAge,
-        patientGender: patient?.gender,
-      });
-    }, 500);
-  }, [patientAnswer, onTranscriptUpdate, symptomExtraction, consultationMode, categorizedSymptoms, onSymptomsExtracted, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions]);
+    // Only regenerate next questions if all the suggested questions in the current batch have been answered.
+    // This allows the doctor to work through the entire bunch of 5 questions without them being wiped out on every click.
+    const nextAnsweredQuestions = [...answeredQuestions, questionText];
+    const unansweredCount = suggestedQuestions.filter((q: any) => {
+      const qText = typeof q === 'string' ? q : q.question;
+      return !nextAnsweredQuestions.includes(qText);
+    }).length;
+
+    if (suggestedQuestions.length > 0 && unansweredCount === 0) {
+      setTimeout(() => {
+        modeQuestions.mutate({
+          consultationMode,
+          transcript: [...segments, ...newSegments].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
+          answeredQuestions: nextAnsweredQuestions,
+          chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
+          patientAge,
+          patientGender: patient?.gender,
+        });
+      }, 500);
+    }
+  }, [patientAnswer, onTranscriptUpdate, symptomExtraction, consultationMode, categorizedSymptoms, onSymptomsExtracted, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions, suggestedQuestions]);
+
+  useEffect(() => {
+    injectAnswerRef.current = injectAnswer;
+  }, [injectAnswer]);
 
   // Remove a symptom from categorized symptoms
   const handleRemoveSymptom = useCallback((category: 'mental' | 'physical' | 'particular', index: number) => {
@@ -830,6 +848,7 @@ export function ConsultationStage({
                     No questions available. Click Regenerate or start recording.
                   </p>
                 )}
+                {/* No inline loader on background generation */}
                 <div className="grid grid-cols-1 gap-2">
                   {allQuestions.filter((q: any) => !q.answered).map((q: any) => (
                     <div key={q.id} className="flex flex-col gap-1">
@@ -886,7 +905,7 @@ export function ConsultationStage({
                             {selectedOptions.length > 0 && (
                               <button
                                 onClick={() => {
-                                  injectQuestion(q.question, q.id);
+                                  injectQuestion(q.question, undefined, q.id);
                                   setTimeout(() => injectAnswer(selectedOptions.join(', ')), 300);
                                   // Clear selection for this question
                                   setSelectedOptionsMap(prev => {

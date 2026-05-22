@@ -46,11 +46,11 @@ Extract these categories:
 5. physicalSymptoms: Specific physical complaints
 6. generalSymptoms: Constitutional/general symptoms (energy, sleep, appetite, thirst, thermal preference)
 7. modalities: What makes symptoms worse (aggravation) and better (amelioration)
-8. thermalReaction: HOT, CHILLY, or AMBITHERMAL
-9. constitution: Constitutional type if identifiable
-10. miasm: Predominant miasm if identifiable (PSORA, SYCOSIS, SYPHILIS, TUBERCULAR)
+8. thermalReaction: HOT, CHILLY, or AMBITHERMAL (extract ONLY if explicitly mentioned or clearly identifiable; otherwise set to null)
+9. constitution: Constitutional type (extract ONLY if clearly identifiable; otherwise set to null)
+10. miasm: Predominant miasm if identifiable (PSORA, SYCOSIS, SYPHILIS, TUBERCULAR) (extract ONLY if clearly identifiable; otherwise set to null)
 
-IMPORTANT: Extract ONLY what is explicitly present. Do NOT fabricate.
+IMPORTANT: Extract ONLY what is explicitly present. Do NOT fabricate. Extract thermalReaction and miasm ONLY if explicitly mentioned or clearly identifiable from the transcript or findings. If they are not mentioned or not clear, they MUST be null. Do NOT assume or default them.
 CRITICAL: Do NOT extract duplicate symptoms. If a symptom has already been mentioned or is a slight variation of an existing one, merge them into a single, comprehensive entry. Ensure all arrays contain strictly unique items.
 
 Respond ONLY with JSON in this exact structure:
@@ -62,9 +62,9 @@ Respond ONLY with JSON in this exact structure:
   "physicalSymptoms": ["hair fall"],
   "generalSymptoms": [],
   "modalities": {"aggravation": ["cold weather"], "amelioration": []},
-  "thermalReaction": "CHILLY",
+  "thermalReaction": null,
   "constitution": null,
-  "miasm": "PSORA"
+  "miasm": null
 }`;
 
     const userPrompt = `Patient: Age ${input.patientAge || 'Unknown'}, Gender ${input.patientGender || 'Unknown'}

@@ -122,7 +122,7 @@ export function PrintPrescriptionButton({
           name: patientName,
           age: patientAge,
           gender: inlineData.patient?.gender,
-          mrn: inlineData.patient?.mrn,
+          mrn: inlineData.patient?.mrn || (inlineData.patient as any)?.id,
           phone: inlineData.patient?.phone,
         },
         visit: {
@@ -151,6 +151,7 @@ export function PrintPrescriptionButton({
           route: item.route,
           instructions: item.instructions,
           quantity: item.quantity,
+          date: (item as any).date || inlineData.visit?.completedAt || inlineData.visit?.startedAt || inlineData.visit?.checkedInAt || inlineData.visit?.createdAt || new Date().toISOString(),
         })),
         advice: inlineData.advice,
         followUp: inlineData.followUp,
@@ -182,7 +183,7 @@ export function PrintPrescriptionButton({
         name: patientName,
         age: patientAge,
         gender: summary!.patient?.gender,
-        mrn: summary!.patient?.mrn,
+        mrn: summary!.patient?.mrn || summary!.patient?.id,
         phone: summary!.patient?.phone,
       };
 
@@ -197,7 +198,6 @@ export function PrintPrescriptionButton({
         if (labMatch && labMatch[1]) labOrders = labMatch[1].split(',').map((s: string) => s.trim());
       }
 
-      // Get medications from prescriptions
       const medications = summary!.prescriptions?.flatMap((rx: any) =>
         (rx.items || []).map((item: any) => ({
           name: item.medicationName,
@@ -208,6 +208,7 @@ export function PrintPrescriptionButton({
           route: item.route,
           instructions: item.instructions,
           quantity: item.quantity,
+          date: item.date || rx.createdAt || summary!.visit.completedAt || summary!.visit.startedAt || summary!.visit.checkedInAt || new Date().toISOString(),
         })),
       ) ?? [];
 
