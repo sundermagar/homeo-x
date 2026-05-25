@@ -208,6 +208,7 @@ export interface ExtendedDailySummaryData {
   card: number;
   cheque: number;
   online: number;
+  upi: number;
   productCharges: number;
   expenses: number;
   cashDeposited: number;

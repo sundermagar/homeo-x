@@ -55,6 +55,7 @@ export function MonthListView() {
                 <th className="vc-right">Card</th>
                 <th className="vc-right">Cheque</th>
                 <th className="vc-right">Online</th>
+                <th className="vc-right">UPI</th>
                 <th className="vc-right">Products</th>
                 <th className="vc-right">Expenses</th>
                 <th className="vc-right">Cash Handed</th>
@@ -89,6 +90,12 @@ export function MonthListView() {
                   <td className="vc-right">
                     ₹{row.online.toLocaleString('en-IN')}
                     <button className="vc-info-btn" onClick={() => openDrilldown(row.date, 'Online', 'Online')}>
+                      <Info size={12} />
+                    </button>
+                  </td>
+                  <td className="vc-right">
+                    ₹{(row as any).upi?.toLocaleString('en-IN') || 0}
+                    <button className="vc-info-btn" onClick={() => openDrilldown(row.date, 'UPI', 'UPI Payment')}>
                       <Info size={12} />
                     </button>
                   </td>
