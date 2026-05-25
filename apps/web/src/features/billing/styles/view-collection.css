@@ -109,6 +109,7 @@
   border-radius: 14px;
   border: 1px solid var(--border, #e2e8f0);
   flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .vc-date-btn {
@@ -124,6 +125,7 @@
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 .vc-date-btn:hover {
   background: var(--bg-hover, #f0f4ff);
@@ -137,6 +139,7 @@
   flex: 1;
   justify-content: center;
   color: var(--text-muted, #6c757d);
+  min-width: 150px;
 }
 
 .vc-date-input {
@@ -169,6 +172,7 @@
   font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.2s;
+  white-space: nowrap;
 }
 .vc-today-btn:hover {
   background: var(--primary-dark, #4338ca);
@@ -212,85 +216,162 @@
   margin: 0 0 4px 4px;
 }
 
-/* ─── Summary Cards ───────────────────────────────────────────────────────────── */
+/* ─── Ledger Financial Layout ───────────────────────────────────────────────────── */
 
-.vc-summary-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+.vc-ledger-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+@media (max-width: 950px) {
+  .vc-ledger-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vc-ledger-panel {
   background: var(--bg-card, #fff);
   border: 1px solid var(--border, #e2e8f0);
-  border-radius: 12px;
-  transition: all 0.2s;
-}
-.vc-summary-card:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  transform: translateY(-1px);
-}
-
-.vc-card-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.vc-card-body {
-  flex: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
-.vc-card-label {
-  font-size: 0.78rem;
+.vc-ledger-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: var(--bg-muted, #f8f9fa);
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.vc-ledger-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main, #1a1a2e);
+  margin: 0;
+}
+
+.vc-ledger-total {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted, #6c757d);
+}
+
+.vc-ledger-total span {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main, #1a1a2e);
+  margin-left: 8px;
+}
+
+.vc-cih-highlight span {
+  color: #059669; /* Emerald */
+}
+
+.vc-ledger-table-wrap {
+  padding: 0;
+  flex: 1;
+}
+
+.vc-ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vc-ledger-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border, #f1f5f9);
+  color: var(--text-main, #1a1a2e);
+  font-size: 0.95rem;
+}
+
+.vc-ledger-table tr:last-child td {
+  border-bottom: none;
+}
+
+.vc-ledger-table tr:hover td {
+  background: var(--bg-hover, #f8f9ff);
+}
+
+.vc-ledger-highlight-row td {
+  background: #fdfdfd;
+  border-top: 2px solid var(--border, #e2e8f0);
+}
+
+.vc-ledger-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: var(--text-muted, #6c757d);
   font-weight: 500;
 }
 
-.vc-card-value {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-main, #1a1a2e);
-}
-.vc-card-value-big {
-  font-size: 1.4rem;
+.vc-ledger-label svg {
+  color: var(--primary, #4f46e5);
+  opacity: 0.8;
 }
 
-.vc-card-count {
-  font-size: 0.75rem;
+.vc-info-btn-sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg-muted, #f8f9fa);
   color: var(--text-muted, #6c757d);
-  background: var(--bg-muted, #f1f5f9);
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  margin-left: auto;
 }
 
-/* Card color variants */
-.vc-card-total .vc-card-icon { background: #eef2ff; color: #4f46e5; }
-.vc-card-total { border-left: 3px solid #4f46e5; }
+.vc-info-btn-sm:hover {
+  background: var(--primary, #4f46e5);
+  color: #fff;
+  border-color: var(--primary, #4f46e5);
+}
 
-.vc-card-cash .vc-card-icon { background: #ecfdf5; color: #059669; }
-.vc-card-card .vc-card-icon { background: #fef3c7; color: #d97706; }
-.vc-card-cheque .vc-card-icon { background: #e0f2fe; color: #0284c7; }
-.vc-card-online .vc-card-icon { background: #f3e8ff; color: #7c3aed; }
-.vc-card-product .vc-card-icon { background: #fce7f3; color: #db2777; }
-.vc-card-expense .vc-card-icon { background: #fef2f2; color: #dc2626; }
-.vc-card-expense { border-left: 3px solid #dc2626; }
+.vc-ledger-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  background: var(--bg-muted, #f8f9fa);
+  border-top: 1px solid var(--border, #e2e8f0);
+  flex-wrap: wrap;
+}
 
-.vc-card-recp .vc-card-icon { background: #ecfdf5; color: #059669; }
-.vc-card-bank .vc-card-icon { background: #e0f2fe; color: #0284c7; }
-.vc-card-cih .vc-card-icon { background: #eef2ff; color: #4f46e5; }
-.vc-card-cih { border-left: 3px solid #059669; background: linear-gradient(135deg, #f0fdf4, #fff); }
+.vc-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-main, #334155);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
 
-.vc-card-positive .vc-card-icon { background: #ecfdf5; color: #059669; }
-.vc-card-positive .vc-card-value { color: #059669; }
-.vc-card-negative .vc-card-icon { background: #fef2f2; color: #dc2626; }
-.vc-card-negative .vc-card-value { color: #dc2626; }
+.vc-action-btn:hover {
+  background: var(--bg-hover, #f1f5f9);
+  border-color: var(--primary, #4f46e5);
+  color: var(--primary, #4f46e5);
+}
+
+.vc-action-btn-danger:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
 
 /* ─── Info Button (Drilldown Trigger) ─────────────────────────────────────────── */
 

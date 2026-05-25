@@ -181,6 +181,31 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         'Missed'::text as visit_type,
         a.consultation_fee::numeric as consultation_fee,
         a.token_no::integer as token_no,
+        a.call_status::text as call_status,
+        a.call_date::text as call_date,
+        (
+          SELECT max(
+            CASE 
+              WHEN a2.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a2.booking_date::text, 'DD/MM/YYYY')
+              ELSE a2.booking_date::date
+            END
+          )::date::text
+          FROM appointments a2
+          WHERE a2.patient_id = a.patient_id
+            AND a2.status IN ('Done', 'Visited', 'Completed')
+            AND a2.deleted_at IS NULL
+            AND (
+              CASE 
+                WHEN a2.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a2.booking_date::text, 'DD/MM/YYYY')
+                ELSE a2.booking_date::date
+              END
+            ) < (
+              CASE 
+                WHEN a.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a.booking_date::text, 'DD/MM/YYYY')
+                ELSE a.booking_date::date
+              END
+            )
+        ) as last_date,
         a.notes::text as notes,
         a.phone::text as phone,
         a.patient_name::text as patient_name,
@@ -225,6 +250,14 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         'Next Visit'::text as visit_type,
         NULL::numeric as consultation_fee,
         NULL::integer as token_no,
+        p.call_status::text as call_status,
+        p.call_date::text as call_date,
+        (
+          CASE 
+            WHEN p.last_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(p.last_date::text, 'DD/MM/YYYY')
+            ELSE p.last_date::date
+          END
+        )::date::text as last_date,
         NULL::text as notes,
         cd.mobile1::text as phone,
         (COALESCE(cd.first_name, '') || ' ' || COALESCE(cd.surname, ''))::text as patient_name,
@@ -271,6 +304,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         visitType: r.visit_type,
         consultationFee: r.consultation_fee,
         tokenNo: r.token_no,
+        callStatus: r.call_status,
+        actionDate: r.call_date,
+        lastDate: r.last_date,
         notes: r.notes,
         phone: r.phone,
         patientName: r.patient_name,

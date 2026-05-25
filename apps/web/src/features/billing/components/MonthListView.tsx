@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { useMonthList, type MonthListRowData } from '../hooks/use-billing';
 import { PaymentDrilldownModal } from './PaymentDrilldownModal';
 
@@ -25,10 +25,8 @@ export function MonthListView() {
 
   return (
     <div className="vc-month-list">
-      <div className="vc-month-header">
-        <h2>Month List (32 Days)</h2>
+      <div className="vc-month-header" style={{ justifyContent: 'flex-end', gap: '12px' }}>
         <div className="vc-date-input-wrap">
-          <Calendar size={16} />
           <input
             type="date"
             value={endDate}
@@ -36,6 +34,12 @@ export function MonthListView() {
             className="vc-date-input"
           />
         </div>
+        <button 
+          className="vc-today-btn" 
+          onClick={() => setEndDate(new Date().toISOString().split('T')[0])}
+        >
+          Reset to Today
+        </button>
       </div>
 
       {isLoading ? (

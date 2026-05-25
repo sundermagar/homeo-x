@@ -14,6 +14,7 @@ export { CreateCustomBillUseCase } from './use-cases/create-custom-bill.js';
 export { ListBillsUseCase } from './use-cases/list-bills.js';
 export { GetDailyCollectionUseCase } from './use-cases/get-daily-collection.js';
 export { GetPatientBillsUseCase } from './use-cases/get-patient-bills.js';
+export { UpdateChargesUseCase } from './use-cases/update-charges.js';
 export { CreatePaymentOrderUseCase } from './use-cases/create-payment-order.js';
 export type { RazorpayService, RazorpayOrder } from './use-cases/create-payment-order.js';
 export { VerifyPaymentUseCase } from './use-cases/verify-payment.js';

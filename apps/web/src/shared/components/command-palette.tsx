@@ -9,7 +9,7 @@ import {
   Stethoscope, PackageCheck, MessageCircle, PieChart,
   Building2, Users2, UserCheck, UserPlus, Contact,
   FileBarChart, Download, Boxes, HelpCircle,
-  BookOpen, Tags, Bike, LayoutList, Sticker, Cpu, Clock
+  BookOpen, Tags, Bike, LayoutList, Sticker, Cpu, Clock, PhoneCall
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
@@ -204,6 +204,8 @@ function buildCommands(
     // ── Settings ────────────────────────────────────────────────────────────
     nav('Settings: Departments', '/settings/departments', <LayoutList size={16} />, ADMIN_CLINIC,
       ['department', 'unit']),
+    nav('Settings: Call Statuses', '/settings/call-statuses', <PhoneCall size={16} />, ADMIN_CLINIC,
+      ['call', 'status', 'follow up']),
     nav('Settings: Medicines', '/settings/medicines', <Pill size={16} />, ADMIN_CLINIC,
       ['medicine', 'drug', 'drugstore', 'pharmacy']),
     nav('Settings: Dispensaries', '/settings/dispensaries', <Database size={16} />, ADMIN_CLINIC,

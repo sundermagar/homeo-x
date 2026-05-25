@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Bell, Filter, RotateCw, List, LayoutGrid, MessageSquare,
   AlertCircle, CalendarClock, Search, ChevronRight, Clock,
-  CheckCircle2, User, Calendar, MoreVertical
+  CheckCircle2, User, Calendar, MoreVertical, X, Phone
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/infrastructure/api-client';
@@ -11,6 +11,8 @@ import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyState } from '@/components/shared/empty-state';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
+import { useCallStatuses } from '@/features/settings/hooks/use-settings';
+import { Drawer } from '@/shared/components/drawer';
 
 export default function FollowupsPage() {
   const navigate = useNavigate();
@@ -21,6 +23,16 @@ export default function FollowupsPage() {
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
   const [search, setSearch] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  // Selection & Bulk Actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Status Modal State
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [selectedFollowup, setSelectedFollowup] = useState<any>(null);
+  const [newCallStatus, setNewCallStatus] = useState('');
+  const [newActionDate, setNewActionDate] = useState('');
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const [filters, setFilters] = useState({
     from_date: '',
@@ -32,6 +44,7 @@ export default function FollowupsPage() {
   const [total, setTotal] = useState(0);
 
   const { data: doctors = [] } = useDoctors();
+  const { data: callStatuses = [] } = useCallStatuses();
 
   useEffect(() => {
     fetchFollowups();
@@ -43,9 +56,10 @@ export default function FollowupsPage() {
       const params: any = {
         ...filters,
         page,
-        limit
+        limit,
+        search,
+        _t: Date.now().toString()
       };
-      if (search) params.search = search;
 
       const res = await apiClient.get('/appointments/followups', { params });
       if (res.data?.data) {
@@ -62,6 +76,72 @@ export default function FollowupsPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     fetchFollowups();
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === followups.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(followups.map(f => f.id + '-' + f.visitType)));
+    }
+  };
+
+  const handleSelectRow = (id: string, visitType: string) => {
+    const key = id + '-' + visitType;
+    const newSet = new Set(selectedIds);
+    if (newSet.has(key)) newSet.delete(key);
+    else newSet.add(key);
+    setSelectedIds(newSet);
+  };
+
+  const handleSendAll = () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Are you sure you want to send WhatsApp reminders to ${selectedIds.size} selected patients?`)) return;
+
+    let successCount = 0;
+    const selectedList = followups.filter(f => selectedIds.has(f.id + '-' + f.visitType));
+    
+    selectedList.forEach(f => {
+      const phone = f.phone ? f.phone.replace(/[^0-9]/g, '') : '';
+      if (!phone || phone.length < 10) return;
+      const finalPhone = phone.length === 10 ? '91' + phone : phone;
+      const textMessage = `Dear ${f.patientName || 'Patient'},\n\nThis is a friendly reminder for your upcoming follow-up appointment.\n\nPlease let us know if you need to reschedule.\n\nRegards,\nMMC HomeoTech`;
+      
+      sendText.mutate({ phone: finalPhone, message: textMessage }, {
+        onSuccess: () => { successCount++; }
+      });
+    });
+    alert(`Bulk send initiated for ${selectedIds.size} patients.`);
+    setSelectedIds(new Set());
+  };
+
+  const openStatusModal = (f: any) => {
+    setSelectedFollowup(f);
+    setNewCallStatus(f.callStatus || '');
+    setNewActionDate(f.actionDate ? new Date(f.actionDate).toISOString().split('T')[0] : '');
+    setStatusModalOpen(true);
+  };
+
+  const handleUpdateStatus = async () => {
+    if (!selectedFollowup) return;
+    setUpdatingStatus(true);
+    try {
+      const res = await apiClient.post('/appointments/followups/status', {
+        id: selectedFollowup.id,
+        visitType: selectedFollowup.visitType,
+        callStatus: newCallStatus,
+        actionDate: newActionDate || null
+      });
+      console.log("UPDATE STATUS RESPONSE:", res.data);
+      alert('Status updated successfully');
+      setStatusModalOpen(false);
+      fetchFollowups();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update status');
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
   const openWhatsApp = (f: any) => {
@@ -85,6 +165,7 @@ export default function FollowupsPage() {
 
   const missedCount = followups.filter(f => f.visitType === 'Missed').length;
   const nextVisitCount = followups.filter(f => f.visitType === 'Next Visit').length;
+  const actionTakenCount = followups.filter(f => f.callStatus).length;
 
   return (
     <div className="pp-page-container animate-fade-in">
@@ -138,6 +219,13 @@ export default function FollowupsPage() {
               <span className="fu-insight-value">{nextVisitCount}</span>
             </div>
           </div>
+          <div className="fu-insight-item">
+            <div className="fu-insight-icon" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary)' }}><Phone size={18} /></div>
+            <div>
+              <span className="fu-insight-label">Action Taken</span>
+              <span className="fu-insight-value">{actionTakenCount}</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -157,6 +245,12 @@ export default function FollowupsPage() {
         </div>
 
         <div className="flex gap-3">
+          {selectedIds.size > 0 && (
+            <button className="btn-primary animate-fade-in" onClick={handleSendAll}>
+              <MessageSquare size={16} />
+              <span className="hide-mobile">Send All ({selectedIds.size})</span>
+            </button>
+          )}
           <button
             className={`btn-secondary ${isFilterOpen ? 'fu-btn-active' : ''}`}
             onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -258,17 +352,36 @@ export default function FollowupsPage() {
                 <table className="pp-table">
                   <thead>
                     <tr>
+                      <th style={{ width: 40 }}>
+                        <input 
+                          type="checkbox" 
+                          checked={followups.length > 0 && selectedIds.size === followups.length}
+                          onChange={handleSelectAll}
+                        />
+                      </th>
+                      <th>Reg ID</th>
                       <th>Patient Details</th>
                       <th>Enc. Type</th>
+                      <th>Last Visit</th>
                       <th>Due Date</th>
-                      <th>Time</th>
-                      <th>Assigned To</th>
+                      <th>Call Status</th>
+                      <th>Action Date</th>
                       <th style={{ textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {followups.map(f => (
-                      <tr key={f.id} className="hover-row">
+                      <tr key={f.id + '-' + f.visitType} className="hover-row">
+                        <td>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedIds.has(f.id + '-' + f.visitType)}
+                            onChange={() => handleSelectRow(f.id, f.visitType)}
+                          />
+                        </td>
+                        <td data-label="Reg ID">
+                          <span className="fu-meta-cell">#{f.patientId}</span>
+                        </td>
                         <td data-label="Patient">
                           <div className="fu-patient-info">
                             <div className="fu-avatar-sm">{f.patientName?.[0]}</div>
@@ -283,30 +396,50 @@ export default function FollowupsPage() {
                             {f.visitType}
                           </span>
                         </td>
+                        <td data-label="Last Visit">
+                          <div className="flex items-center gap-1.5 fu-meta-cell">
+                            {f.lastDate ? (
+                              <>
+                                <Calendar size={14} className="color-muted" />
+                                {new Date(f.lastDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </>
+                            ) : '—'}
+                          </div>
+                        </td>
                         <td data-label="Due Date">
-                          <div className="fu-meta-cell">
-                            <Calendar size={12} />
-                            {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                          <div className="flex items-center gap-1.5 fu-meta-cell">
+                            {f.bookingDate ? (
+                              <>
+                                <Calendar size={14} className="color-muted" />
+                                {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </>
+                            ) : '—'}
                           </div>
                         </td>
-                        <td data-label="Time">
+                        <td data-label="Call Status">
                           <div className="fu-meta-cell">
-                            <Clock size={12} />
-                            {f.bookingTime || '—'}
+                            {f.callStatus || '—'}
                           </div>
                         </td>
-                        <td data-label="Assigned To">
-                          <div className="fu-meta-cell">
-                            <User size={12} />
-                            {f.doctorName || 'General'}
+                        <td data-label="Action Date">
+                          <div className="flex items-center gap-1.5 fu-meta-cell">
+                            {f.actionDate ? (
+                              <>
+                                <Calendar size={14} className="color-muted" />
+                                {new Date(f.actionDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </>
+                            ) : '—'}
                           </div>
                         </td>
                         <td data-label="Actions" style={{ textAlign: 'right' }}>
                           <div className="flex justify-end gap-2 fu-action-wrap">
-                            <button className="fu-action-btn wa" onClick={() => openWhatsApp(f)}>
+                            <button className="fu-action-btn wa" onClick={() => openWhatsApp(f)} title="Send WhatsApp">
                               <MessageSquare size={14} />
                             </button>
-                            <Link to={`/medical-cases/${f.patientId}`} className="fu-action-btn">
+                            <button className="fu-action-btn" onClick={() => openStatusModal(f)} title="Update Status">
+                              <Phone size={14} />
+                            </button>
+                            <Link to={`/medical-cases/${f.patientId}`} className="fu-action-btn" title="View Case">
                               <ChevronRight size={14} />
                             </Link>
                           </div>
@@ -371,6 +504,48 @@ export default function FollowupsPage() {
           onPageSizeChange={setLimit}
         />
       )}
+
+      <Drawer
+        isOpen={statusModalOpen}
+        onClose={() => setStatusModalOpen(false)}
+        title="Update Call Status"
+        maxWidth="480px"
+      >
+        <div style={{ padding: '24px' }}>
+          <div className="pp-form-grid" style={{ gridTemplateColumns: '1fr', gap: '20px' }}>
+            <div className="fu-field">
+              <label style={{ display: 'block', marginBottom: 8, fontSize: '13px', fontWeight: 600, color: 'var(--pp-text-2)' }}>Call Status</label>
+              <select 
+                value={newCallStatus}
+                onChange={e => setNewCallStatus(e.target.value)}
+                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '10px 12px', fontSize: '14px', backgroundColor: '#fff', color: '#000', cursor: 'pointer' }}
+              >
+                <option value="">Select Status...</option>
+                {callStatuses.map((status: any) => (
+                  <option key={status.id} value={status.name}>
+                    {status.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="fu-field">
+              <label style={{ display: 'block', marginBottom: 8, fontSize: '13px', fontWeight: 600, color: 'var(--pp-text-2)' }}>Action Date</label>
+              <input 
+                type="date" 
+                value={newActionDate}
+                onChange={e => setNewActionDate(e.target.value)}
+                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '8px', padding: '10px 12px', fontSize: '14px', backgroundColor: '#fff', color: '#000' }}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 mt-4" style={{ padding: '0 24px 24px 24px' }}>
+          <button className="btn-secondary" onClick={() => setStatusModalOpen(false)}>Cancel</button>
+          <button className="btn-primary" onClick={handleUpdateStatus} disabled={updatingStatus}>
+            {updatingStatus ? 'Updating...' : 'Save Changes'}
+          </button>
+        </div>
+      </Drawer>
 
       <style>{`
         .fu-back-btn {

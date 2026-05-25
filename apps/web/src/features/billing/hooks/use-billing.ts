@@ -129,6 +129,23 @@ export function useBalanceSummary(date?: string) {
   });
 }
 
+export function useUpdateCharges() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ billId, amount }: { billId: number; amount: number }) => {
+      const { data } = await apiClient.patch<{ success: boolean; data: Bill }>(`/billing/${billId}/charges`, { amount });
+      return data.data;
+    },
+    onSuccess: (updatedBill) => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
+      if (updatedBill.regid) {
+        queryClient.invalidateQueries({ queryKey: ['bills', 'patient', updatedBill.regid] });
+      }
+    },
+  });
+}
+
 export function useCreateBill() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -204,6 +221,7 @@ export interface PaymentDrilldownRecordData {
   amount: number;
   chargeName?: string;
   quantity?: number;
+  date?: string;
 }
 
 export interface MonthListRowData extends ExtendedDailySummaryData {}
@@ -289,8 +307,44 @@ export function useSetTarget() {
       );
       return data.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['billing', 'collection-target'] });
+    onSuccess: async (_, amount) => {
+      // Optimistically update all collection-target queries with the new monthly target
+      queryClient.setQueriesData({ queryKey: ['billing', 'collection-target'] }, (oldData: any) => {
+        if (!oldData) return oldData;
+        const newDaily = oldData.workingDays > 0 ? Math.round(amount / oldData.workingDays) : 0;
+        
+        let cumulativeCollection = 0;
+        let cumulativeTarget = 0;
+        
+        const newRows = (oldData.rows || []).map((row: any) => {
+          if (row.isSunday) {
+            return {
+              ...row,
+              cumulativeCollection,
+              cumulativeTarget,
+              cumulativeDifference: cumulativeCollection - cumulativeTarget,
+            };
+          }
+          cumulativeCollection += row.collection || 0;
+          cumulativeTarget += newDaily;
+          return {
+            ...row,
+            dailyTarget: newDaily,
+            difference: (row.collection || 0) - newDaily,
+            cumulativeCollection,
+            cumulativeTarget,
+            cumulativeDifference: cumulativeCollection - cumulativeTarget,
+          };
+        });
+
+        return {
+          ...oldData,
+          monthlyTarget: amount,
+          dailyTarget: newDaily,
+          rows: newRows
+        };
+      });
+      await queryClient.invalidateQueries({ queryKey: ['billing', 'collection-target'] });
     },
   });
 }

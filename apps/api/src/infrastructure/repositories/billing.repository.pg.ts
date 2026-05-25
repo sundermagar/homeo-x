@@ -190,9 +190,18 @@ export class BillingRepositoryPg implements BillingRepository {
   }
 
   async nextBillNo(): Promise<number> {
-    // Atomic sequence — safe under concurrent bill creation
-    const [res] = await this.db.execute(sql`SELECT nextval('bill_no_seq')`);
-    return Number(res?.nextval ?? 1);
+    try {
+      // Atomic sequence — safe under concurrent bill creation
+      const [res] = await this.db.execute(sql`SELECT nextval('bill_no_seq')`);
+      return Number(res?.nextval ?? 1);
+    } catch (err: any) {
+      // Fallback: If sequence is missing (e.g. some schemas missed the migration)
+      if (err.code === '42P01') {
+        const [res] = await this.db.select({ maxNo: sql<number>`MAX(${bills.billNo})` }).from(bills);
+        return (res?.maxNo ?? 0) + 1;
+      }
+      throw err;
+    }
   }
 
   async softDelete(id: number): Promise<boolean> {

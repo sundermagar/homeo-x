@@ -20,6 +20,8 @@ export const appointments = pgTable('appointments', {
   phone:              varchar('phone', { length: 20 }),
   patientName:        varchar('patient_name', { length: 200 }),
   cancellationReason: text('cancellation_reason'),
+  callStatus:         varchar('call_status', { length: 50 }),
+  callDate:           varchar('call_date', { length: 20 }),
   createdAt:          timestamp('created_at').defaultNow().notNull(),
   updatedAt:          timestamp('updated_at').defaultNow().notNull(),
   deletedAt:          timestamp('deleted_at'),

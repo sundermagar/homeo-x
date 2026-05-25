@@ -12,6 +12,7 @@ import {
   ListBillsUseCase,
   GetDailyCollectionUseCase,
   GetPatientBillsUseCase,
+  UpdateChargesUseCase,
 } from '../../../domains/billing/index.js';
 import { createBillSchema, listBillsQuerySchema, createCustomBillSchema } from '@mmc/validation';
 import type { DbClient } from '@mmc/database';
@@ -164,6 +165,27 @@ export function createBillingRouter(): Router {
     }),
   );
 
+  // PATCH /api/billing/:id/charges
+  router.patch(
+    '/:id/charges',
+    asyncHandler(async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id as string, 10);
+      const amount = Number(req.body.amount);
+      if (isNaN(id) || isNaN(amount) || amount < 0) {
+        res.status(400).json({ success: false, error: 'Invalid ID or amount' });
+        return;
+      }
+
+      const useCase = new UpdateChargesUseCase(getRepo(req));
+      const result = await useCase.execute(id, amount);
+      if (!result.success) {
+        res.status(400).json({ success: false, error: result.error });
+        return;
+      }
+      res.json({ success: true, data: result.data });
+    }),
+  );
+
   // ─── ViewCollection Legacy Parity Routes ──────────────────────────────────
 
   /**
@@ -181,17 +203,61 @@ export function createBillingRouter(): Router {
       const legacyDateDMY = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; // d/m/Y
 
       try {
-        // 1. Receipts by mode
-        const receipts: any[] = await db.execute(
-          sql`SELECT mode, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total
-              FROM receipt
-              WHERE receiptdate = ${legacyDate}
-                AND deleted_at IS NULL
-                AND regid > 0
-              GROUP BY mode`
-        );
+        // Run all queries concurrently to optimize load time
+        const [
+          receipts,
+          countRes,
+          expRes,
+          cashDepRes,
+          bankDepRes,
+          cumCashRes,
+          cumBankRes,
+          prodRes
+        ] = await Promise.all([
+          db.execute(
+            sql`SELECT mode, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total
+                FROM receipt
+                WHERE receiptdate = ${legacyDate}
+                  AND deleted_at IS NULL
+                  AND regid > 0
+                GROUP BY mode`
+          ),
+          db.execute(
+            sql`SELECT COUNT(*) as cnt FROM receipt
+                WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0`
+          ),
+          db.execute(
+            sql`SELECT COALESCE(SUM(amount), 0) as total FROM expenses
+                WHERE dateval = ${legacyDate} AND deleted_at IS NULL`
+          ),
+          db.execute(
+            sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit
+                WHERE deposit_date = ${legacyDateDMY} AND deleted_at IS NULL`
+          ),
+          db.execute(
+            sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit
+                WHERE deposit_date = ${legacyDateDMY} AND deleted_at IS NULL`
+          ),
+          db.execute(
+            sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit
+                WHERE deleted_at IS NULL AND dateval <= ${dateParam} AND dateval >= '2021-01-01'`
+          ),
+          db.execute(
+            sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit
+                WHERE deleted_at IS NULL AND dateval <= ${dateParam} AND dateval >= '2021-01-01'`
+          ),
+          db.execute(
+            sql`SELECT COALESCE(SUM(ac.additional_price * ac.additional_quantity), 0) as total
+                FROM additional_charges ac
+                LEFT JOIN charges c ON c.id = CAST(ac.additional_name AS INTEGER)
+                WHERE ac.dateval = ${legacyDate}
+                  AND ac.deleted_at IS NULL
+                  AND c.type = 'Product'`
+          )
+        ]);
+
         const modeMap: Record<string, number> = {};
-        for (const r of receipts) {
+        for (const r of receipts as any[]) {
           modeMap[r.mode] = Number(r.total) || 0;
         }
         const cash = modeMap['C'] || 0;
@@ -200,55 +266,13 @@ export function createBillingRouter(): Router {
         const online = modeMap['O'] || 0;
         const collection = cash + card + cheque + online;
 
-        // 2. Receipt count
-        const countRes: any[] = await db.execute(
-          sql`SELECT COUNT(*) as cnt FROM receipt
-              WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0`
-        );
-        const recordCount = Number(countRes[0]?.cnt) || 0;
-
-        // 3. Expenses
-        const expRes: any[] = await db.execute(
-          sql`SELECT COALESCE(SUM(amount), 0) as total FROM expenses
-              WHERE dateval = ${legacyDate} AND deleted_at IS NULL`
-        );
-        const expenses = Number(expRes[0]?.total) || 0;
-
-        // 4. Cash deposit (recp handed)
-        const cashDepRes: any[] = await db.execute(
-          sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit
-              WHERE deposit_date = ${legacyDateDMY} AND deleted_at IS NULL`
-        );
-        const cashDeposited = Number(cashDepRes[0]?.total) || 0;
-
-        // 5. Bank deposit
-        const bankDepRes: any[] = await db.execute(
-          sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit
-              WHERE deposit_date = ${legacyDateDMY} AND deleted_at IS NULL`
-        );
-        const bankDeposit = Number(bankDepRes[0]?.total) || 0;
-
-        // 6. Cash in hand (cumulative cash deposits - cumulative bank deposits since 2021-01-01)
-        const cumCashRes: any[] = await db.execute(
-          sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit
-              WHERE deleted_at IS NULL AND dateval <= ${dateParam} AND dateval >= '2021-01-01'`
-        );
-        const cumBankRes: any[] = await db.execute(
-          sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit
-              WHERE deleted_at IS NULL AND dateval <= ${dateParam} AND dateval >= '2021-01-01'`
-        );
-        const cashInHand = (Number(cumCashRes[0]?.total) || 0) - (Number(cumBankRes[0]?.total) || 0);
-
-        // 7. Product charges
-        const prodRes: any[] = await db.execute(
-          sql`SELECT COALESCE(SUM(ac.additional_price * ac.additional_quantity), 0) as total
-              FROM additional_charges ac
-              LEFT JOIN charges c ON c.id = CAST(ac.additional_name AS INTEGER)
-              WHERE ac.dateval = ${legacyDate}
-                AND ac.deleted_at IS NULL
-                AND c.type = 'Product'`
-        );
-        const productCharges = Number(prodRes[0]?.total) || 0;
+        const recordCount = Number((countRes as any[])[0]?.cnt) || 0;
+        const expenses = Number((expRes as any[])[0]?.total) || 0;
+        const cashDeposited = Number((cashDepRes as any[])[0]?.total) || 0;
+        const bankDeposit = Number((bankDepRes as any[])[0]?.total) || 0;
+        
+        const cashInHand = (Number((cumCashRes as any[])[0]?.total) || 0) - (Number((cumBankRes as any[])[0]?.total) || 0);
+        const productCharges = Number((prodRes as any[])[0]?.total) || 0;
 
         const deficit = cash - expenses - cashDeposited;
 
@@ -299,7 +323,8 @@ export function createBillingRouter(): Router {
                 LEFT JOIN case_datas cd ON cd.id = ac.regid
                 WHERE ac.dateval = ${legacyDate}
                   AND ac.deleted_at IS NULL
-                  AND c.type = 'Product'`
+                  AND c.type = 'Product'
+                ORDER BY ac.id DESC`
           );
           const records = rows.map((r: any) => ({
             regid: Number(r.rid) || 0,
@@ -307,6 +332,7 @@ export function createBillingRouter(): Router {
             amount: (Number(r.additional_price) || 0) * (Number(r.additional_quantity) || 1),
             chargeName: r.charge_name || '',
             quantity: Number(r.additional_quantity) || 1,
+            date: r.created_at || new Date().toISOString(),
           }));
           res.json({ success: true, data: records });
         } else {
@@ -318,12 +344,14 @@ export function createBillingRouter(): Router {
                 WHERE r.receiptdate = ${legacyDate}
                   AND r.deleted_at IS NULL
                   AND r.regid > 0
-                  AND r.mode = ${modeCode}`
+                  AND r.mode = ${modeCode}
+                ORDER BY r.id DESC`
           );
           const records = rows.map((r: any) => ({
             regid: Number(r.rid) || 0,
             patientName: r.first_name || '',
             amount: Number(r.amount) || 0,
+            date: r.created_at || new Date().toISOString(),
           }));
           res.json({ success: true, data: records });
         }

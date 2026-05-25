@@ -25,17 +25,17 @@ export default function ViewCollectionPage() {
   // Drilldown modal state
   const [drilldown, setDrilldown] = useState<{ mode: string; title: string } | null>(null);
 
-  const handlePrevDay = () => {
-    const d = new Date(selectedDate + 'T00:00:00');
-    d.setDate(d.getDate() - 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+  const shiftDate = (days: number) => {
+    const [y, m, d] = selectedDate.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d + days);
+    const newY = dateObj.getFullYear();
+    const newM = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const newD = String(dateObj.getDate()).padStart(2, '0');
+    setSelectedDate(`${newY}-${newM}-${newD}`);
   };
 
-  const handleNextDay = () => {
-    const d = new Date(selectedDate + 'T00:00:00');
-    d.setDate(d.getDate() + 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
-  };
+  const handlePrevDay = () => shiftDate(-1);
+  const handleNextDay = () => shiftDate(1);
 
   const handleToday = () => {
     setSelectedDate(new Date().toISOString().split('T')[0]);
@@ -108,14 +108,12 @@ export default function ViewCollectionPage() {
               <ChevronLeft size={18} /> Previous
             </button>
             <div className="vc-date-center">
-              <Calendar size={16} />
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="vc-date-input"
               />
-              <span className="vc-date-display">{formatDate(selectedDate)}</span>
             </div>
             <button className="vc-date-btn" onClick={handleNextDay}>
               Next <ChevronRight size={18} />
@@ -127,131 +125,153 @@ export default function ViewCollectionPage() {
             <div className="vc-loading">Loading collection data...</div>
           ) : summary ? (
             <div className="vc-daily-content">
-              {/* Main Cards Grid */}
-              <div className="vc-cards-grid">
-                {/* Left Column — Collection Breakdown */}
-                <div className="vc-card-group">
-                  <h3 className="vc-group-title">Collection Breakdown</h3>
-
-                  <div className="vc-summary-card vc-card-total">
-                    <div className="vc-card-icon"><DollarSign size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Total Collection</span>
-                      <span className="vc-card-value">₹{summary.collection.toLocaleString('en-IN')}</span>
+              <div className="vc-ledger-layout">
+                {/* Left Column: Collection Breakdown */}
+                <div className="vc-ledger-panel">
+                  <div className="vc-ledger-header">
+                    <h3 className="vc-ledger-title">Collection Breakdown</h3>
+                    <div className="vc-ledger-total">
+                      Total: <span>₹{summary.collection.toLocaleString('en-IN')}</span>
                     </div>
-                    <span className="vc-card-count">{summary.recordCount} txns</span>
                   </div>
-
-                  <div className="vc-summary-card vc-card-cash">
-                    <div className="vc-card-icon"><Banknote size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Cash</span>
-                      <span className="vc-card-value">₹{summary.cash.toLocaleString('en-IN')}</span>
-                    </div>
-                    <button className="vc-info-btn" onClick={() => openDrilldown('Cash', 'Cash Payment')}>
-                      <Info size={14} />
-                    </button>
-                  </div>
-
-                  <div className="vc-summary-card vc-card-card">
-                    <div className="vc-card-icon"><CreditCard size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Credit Card</span>
-                      <span className="vc-card-value">₹{summary.card.toLocaleString('en-IN')}</span>
-                    </div>
-                    <button className="vc-info-btn" onClick={() => openDrilldown('Card', 'Credit Card Payment')}>
-                      <Info size={14} />
-                    </button>
-                  </div>
-
-                  <div className="vc-summary-card vc-card-cheque">
-                    <div className="vc-card-icon"><Building2 size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Cheque</span>
-                      <span className="vc-card-value">₹{summary.cheque.toLocaleString('en-IN')}</span>
-                    </div>
-                    <button className="vc-info-btn" onClick={() => openDrilldown('Cheque', 'Cheque Payment')}>
-                      <Info size={14} />
-                    </button>
-                  </div>
-
-                  <div className="vc-summary-card vc-card-online">
-                    <div className="vc-card-icon"><Wallet size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Online</span>
-                      <span className="vc-card-value">₹{summary.online.toLocaleString('en-IN')}</span>
-                    </div>
-                    <button className="vc-info-btn" onClick={() => openDrilldown('Online', 'Online Payment')}>
-                      <Info size={14} />
-                    </button>
-                  </div>
-
-                  <div className="vc-summary-card vc-card-product">
-                    <div className="vc-card-icon"><ShoppingBag size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Product Charges</span>
-                      <span className="vc-card-value">₹{summary.productCharges.toLocaleString('en-IN')}</span>
-                    </div>
-                    <button className="vc-info-btn" onClick={() => openDrilldown('Product', 'Product Charges')}>
-                      <Info size={14} />
-                    </button>
-                  </div>
-
-                  <div className="vc-summary-card vc-card-expense">
-                    <div className="vc-card-icon"><TrendingDown size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Expenses</span>
-                      <span className="vc-card-value">₹{summary.expenses.toLocaleString('en-IN')}</span>
-                    </div>
+                  
+                  <div className="vc-ledger-table-wrap">
+                    <table className="vc-ledger-table">
+                      <tbody>
+                        <tr>
+                          <td>
+                            <div className="vc-ledger-label">
+                              <Banknote size={16} /> Cash
+                            </div>
+                          </td>
+                          <td className="vc-right vc-bold">₹{summary.cash.toLocaleString('en-IN')}</td>
+                          <td className="vc-right" style={{ width: 40 }}>
+                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Cash', 'Cash Payment')} title="View Details">
+                              <Info size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div className="vc-ledger-label">
+                              <CreditCard size={16} /> Credit Card
+                            </div>
+                          </td>
+                          <td className="vc-right vc-bold">₹{summary.card.toLocaleString('en-IN')}</td>
+                          <td className="vc-right">
+                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Card', 'Credit Card Payment')} title="View Details">
+                              <Info size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div className="vc-ledger-label">
+                              <Building2 size={16} /> Cheque
+                            </div>
+                          </td>
+                          <td className="vc-right vc-bold">₹{summary.cheque.toLocaleString('en-IN')}</td>
+                          <td className="vc-right">
+                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Cheque', 'Cheque Payment')} title="View Details">
+                              <Info size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div className="vc-ledger-label">
+                              <Wallet size={16} /> Online
+                            </div>
+                          </td>
+                          <td className="vc-right vc-bold">₹{summary.online.toLocaleString('en-IN')}</td>
+                          <td className="vc-right">
+                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Online', 'Online Payment')} title="View Details">
+                              <Info size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div className="vc-ledger-label">
+                              <ShoppingBag size={16} /> Product Charges
+                            </div>
+                          </td>
+                          <td className="vc-right vc-bold">₹{summary.productCharges.toLocaleString('en-IN')}</td>
+                          <td className="vc-right">
+                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Product', 'Product Charges')} title="View Details">
+                              <Info size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
-                {/* Right Column — Deposits & Balances */}
-                <div className="vc-card-group">
-                  <h3 className="vc-group-title">Deposits & Balance</h3>
-
-                  <div className="vc-summary-card vc-card-recp">
-                    <div className="vc-card-icon"><Banknote size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Recp Handed (Cash Dep.)</span>
-                      <span className="vc-card-value">₹{summary.cashDeposited.toLocaleString('en-IN')}</span>
+                {/* Right Column: Deposits & Balance */}
+                <div className="vc-ledger-panel">
+                  <div className="vc-ledger-header">
+                    <h3 className="vc-ledger-title">Deposits & Balance</h3>
+                    <div className="vc-ledger-total vc-cih-highlight">
+                      Cash in Hand: <span>₹{summary.cashInHand.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
-
-                  <div className={`vc-summary-card ${summary.deficit >= 0 ? 'vc-card-positive' : 'vc-card-negative'}`}>
-                    <div className="vc-card-icon"><BarChart3 size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Deficit</span>
-                      <span className="vc-card-value">₹{summary.deficit.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-
-                  <div className="vc-summary-card vc-card-bank">
-                    <div className="vc-card-icon"><Landmark size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Bank Deposit</span>
-                      <span className="vc-card-value">₹{summary.bankDeposit.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-
-                  <div className="vc-summary-card vc-card-cih">
-                    <div className="vc-card-icon"><Wallet size={20} /></div>
-                    <div className="vc-card-body">
-                      <span className="vc-card-label">Cash in Hand</span>
-                      <span className="vc-card-value vc-card-value-big">₹{summary.cashInHand.toLocaleString('en-IN')}</span>
-                    </div>
+                  
+                  <div className="vc-ledger-table-wrap">
+                    <table className="vc-ledger-table">
+                      <tbody>
+                        <tr>
+                          <td>
+                            <div className="vc-ledger-label">
+                              <TrendingDown size={16} /> Expenses
+                            </div>
+                          </td>
+                          <td className="vc-right vc-bold vc-negative">₹{summary.expenses.toLocaleString('en-IN')}</td>
+                          <td className="vc-right" style={{ width: 40 }}></td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div className="vc-ledger-label">
+                              <Banknote size={16} /> Recp Handed (Cash Dep.)
+                            </div>
+                          </td>
+                          <td className="vc-right vc-bold">₹{summary.cashDeposited.toLocaleString('en-IN')}</td>
+                          <td className="vc-right"></td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div className="vc-ledger-label">
+                              <Landmark size={16} /> Bank Deposit
+                            </div>
+                          </td>
+                          <td className="vc-right vc-bold">₹{summary.bankDeposit.toLocaleString('en-IN')}</td>
+                          <td className="vc-right"></td>
+                        </tr>
+                        <tr className="vc-ledger-highlight-row">
+                          <td>
+                            <div className="vc-ledger-label">
+                              <BarChart3 size={16} /> Deficit / Surplus
+                            </div>
+                          </td>
+                          <td className={`vc-right vc-bold ${summary.deficit >= 0 ? 'vc-positive' : 'vc-negative'}`}>
+                            {summary.deficit > 0 ? '+' : ''}₹{summary.deficit.toLocaleString('en-IN')}
+                          </td>
+                          <td className="vc-right"></td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
 
                   {/* Quick Links */}
-                  <div className="vc-quick-links">
-                    <button className="vc-quick-link" onClick={() => navigate('/billing/deposits')}>
-                      <Banknote size={16} /> Cash Deposit
+                  <div className="vc-ledger-actions">
+                    <button className="vc-action-btn" onClick={() => navigate('/billing/deposits')}>
+                      <Banknote size={16} /> Add Cash Deposit
                     </button>
-                    <button className="vc-quick-link" onClick={() => navigate('/billing/deposits')}>
-                      <Landmark size={16} /> Bank Deposit
+                    <button className="vc-action-btn" onClick={() => navigate('/billing/deposits')}>
+                      <Landmark size={16} /> Add Bank Deposit
                     </button>
-                    <button className="vc-quick-link" onClick={() => navigate('/billing/expenses')}>
-                      <TrendingDown size={16} /> Expense
+                    <button className="vc-action-btn vc-action-btn-danger" onClick={() => navigate('/billing/expenses')}>
+                      <TrendingDown size={16} /> Add Expense
                     </button>
                   </div>
                 </div>
