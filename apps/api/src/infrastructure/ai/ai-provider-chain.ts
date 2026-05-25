@@ -27,10 +27,10 @@ export class AiProviderChain {
     const defaultModel = process.env.AI_MODEL || 'claude-haiku-4-5';
 
     this.providers = [
-      // Primary: Groq (Ultra-Fast, Stable)
+      // Primary: Groq (Ultra-Fast, Stable, with Vision-capable Scout model first)
+      new GroqAdapter('meta-llama/llama-4-scout-17b-16e-instruct', 1000),
       new GroqAdapter('llama-3.3-70b-versatile', 1000),
       new GroqAdapter('llama-3.1-8b-instant', 14400),
-      new GroqAdapter('meta-llama/llama-4-scout-17b-16e-instruct', 1000),
 
       // Fallback: Local Ollama
       new OllamaAdapter('qwen2.5:1.5b'),
@@ -81,7 +81,7 @@ export class AiProviderChain {
       }
 
       if (request.documents && request.documents.length > 0) {
-        if (provider.name === 'ollama' || (provider.name === 'groq' && !provider.model.includes('vision'))) {
+        if (provider.name === 'ollama' || (provider.name === 'groq' && !provider.model.includes('vision') && !provider.model.includes('scout'))) {
           logger.warn(`Provider ${provider.name}/${provider.model} does not support image documents, skipping`);
           errors.push(`${provider.name}/${provider.model}: Skipped (does not support images)`);
           continue;
