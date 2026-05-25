@@ -941,7 +941,15 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                             <audio src={msg.metadata.mediaUrl} controls className="max-w-[250px] h-10" />
                           </div>
                         )}
-                        <p className="text-[13px] leading-relaxed font-semibold whitespace-pre-wrap">{msg.content}</p>
+                        {msg.content && (() => {
+                          if (!msg.metadata?.mediaUrl) {
+                            return <p className="text-[13px] leading-relaxed font-semibold whitespace-pre-wrap">{msg.content}</p>;
+                          }
+                          if (['audio', 'document'].includes(msg.type)) return null;
+                          if (msg.type === 'image' && msg.content === '[Image]') return null;
+                          if (msg.type === 'video' && msg.content === '[Video]') return null;
+                          return <p className="text-[13px] leading-relaxed font-semibold whitespace-pre-wrap">{msg.content}</p>;
+                        })()}
                         <div className={`flex items-center gap-1.5 mt-2 ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
                           <span className={`text-[8px] font-extrabold uppercase tracking-widest ${msg.direction === 'outbound' ? 'text-white/60' : 'text-[var(--pp-text-3)]'}`}>
                             {safeFormatTime(msg.timestamp, msg.createdAt)}
