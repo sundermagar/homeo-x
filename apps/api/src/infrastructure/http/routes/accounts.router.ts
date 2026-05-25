@@ -1,8 +1,10 @@
 import { Router, type Request, type Response } from 'express';
+import { sql } from 'drizzle-orm';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { validate, validateQuery } from '../middleware/validate.js';
 import { AdditionalChargeRepositoryPg, ExpenseRepositoryPg } from '../../repositories/accounts.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
 import {
   ListAdditionalChargesUseCase,
   GetAdditionalChargeUseCase,
@@ -93,7 +95,7 @@ export function createAccountsRouter(): Router {
         res.status(400).json({ success: false, error: 'Invalid ID' });
         return;
       }
-      const useCase = new UpdateAdditionalChargeUseCase(getRepo(req));
+      const useCase = new UpdateAdditionalChargeUseCase(getRepo(req), new BillingRepositoryPg(req.tenantDb));
       const result = await useCase.execute(id, req.body);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });
@@ -112,7 +114,7 @@ export function createAccountsRouter(): Router {
         res.status(400).json({ success: false, error: 'Invalid ID' });
         return;
       }
-      const useCase = new DeleteAdditionalChargeUseCase(getRepo(req));
+      const useCase = new DeleteAdditionalChargeUseCase(getRepo(req), new BillingRepositoryPg(req.tenantDb));
       const result = await useCase.execute(id);
       if (!result.success) {
         res.status(404).json({ success: false, error: result.error });
@@ -120,6 +122,175 @@ export function createAccountsRouter(): Router {
       }
       res.json({ success: true });
     }),
+  );
+
+  // ─── Sync Pending Bills ────────────────────────────────────────────────────────
+
+  // GET /api/accounts/cleanup-duplicates
+  router.get(
+    '/cleanup-duplicates',
+    asyncHandler(async (req: Request, res: Response) => {
+      const db = req.tenantDb;
+      const { bills } = await import('@mmc/database');
+      const { eq, and, desc, isNull, inArray } = await import('drizzle-orm');
+
+      const allRegBills = await db.select()
+        .from(bills)
+        .where(and(eq(bills.billType, 'Registration'), isNull(bills.deletedAt)))
+        .orderBy(desc(bills.id));
+
+      const dupGroups: Record<string, any[]> = {};
+      for (const b of allRegBills) {
+        if (b.id < 50) continue; // Skip old bills just in case
+        const dateStr = (b.billDate as any) instanceof Date ? (b.billDate as any).toISOString().split('T')[0] : b.billDate;
+        const key = `${b.regid}-${dateStr}`;
+        if (!dupGroups[key]) dupGroups[key] = [];
+        dupGroups[key].push(b);
+      }
+
+      let deletedCount = 0;
+      for (const [key, bList] of Object.entries(dupGroups)) {
+        if (bList.length > 1) {
+          bList.sort((a, b) => b.charges - a.charges || b.id - a.id);
+          const deleteIds = bList.slice(1).map(b => b.id);
+          await db.update(bills).set({ deletedAt: new Date() }).where(inArray(bills.id, deleteIds));
+          deletedCount += deleteIds.length;
+        }
+      }
+
+      // Do the same for Medicine Days
+      const allMedBills = await db.select()
+        .from(bills)
+        .where(and(eq(bills.billType, 'Consultation'), eq(bills.customTitle, 'Medicine Days Charge'), isNull(bills.deletedAt)))
+        .orderBy(desc(bills.id));
+
+      const medGroups: Record<string, any[]> = {};
+      for (const b of allMedBills) {
+        if (b.id < 50) continue;
+        const dateStr = (b.billDate as any) instanceof Date ? (b.billDate as any).toISOString().split('T')[0] : b.billDate;
+        const key = `${b.regid}-${dateStr}`;
+        if (!medGroups[key]) medGroups[key] = [];
+        medGroups[key].push(b);
+      }
+
+      for (const [key, bList] of Object.entries(medGroups)) {
+        if (bList.length > 1) {
+          bList.sort((a, b) => b.charges - a.charges || b.id - a.id);
+          const deleteIds = bList.slice(1).map(b => b.id);
+          await db.update(bills).set({ deletedAt: new Date() }).where(inArray(bills.id, deleteIds));
+          deletedCount += deleteIds.length;
+        }
+      }
+
+      res.json({ success: true, deletedCount });
+    })
+  );
+
+  // POST /api/accounts/pending-bills
+  router.post(
+    '/pending-bills',
+    asyncHandler(async (req: Request, res: Response) => {
+      const { regid, dateval, regular, daysCharge } = req.body;
+      if (!regid || !dateval) {
+        res.status(400).json({ success: false, error: 'regid and dateval required' });
+        return;
+      }
+      
+      const db = req.tenantDb;
+      const { bills } = await import('@mmc/database');
+      const { eq, and, isNull } = await import('drizzle-orm');
+
+      // Helper to get next bill no safely
+      const getNextBillNo = async () => {
+        try {
+          const [res] = await db.execute(sql`SELECT nextval('bill_no_seq')`);
+          return Number(res?.nextval ?? 1);
+        } catch(e) {
+          return 0;
+        }
+      };
+
+      // 1. Sync Registration Bill
+      if (regular !== undefined && regular > 0) {
+        try {
+          const [existingReg] = await db
+            .select({ id: bills.id, received: bills.received })
+            .from(bills)
+            .where(
+              and(
+                eq(bills.regid, regid),
+                eq(bills.billDate, dateval),
+                eq(bills.billType, 'Registration'),
+                isNull(bills.deletedAt)
+              )
+            )
+            .limit(1);
+
+          if (existingReg) {
+            const received = existingReg.received ?? 0;
+            await db
+              .update(bills)
+              .set({ charges: regular, balance: regular - received, updatedAt: new Date() })
+              .where(eq(bills.id, existingReg.id));
+          } else {
+            const billNo = await getNextBillNo();
+            await db.insert(bills).values({
+              regid,
+              billNo,
+              billDate: dateval,
+              charges: regular,
+              received: 0,
+              balance: regular,
+              paymentMode: 'Cash',
+              billType: 'Registration',
+              customTitle: 'Registration Fee',
+            });
+          }
+        } catch(e) { console.error('Failed to sync registration bill', e); }
+      }
+
+      // 2. Sync Consultation Bill (Medicine Days)
+      if (daysCharge !== undefined && daysCharge > 0) {
+        try {
+          const [existingCons] = await db
+            .select({ id: bills.id, received: bills.received })
+            .from(bills)
+            .where(
+              and(
+                eq(bills.regid, regid),
+                eq(bills.billDate, dateval),
+                eq(bills.billType, 'Consultation'),
+                eq(bills.customTitle, 'Medicine Days Charge'),
+                isNull(bills.deletedAt)
+              )
+            )
+            .limit(1);
+
+          if (existingCons) {
+            const received = existingCons.received ?? 0;
+            await db
+              .update(bills)
+              .set({ charges: daysCharge, balance: daysCharge - received, updatedAt: new Date() })
+              .where(eq(bills.id, existingCons.id));
+          } else {
+            const billNo = await getNextBillNo();
+            await db.insert(bills).values({
+              regid,
+              billNo,
+              billDate: dateval,
+              charges: daysCharge,
+              received: 0,
+              balance: daysCharge,
+              paymentMode: 'Cash',
+              billType: 'Consultation',
+              customTitle: 'Medicine Days Charge',
+            });
+          }
+        } catch(e) { console.error('Failed to sync medicine bill', e); }
+      }
+
+      res.json({ success: true });
+    })
   );
 
   // ─── Expense Heads ────────────────────────────────────────────────────────

@@ -498,7 +498,7 @@ import { RemedyChartUseCase } from '../../../domains/medical-case/use-cases/reme
 // ─── Remedy Chart Session ────────────────────────────────────────────────────
 // Migrated from MMC legacy: remedychartAPI, addcasepotency, casepotencylisting, etc.
 
-const getRemedyChart = (req: any) => new RemedyChartUseCase(req.tenantDb);
+const getRemedyChart = (req: any) => new RemedyChartUseCase(req.tenantDb, new BillingRepositoryPg(req.tenantDb));
 
 // GET /api/medical-cases/remedy-chart/lookups  — medicines + potencies + frequencies
 router.get('/remedy-chart/lookups', asyncHandler(async (req, res) => {

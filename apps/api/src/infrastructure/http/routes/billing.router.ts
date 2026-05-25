@@ -264,7 +264,8 @@ export function createBillingRouter(): Router {
         const card = modeMap['S'] || 0;
         const cheque = modeMap['B'] || 0;
         const online = modeMap['O'] || 0;
-        const collection = cash + card + cheque + online;
+        const upi = modeMap['U'] || 0;
+        const collection = cash + card + cheque + online + upi;
 
         const recordCount = Number((countRes as any[])[0]?.cnt) || 0;
         const expenses = Number((expRes as any[])[0]?.total) || 0;
@@ -285,6 +286,7 @@ export function createBillingRouter(): Router {
             card,
             cheque,
             online,
+            upi,
             productCharges,
             expenses,
             cashDeposited,
@@ -336,7 +338,7 @@ export function createBillingRouter(): Router {
           }));
           res.json({ success: true, data: records });
         } else {
-          const modeCode = { Cash: 'C', Card: 'S', Cheque: 'B', Online: 'O' }[mode] || 'C';
+          const modeCode = { Cash: 'C', Card: 'S', Cheque: 'B', Online: 'O', UPI: 'U' }[mode] || 'C';
           const rows: any[] = await db.execute(
             sql`SELECT r.*, cd.regid as rid, cd.first_name
                 FROM receipt r

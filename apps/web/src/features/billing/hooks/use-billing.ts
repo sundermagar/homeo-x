@@ -26,6 +26,7 @@ export interface CollectionSummary {
   cardReceived: number;
   chequeReceived: number;
   onlineReceived: number;
+  upiReceived: number;
   recordCount: number;
   targetAmount?: number;
   targetAchieved?: number;
@@ -101,6 +102,7 @@ export function useCollectionSummary(date?: string) {
         cardReceived: records.filter((r: any) => r.paymentMode === 'Card').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
         chequeReceived: records.filter((r: any) => r.paymentMode === 'Cheque').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
         onlineReceived: records.filter((r: any) => r.paymentMode === 'Online').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
+        upiReceived: records.filter((r: any) => r.paymentMode === 'UPI').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
         recordCount: collection.data?.data?.recordCount || 0,
       };
 

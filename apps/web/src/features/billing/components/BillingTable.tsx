@@ -43,6 +43,10 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       regid: number;
       patientName: string;
       billDate: string | null;
+      registrationCharge: number;
+      medicineDaysCharge: number;
+      packageCharge: number;
+      additionalCharge: number;
       totalCharges: number;
       totalReceived: number;
       totalBalance: number;
@@ -56,6 +60,10 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
           regid: bill.regid,
           patientName: bill.patientName ?? '',
           billDate: bill.billDate,
+          registrationCharge: 0,
+          medicineDaysCharge: 0,
+          packageCharge: 0,
+          additionalCharge: 0,
           totalCharges: 0,
           totalReceived: 0,
           totalBalance: 0,
@@ -64,9 +72,30 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
         });
       }
       const group = map.get(bill.regid)!;
-      group.totalCharges += bill.charges;
-      group.totalReceived += bill.received;
-      group.totalBalance += bill.balance;
+      
+      const chargeAmount = bill.charges || 0;
+      group.totalCharges += chargeAmount;
+      group.totalReceived += bill.received || 0;
+      group.totalBalance += bill.balance || 0;
+
+      // Breakdown calculation
+      if (bill.billType === 'Additional') {
+        group.additionalCharge += chargeAmount;
+      } else if (bill.treatment?.startsWith('Package:')) {
+        group.packageCharge += chargeAmount;
+      } else if (bill.billType === 'Registration') {
+        group.registrationCharge += chargeAmount;
+      } else if (bill.billType === 'Consultation') {
+        // Only consider as medicine days charge if not Registration/Package/Additional
+        // Some consultation bills might be registration if the type wasn't set correctly, but we follow standard types.
+        group.medicineDaysCharge += chargeAmount;
+      } else {
+        // Fallback: add to registration or general if type is missing or Custom
+        if (bill.billType !== 'Custom') {
+           group.registrationCharge += chargeAmount;
+        }
+      }
+
       if (bill.paymentMode) group.paymentModes.add(bill.paymentMode);
       group.bills.push(bill);
     }
@@ -153,60 +182,24 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
     <div key={bill.id} style={{ padding: 16, border: '1px solid var(--pp-warm-3)', borderRadius: 16, background: 'var(--bg-surface-2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--pp-ink)' }}>{bill.treatment || bill.billType || 'Consultation'}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
+            {(() => {
+              const t = bill.treatment || bill.billType || 'Consultation';
+              return t === 'Consultation' ? 'Medicine Charge' : t;
+            })()}
+          </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 2 }}>
             Bill #{bill.billNo} • {isPast && bill.billDate ? format(new Date(bill.billDate), 'dd MMM yyyy') + ' • ' : ''}{bill.paymentMode ?? 'No Payment Mode'}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          {editingChargeId === bill.id ? (
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-               <input 
-                 type="number" 
-                 value={newChargeAmount} 
-                 onChange={e => setNewChargeAmount(Number(e.target.value))}
-                 style={{ width: 80, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--pp-blue)', fontSize: 13, fontWeight: 700 }}
-               />
-               <button onClick={() => handleSaveCharges(bill.id)} style={{ padding: '4px 10px', background: 'var(--pp-blue)', color: 'white', borderRadius: 6, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer' }}>Save</button>
-               <button onClick={() => setEditingChargeId(null)} style={{ padding: '4px 10px', background: 'var(--pp-warm-4)', color: 'var(--pp-ink)', borderRadius: 6, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>Cancel</button>
-            </div>
-          ) : (
-            <div 
-              style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--pp-ink)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}
-              onClick={() => { setEditingChargeId(bill.id); setNewChargeAmount(bill.charges); }}
-              title="Click to edit charges"
-            >
+            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
               ₹{bill.charges.toLocaleString()}
-              <div style={{ background: 'var(--pp-warm-4)', borderRadius: 4, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--pp-text-2)" strokeWidth="2.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-              </div>
             </div>
-          )}
           {bill.balance > 0 && (
             <div style={{ fontSize: '0.75rem', color: 'var(--pp-danger-fg)', fontWeight: 700, marginTop: 4 }}>Owes ₹{bill.balance.toLocaleString()}</div>
           )}
         </div>
-      </div>
-      
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 12, borderTop: '1px dashed var(--border-main)' }}>
-        {bill.balance > 0 && (
-          <button 
-            className="bill-btn bill-btn-primary" 
-            style={{ height: 32, padding: '0 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }}
-            onClick={() => { setSelectedGroup(null); setReceivingBill(bill); setReceiveAmount(bill.balance); }}
-          >
-            Receive Payment
-          </button>
-        )}
-        
-        <button 
-          className="bill-btn bill-btn-sm" 
-          style={{ height: 32, padding: '0 12px', borderRadius: 8, background: 'var(--bg-card)', border: '1px solid var(--border-main)', display: 'flex', alignItems: 'center', gap: 6 }}
-          onClick={() => { setSelectedGroup(null); setPrintingBill(bill); }}
-        >
-          <Printer size={14} />
-          <span style={{ fontSize: 11, fontWeight: 700 }}>Print Receipt</span>
-        </button>
       </div>
     </div>
   );
@@ -240,10 +233,11 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                 <th style={{ width: '80px' }}>Bill #</th>
                 <th style={{ width: '120px' }}>Date</th>
                 <th>Patient</th>
-                <th style={{ width: '100px' }}>Mode</th>
-                <th style={{ width: '110px' }}>Charges</th>
-                <th style={{ width: '110px' }}>Received</th>
-                <th style={{ width: '110px' }}>Balance</th>
+                <th style={{ width: '90px' }}>Mode</th>
+                <th style={{ width: '220px' }}>Charges Breakdown</th>
+                <th style={{ width: '90px' }}>Total</th>
+                <th style={{ width: '90px' }}>Received</th>
+                <th style={{ width: '90px' }}>Balance</th>
                 <th style={{ width: '220px', textAlign: 'right' }}>Action</th>
 
               </tr>
@@ -277,7 +271,16 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                           {group.paymentModes.size === 0 && '—'}
                         </div>
                       </td>
-                      <td data-label="Charges" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-blue)' }}>
+                      <td data-label="Charges Breakdown">
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '11px' }}>
+                          {group.registrationCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Reg:</span> <span style={{ fontWeight: 600 }}>₹{group.registrationCharge}</span></div>}
+                          {group.medicineDaysCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Med:</span> <span style={{ fontWeight: 600 }}>₹{group.medicineDaysCharge}</span></div>}
+                          {group.packageCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Pkg:</span> <span style={{ fontWeight: 600 }}>₹{group.packageCharge}</span></div>}
+                          {group.additionalCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Add:</span> <span style={{ fontWeight: 600 }}>₹{group.additionalCharge}</span></div>}
+                          {group.totalCharges === 0 && <div style={{ color: 'var(--pp-text-3)' }}>—</div>}
+                        </div>
+                      </td>
+                      <td data-label="Total" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-blue)' }}>
                         <div className="plat-cell-val">
                           ₹{group.totalCharges.toLocaleString()}
                         </div>
@@ -341,18 +344,32 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
             
             <div className="bill-form-group" style={{ marginTop: 16 }}>
               <label className="bill-form-label">Payment Mode</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
                 <button 
                   className={`bill-view-toggle-btn ${paymentMode === 'Cash' ? 'is-active' : ''}`} 
                   onClick={() => setPaymentMode('Cash')}
-                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)' }}
+                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
                 >
                   <DollarSign size={14} /> Cash
                 </button>
                 <button 
+                  className={`bill-view-toggle-btn ${paymentMode === 'UPI' ? 'is-active' : ''}`} 
+                  onClick={() => setPaymentMode('UPI')}
+                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                >
+                  <CreditCard size={14} /> UPI
+                </button>
+                <button 
+                  className={`bill-view-toggle-btn ${paymentMode === 'Card' ? 'is-active' : ''}`} 
+                  onClick={() => setPaymentMode('Card')}
+                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                >
+                  <CreditCard size={14} /> Card
+                </button>
+                <button 
                   className={`bill-view-toggle-btn ${paymentMode === 'Online' ? 'is-active' : ''}`} 
                   onClick={() => setPaymentMode('Online')}
-                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)' }}
+                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
                 >
                   <CreditCard size={14} /> Online
                 </button>
@@ -434,16 +451,22 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginTop: 16 }}>
                 <div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>Total Charges</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-blue)' }}>₹{selectedGroup.totalCharges.toLocaleString()}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>Charges Breakdown</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}><span style={{ color: 'var(--pp-text-3)' }}>Registration:</span> <span style={{ fontWeight: 600 }}>₹{selectedGroup.registrationCharge}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}><span style={{ color: 'var(--pp-text-3)' }}>Medicine Days:</span> <span style={{ fontWeight: 600 }}>₹{selectedGroup.medicineDaysCharge}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}><span style={{ color: 'var(--pp-text-3)' }}>Package Plan:</span> <span style={{ fontWeight: 600 }}>₹{selectedGroup.packageCharge}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}><span style={{ color: 'var(--pp-text-3)' }}>Additional:</span> <span style={{ fontWeight: 600 }}>₹{selectedGroup.additionalCharge}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--border-main)' }}><span style={{ color: 'var(--pp-ink)', fontWeight: 700 }}>Total Bill Amount:</span> <span style={{ fontWeight: 800, color: 'var(--pp-blue)' }}>₹{selectedGroup.totalCharges.toLocaleString()}</span></div>
+                  </div>
                 </div>
                 <div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>Received</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-success-fg)' }}>₹{selectedGroup.totalReceived.toLocaleString()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-success-fg)', marginTop: 6 }}>₹{selectedGroup.totalReceived.toLocaleString()}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>Balance</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: selectedGroup.totalBalance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: selectedGroup.totalBalance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)', marginTop: 6 }}>
                     {selectedGroup.totalBalance > 0 ? `₹${selectedGroup.totalBalance.toLocaleString()}` : '—'}
                   </div>
                 </div>

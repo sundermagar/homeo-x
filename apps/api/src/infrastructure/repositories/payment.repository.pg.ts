@@ -99,7 +99,7 @@ export class PaymentRepositoryPg implements PaymentRepository {
         const legacyDate = istDateStr;
         const [m, d, y] = istDateStr.split('/');
         const dateval = `${y}-${(m || '0').padStart(2, '0')}-${(d || '0').padStart(2, '0')}`;
-        const modeCode: Record<string, string> = { Cash: 'C', Card: 'S', Cheque: 'B', Online: 'O' };
+        const modeCode: Record<string, string> = { Cash: 'C', Card: 'S', Cheque: 'B', Online: 'O', UPI: 'U' };
         const mode = modeCode[data.paymentMode] || 'C';
 
         // Try to insert using sequence first, if it fails, fallback to max id

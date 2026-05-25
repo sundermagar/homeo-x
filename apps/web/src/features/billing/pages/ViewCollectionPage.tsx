@@ -193,6 +193,19 @@ export default function ViewCollectionPage() {
                         <tr>
                           <td>
                             <div className="vc-ledger-label">
+                              <Banknote size={16} /> UPI
+                            </div>
+                          </td>
+                          <td className="vc-right vc-bold">₹{summary.upi.toLocaleString('en-IN')}</td>
+                          <td className="vc-right">
+                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('UPI', 'UPI Payment')} title="View Details">
+                              <Info size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div className="vc-ledger-label">
                               <ShoppingBag size={16} /> Product Charges
                             </div>
                           </td>
