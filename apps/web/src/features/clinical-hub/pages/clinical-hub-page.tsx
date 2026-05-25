@@ -26,6 +26,7 @@ const FEATURES = [
     badge: 'active',
   },
   */
+  /*
   {
     icon: Activity,
     iconStyle: 'alt',
@@ -34,6 +35,7 @@ const FEATURES = [
     path: '/clinical/remedy-chart',
     badge: 'new',
   },
+  */
   {
     icon: BellDot,
     iconStyle: 'green',
@@ -88,10 +90,12 @@ export default function ClinicalHubPage() {
           <BellDot size={16} />
           Follow-ups
         </Link>
+        {/*
         <Link to="/clinical/remedy-chart" className="chub-quick-btn">
           <Activity size={16} />
           Remedy Chart
         </Link>
+        */}
       </div>
 
       {/* ─── Stats Row ─── */}

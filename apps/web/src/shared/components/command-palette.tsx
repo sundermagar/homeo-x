@@ -131,8 +131,8 @@ function buildCommands(
       ['vital', 'bp', 'weight', 'pulse', 'checkup']),
     // nav('AI Analysis', '/ai-analysis', <BrainCircuit size={16} />, CLINICAL,
     //   ['ai', 'consultant', 'advisor', 'bot', 'assistant', 'analysis']),
-    nav('Remedy Chart', '/clinical/remedy-chart', <Brain size={16} />, CLINICAL,
-      ['remedy', 'chart', 'tree', 'medicine', 'drug']),
+    // nav('Remedy Chart', '/clinical/remedy-chart', <Brain size={16} />, CLINICAL,
+    //   ['remedy', 'chart', 'tree', 'medicine', 'drug']),
 
     // ── Packages ─────────────────────────────────────────────────────────────
     nav('Packages', '/packages', <Package size={16} />, ADMIN_CLINIC,

@@ -161,7 +161,7 @@ export function AppRouter() {
             <Route path="/medical-cases/followups" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><FollowupsPage /></RoleGuard>} />
             <Route path="/vitals-check" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><VitalsCheckPage /></RoleGuard>} />
             {/* <Route path="/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiConsultantPage /></RoleGuard>} /> */}
-            <Route path="/clinical/remedy-chart" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><RemedyTreePage /></RoleGuard>} />
+            {/* <Route path="/clinical/remedy-chart" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><RemedyTreePage /></RoleGuard>} /> */}
 
 
             {/* ─── Packages & Memberships ─── */}
