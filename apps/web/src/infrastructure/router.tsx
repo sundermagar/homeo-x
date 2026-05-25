@@ -192,9 +192,9 @@ export function AppRouter() {
             {/* ─── Analytics ─── */}
             <Route path="/analytics" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><DashboardAnalyticsPage /></RoleGuard>} />
             <Route path="/analytics/reports" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><ReportsPage /></RoleGuard>}>
-              <Route index element={<Navigate to="financial" replace />} />
-              <Route path="financial" element={<div />} />
-              <Route path="dues" element={<div />} />
+              <Route index element={<Navigate to="monthly-report" replace />} />
+              <Route path="monthly-report" element={<div />} />
+              <Route path="monthly-dues" element={<div />} />
               <Route path="birthdays" element={<div />} />
               <Route path="references" element={<div />} />
             </Route>

@@ -53,4 +53,9 @@ export interface IAnalyticsRepository {
    * Get detailed payment details for patients under a specific reference
    */
   getReferenceDetails(clinicId?: number, reference?: string, from?: Date, to?: Date): Promise<any[]>;
+
+  /**
+   * Get detailed product charges for a specific month
+   */
+  getProductDetails(clinicId?: number, monthKey?: string): Promise<any[]>;
 }

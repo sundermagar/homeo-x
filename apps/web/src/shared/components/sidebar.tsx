@@ -280,8 +280,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             label: 'Reports',
             icon: PieChart,
             children: [
-              { path: '/analytics/reports/financial', label: 'Financial Grid', icon: Activity },
-              { path: '/analytics/reports/dues', label: 'Outstanding Dues', icon: CreditCard },
+              { path: '/analytics/reports/monthly-report', label: 'Monthly Report', icon: Activity },
+              { path: '/analytics/reports/monthly-dues', label: 'Monthly Dues', icon: CreditCard },
               { path: '/analytics/reports/birthdays', label: 'Birthday List', icon: Gift },
               { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
             ]

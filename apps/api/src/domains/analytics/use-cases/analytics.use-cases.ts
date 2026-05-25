@@ -41,6 +41,16 @@ export class AnalyticsUseCases {
     }
   }
 
+  async getProductDetails(clinicId?: number, monthKey?: string): Promise<Result<any[]>> {
+    try {
+      if (!monthKey) return fail('Month key is required', 'VALIDATION');
+      const data = await this.repo.getProductDetails(clinicId, monthKey);
+      return ok(data);
+    } catch (err) {
+      return fail(errMsg(err));
+    }
+  }
+
   async getMonthWiseDues(clinicId?: number, year?: number): Promise<Result<MonthWiseDueSummary[]>> {
     try {
       const data = await this.repo.getMonthWiseDues(clinicId, year);
