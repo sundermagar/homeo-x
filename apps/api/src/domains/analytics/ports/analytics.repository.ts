@@ -48,4 +48,9 @@ export interface IAnalyticsRepository {
    * Get reference source statistics for a specific period
    */
   getReferenceListing(clinicId?: number, from?: Date, to?: Date): Promise<ReferenceListResult[]>;
+
+  /**
+   * Get detailed payment details for patients under a specific reference
+   */
+  getReferenceDetails(clinicId?: number, reference?: string, from?: Date, to?: Date): Promise<any[]>;
 }

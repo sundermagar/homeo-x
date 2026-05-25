@@ -77,4 +77,13 @@ export class AnalyticsUseCases {
       return fail(errMsg(err));
     }
   }
+
+  async getReferenceDetails(clinicId?: number, reference?: string, from?: Date, to?: Date): Promise<Result<any[]>> {
+    try {
+      const data = await this.repo.getReferenceDetails(clinicId, reference, from, to);
+      return ok(data);
+    } catch (err) {
+      return fail(errMsg(err));
+    }
+  }
 }

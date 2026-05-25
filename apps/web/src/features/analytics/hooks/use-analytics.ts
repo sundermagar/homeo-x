@@ -109,3 +109,20 @@ export function useReferenceListing(from?: Date, to?: Date) {
   });
 }
 
+export function useReferenceDetails(reference?: string, from?: Date, to?: Date) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['analytics', 'references', 'details', reference, from?.toISOString(), to?.toISOString()],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (reference) params.append('reference', reference);
+      if (from) params.append('from_date', from.toISOString());
+      if (to) params.append('to_date', to.toISOString());
+      const res = await api.get(`/analytics/referencelisting/details?${params.toString()}`);
+      const inner = unwrap<any>(res, []);
+      return Array.isArray(inner) ? inner : [];
+    },
+    enabled: !!reference,
+  });
+}
+
