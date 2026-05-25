@@ -34,8 +34,8 @@ export function MonthListView() {
             className="vc-date-input"
           />
         </div>
-        <button 
-          className="vc-today-btn" 
+        <button
+          className="vc-today-btn"
           onClick={() => setEndDate(new Date().toISOString().split('T')[0])}
         >
           Reset to Today

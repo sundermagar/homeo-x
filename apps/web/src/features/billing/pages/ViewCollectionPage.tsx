@@ -134,7 +134,7 @@ export default function ViewCollectionPage() {
                       Total: <span>₹{summary.collection.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
-                  
+
                   <div className="vc-ledger-table-wrap">
                     <table className="vc-ledger-table">
                       <tbody>
@@ -216,7 +216,7 @@ export default function ViewCollectionPage() {
                       Cash in Hand: <span>₹{summary.cashInHand.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
-                  
+
                   <div className="vc-ledger-table-wrap">
                     <table className="vc-ledger-table">
                       <tbody>
