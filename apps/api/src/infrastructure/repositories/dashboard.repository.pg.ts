@@ -1116,8 +1116,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       let totalPlatformRev = 0;
       let totalPlatformDues = 0;
 
-      // 2. Sum data across all discovered schemas
-      for (const s of schemas) {
+      // 2. Sum data across all discovered schemas concurrently
+      await Promise.all(schemas.map(async (s) => {
         const schema = s.schema_name;
         try {
           const stats = await this.db.execute(sql`
@@ -1134,9 +1134,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           }
         } catch (e) {
           // Skip schemas that might not have the bills table or are inaccessible
-          continue;
         }
-      }
+      }));
 
       const userStats = await this.db.execute(sql`
         SELECT
@@ -1267,7 +1266,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         };
       });
 
-      for (const s of schemas) {
+      await Promise.all(schemas.map(async (s) => {
         const schema = s.schema_name;
         try {
           const results = await this.db.execute(sql`
@@ -1284,8 +1283,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             const m = months.find(m => m.month === r.month);
             if (m) m.revenue += r.revenue || 0;
           }
-        } catch (e) { continue; }
-      }
+        } catch (e) { /* skip schema */ }
+      }));
 
       return months.map(m => ({ month: m.month, revenue: m.revenue }));
     });
