@@ -13,6 +13,7 @@ import {
 } from '../../../domains/staff/index.js';
 import { createLogger } from '../../../shared/logger.js';
 import { upload } from '../middleware/upload.js';
+import { uploadFileToR2 } from '../../storage/r2-storage.js';
 import { Role } from '@mmc/types';
 import { eq } from 'drizzle-orm';
 import { accounts, users } from '@mmc/database/schema';
@@ -141,14 +142,15 @@ staffRouter.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/staff/upload
-staffRouter.post('/upload', upload.single('file'), (req: Request, res: Response) => {
+staffRouter.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       res.status(400).json({ success: false, message: 'No file uploaded' });
       return;
     }
     logger.info(`File uploaded successfully: ${req.file.filename}`);
-    res.json({ success: true, path: `/uploads/${req.file.filename}` });
+    const picturePath = await uploadFileToR2(req.file.path, req.file.originalname, req.file.mimetype);
+    res.json({ success: true, path: picturePath });
   } catch (err: any) {
     logger.error(`Error in file upload: ${err.stack}`);
     res.status(500).json({ success: false, message: err.message });

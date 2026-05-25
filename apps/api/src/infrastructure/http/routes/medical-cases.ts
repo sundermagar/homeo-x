@@ -24,6 +24,8 @@ import { saveInvestigationSchema } from '@mmc/validation';
 const router = Router();
 router.use(authMiddleware);
 
+import { uploadFileToR2 } from '../../storage/r2-storage.js';
+
 import { streamToSSE } from '../../../shared/sse.js';
 
 // ─── AI Clinical Consultant ───
@@ -344,7 +346,7 @@ router.post('/records/investigations/upload', upload.single('file'), asyncHandle
   const fileBuffer = await fs.promises.readFile(req.file.path);
   const base64Data = fileBuffer.toString('base64');
   const mimeType = req.file.mimetype;
-  const attachmentUrl = `/uploads/${req.file.filename}`;
+  const attachmentUrl = await uploadFileToR2(req.file.path, req.file.originalname, req.file.mimetype);
 
   try {
     const { getAiProviderChain } = await import('../../../infrastructure/ai/ai-provider-chain.js');
@@ -412,10 +414,10 @@ router.post('/records/images', upload.array('files', 5), asyncHandler(async (req
   const fileArray = req.files as Express.Multer.File[];
   let picturePath = req.body.picture;
 
-  // If Multer processed files, map the local path to the DTO
+  // If Multer processed files, upload to R2 (or fallback to local uploads folder)
   if (fileArray && fileArray.length > 0 && fileArray[0]) {
-    // Relative path served by the static assets handler
-    picturePath = `/uploads/${fileArray[0].filename}`;
+    const file = fileArray[0];
+    picturePath = await uploadFileToR2(file.path, file.originalname, file.mimetype);
   }
 
   const result = await useCase.saveImage({
