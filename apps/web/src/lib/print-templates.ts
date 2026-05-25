@@ -755,6 +755,7 @@ export interface PrescriptionPrintData {
 export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   const accent = data.clinic.accentColor || '#2563EB';
   const safe = (s?: string) => (s ? escapeHtml(s) : '');
+  const cleanDoctorName = data.doctor.name.replace(/^Dr\.?\s*/i, '');
 
   const formattedDate = new Date(data.visit.date || Date.now()).toLocaleDateString('en-GB', {
     day: '2-digit', month: 'short', year: 'numeric',
@@ -852,7 +853,7 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
       </div>
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
         <div>
-          <p style="font-size:11px; font-weight:700; color:#1F2937; margin:0;">Dr. ${safe(data.doctor.name)}${data.doctor.qualification ? ` — ${safe(data.doctor.qualification)}` : ''}</p>
+          <p style="font-size:11px; font-weight:700; color:#1F2937; margin:0;">Dr. ${safe(cleanDoctorName)}${data.doctor.qualification ? ` — ${safe(data.doctor.qualification)}` : ''}</p>
           ${data.doctor.registrationNumber ? `<p style="font-size:10px; color:#6B7280; font-weight:500; margin:2px 0 0;">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
         </div>
         <div style="text-align:right;">
@@ -944,23 +945,19 @@ ${PRINT_STYLES}
 
   ${labsHtml}
 
-  ${(data.advice || data.followUp) ? `
-    <div class="rx-twocol">
-      ${data.advice ? `
-        <section class="rx-section" style="margin-bottom:0;">
-          <h3 class="rx-section-label">Advice / Instructions</h3>
-          <p class="rx-prose">${escapeHtml(data.advice).replace(/\n/g, '<br>')}</p>
-        </section>
-      ` : '<div></div>'}
-      
-      ${data.followUp ? `
-        <section class="rx-section" style="margin-bottom:0;">
-          <h3 class="rx-section-label">Follow-up</h3>
-          <p class="rx-prose-em">${safe(data.followUp)}</p>
-          ${followUpDate ? `<p class="rx-prose-meta">Suggested: ${followUpDate}</p>` : ''}
-        </section>
-      ` : '<div></div>'}
-    </div>
+  ${data.advice ? `
+    <section class="rx-section">
+      <h3 class="rx-section-label">Advice / Instructions</h3>
+      <p class="rx-prose">${escapeHtml(data.advice).replace(/\n/g, '<br>')}</p>
+    </section>
+  ` : ''}
+
+  ${data.followUp ? `
+    <section class="rx-section">
+      <h3 class="rx-section-label">Follow-up</h3>
+      <p class="rx-prose-em">${safe(data.followUp)}</p>
+      ${followUpDate ? `<p class="rx-prose-meta">Suggested: ${followUpDate}</p>` : ''}
+    </section>
   ` : ''}
 
   ${data.prescriptionNotes ? `
@@ -972,7 +969,7 @@ ${PRINT_STYLES}
 
   <div class="rx-footer-wrapper">
     <footer class="rx-signature">
-      <p class="rx-sig-name">Dr. ${safe(data.doctor.name)}</p>
+      <p class="rx-sig-name">Dr. ${safe(cleanDoctorName)}</p>
       ${data.doctor.qualification ? `<p class="rx-sig-meta">${safe(data.doctor.qualification)}</p>` : ''}
       ${data.doctor.registrationNumber ? `<p class="rx-sig-meta">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
     </footer>

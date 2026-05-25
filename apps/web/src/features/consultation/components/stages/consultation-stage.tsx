@@ -419,7 +419,7 @@ export function ConsultationStage({
         {
           onSuccess: (result) => {
             if (clearGenerationRef.current !== genAtDispatch) return; // user cleared — discard stale result
-            if (result && (result.mental?.length || result.physical?.length || result.particular?.length)) {
+            if (result) {
               onSymptomsExtracted(result);
             }
           },
@@ -598,7 +598,7 @@ export function ConsultationStage({
       {
         onSuccess: (result) => {
           if (clearGenerationRef.current !== genAtDispatch) return;
-          if (result && (result.mental?.length || result.physical?.length || result.particular?.length)) {
+          if (result) {
             onSymptomsExtracted(result);
           }
         },
@@ -737,14 +737,18 @@ export function ConsultationStage({
                 {
                   onSuccess: (result) => {
                     if (clearGenerationRef.current !== genAtDispatch) return;
-                    if (result && (result.mental?.length || result.physical?.length || result.particular?.length)) {
+                    if (result) {
                       onSymptomsExtracted(result);
-                    } else {
-                      toast({
-                        title: 'No abnormal findings detected',
-                        description: 'Lab parsed but no rubrics were extracted. Check that values are flagged as high/low or out of range.',
-                        variant: 'default',
-                      });
+                      
+                      const added = (result.mental?.length || 0) + (result.physical?.length || 0) + (result.particular?.length || 0);
+                      
+                      if (added === 0) {
+                        toast({
+                          title: 'No abnormal findings detected',
+                          description: 'Lab parsed but no rubrics were extracted. Check that values are flagged as high/low or out of range.',
+                          variant: 'default',
+                        });
+                      }
                     }
                   },
                   onError: (err) => {

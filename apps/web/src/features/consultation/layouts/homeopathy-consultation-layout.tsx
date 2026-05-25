@@ -211,8 +211,12 @@ export function HomeopathyConsultationLayout({
           thirstPattern: state.thirstPattern,
           sleepPosition: state.sleepPosition,
           perspiration: state.perspiration,
+          causation: state.causation,
+          location: state.location,
+          concomitants: state.concomitants,
           doctorNotes: state.doctorNotes,
           consultationMode: state.consultationMode,
+          categorizedSymptoms: symptoms,
         });
 
         // Set the unified backend results to state
@@ -385,6 +389,12 @@ export function HomeopathyConsultationLayout({
             onSleepPositionChange={state.setSleepPosition}
             perspiration={state.perspiration}
             onPerspirationChange={state.setPerspiration}
+            causation={state.causation}
+            onCausationChange={state.setCausation}
+            location={state.location}
+            onLocationChange={state.setLocation}
+            concomitants={state.concomitants}
+            onConcomitantsChange={state.setConcomitants}
             doctorNotes={state.doctorNotes}
             onDoctorNotesChange={state.setDoctorNotes}
           />

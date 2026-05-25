@@ -35,6 +35,11 @@ export interface HomeopathyConsultInput {
   sleepPosition?: string;
   perspiration?: string;
   doctorNotes?: string;
+  /** Doctor-reviewed categorized symptoms from the Symptom Analysis screen */
+  categorizedSymptoms?: { mental: string[]; physical: string[]; particular: string[] };
+  causation?: string;
+  location?: string;
+  concomitants?: string;
 }
 
 export interface HomeopathyConsultResult {
@@ -143,18 +148,33 @@ export class ConsultationUseCase {
     logger.info({ tenantId, elapsedMs: Date.now() - phaseStart }, 'Phase 3: SOAP structuring — DONE');
 
     // Phase 4: Rubric extraction
+    // Use doctor-reviewed categorized symptoms if available, otherwise fall back to AI extraction
     phaseStart = Date.now();
-    logger.info({ tenantId, consultationMode: input.consultationMode }, 'Phase 4: Rubric extraction — STARTED');
+    logger.info({ tenantId, consultationMode: input.consultationMode, hasCategorizedSymptoms: !!input.categorizedSymptoms }, 'Phase 4: Rubric extraction — STARTED');
+    
+    const mentalSymptoms = input.categorizedSymptoms?.mental?.length 
+      ? input.categorizedSymptoms.mental 
+      : extraction.mentalState;
+    const physicalSymptoms = input.categorizedSymptoms?.physical?.length 
+      ? input.categorizedSymptoms.physical 
+      : extraction.generalSymptoms;
+    const particularSymptoms = input.categorizedSymptoms?.particular?.length 
+      ? input.categorizedSymptoms.particular 
+      : extraction.physicalSymptoms;
+
     const rubrics = await this.repertorizationEngine.extractRubrics(tenantId, userId, {
       chiefComplaint: input.chiefComplaint,
       subjective: soap.subjective,
       assessment: soap.assessment,
       observations: extraction.observations,
       clinicalFindings: extraction.clinicalFindings,
-      mentalSymptoms: extraction.mentalState,
-      generalSymptoms: extraction.generalSymptoms,
-      particularSymptoms: extraction.physicalSymptoms,
+      mentalSymptoms,
+      generalSymptoms: physicalSymptoms,
+      particularSymptoms,
       modalities: extraction.modalities,
+      causation: input.causation ? [input.causation] : extraction.causation,
+      location: input.location ? [input.location] : extraction.location,
+      concomitants: input.concomitants ? [input.concomitants] : extraction.concomitants,
       thermalReaction: input.thermalReaction || extraction.thermalReaction,
       consultationMode: input.consultationMode,
     });
@@ -174,9 +194,9 @@ export class ConsultationUseCase {
       // Doctor input takes precedence over AI-detected values from extraction.
       thermalReaction: input.thermalReaction || extraction.thermalReaction,
       miasm: input.miasm || extraction.miasm,
-      thirstPattern: input.thirstPattern,
-      sleepPosition: input.sleepPosition,
-      perspiration: input.perspiration,
+      thirstPattern: input.thirstPattern || extraction.thirstPattern,
+      sleepPosition: input.sleepPosition || extraction.sleepPosition,
+      perspiration: input.perspiration || extraction.perspiration,
       doctorNotes: input.doctorNotes,
     });
     phasesCompleted++;

@@ -141,6 +141,12 @@ export interface UseConsultationStateReturn {
   setSleepPosition: (val: string) => void;
   perspiration: string;
   setPerspiration: (val: string) => void;
+  causation: string;
+  setCausation: (val: string) => void;
+  location: string;
+  setLocation: (val: string) => void;
+  concomitants: string;
+  setConcomitants: (val: string) => void;
   doctorNotes: string;
   setDoctorNotes: (val: string) => void;
 
@@ -247,6 +253,9 @@ export function useConsultationState({
   const [thirstPattern, setThirstPattern] = useState('');
   const [sleepPosition, setSleepPosition] = useState('');
   const [perspiration, setPerspiration] = useState('');
+  const [causation, setCausation] = useState('');
+  const [location, setLocation] = useState('');
+  const [concomitants, setConcomitants] = useState('');
   const [doctorNotes, setDoctorNotes] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
 
@@ -265,6 +274,14 @@ export function useConsultationState({
     // The backend now returns the completely merged and deduplicated list.
     // Replace the state entirely instead of appending.
     setCategorizedSymptoms(newSymptoms);
+    if (newSymptoms.thermalReaction) setThermalReaction(newSymptoms.thermalReaction.toLowerCase());
+    if (newSymptoms.miasm) setMiasm(newSymptoms.miasm.toLowerCase());
+    if (newSymptoms.thirstPattern) setThirstPattern(newSymptoms.thirstPattern.toLowerCase());
+    if (newSymptoms.sleepPosition) setSleepPosition(newSymptoms.sleepPosition.toLowerCase());
+    if (newSymptoms.perspiration) setPerspiration(newSymptoms.perspiration.toLowerCase());
+    if (newSymptoms.causation) setCausation(newSymptoms.causation);
+    if (newSymptoms.location) setLocation(newSymptoms.location);
+    if (newSymptoms.concomitants) setConcomitants(newSymptoms.concomitants);
   }, []);
 
   const handleNextStage = useCallback(() => {
@@ -314,6 +331,9 @@ export function useConsultationState({
     setThirstPattern('');
     setSleepPosition('');
     setPerspiration('');
+    setCausation('');
+    setLocation('');
+    setConcomitants('');
     setDoctorNotes('');
     setSessionId(null);
     setSuggestedRubrics([]);
@@ -351,6 +371,9 @@ export function useConsultationState({
         thirstPattern,
         sleepPosition,
         perspiration,
+        causation,
+        location,
+        concomitants,
         doctorNotes,
         allergies: patient?.allergies,
         transcript: ongoingTranscript,
@@ -656,6 +679,18 @@ export function useConsultationState({
   const handleHomeopathyConsultGenerated = useCallback((result: HomeopathyConsultResult) => {
     console.log('[useConsultationState] Homeopathy consult generated:', result);
 
+    // Auto-fill constitutional factors from AI extraction if they aren't already set
+    if (result.clinicalData) {
+      setThermalReaction(prev => prev || result.clinicalData.thermalReaction?.toLowerCase() || '');
+      setMiasm(prev => prev || result.clinicalData.miasm?.toLowerCase() || '');
+      setThirstPattern(prev => prev || result.clinicalData.thirstPattern?.toLowerCase() || '');
+      setSleepPosition(prev => prev || result.clinicalData.sleepPosition?.toLowerCase() || '');
+      setPerspiration(prev => prev || result.clinicalData.perspiration?.toLowerCase() || '');
+      setCausation(prev => prev || result.clinicalData.causation?.join(', ') || '');
+      setLocation(prev => prev || result.clinicalData.location?.join(', ') || '');
+      setConcomitants(prev => prev || result.clinicalData.concomitants?.join(', ') || '');
+    }
+
     if (result.followUpAssessment) {
       const assessment = result.followUpAssessment;
 
@@ -880,6 +915,12 @@ export function useConsultationState({
     setSleepPosition,
     perspiration,
     setPerspiration,
+    causation,
+    setCausation,
+    location,
+    setLocation,
+    concomitants,
+    setConcomitants,
     doctorNotes,
     setDoctorNotes,
     scribeSuggestion,

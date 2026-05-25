@@ -123,6 +123,14 @@ export interface CategorizedSymptoms {
   mental: string[];
   physical: string[];
   particular: string[];
+  thermalReaction?: string | null;
+  miasm?: string | null;
+  thirstPattern?: string | null;
+  sleepPosition?: string | null;
+  perspiration?: string | null;
+  causation?: string | null;
+  location?: string | null;
+  concomitants?: string | null;
 }
 
 export interface SuggestQuestionsInput {

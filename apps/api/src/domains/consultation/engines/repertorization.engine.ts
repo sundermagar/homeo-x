@@ -83,6 +83,9 @@ export interface RepertorizeExtractInput {
   generalSymptoms?: string[];
   particularSymptoms?: string[];
   modalities?: { aggravation?: string[]; amelioration?: string[] };
+  causation?: string[];
+  location?: string[];
+  concomitants?: string[];
   thermalReaction?: string;
   /** Doctor's explicit mode selection from PATIENT_INFO. Drives the case-type
    *  priority logic in the rubric-extraction prompt. */
@@ -478,7 +481,7 @@ function normalizeRemedyName(name: string): string {
 }
 
 export class RepertorizationEngine {
-  constructor(private providerChain: AiProviderChain) {}
+  constructor(private providerChain: AiProviderChain) { }
 
   /**
    * Phase A: Extract rubrics from symptoms using AI Kent's Pattern Matcher
@@ -496,6 +499,9 @@ export class RepertorizationEngine {
         ...(input.particularSymptoms || []),
         ...(input.modalities?.aggravation || []),
         ...(input.modalities?.amelioration || []),
+        ...(input.causation?.map(c => `Causation: ${c}`) || []),
+        ...(input.location?.map(l => `Location: ${l}`) || []),
+        ...(input.concomitants?.map(c => `Concomitant: ${c}`) || []),
       ]
         .filter(Boolean)
         .join(' ')
@@ -815,7 +821,8 @@ JSON Output Template:
         }
       }
 
-      const mappedCoverage = (rem.coverage || []).map((cov: any) => {
+      const uniqueCoverageMap = new Map();
+      (rem.coverage || []).forEach((cov: any) => {
         // 1. Try matching by index parsed from ID (e.g. 'R0', 'r0', '0')
         let originalRubric = null;
         const idMatch = typeof cov.id === 'string' ? cov.id.match(/\d+/) : null;
@@ -839,14 +846,22 @@ JSON Output Template:
           originalRubric = input.selectedRubrics.find(r => {
             const cleanOrigDesc = r.description.toLowerCase().trim();
             return cleanOrigDesc === cleanCovDesc ||
-                   cleanOrigDesc.includes(cleanCovDesc) ||
-                   cleanCovDesc.includes(cleanOrigDesc);
+              cleanOrigDesc.includes(cleanCovDesc) ||
+              cleanCovDesc.includes(cleanOrigDesc);
           });
         }
 
-        if (!originalRubric) return null;
+        if (originalRubric) {
+          // Store the highest grade for duplicates
+          const grade = cov.grade || 1;
+          const existing = uniqueCoverageMap.get(originalRubric.rubricId);
+          if (!existing || existing.grade < grade) {
+            uniqueCoverageMap.set(originalRubric.rubricId, { originalRubric, grade });
+          }
+        }
+      });
 
-        const grade = cov.grade || 1;
+      const mappedCoverage = Array.from(uniqueCoverageMap.values()).map(({ originalRubric, grade }) => {
         const importance = originalRubric.importance || 2;
         let catWeight = 1;
         if (originalRubric.category === 'MIND') catWeight = 3;
@@ -867,7 +882,7 @@ JSON Output Template:
           importance,
           contribution,
         };
-      }).filter(Boolean);
+      });
 
       return {
         remedyId: `ai-remedy-${Date.now()}-${i}`,

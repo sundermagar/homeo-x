@@ -261,12 +261,25 @@ export function RepertoryStage({
                   />
                 </div>
 
-                {/* Keynotes */}
-                {remedy.keynotes.length > 0 && (
+                {/* Case-specific matched rubrics with grade indicators */}
+                {remedy.coverage && remedy.coverage.length > 0 ? (
+                  <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 max-w-[95%]">
+                    {remedy.coverage.map((c, ci) => (
+                      <span key={ci} className="inline-flex items-center gap-1.5 text-[12px] text-[#4A4A47]">
+                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                          c.grade === 3 ? 'bg-[#DC2626]' : c.grade === 2 ? 'bg-[#F59E0B]' : 'bg-[#9CA3AF]'
+                        }`} />
+                        <span className={c.grade === 3 ? 'font-bold' : c.grade === 2 ? 'font-semibold' : 'font-medium'}>
+                          {c.rubricDescription}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                ) : remedy.keynotes && remedy.keynotes.length > 0 ? (
                   <p className="mt-4 text-[13px] font-medium text-[#4A4A47] leading-relaxed max-w-[95%]">
                     {remedy.keynotes.join(' • ')}
                   </p>
-                )}
+                ) : null}
 
                 {/* Metadata badges */}
                 <div className="flex flex-wrap items-center gap-2 mt-5">
@@ -298,18 +311,6 @@ export function RepertoryStage({
         </div>
       ) : null}
 
-      {/* ── Clinical note ── */}
-      {topRemedies.length > 0 && (
-        <div className="pp-card bg-[#FFFBEB] border-[#FDE68A] p-5">
-          <p className="text-[11px] uppercase tracking-widest text-[#92400E] leading-relaxed flex gap-2">
-            <span className="font-bold text-[#D97706]">Note</span>
-            <span className="font-medium">
-              {topRemedies[0]?.remedyName} leads on all rubrics.
-              {topRemedies[0]?.matchExplanation?.[0] && ` ${topRemedies[0].matchExplanation[0]}`}
-            </span>
-          </p>
-        </div>
-      )}
 
       {/* ═════════ Prescription Area ═════════ */}
       {rxRows.length > 0 && (
@@ -320,9 +321,7 @@ export function RepertoryStage({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-[15px] font-bold text-[#0F0F0E] tracking-tight">Final Prescription</h3>
-              <p className="text-[12px] font-medium text-[#4A4A47] mt-1">
-                {rxRows.length} {rxRows.length === 1 ? 'remedy' : 'remedies'} — edit details below before approving
-              </p>
+
             </div>
             <div className="flex items-center gap-3">
               <button
