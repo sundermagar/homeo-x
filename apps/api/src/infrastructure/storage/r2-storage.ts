@@ -32,6 +32,22 @@ export async function uploadFileToR2(localFilePath: string, originalFileName: st
 
   if (!isR2Enabled || !s3Client) {
     logger.info(`R2 credentials not detected. Storing locally as /uploads/${fileNameOnly}`);
+    const path = await import('path');
+    const targetDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    const targetPath = path.join(targetDir, fileNameOnly);
+    
+    // Copy the file to the uploads directory
+    try {
+      fs.copyFileSync(localFilePath, targetPath);
+      // Try to delete the temp file but don't crash if it fails
+      try { fs.unlinkSync(localFilePath); } catch (e) {}
+    } catch (err: any) {
+      logger.error(`Failed to copy file to local uploads: ${err.message}`);
+    }
+
     return `/uploads/${fileNameOnly}`;
   }
 

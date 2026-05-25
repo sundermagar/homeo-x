@@ -916,7 +916,40 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                             <span className="truncate italic font-medium">{msg.metadata.replyTo.content}</span>
                           </div>
                         )}
-                        <p className="text-[13px] leading-relaxed font-semibold whitespace-pre-wrap">{msg.content}</p>
+                        {msg.type === 'image' && msg.metadata?.mediaUrl && (
+                          <div className="relative mt-1 mb-2">
+                            <a href={msg.metadata.mediaUrl} target="_blank" rel="noreferrer">
+                              <img src={msg.metadata.mediaUrl} alt="WhatsApp Image" className="max-w-full max-h-[250px] rounded-lg object-cover shadow-sm border border-[var(--pp-warm-3)] hover:opacity-90 transition-opacity" />
+                            </a>
+                          </div>
+                        )}
+                        {msg.type === 'video' && msg.metadata?.mediaUrl && (
+                          <div className="relative mt-1 mb-2">
+                            <video src={msg.metadata.mediaUrl} controls className="max-w-full max-h-[250px] rounded-lg shadow-sm border border-[var(--pp-warm-3)]" />
+                          </div>
+                        )}
+                        {msg.type === 'document' && msg.metadata?.mediaUrl && (
+                          <div className="relative mt-1 mb-2">
+                            <a href={msg.metadata.mediaUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-3 bg-black/5 rounded-lg border border-[var(--pp-warm-3)] hover:bg-black/10 transition-colors">
+                              <FileText size={20} className="text-[var(--pp-blue)]" />
+                              <span className="text-sm font-semibold underline truncate max-w-[200px]">{msg.metadata?.document?.filename || 'Download Document'}</span>
+                            </a>
+                          </div>
+                        )}
+                        {msg.type === 'audio' && msg.metadata?.mediaUrl && (
+                          <div className="relative mt-1 mb-2">
+                            <audio src={msg.metadata.mediaUrl} controls className="max-w-[250px] h-10" />
+                          </div>
+                        )}
+                        {msg.content && (() => {
+                          if (!msg.metadata?.mediaUrl) {
+                            return <p className="text-[13px] leading-relaxed font-semibold whitespace-pre-wrap">{msg.content}</p>;
+                          }
+                          if (['audio', 'document'].includes(msg.type)) return null;
+                          if (msg.type === 'image' && msg.content === '[Image]') return null;
+                          if (msg.type === 'video' && msg.content === '[Video]') return null;
+                          return <p className="text-[13px] leading-relaxed font-semibold whitespace-pre-wrap">{msg.content}</p>;
+                        })()}
                         <div className={`flex items-center gap-1.5 mt-2 ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}>
                           <span className={`text-[8px] font-extrabold uppercase tracking-widest ${msg.direction === 'outbound' ? 'text-white/60' : 'text-[var(--pp-text-3)]'}`}>
                             {safeFormatTime(msg.timestamp, msg.createdAt)}
