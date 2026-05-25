@@ -132,19 +132,42 @@ const TABS = [
 ];
 
 export function AutoSaveNoteArea({ value, onChange, onSave, placeholder = '', minHeight = '120px' }: { value: string, onChange: (v: string) => void, onSave: (val: string) => Promise<void>, placeholder?: string, minHeight?: string }) {
+  // Local state to prevent parent re-renders on every keystroke
+  const [localValue, setLocalValue] = useState(value);
+  const lastPropValueRef = useRef(value);
+
+  // Sync with parent value when it changes from the outside
+  useEffect(() => {
+    if (value !== lastPropValueRef.current) {
+      setLocalValue(value);
+      lastPropValueRef.current = value;
+    }
+  }, [value]);
+
+  // Debounced auto-save handler that updates parent state and triggers DB save
+  const handleAutoSave = useCallback(async (val: string) => {
+    onChange(val);
+    lastPropValueRef.current = val;
+    await onSave(val);
+  }, [onChange, onSave]);
+
   const { status, forceSave } = useAutoSave({
-    value: value,
-    onSave: onSave,
+    value: localValue,
+    onSave: handleAutoSave,
     delay: 1500
   });
+
+  const handleBlur = () => {
+    forceSave();
+  };
 
   return (
     <div className="mc-followup-editor">
       <textarea
         placeholder={placeholder || "Record patient follow-up or status..."}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={forceSave}
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={handleBlur}
         style={{ minHeight }}
         className="mc-fu-textarea custom-scrollbar"
       />
@@ -604,10 +627,50 @@ export default function MedicalCaseDetailPage() {
     }) || null;
   }, [followupNotes, displayDate, toClinicDateString]);
 
-  // Sync followUpNote with activeNote when activeNote changes
+  const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
+
+  const currentVisitSoaps = useMemo(() => {
+    const soap = fullData?.soap || [];
+    if (!displayDate || !soap.length) return [];
+    return filterByDate(soap, displayDate);
+  }, [displayDate, fullData?.soap, filterByDate]);
+
+  const currentVisitSoap = currentVisitSoaps[0] || null;
+
+  const currentVisitPrescriptions = useMemo(() => {
+    if (!displayDate) return [];
+    const fromHistory = prescriptionsHistory || [];
+    const fromFull = fullData?.prescriptions || [];
+    const all = [...fromHistory, ...fromFull];
+    return filterByDate(all, displayDate);
+  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, filterByDate]);
+
+  const currentVisitId = useMemo(() => {
+    // Attempt to extract visit ID from any clinical record on the currently viewed date
+    const rx = currentVisitPrescriptions?.[0];
+    const soap = currentVisitSoaps?.[0];
+
+    // Check various common field names for visit IDs
+    const idFromRx = rx ? (rx.visitId ?? rx.visit_id ?? rx.consultationId ?? rx.consultation_id) : null;
+    const idFromSoap = soap ? (soap.visitId ?? soap.visit_id) : null;
+
+    // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
+    return idFromRx ?? idFromSoap ?? medicalCase?.id;
+  }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
+
+  const lastEncounterDateRef = React.useRef<string | null>(null);
+  const lastSavedOrLoadedValueRef = React.useRef<string>('');
+
+  // Sync followUpNote with activeNote when activeNote changes, but only when switching encounter dates or when not dirty
   React.useEffect(() => {
-    setFollowUpNote(activeNote?.notes || '');
-  }, [activeNote]);
+    const dateStr = displayDate ? toClinicDateString(displayDate) : 'none';
+    const newNotes = activeNote?.notes || '';
+    if (lastEncounterDateRef.current !== dateStr || followUpNote === lastSavedOrLoadedValueRef.current) {
+      setFollowUpNote(newNotes);
+      lastSavedOrLoadedValueRef.current = newNotes;
+      lastEncounterDateRef.current = dateStr;
+    }
+  }, [activeNote, displayDate, toClinicDateString, followUpNote]);
 
 
   const appendNote = (text: string) => {
@@ -618,7 +681,7 @@ export default function MedicalCaseDetailPage() {
   };
 
   const handleSaveNote = React.useCallback(async (content: string) => {
-    if (!content.trim() || !currentVisitId) return;
+    if (!content.trim()) return;
     try {
       // Use displayDate for dateval so notes are linked to the viewed encounter
       const noteDate = displayDate ? displayDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
@@ -630,11 +693,12 @@ export default function MedicalCaseDetailPage() {
         notes: content.trim(),
         dateval: noteDate
       });
+      lastSavedOrLoadedValueRef.current = content;
     } catch (err) {
       console.error('Failed to save follow-up note', err);
       throw err;
     }
-  }, [regid, medicalCase?.id, activeNote?.id, saveNote, displayDate]);
+  }, [regid, activeNote?.id, saveNote, displayDate, currentVisitId]);
 
   const latestRx = useMemo(() => {
     const all = [...(prescriptionsHistory || []), ...(prescriptionsFromFull || [])];
@@ -708,10 +772,10 @@ export default function MedicalCaseDetailPage() {
       return match ? Number(match.regularCharges) || 0 : 0;
     })();
 
-    const hasActivePackage = !!fullData?.activePackage;
+    const hasActivePackage = !!fullData?.activePackage || !!activePackage;
 
     // Waive medicine charges if covered by package and session isn't completed yet
-    const effectiveDaysCharge = (hasActivePackage && fullData?.activePackage?.coversMedicine && !isCompleted)
+    const effectiveDaysCharge = (hasActivePackage && (fullData?.activePackage?.coversMedicine ?? activePackage?.coversMedicine ?? true) && !isCompleted)
       ? 0
       : rawEffectiveDaysCharge;
 
@@ -729,8 +793,41 @@ export default function MedicalCaseDetailPage() {
       return savedRegularBillsSum + baseFee;
     })();
 
-    // 5. Total Bill Amount = Registration Charge (regular) + Medicine Days Charge + Additional Charges
-    const currentTotal = regular + effectiveDaysCharge + additional;
+    // Sum of all package bills currently saved in the database for today
+    const savedPackageBill = dayBills.find(b => b.treatment?.startsWith('Package:'));
+    const savedPackageBillsSum = savedPackageBill ? (Number(savedPackageBill.charges) || 0) : 0;
+    const savedPackageName = savedPackageBill ? savedPackageBill.treatment.replace('Package: ', '') : '';
+
+    const isPurchaseDate = (() => {
+      if (!displayDate) return false;
+      const displayStr = toClinicDateString(displayDate);
+      if (!!savedPackageBill) return true;
+
+      const activePkg = fullData?.activePackage || activePackage;
+      if (activePkg?.startDate) {
+        return activePkg.startDate === displayStr;
+      }
+      return false;
+    })();
+
+    const originalPackagePrice = (() => {
+      if (isCompleted) {
+        return savedPackageBillsSum;
+      }
+      return hasActivePackage ? (Number(fullData?.activePackage?.packagePrice ?? activePackage?.packagePrice) || 0) : 0;
+    })();
+
+    const packagePrice = isPurchaseDate ? originalPackagePrice : 0;
+
+    const activePackageName = (() => {
+      if (isCompleted) {
+        return savedPackageName;
+      }
+      return fullData?.activePackage?.packageName ?? activePackage?.packageName;
+    })();
+
+    // 5. Total Bill Amount = Registration Charge (regular) + Medicine Days Charge + Additional Charges + Package Price
+    const currentTotal = regular + effectiveDaysCharge + additional + packagePrice;
     const currentBalance = currentTotal - currentPaid;
 
     return {
@@ -742,9 +839,12 @@ export default function MedicalCaseDetailPage() {
       balance: currentBalance,
       daysCharge: effectiveDaysCharge,
       originalDaysCharge: rawEffectiveDaysCharge,
-      hasActivePackage,
-      activePackageName: fullData?.activePackage?.packageName,
-      activePackageColor: fullData?.activePackage?.colorCode
+      hasActivePackage: hasActivePackage || !!savedPackageBill,
+      packagePrice,
+      originalPackagePrice,
+      isPurchaseDate,
+      activePackageName,
+      activePackageColor: fullData?.activePackage?.colorCode ?? activePackage?.colorCode ?? '#3b82f6'
     };
   }, [
     summary?.bills,
@@ -752,6 +852,8 @@ export default function MedicalCaseDetailPage() {
     pendingCharge,
     displayDate,
     fullData?.additionalCharges,
+    fullData?.activePackage,
+    activePackage,
     prescriptionsHistory,
     prescriptionsFromFull,
     dayCharges,
@@ -779,36 +881,7 @@ export default function MedicalCaseDetailPage() {
     if (months > 0) return `${months} Month${months > 1 ? 's' : ''}`;
     return `${Math.max(days, 1)} Day${days > 1 ? 's' : ''}`;
   }, [medicalCase?.dateOfBirth, medicalCase?.dob]);
-  const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
 
-  const currentVisitSoaps = useMemo(() => {
-    const soap = fullData?.soap || [];
-    if (!displayDate || !soap.length) return [];
-    return filterByDate(soap, displayDate);
-  }, [displayDate, fullData?.soap, filterByDate]);
-
-  const currentVisitSoap = currentVisitSoaps[0] || null;
-
-  const currentVisitPrescriptions = useMemo(() => {
-    if (!displayDate) return [];
-    const fromHistory = prescriptionsHistory || [];
-    const fromFull = fullData?.prescriptions || [];
-    const all = [...fromHistory, ...fromFull];
-    return filterByDate(all, displayDate);
-  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, filterByDate]);
-
-  const currentVisitId = useMemo(() => {
-    // Attempt to extract visit ID from any clinical record on the currently viewed date
-    const rx = currentVisitPrescriptions?.[0];
-    const soap = currentVisitSoaps?.[0];
-
-    // Check various common field names for visit IDs
-    const idFromRx = rx ? (rx.visitId ?? rx.visit_id ?? rx.consultationId ?? rx.consultation_id) : null;
-    const idFromSoap = soap ? (soap.visitId ?? soap.visit_id) : null;
-
-    // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
-    return idFromRx ?? idFromSoap ?? medicalCase?.id;
-  }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
 
   // tabContent MUST be declared before any early returns (Rules of Hooks)
   const tabContent = useMemo(() => {
@@ -926,7 +999,9 @@ export default function MedicalCaseDetailPage() {
               title="Assign or view package"
             >
               {activePackage?.status === 'Active' ? <Award size={12} /> : <Clock size={12} />}
-              {activePackage?.packageName ? `${activePackage.packageName} (${activePackage.status})` : 'No active plan'}
+              {activePackage?.packageName 
+                ? `${activePackage.packageName} (${activePackage.status})${activePackage.expiryDate ? ` • Expires ${new Date(activePackage.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : ''}`
+                : 'No active plan'}
             </button>
           </div>
 
@@ -973,14 +1048,7 @@ export default function MedicalCaseDetailPage() {
               return new Date(regDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             })()}</span>
           </div>
-          {activePackage?.expiryDate && (
-            <div className="profile-info-cell">
-              <label>EXPIRES</label>
-              <div className="info-with-icon">
-                <Clock size={14} /> {new Date(activePackage.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-              </div>
-            </div>
-          )}
+
           <div className="profile-info-cell">
             <label>ADDRESS</label>
             <span title={medicalCase.address}>{medicalCase.address || 'Not provided'}</span>
@@ -1068,91 +1136,166 @@ export default function MedicalCaseDetailPage() {
                 )}
 
                 <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
-                  {[
-                    { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
-                    { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
-                    { label: 'Additional Charge', value: billingValues.additional, color: '#64748b', tab: 'custom' },
-                    { label: 'Total Bill Amount', value: billingValues.total, color: '#7c3aed', bold: true, tab: 'regular' },
-                    { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
-                    { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true, noEdit: true },
-                  ].map((row, idx) => (
-                    <div key={idx} style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 140px 40px',
-                      padding: '10px 16px',
-                      borderBottom: idx === 5 ? 'none' : '1px solid #f1f5f9',
-                      alignItems: 'center',
-                      background: idx % 2 === 0 ? 'transparent' : '#f8fafc'
-                    }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
-                      <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>
-                        {row.isCovered ? (
-                          <>
-                            <del style={{ color: '#94a3b8', fontSize: '0.75rem', marginRight: '6px' }}>₹{row.originalValue}</del>
-                            <span style={{ color: '#059669', fontWeight: 800 }}>₹0</span>
-                          </>
-                        ) : (
-                          `₹${row.value}`
-                        )}
-                      </span>
-                      {row.noEdit || !isToday ? (
-                        <div style={{ width: '28px', height: '28px' }} />
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setActiveBillingTab(row.tab as any);
-                            setShowBillingModal(true);
-                          }}
+                  {(() => {
+                    const rows = [
+                      { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
+                      { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
+                      ...(billingValues.hasActivePackage ? [{
+                        label: 'Package Plan',
+                        value: billingValues.packagePrice,
+                        color: '#1e293b',
+                        tab: 'regular',
+                        noEdit: true,
+                        isActivePlanRow: true,
+                        isPurchase: billingValues.isPurchaseDate,
+                        originalValue: billingValues.originalPackagePrice
+                      }] : []),
+                      { label: 'Additional Charge', value: billingValues.additional, color: '#64748b', tab: 'custom' },
+                      { label: 'Total Bill Amount', value: billingValues.total, color: '#7c3aed', bold: true, tab: 'regular' },
+                      { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
+                      { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true, noEdit: true },
+                    ];
+                    return rows.map((row: any, idx) => {
+                      const isActivePlanRow = !!row.isActivePlanRow;
+                      return (
+                        <div
+                          key={idx}
                           style={{
-                            width: '28px',
-                            height: '28px',
-                            padding: '0',
-                            background: '#fff',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            color: '#64748b',
-                            display: 'flex',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 140px 40px',
+                            padding: '10px 16px',
+                            borderBottom: idx === rows.length - 1 ? 'none' : '1px solid #f1f5f9',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#f5f3ff';
-                            e.currentTarget.style.color = '#7c3aed';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#fff';
-                            e.currentTarget.style.color = '#64748b';
+                            background: idx % 2 === 0 ? 'transparent' : '#f8fafc',
                           }}
                         >
-                          <Edit size={12} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              color: '#475569',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              {row.label}
+                            </span>
+                          </div>
+
+                          <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>
+                            {isActivePlanRow ? (
+                              row.isPurchase ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                  <span style={{ color: row.color || '#1e293b', fontWeight: 800 }}>₹{row.value}</span>
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    background: '#ecfdf5',
+                                    color: '#047857',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.01em'
+                                  }}>
+                                    today billed
+                                  </span>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 500, color: '#64748b' }}>Value:</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>₹{row.originalValue}</span>
+                                  </div>
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    background: `${row.color}15`,
+                                    color: row.color,
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.02em',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}>
+                                    <span className="mc-pulse-dot"></span>
+                                    already billed
+                                  </span>
+                                </div>
+                              )
+                            ) : row.isCovered ? (
+                              <>
+                                <del style={{ color: '#94a3b8', fontSize: '0.75rem', marginRight: '6px' }}>₹{row.originalValue}</del>
+                                <span style={{ color: '#059669', fontWeight: 800 }}>₹0</span>
+                              </>
+                            ) : (
+                              `₹${row.value}`
+                            )}
+                          </span>
+
+                          {row.noEdit || !isToday ? (
+                            <div style={{ width: '28px', height: '28px' }} />
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setActiveBillingTab(row.tab as any);
+                                setShowBillingModal(true);
+                              }}
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                padding: '0',
+                                background: '#fff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                color: '#64748b',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#f5f3ff';
+                                e.currentTarget.style.color = '#7c3aed';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#fff';
+                                e.currentTarget.style.color = '#64748b';
+                              }}
+                            >
+                              <Edit size={12} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
-                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => setShowReceiptModal(true)}
-                    style={{
-                      padding: '10px 24px',
-                      background: '#7c3aed',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '10px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.2)'
-                    }}
-                  >
-                    <Share2 size={16} /> Share Payment Receipt
-                  </button>
-                </div>
+                {billingValues.received > 0 && (
+                  <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => setShowReceiptModal(true)}
+                      style={{
+                        padding: '10px 24px',
+                        background: '#2563EB',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '10px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.2)'
+                      }}
+                    >
+                      <Share2 size={16} /> Share Payment Receipt
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1184,83 +1327,17 @@ export default function MedicalCaseDetailPage() {
             </div>
 
             {/* ─── Homeo Details Snapshot ─── */}
-            <div className="mc-side-card" style={{ marginBottom: '16px' }}>
-              <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="file"
-                    ref={prescriptionFileInputRef}
-                    onChange={handlePrescriptionFileChange}
-                    style={{ display: 'none' }}
-                    accept="image/*"
-                  />
-                  <button
-                    onClick={triggerPrescriptionScan}
-                    disabled={parsePrescriptionMutation.isPending}
-                    style={{
-                      background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
-                      color: '#7c3aed',
-                      border: '1px solid #c4b5fd',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      cursor: parsePrescriptionMutation.isPending ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      boxShadow: '0 1px 2px rgba(124, 58, 237, 0.05)',
-                      transition: 'all 0.2s ease',
-                      opacity: parsePrescriptionMutation.isPending ? 0.7 : 1
-                    }}
-                    title="AI Scan Handwritten Prescription"
-                  >
-                    {parsePrescriptionMutation.isPending ? (
-                      <Loader2 size={12} className="animate-spin text-purple-600" />
-                    ) : (
-                      <BrainCircuit size={12} className="text-purple-600" />
-                    )}
-                    <span>AI Scan</span>
-                  </button>
-                  <div
-                    onClick={() => handleOpenDiagnosis(currentVisitSoap)}
-                    style={{ color: '#7c3aed', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                    title="Edit Assessment"
-                  >
-                    <Edit size={14} />
-                  </div>
-                  {!isToday && currentVisitSoaps.length > 1 && (
-                    <div
-                      onClick={() => setActiveTab('diagnosis')}
-                      style={{ color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-                    >
-                      See all ({currentVisitSoaps.length}) <ChevronRight size={14} />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '400px', overflowY: 'auto' }}>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.assessment || '—'}</div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.subjective || '—'}</div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-                    {renderMedicationTakingSnapshot(currentVisitSoap?.objective)}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.plan || currentVisitSoap?.advice || '—'}</div>
-                </div>
-              </div>
-            </div>
+            <HomeoDetailsSnapshotWidget
+              currentVisitSoap={currentVisitSoap}
+              isToday={!!isToday}
+              currentVisitSoapsCount={currentVisitSoaps.length}
+              isPendingScan={parsePrescriptionMutation.isPending}
+              onTriggerScan={triggerPrescriptionScan}
+              onEditAssessment={() => handleOpenDiagnosis(currentVisitSoap)}
+              onSeeAll={() => setActiveTab('diagnosis')}
+              prescriptionFileInputRef={prescriptionFileInputRef}
+              handlePrescriptionFileChange={handlePrescriptionFileChange}
+            />
 
 
 
@@ -1510,7 +1587,7 @@ export default function MedicalCaseDetailPage() {
                         boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.1)'
                       }}
                     >
-                      <Save size={18} /> Save Assessment
+                      <Save size={18} /> Save 
                     </button>
                   </footer>
                 </div>
@@ -1824,7 +1901,11 @@ export default function MedicalCaseDetailPage() {
                   </div>
                   {isToday && (
                     <button
-                      onClick={() => { setMobileDrawer(null); setShowBillingModal(true); }}
+                      onClick={() => {
+                        setMobileDrawer(null);
+                        setActiveBillingTab('payment');
+                        setShowBillingModal(true);
+                      }}
                       style={{
                         width: '100%', padding: '14px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)',
                         border: '1px solid #BBF7D0', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
@@ -1948,6 +2029,8 @@ export default function MedicalCaseDetailPage() {
           displayDate={displayDate || undefined}
           rxWorkflow={rxWorkflow}
           visitId={medicalCase.id}
+          pendingBalance={billingValues.balance}
+          receivedAmount={billingValues.received}
           onClose={() => setShowBillingModal(false)}
         />
       )}
@@ -2128,10 +2211,9 @@ function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; cas
         </div>
       </div>
 
-      {/* Table */}
       <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
         <div className="mc-table-container">
-          <table className="pp-table mc-responsive-table">
+          <table className="mc-data-table">
             <thead>
               <tr>
                 <th style={{ width: '40px' }}>#</th>
@@ -2588,7 +2670,7 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e40af' }}>Recent Vitals History</span>
               <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 600, marginLeft: '4px' }}>({vitals.length})</span>
             </div>
-            <table className="pp-table" style={{ marginBottom: 0 }}>
+            <table className="mc-data-table" style={{ marginBottom: 0 }}>
               <thead>
                 <tr>
                   <th>Date</th>
@@ -3097,7 +3179,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                   <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
                   <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
                 </div>
-                <table className="pp-table" style={{ marginBottom: 0 }}>
+                <table className="mc-data-table" style={{ marginBottom: 0 }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
                     <tr>
                       <th style={{ width: '110px' }}>Date</th>
@@ -3893,7 +3975,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
             <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f766e' }}>Clinical Evidence List</span>
             <span style={{ fontSize: '0.72rem', color: '#5eead4', fontWeight: 600, marginLeft: '4px' }}>({images.length})</span>
           </div>
-          <table className="pp-table" style={{ marginBottom: 0 }}>
+          <table className="mc-data-table" style={{ marginBottom: 0 }}>
             <thead>
               <tr>
                 <th style={{ width: '80px' }}>Preview</th>
@@ -4334,6 +4416,114 @@ const renderMedicationTakingHistory = (objectiveVal: string) => {
   );
 };
 
+interface HomeoDetailsSnapshotWidgetProps {
+  currentVisitSoap: any;
+  isToday: boolean;
+  currentVisitSoapsCount: number;
+  isPendingScan: boolean;
+  onTriggerScan: () => void;
+  onEditAssessment: () => void;
+  onSeeAll: () => void;
+  prescriptionFileInputRef: React.RefObject<HTMLInputElement>;
+  handlePrescriptionFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const HomeoDetailsSnapshotWidget = React.memo(({
+  currentVisitSoap,
+  isToday,
+  currentVisitSoapsCount,
+  isPendingScan,
+  onTriggerScan,
+  onEditAssessment,
+  onSeeAll,
+  prescriptionFileInputRef,
+  handlePrescriptionFileChange
+}: HomeoDetailsSnapshotWidgetProps) => {
+  return (
+    <div className="mc-side-card" style={{ marginBottom: '16px' }}>
+      <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isToday && (
+            <>
+              <input
+                type="file"
+                ref={prescriptionFileInputRef}
+                onChange={handlePrescriptionFileChange}
+                style={{ display: 'none' }}
+                accept="image/*"
+              />
+              <button
+                onClick={onTriggerScan}
+                disabled={isPendingScan}
+                style={{
+                  background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                  color: '#7c3aed',
+                  border: '1px solid #c4b5fd',
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  cursor: isPendingScan ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  boxShadow: '0 1px 2px rgba(124, 58, 237, 0.05)',
+                  transition: 'all 0.2s ease',
+                  opacity: isPendingScan ? 0.7 : 1
+                }}
+                title="AI Scan Handwritten Prescription"
+              >
+                {isPendingScan ? (
+                  <Loader2 size={12} className="animate-spin text-purple-600" />
+                ) : (
+                  <BrainCircuit size={12} className="text-purple-600" />
+                )}
+                <span>AI Scan</span>
+              </button>
+              <div
+                onClick={onEditAssessment}
+                style={{ color: '#7c3aed', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                title="Edit Assessment"
+              >
+                <Edit size={14} />
+              </div>
+            </>
+          )}
+          {!isToday && currentVisitSoapsCount > 1 && (
+            <div
+              onClick={onSeeAll}
+              style={{ color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+            >
+              See all ({currentVisitSoapsCount}) <ChevronRight size={14} />
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '400px', overflowY: 'auto' }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
+          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.assessment || '—'}</div>
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
+          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.subjective || '—'}</div>
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
+          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+            {renderMedicationTakingSnapshot(currentVisitSoap?.objective)}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
+          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.plan || currentVisitSoap?.advice || '—'}</div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 function DiagnosisView({
   regid,
   visitId,
@@ -4356,6 +4546,13 @@ function DiagnosisView({
   const { deleteRecord } = useManageClinicalRecords();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const isTodayRecord = (record: any) => {
+    if (!record) return false;
+    const dateVal = record.createdAt || record.created_at || record.dateval || 0;
+    const d = new Date(dateVal);
+    return !isNaN(d.getTime()) && d.toDateString() === new Date().toDateString();
+  };
 
   const sortedSoap = soapRecords ? [...soapRecords].sort((a, b) => {
     const timeA = new Date(a.createdAt || 0).getTime();
@@ -4439,7 +4636,7 @@ function DiagnosisView({
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#92400e' }}>Clinical Assessment History</span>
               <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 600, marginLeft: '4px' }}>({soapRecords.length})</span>
             </div>
-            <table className="pp-table" style={{ marginBottom: 0 }}>
+            <table className="mc-data-table" style={{ marginBottom: 0 }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
                 <tr>
                   <th style={{ width: '120px' }}>Date</th>
@@ -4500,22 +4697,26 @@ function DiagnosisView({
                                   <Copy size={14} />
                                 </button>
                               )}
-                              <button
-                                className="btn-ghost"
-                                style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                title="Edit"
-                                onClick={() => onEditRecord?.(record)}
-                              >
-                                <Edit size={14} />
-                              </button>
-                              <button
-                                className="btn-ghost"
-                                style={{ color: '#dc2626', padding: '4px 8px' }}
-                                title="Delete"
-                                onClick={() => handleDelete(record.id)}
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              {isTodayRecord(record) && (
+                                <>
+                                  <button
+                                    className="btn-ghost"
+                                    style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
+                                    title="Edit"
+                                    onClick={() => onEditRecord?.(record)}
+                                  >
+                                    <Edit size={14} />
+                                  </button>
+                                  <button
+                                    className="btn-ghost"
+                                    style={{ color: '#dc2626', padding: '4px 8px' }}
+                                    title="Delete"
+                                    onClick={() => handleDelete(record.id)}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>

@@ -14,28 +14,75 @@
 .mc-detail-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: auto;
   background: var(--pp-warm-1);
   margin: -24px;
   min-width: 0;
+  max-width: 100vw;
+  overflow-x: hidden;
+  /* Fluid Typography Variables */
+  --fs-body: clamp(1rem, 0.875rem + 0.39vw, 1.125rem);
+  --fs-h3: clamp(1.125rem, 1rem + 0.39vw, 1.25rem);
+  --fs-h2: clamp(1.25rem, 1.125rem + 0.5vw, 1.5rem);
+  --fs-h1: clamp(1.5rem, 1.25rem + 0.75vw, 2.25rem);
+  --fs-caption: clamp(0.75rem, 0.75rem, 0.875rem);
+  font-size: var(--fs-body);
   /* Counteracts page-content-area padding */
+}
+
+.mc-detail-container h1, 
+.mc-detail-container .profile-name,
+.mc-detail-container .mc-page-title {
+  font-size: var(--fs-h1) !important;
+}
+
+.mc-detail-container h2,
+.mc-detail-container .mc-title,
+.mc-detail-container .mc-soap-topbar-title {
+  font-size: var(--fs-h2) !important;
+}
+
+.mc-detail-container h3,
+.mc-detail-container .mc-card-title,
+.mc-detail-container .mc-side-card-title,
+.mc-detail-container .mc-info-card-title {
+  font-size: 0.9rem !important;
+}
+
+.mc-detail-container .profile-info-cell label,
+.mc-detail-container .mc-fu-label,
+.mc-detail-container .mc-soap-section-label,
+.mc-detail-container .mc-vital-label,
+.mc-detail-container .mc-info-label,
+.mc-detail-container .profile-id,
+.mc-detail-container .mc-badge-solid-green,
+.mc-detail-container .mc-left-tab-label,
+.mc-detail-container .mc-subtitle,
+.mc-detail-container .mc-snapshot-item-label,
+.mc-detail-container .mc-summary-card-title,
+.mc-detail-container small,
+.mc-detail-container caption {
+  font-size: var(--fs-caption) !important;
 }
 
 @media (min-width: 1024px) {
   .mc-detail-container {
     margin: -40px;
+    max-width: 100vw;
+    overflow-x: hidden;
     /* Counteracts desktop page-content-area padding */
   }
 }
 
 /* ─── Redesigned Patient Profile Card Layout (Dark Theme) ─── */
 .patient-profile-card {
-  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 40%, #3730A3 70%, #4338CA 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* background: linear-gradient(135deg, rgb(124, 58, 237) 0%, #4f46e5 60%, #1e1b4b 100%); */
+  background-image: radial-gradient( circle farthest-corner at 10% 20%,  rgba(90,46,223,1) 0%, rgba(90,46,223,1) 90% );
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   margin: 16px 24px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
   color: white;
   position: relative;
 }
@@ -428,6 +475,7 @@
   flex-direction: row;
   flex: 1;
   overflow: hidden;
+  max-width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -442,14 +490,16 @@
   gap: 0;
   flex: 1;
   background: var(--pp-warm-1);
-  overflow-y: auto;
+  overflow-y: visible;
+  overflow-x: hidden;
 }
 
 @media (min-width: 1024px) {
   .mc-body-grid {
     display: grid; /* Restore grid for desktop */
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: minmax(0, 1fr) 320px;
     align-content: start; /* Prevent rows from stretching and creating huge gaps */
+    overflow-x: hidden;
   }
 }
 
@@ -460,10 +510,14 @@
   gap: 20px;
   border-right: 1px solid var(--pp-warm-2);
   order: 1; /* Tabs & Tables FIRST */
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .mc-body-side {
   order: 2; /* Sidebar content (Followup, Diagnosis, Billing) SECOND */
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .mc-profile-grid {
@@ -506,7 +560,8 @@
   flex-direction: column;
   gap: 16px;
   background: var(--bg-surface-2);
-  overflow-y: auto;
+  overflow-y: visible;
+  overflow-x: hidden;
 }
 
 /* Adjust side layout for mobile to look like a bottom section */
@@ -4758,6 +4813,12 @@
   border-color: #fecaca;
 }
 
+.mc-data-table .mc-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
 .mc-dots-btn {
   display: flex;
   align-items: center;
@@ -5520,4 +5581,45 @@
     display: none !important; 
   }
 }
+
+/* ─── Package/Plan UI Refinements ─── */
+@keyframes mc-pulse-dot {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+}
+
+.mc-pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: mc-pulse-dot 2s infinite ease-in-out;
+}
+
+.mc-billing-row-active-plan {
+  position: relative;
+}
+
+.mc-billing-row-active-plan::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: currentColor;
+  border-radius: 4px 0 0 4px;
+}
+
 

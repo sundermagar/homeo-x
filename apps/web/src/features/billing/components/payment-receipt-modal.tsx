@@ -20,6 +20,9 @@ interface PaymentReceiptModalProps {
     balance: number;
     hasActivePackage?: boolean;
     activePackageName?: string;
+    packagePrice?: number;
+    originalPackagePrice?: number;
+    isPurchaseDate?: boolean;
     originalRegular?: number;
     originalDaysCharge?: number;
   };
@@ -44,6 +47,12 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   const rows = [
     { label: 'Registration Charge', value: billingData.regular, isCovered: billingData.hasActivePackage && (billingData.originalRegular || 0) > 0 && billingData.regular === 0, originalValue: billingData.originalRegular },
     { label: 'Medicine Days Charge', value: billingData.daysCharge, isCovered: billingData.hasActivePackage && (billingData.originalDaysCharge || 0) > 0 && billingData.daysCharge === 0, originalValue: billingData.originalDaysCharge },
+    ...(billingData.hasActivePackage ? [{
+      label: `Plan: ${billingData.activePackageName}`,
+      value: billingData.packagePrice,
+      isCovered: !billingData.isPurchaseDate,
+      originalValue: billingData.originalPackagePrice
+    }] : []),
     { label: 'Additional Charge', value: billingData.additional },
   ];
 
