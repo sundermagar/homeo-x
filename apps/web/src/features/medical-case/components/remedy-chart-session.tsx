@@ -92,7 +92,7 @@ export function RemedyChartSession({
     history, isLoading, isRxToday, firstRxOfToday,
     form, setForm, editingId, setEditingId,
     delivery, setDelivery, manualInstruction, setManualInstruction,
-    startNewRx, saveMutation, deleteMutation,
+    startNewRx, repeatRx, saveMutation, deleteMutation,
     activeTab, setActiveTab
   } = workflow;
 
@@ -182,46 +182,18 @@ export function RemedyChartSession({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleRepeat = () => {
+  const handleRepeat = async () => {
     if (!history || history.length === 0) return alert('No previous prescription to repeat.');
-    if (isRxToday) {
-      setShowRepeatWarning(true);
-      return;
-    }
     const lastRx = history[0];
     if (!lastRx) return;
-    setManualInstruction(true);
-    setEditingId(null);
-    setForm({
-      remedyName: lastRx.remedy_name,
-      potencyName: lastRx.potency_name,
-      frequencyName: lastRx.frequency_name,
-      days: Number(lastRx.days) || 0,
-      instructions: lastRx.prescription || lastRx.notes || '',
-      notes: lastRx.notes || ''
-    });
-    setActiveTab('rx');
+    await repeatRx(lastRx);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Removed duplicate startNewRx and auto-save useEffect as they are now provided by the workflow hook
 
-  const handleRepeatRow = (rx: PrescriptionRow) => {
-    if (isRxToday) {
-      setShowRepeatWarning(true);
-      return;
-    }
-    setActiveTab('rx');
-    setManualInstruction(true);
-    setEditingId(null);
-    setForm({
-      remedyName: rx.remedy_name,
-      potencyName: rx.potency_name,
-      frequencyName: rx.frequency_name,
-      days: Number(rx.days) || 0,
-      instructions: rx.prescription || rx.notes || '',
-      notes: rx.notes || ''
-    });
+  const handleRepeatRow = async (rx: PrescriptionRow) => {
+    await repeatRx(rx);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -574,6 +546,16 @@ export function RemedyChartSession({
                                       return (
                                         <>
                                           <button onClick={(e) => { e.stopPropagation(); handlePrintRow(rx); }} className="mc-action-btn" title="Print"><Printer size={14} /></button>
+                                          {!isToday && (
+                                            <button 
+                                              onClick={(e) => { e.stopPropagation(); handleRepeatRow(rx); }} 
+                                              className="mc-action-btn" 
+                                              title="Repeat Prescription"
+                                              style={{ color: '#7c3aed' }}
+                                            >
+                                              <History size={14} />
+                                            </button>
+                                          )}
                                           {isToday && (
                                             <>
                                               <button 
@@ -603,6 +585,11 @@ export function RemedyChartSession({
                                             <button onClick={(e) => { e.stopPropagation(); handlePrintRow(rx); }}>
                                               <Printer size={14} /> Print
                                             </button>
+                                            {!isToday && (
+                                              <button onClick={(e) => { e.stopPropagation(); handleRepeatRow(rx); }} style={{ color: '#7c3aed' }}>
+                                                <History size={14} /> Repeat
+                                              </button>
+                                            )}
                                             {isToday && (
                                               <>
                                                 <button onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }}>
