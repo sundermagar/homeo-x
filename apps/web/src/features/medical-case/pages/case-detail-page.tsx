@@ -132,19 +132,42 @@ const TABS = [
 ];
 
 export function AutoSaveNoteArea({ value, onChange, onSave, placeholder = '', minHeight = '120px' }: { value: string, onChange: (v: string) => void, onSave: (val: string) => Promise<void>, placeholder?: string, minHeight?: string }) {
+  // Local state to prevent parent re-renders on every keystroke
+  const [localValue, setLocalValue] = useState(value);
+  const lastPropValueRef = useRef(value);
+
+  // Sync with parent value when it changes from the outside
+  useEffect(() => {
+    if (value !== lastPropValueRef.current) {
+      setLocalValue(value);
+      lastPropValueRef.current = value;
+    }
+  }, [value]);
+
+  // Debounced auto-save handler that updates parent state and triggers DB save
+  const handleAutoSave = useCallback(async (val: string) => {
+    onChange(val);
+    lastPropValueRef.current = val;
+    await onSave(val);
+  }, [onChange, onSave]);
+
   const { status, forceSave } = useAutoSave({
-    value: value,
-    onSave: onSave,
+    value: localValue,
+    onSave: handleAutoSave,
     delay: 1500
   });
+
+  const handleBlur = () => {
+    forceSave();
+  };
 
   return (
     <div className="mc-followup-editor">
       <textarea
         placeholder={placeholder || "Record patient follow-up or status..."}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={forceSave}
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={handleBlur}
         style={{ minHeight }}
         className="mc-fu-textarea custom-scrollbar"
       />
@@ -1120,7 +1143,7 @@ export default function MedicalCaseDetailPage() {
                       ...(billingValues.hasActivePackage ? [{
                         label: 'Package Plan',
                         value: billingValues.packagePrice,
-                        color: '#1e3a8a',
+                        color: '#1e293b',
                         tab: 'regular',
                         noEdit: true,
                         isActivePlanRow: true,
@@ -1137,44 +1160,33 @@ export default function MedicalCaseDetailPage() {
                       return (
                         <div
                           key={idx}
-                          // className={isActivePlanRow ? 'mc-billing-row-active-plan' : ''}
                           style={{
                             display: 'grid',
                             gridTemplateColumns: '1fr 140px 40px',
-                            padding: isActivePlanRow ? '10px 16px 10px 12px' : '10px 16px',
+                            padding: '10px 16px',
                             borderBottom: idx === rows.length - 1 ? 'none' : '1px solid #f1f5f9',
                             alignItems: 'center',
                             background: idx % 2 === 0 ? 'transparent' : '#f8fafc',
-                            color: isActivePlanRow ? row.color : undefined
                           }}
                         >
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                             <span style={{
                               fontSize: '0.75rem',
                               fontWeight: 700,
-                              color: isActivePlanRow ? row.color : '#475569',
+                              color: '#475569',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '6px'
                             }}>
-                              {/* {isActivePlanRow && <span style={{ fontSize: '0.9rem' }}>💎</span>} */}
                               {row.label}
                             </span>
-                            {/* {isActivePlanRow && (
-                              <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 500 }}>
-                                {row.isPurchase
-                                  ? 'Package purchased on this visit date'
-                                  : 'Active package covering eligible charges for this session'
-                                }
-                              </span>
-                            )} */}
                           </div>
 
                           <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>
                             {isActivePlanRow ? (
                               row.isPurchase ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                                  <span style={{ color: '#059669', fontWeight: 800 }}>₹{row.value}</span>
+                                  <span style={{ color: row.color || '#1e293b', fontWeight: 800 }}>₹{row.value}</span>
                                   <span style={{
                                     fontSize: '0.62rem',
                                     background: '#ecfdf5',
@@ -1185,7 +1197,7 @@ export default function MedicalCaseDetailPage() {
                                     textTransform: 'uppercase',
                                     letterSpacing: '0.01em'
                                   }}>
-                                    Billed Today
+                                    today billed
                                   </span>
                                 </div>
                               ) : (
@@ -1208,7 +1220,7 @@ export default function MedicalCaseDetailPage() {
                                     gap: '4px'
                                   }}>
                                     <span className="mc-pulse-dot"></span>
-                                    Running (₹0)
+                                    already billed
                                   </span>
                                 </div>
                               )
@@ -1315,83 +1327,17 @@ export default function MedicalCaseDetailPage() {
             </div>
 
             {/* ─── Homeo Details Snapshot ─── */}
-            <div className="mc-side-card" style={{ marginBottom: '16px' }}>
-              <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="file"
-                    ref={prescriptionFileInputRef}
-                    onChange={handlePrescriptionFileChange}
-                    style={{ display: 'none' }}
-                    accept="image/*"
-                  />
-                  <button
-                    onClick={triggerPrescriptionScan}
-                    disabled={parsePrescriptionMutation.isPending}
-                    style={{
-                      background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
-                      color: '#7c3aed',
-                      border: '1px solid #c4b5fd',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      cursor: parsePrescriptionMutation.isPending ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      boxShadow: '0 1px 2px rgba(124, 58, 237, 0.05)',
-                      transition: 'all 0.2s ease',
-                      opacity: parsePrescriptionMutation.isPending ? 0.7 : 1
-                    }}
-                    title="AI Scan Handwritten Prescription"
-                  >
-                    {parsePrescriptionMutation.isPending ? (
-                      <Loader2 size={12} className="animate-spin text-purple-600" />
-                    ) : (
-                      <BrainCircuit size={12} className="text-purple-600" />
-                    )}
-                    <span>AI Scan</span>
-                  </button>
-                  <div
-                    onClick={() => handleOpenDiagnosis(currentVisitSoap)}
-                    style={{ color: '#7c3aed', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                    title="Edit Assessment"
-                  >
-                    <Edit size={14} />
-                  </div>
-                  {!isToday && currentVisitSoaps.length > 1 && (
-                    <div
-                      onClick={() => setActiveTab('diagnosis')}
-                      style={{ color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-                    >
-                      See all ({currentVisitSoaps.length}) <ChevronRight size={14} />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '400px', overflowY: 'auto' }}>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.assessment || '—'}</div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.subjective || '—'}</div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-                    {renderMedicationTakingSnapshot(currentVisitSoap?.objective)}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.plan || currentVisitSoap?.advice || '—'}</div>
-                </div>
-              </div>
-            </div>
+            <HomeoDetailsSnapshotWidget
+              currentVisitSoap={currentVisitSoap}
+              isToday={!!isToday}
+              currentVisitSoapsCount={currentVisitSoaps.length}
+              isPendingScan={parsePrescriptionMutation.isPending}
+              onTriggerScan={triggerPrescriptionScan}
+              onEditAssessment={() => handleOpenDiagnosis(currentVisitSoap)}
+              onSeeAll={() => setActiveTab('diagnosis')}
+              prescriptionFileInputRef={prescriptionFileInputRef}
+              handlePrescriptionFileChange={handlePrescriptionFileChange}
+            />
 
 
 
@@ -2265,10 +2211,9 @@ function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; cas
         </div>
       </div>
 
-      {/* Table */}
       <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
         <div className="mc-table-container">
-          <table className="pp-table mc-responsive-table">
+          <table className="mc-data-table">
             <thead>
               <tr>
                 <th style={{ width: '40px' }}>#</th>
@@ -2725,7 +2670,7 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e40af' }}>Recent Vitals History</span>
               <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 600, marginLeft: '4px' }}>({vitals.length})</span>
             </div>
-            <table className="pp-table" style={{ marginBottom: 0 }}>
+            <table className="mc-data-table" style={{ marginBottom: 0 }}>
               <thead>
                 <tr>
                   <th>Date</th>
@@ -3234,7 +3179,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                   <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
                   <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
                 </div>
-                <table className="pp-table" style={{ marginBottom: 0 }}>
+                <table className="mc-data-table" style={{ marginBottom: 0 }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
                     <tr>
                       <th style={{ width: '110px' }}>Date</th>
@@ -4030,7 +3975,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
             <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f766e' }}>Clinical Evidence List</span>
             <span style={{ fontSize: '0.72rem', color: '#5eead4', fontWeight: 600, marginLeft: '4px' }}>({images.length})</span>
           </div>
-          <table className="pp-table" style={{ marginBottom: 0 }}>
+          <table className="mc-data-table" style={{ marginBottom: 0 }}>
             <thead>
               <tr>
                 <th style={{ width: '80px' }}>Preview</th>
@@ -4471,6 +4416,114 @@ const renderMedicationTakingHistory = (objectiveVal: string) => {
   );
 };
 
+interface HomeoDetailsSnapshotWidgetProps {
+  currentVisitSoap: any;
+  isToday: boolean;
+  currentVisitSoapsCount: number;
+  isPendingScan: boolean;
+  onTriggerScan: () => void;
+  onEditAssessment: () => void;
+  onSeeAll: () => void;
+  prescriptionFileInputRef: React.RefObject<HTMLInputElement>;
+  handlePrescriptionFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const HomeoDetailsSnapshotWidget = React.memo(({
+  currentVisitSoap,
+  isToday,
+  currentVisitSoapsCount,
+  isPendingScan,
+  onTriggerScan,
+  onEditAssessment,
+  onSeeAll,
+  prescriptionFileInputRef,
+  handlePrescriptionFileChange
+}: HomeoDetailsSnapshotWidgetProps) => {
+  return (
+    <div className="mc-side-card" style={{ marginBottom: '16px' }}>
+      <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isToday && (
+            <>
+              <input
+                type="file"
+                ref={prescriptionFileInputRef}
+                onChange={handlePrescriptionFileChange}
+                style={{ display: 'none' }}
+                accept="image/*"
+              />
+              <button
+                onClick={onTriggerScan}
+                disabled={isPendingScan}
+                style={{
+                  background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                  color: '#7c3aed',
+                  border: '1px solid #c4b5fd',
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  cursor: isPendingScan ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  boxShadow: '0 1px 2px rgba(124, 58, 237, 0.05)',
+                  transition: 'all 0.2s ease',
+                  opacity: isPendingScan ? 0.7 : 1
+                }}
+                title="AI Scan Handwritten Prescription"
+              >
+                {isPendingScan ? (
+                  <Loader2 size={12} className="animate-spin text-purple-600" />
+                ) : (
+                  <BrainCircuit size={12} className="text-purple-600" />
+                )}
+                <span>AI Scan</span>
+              </button>
+              <div
+                onClick={onEditAssessment}
+                style={{ color: '#7c3aed', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                title="Edit Assessment"
+              >
+                <Edit size={14} />
+              </div>
+            </>
+          )}
+          {!isToday && currentVisitSoapsCount > 1 && (
+            <div
+              onClick={onSeeAll}
+              style={{ color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+            >
+              See all ({currentVisitSoapsCount}) <ChevronRight size={14} />
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '400px', overflowY: 'auto' }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
+          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.assessment || '—'}</div>
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
+          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.subjective || '—'}</div>
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
+          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+            {renderMedicationTakingSnapshot(currentVisitSoap?.objective)}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
+          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.plan || currentVisitSoap?.advice || '—'}</div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 function DiagnosisView({
   regid,
   visitId,
@@ -4493,6 +4546,13 @@ function DiagnosisView({
   const { deleteRecord } = useManageClinicalRecords();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const isTodayRecord = (record: any) => {
+    if (!record) return false;
+    const dateVal = record.createdAt || record.created_at || record.dateval || 0;
+    const d = new Date(dateVal);
+    return !isNaN(d.getTime()) && d.toDateString() === new Date().toDateString();
+  };
 
   const sortedSoap = soapRecords ? [...soapRecords].sort((a, b) => {
     const timeA = new Date(a.createdAt || 0).getTime();
@@ -4576,7 +4636,7 @@ function DiagnosisView({
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#92400e' }}>Clinical Assessment History</span>
               <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 600, marginLeft: '4px' }}>({soapRecords.length})</span>
             </div>
-            <table className="pp-table" style={{ marginBottom: 0 }}>
+            <table className="mc-data-table" style={{ marginBottom: 0 }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
                 <tr>
                   <th style={{ width: '120px' }}>Date</th>
@@ -4637,22 +4697,26 @@ function DiagnosisView({
                                   <Copy size={14} />
                                 </button>
                               )}
-                              <button
-                                className="btn-ghost"
-                                style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                title="Edit"
-                                onClick={() => onEditRecord?.(record)}
-                              >
-                                <Edit size={14} />
-                              </button>
-                              <button
-                                className="btn-ghost"
-                                style={{ color: '#dc2626', padding: '4px 8px' }}
-                                title="Delete"
-                                onClick={() => handleDelete(record.id)}
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              {isTodayRecord(record) && (
+                                <>
+                                  <button
+                                    className="btn-ghost"
+                                    style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
+                                    title="Edit"
+                                    onClick={() => onEditRecord?.(record)}
+                                  >
+                                    <Edit size={14} />
+                                  </button>
+                                  <button
+                                    className="btn-ghost"
+                                    style={{ color: '#dc2626', padding: '4px 8px' }}
+                                    title="Delete"
+                                    onClick={() => handleDelete(record.id)}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
