@@ -184,18 +184,145 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
   };
 
   const todayBillIds = useMemo(() => new Set(selectedGroup?.bills.map((b: any) => b.id) || []), [selectedGroup]);
-  const pastBills = useMemo(() => {
+  const pastBillGroups = useMemo(() => {
     if (!patientHistory?.bills || !selectedGroup?.billDate) return [];
     const selectedDate = new Date(selectedGroup.billDate);
     selectedDate.setHours(0, 0, 0, 0); // Normalize time
     
-    return patientHistory.bills.filter(b => {
-      if (todayBillIds.has(b.id)) return false;
-      const bDate = new Date(b.billDate);
+    const map = new Map<string, any>();
+
+    for (const bill of patientHistory.bills) {
+      if (todayBillIds.has(bill.id)) continue;
+      const bDate = new Date(bill.billDate);
       bDate.setHours(0, 0, 0, 0);
-      return bDate.getTime() < selectedDate.getTime();
-    });
+      if (bDate.getTime() >= selectedDate.getTime()) continue;
+
+      const dateStr = bDate.toISOString().split('T')[0];
+      if (!map.has(dateStr)) {
+        map.set(dateStr, {
+          patientName: bill.patientName,
+          regid: bill.regid,
+          billDate: dateStr,
+          totalCharges: 0,
+          totalReceived: 0,
+          totalBalance: 0,
+          registrationCharge: 0,
+          medicineDaysCharge: 0,
+          packageCharge: 0,
+          additionalCharge: 0,
+          bills: []
+        });
+      }
+      
+      const group = map.get(dateStr)!;
+      group.bills.push(bill);
+      const chargeAmount = bill.charges || 0;
+      group.totalCharges += chargeAmount;
+      group.totalReceived += bill.received || 0;
+      group.totalBalance += bill.balance || 0;
+
+      if (bill.billType === 'Additional') {
+        group.additionalCharge += chargeAmount;
+      } else if (bill.treatment?.startsWith('Package:')) {
+        group.packageCharge += chargeAmount;
+      } else if (bill.billType === 'Registration') {
+        group.registrationCharge += chargeAmount;
+      } else if (bill.billType === 'Consultation') {
+        group.medicineDaysCharge += chargeAmount;
+      } else if (bill.billType !== 'Custom') {
+        group.registrationCharge += chargeAmount;
+      }
+    }
+    
+    return Array.from(map.values()).sort((a, b) => new Date(b.billDate).getTime() - new Date(a.billDate).getTime());
   }, [patientHistory, selectedGroup, todayBillIds]);
+
+  const renderPastGroupCard = (group: any) => {
+    const isPaid = group.totalBalance === 0;
+    
+    return (
+      <div key={group.billDate} style={{ 
+        padding: '16px', 
+        background: 'var(--bg-card)', 
+        borderRadius: 16, 
+        border: '1px solid var(--border-main)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--pp-ink)' }}>
+              {format(new Date(group.billDate), 'dd MMM yyyy')}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 2 }}>
+              {group.bills.length} Invoice Item{group.bills.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+          
+          {isPaid ? (
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--pp-success-fg)', background: 'var(--pp-success-bg)', padding: '2px 8px', borderRadius: 12 }}>PAID</span>
+          ) : (
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--pp-danger-fg)', background: 'var(--pp-danger-bg)', padding: '2px 8px', borderRadius: 12 }}>UNPAID</span>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <div style={{ background: 'var(--bg-surface-2)', padding: '8px 10px', borderRadius: 8 }}>
+            <div style={{ fontSize: '0.6rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>Billed</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--pp-blue)', fontFamily: 'var(--pp-font-mono)' }}>₹{group.totalCharges.toLocaleString()}</div>
+          </div>
+          <div style={{ background: 'var(--bg-surface-2)', padding: '8px 10px', borderRadius: 8 }}>
+            <div style={{ fontSize: '0.6rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>Received</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--pp-success-fg)', fontFamily: 'var(--pp-font-mono)' }}>₹{group.totalReceived.toLocaleString()}</div>
+          </div>
+          <div style={{ background: group.totalBalance > 0 ? 'var(--pp-danger-bg)' : 'var(--bg-surface-2)', padding: '8px 10px', borderRadius: 8 }}>
+            <div style={{ fontSize: '0.6rem', color: group.totalBalance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>Balance</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: group.totalBalance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)', fontFamily: 'var(--pp-font-mono)' }}>₹{group.totalBalance.toLocaleString()}</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+          {[
+            { label: 'Registration Fee', val: group.registrationCharge, color: 'var(--pp-blue)' },
+            { label: 'Medicine & Consultation', val: group.medicineDaysCharge, color: 'var(--pp-warning-fg)' },
+            { label: 'Package Treatment Plans', val: group.packageCharge, color: 'var(--pp-success-fg)' },
+            { label: 'Additional Charges / Services', val: group.additionalCharge, color: 'var(--pp-purple)' }
+          ].map((item, idx) => {
+            if (item.val === 0 && idx > 0) return null;
+            return (
+              <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: item.color }} />
+                  <span style={{ color: 'var(--pp-text-2)', fontWeight: 600 }}>{item.label}</span>
+                </div>
+                <span style={{ fontWeight: 700, color: 'var(--pp-ink)', fontFamily: 'var(--pp-font-mono)' }}>₹{item.val.toLocaleString()}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingTop: 12, borderTop: '1px dashed var(--pp-warm-3)' }}>
+          {group.totalBalance > 0 && (
+            <button 
+              className="bill-btn bill-btn-primary" 
+              style={{ flex: 1, height: 32, borderRadius: 8, fontSize: '0.75rem' }}
+              onClick={() => { setReceivingGroup(group); setReceiveAmount(group.totalBalance); }}
+            >
+              Receive ₹{group.totalBalance.toLocaleString()}
+            </button>
+          )}
+          <button 
+            className="bill-btn" 
+            style={{ flex: group.totalBalance > 0 ? 'none' : 1, width: group.totalBalance > 0 ? 'auto' : '100%', height: 32, borderRadius: 8, fontSize: '0.75rem', border: '1px solid var(--pp-warm-3)' }}
+            onClick={() => { if (myOrg) printGroupedBills(group, myOrg); }}
+          >
+            <Printer size={12} /> Print
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   const renderBillCard = (bill: any, isPast: boolean = false) => {
     const showPeriod = bill.fromDate || bill.toDate;
@@ -752,16 +879,12 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
               </div>
 
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-ink)', marginBottom: 12 }}>Selected Date Invoices</div>
-                <div style={{ display: 'grid', gap: 12 }}>
-                  {selectedGroup.bills.map((bill: any) => renderBillCard(bill, false))}
-                </div>
-                
-                {pastBills.length > 0 && (
+
+                {pastBillGroups.length > 0 && (
                   <div style={{ marginTop: 32 }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-ink)', marginBottom: 12, paddingTop: 16, borderTop: '1px solid var(--border-main)' }}>Past Invoices</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-ink)', marginBottom: 12 }}>Past Invoices</div>
                     <div style={{ display: 'grid', gap: 12 }}>
-                      {pastBills.map((bill: any) => renderBillCard(bill, true))}
+                      {pastBillGroups.map((group: any) => renderPastGroupCard(group))}
                     </div>
                   </div>
                 )}

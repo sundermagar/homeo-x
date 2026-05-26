@@ -239,6 +239,8 @@ export default function MedicalCaseDetailPage() {
 
   const [followUpNote, setFollowUpNote] = useState('');
   const [pendingCharge, setPendingCharge] = useState(0);
+
+
   const [mobileDrawer, setMobileDrawer] = useState<'followup' | 'billing' | 'contact' | 'package' | null>(null);
   const [shortcutOpen, setShortcutOpen] = useState(false);
   const [fabY, setFabY] = useState(180);
@@ -521,9 +523,13 @@ export default function MedicalCaseDetailPage() {
   const handleSaveDiagnosis = async () => {
     try {
       const finalRecordId = editingDiagnosisRecord?.id;
+      let effectiveVisitId = currentVisitId || visitId;
 
       if (diagForm.diagnosis.trim()) {
-        await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: diagForm.diagnosis.trim() });
+        const res = await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: diagForm.diagnosis.trim() }) as any;
+        if (!effectiveVisitId && res?.data?.data?.id) {
+          effectiveVisitId = res.data.data.id;
+        }
       }
       const serializedMeds = JSON.stringify(medicationRows.filter(r => r.medicine.trim() !== ''));
 
@@ -532,7 +538,7 @@ export default function MedicalCaseDetailPage() {
       await saveSoap.mutateAsync({
         id: finalRecordId,
         regid: Number(regid),
-        visitId: currentVisitId || visitId,
+        visitId: effectiveVisitId,
         subjective: diagForm.complaint,
         objective: serializedMeds,
         assessment: diagForm.diagnosis,
@@ -617,6 +623,19 @@ export default function MedicalCaseDetailPage() {
     : (latestNoteDate || latestRxDate);
 
   const displayDate = selectedDate ? new Date(selectedDate) : defaultEncounterDate;
+
+  // Persist manual medicine charge override in localStorage
+  React.useEffect(() => {
+    if (regid && displayDate) {
+      const key = `med_override_${regid}_${toClinicDateString(displayDate)}`;
+      const stored = localStorage.getItem(key);
+      if (stored !== null) {
+        setPendingCharge(Number(stored));
+      } else {
+        setPendingCharge(0);
+      }
+    }
+  }, [regid, displayDate, toClinicDateString]);
 
   const activeNote = React.useMemo(() => {
     if (!displayDate) return null;
@@ -1211,7 +1230,7 @@ export default function MedicalCaseDetailPage() {
                   {(() => {
                     const rows = [
                       { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
-                      { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge, action: () => setActiveTab('rx') },
+                      { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
                       ...(billingValues.hasActivePackage ? [{
                         label: 'Package Plan',
                         value: billingValues.packagePrice,
@@ -2107,6 +2126,18 @@ export default function MedicalCaseDetailPage() {
           visitId={medicalCase.id}
           pendingBalance={billingValues.balance}
           receivedAmount={billingValues.received}
+          currentMedicineCharge={billingValues.daysCharge}
+          onUpdateMedicineCharge={(val) => {
+            setPendingCharge(val);
+            if (regid && displayDate) {
+              const key = `med_override_${regid}_${toClinicDateString(displayDate)}`;
+              if (val > 0) {
+                localStorage.setItem(key, String(val));
+              } else {
+                localStorage.removeItem(key);
+              }
+            }
+          }}
           onClose={() => setShowBillingModal(false)}
         />
       )}

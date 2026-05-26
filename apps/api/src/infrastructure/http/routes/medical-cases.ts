@@ -478,19 +478,19 @@ router.put('/:regid/diagnosis', asyncHandler(async (req, res) => {
   if (!activeCase) {
     const clinicId = (req as any).user?.contextId;
     const doctorId = (req as any).user?.id;
-    await repo.create({
+    const newCaseId = await repo.create({
       regid,
       clinicId,
       doctorId,
       status: 'Active',
       condition,
     });
-    sendSuccess(res, { condition }, 'Diagnosis updated successfully');
+    sendSuccess(res, { condition, id: newCaseId }, 'Diagnosis updated successfully');
     return;
   }
 
   await repo.update(activeCase.id, { condition });
-  sendSuccess(res, { condition }, 'Diagnosis updated successfully');
+  sendSuccess(res, { condition, id: activeCase.id }, 'Diagnosis updated successfully');
 }));
 
 // ─── Consultation Workflow ───
