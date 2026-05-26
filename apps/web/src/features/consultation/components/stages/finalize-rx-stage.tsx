@@ -197,7 +197,7 @@ export function FinalizeRxStage({ selectedRemedies, initialAdvice, initialFollow
                 className="w-full h-28 px-4 py-3 text-[14px] font-medium border border-[#E3E2DF] rounded-lg outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] resize-none leading-relaxed bg-[#FAFAF8] focus:bg-white transition-all"
                 value={advice}
                 onChange={(e) => setAdvice(e.target.value)}
-                placeholder="e.g. Avoid strong smelling foods (onion, garlic, coffee)."
+                placeholder="e.g. Drink plenty of plain water..."
               />
             </div>
 

@@ -445,17 +445,11 @@ export function ConsultationStage({
   // // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [segments.length, callMode, binaryTranscriber.isRecording]);
 
+  // ── Question suggestion disabled to save credits (2026-05-26) ──
+  // Feature wasn't being used in practice; the Regenerate button is now a no-op.
   const handleLoadModeQuestions = useCallback(() => {
     setSuggestedQuestions([]);
-    modeQuestions.mutate({
-      consultationMode,
-      transcript: segments.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-      answeredQuestions,
-      chiefComplaint: visit.chiefComplaint,
-      patientAge,
-      patientGender: patient?.gender,
-    });
-  }, [consultationMode, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions, setSuggestedQuestions]);
+  }, [setSuggestedQuestions]);
 
   // Auto-load questions when mode changes
   // useEffect(() => {
@@ -582,50 +576,15 @@ export function ConsultationStage({
       return updated;
     });
 
-    const finalAnswerText = answerText;
-
-    // Extract symptoms from this Q&A pair (like demo does per answer)
-    const genAtDispatch = clearGenerationRef.current;
-    symptomExtraction.mutate(
-      {
-        visitId,
-        consultationMode,
-        question: questionText,
-        answer: finalAnswerText,
-        existingSymptoms: categorizedSymptoms,
-        labContext: labContextRef.current || undefined,
-      },
-      {
-        onSuccess: (result) => {
-          if (clearGenerationRef.current !== genAtDispatch) return;
-          if (result) {
-            onSymptomsExtracted(result);
-          }
-        },
-      },
-    );
-
-    // Only regenerate next questions if all the suggested questions in the current batch have been answered.
-    // This allows the doctor to work through the entire bunch of 5 questions without them being wiped out on every click.
-    const nextAnsweredQuestions = [...answeredQuestions, questionText];
-    const unansweredCount = suggestedQuestions.filter((q: any) => {
-      const qText = typeof q === 'string' ? q : q.question;
-      return !nextAnsweredQuestions.includes(qText);
-    }).length;
-
-    if (suggestedQuestions.length > 0 && unansweredCount === 0) {
-      setTimeout(() => {
-        modeQuestions.mutate({
-          consultationMode,
-          transcript: [...segments, ...newSegments].map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-          answeredQuestions: nextAnsweredQuestions,
-          chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
-          patientAge,
-          patientGender: patient?.gender,
-        });
-      }, 500);
-    }
-  }, [patientAnswer, onTranscriptUpdate, symptomExtraction, consultationMode, categorizedSymptoms, onSymptomsExtracted, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions, suggestedQuestions]);
+    // ── Silent AI calls disabled to save credits (2026-05-26) ──
+    // Both per-Q&A symptom extraction and auto question re-fetch ran in the
+    // background with no loader. Symptoms are now extracted in bulk by
+    // "End & Analyse" (handleAnalyzeConversation) and questions only load
+    // on the explicit "Load suggested questions" button.
+    void questionText;
+    void answerText;
+    void newSegments;
+  }, [patientAnswer, onTranscriptUpdate, segments]);
 
   useEffect(() => {
     injectAnswerRef.current = injectAnswer;

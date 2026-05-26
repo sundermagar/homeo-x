@@ -677,6 +677,59 @@ OUTPUT FORMAT:
   }
 
   /**
+   * Lab Report to Rubrics Analysis
+   */
+  async extractRubricsFromReport(tenantId: string, userId: string, input: { visitId: string, documents: { base64: string, mimeType: string }[] }): Promise<{ rubrics: SuggestedRubric[] }> {
+    try {
+      if (!input.documents || input.documents.length === 0) return { rubrics: [] };
+
+      logger.info(`Extracting Mac Repertory rubrics from lab reports for visit: ${input.visitId}`);
+
+      const systemPrompt = `You are a medical lab report analyzer and homeopathic repertory assistant. 
+Your task is to analyze the provided lab report images or documents, identify any abnormal medical findings (e.g., high cholesterol, low hemoglobin, high uric acid), and translate them into 3-6 characteristic Mac Repertory rubrics.
+
+CRITICAL RULES:
+- Only return exact or highly accurate classical rubrics related to the abnormal lab findings.
+- If the report is normal, return an empty array.
+- Output MUST be strictly JSON.
+
+OUTPUT FORMAT:
+{
+  "rubrics": [
+    { "chapter": "Generalities", "category": "GENERAL", "description": "Generalities - Anemia", "importance": 3, "remedyCount": 50 }
+  ]
+}`;
+
+      const res = await this.providerChain.complete({
+        systemPrompt,
+        userPrompt: `Analyze the attached lab reports and extract abnormal findings as Mac Repertory rubrics.`,
+        documents: input.documents,
+        responseFormat: 'json',
+        temperature: 0.1,
+      });
+
+      const parsed: any = safeJsonParse(res.content);
+      if (!parsed) return { rubrics: [] };
+
+      const rubrics: SuggestedRubric[] = (parsed.rubrics || []).map((r: any, i: number) => ({
+        rubricId: `ai-lab-${Date.now()}-${i}`,
+        description: r.description,
+        category: r.category || 'PARTICULAR',
+        chapter: r.chapter || 'Unknown',
+        importance: r.importance || 3,
+        source: 'ai' as const,
+        confidence: 0.9,
+        remedyCount: r.remedyCount || 50,
+      }));
+
+      return { rubrics };
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Lab report rubric extraction failed');
+      return { rubrics: [] };
+    }
+  }
+
+  /**
    * Phase B: AI Repertorization Scoring (Materia Medica Grid)
    */
   async scoreRemedies(tenantId: string, userId: string, input: RepertorizeScoreInput): Promise<RepertorizationResult> {

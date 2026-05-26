@@ -57,11 +57,6 @@ export function CaseSummaryStage({
               <CheckCircle2 className="h-3 w-3" /> Generated
             </span>
           )}
-          {onRegenerate && (
-            <button onClick={onRegenerate} disabled={isGenerating} className="pp-btn-secondary h-9 px-3 text-[12px] disabled:opacity-50">
-              <RefreshCw className={`h-3.5 w-3.5 mr-1 ${isGenerating ? 'animate-spin' : ''}`} /> Regenerate
-            </button>
-          )}
         </div>
       </div>
 

@@ -49,6 +49,7 @@ export const API = {
     SUGGEST_QUESTIONS: '/api/ai/suggest/questions',
     EXTRACT_SYMPTOMS: '/api/ai/extract/symptoms',
     DISEASE_RUBRICS: '/api/ai/disease-rubrics',
+    FOLLOWUP_SUMMARIZE: '/api/ai/followup/summarize',
   },
 
   ICD10: {

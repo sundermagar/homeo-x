@@ -276,6 +276,10 @@ export class ConsultationUseCase {
     return this.repertorizationEngine.extractRubrics(tenantId, userId, input);
   }
 
+  async analyzeLabReport(tenantId: string, userId: string, input: { visitId: string, documents: { base64: string, mimeType: string }[] }) {
+    return this.repertorizationEngine.extractRubricsFromReport(tenantId, userId, input);
+  }
+
   async extractDiseaseRubrics(tenantId: string, userId: string, input: { disease: string; consultationMode?: string }) {
     return this.repertorizationEngine.extractDiseaseRubrics(tenantId, userId, input);
   }

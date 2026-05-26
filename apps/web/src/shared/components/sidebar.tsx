@@ -208,7 +208,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
           // { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
           // { path: '/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
-          { path: '/clinical/remedy-chart', label: 'Remedy Chart', icon: Activity },
+          { path: '/clinical/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
           { path: '/medical-cases/followups', label: 'Follow-up Dues', icon: BellDot },
         ],
       },

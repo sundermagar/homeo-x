@@ -184,32 +184,9 @@ export function PrescriptionStage({
       {/* ── TAB CONTENT: SUMMARY ── */}
       {tab === 'summary' && (
         <div className="space-y-4">
-          <div className="pp-card p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-[#E3E2DF]">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center shrink-0">
-                <Check className="h-5 w-5 text-[#16A34A]" />
-              </div>
-              <div>
-                <h3 className="text-[14px] font-bold text-[#0F0F0E]">Analysed from case summary</h3>
-                <p className="text-[11px] font-bold text-[#888786] uppercase tracking-widest mt-0.5">
-                  {suggestedRubrics.length} SYMPTOMS · {constFactors.length} CONSTITUTIONAL FACTORS
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5 justify-end">
-              {suggestedRubrics.slice(0, 4).map(r => (
-                <span key={r.rubricId} className="inline-flex items-center text-[12px] font-semibold text-[#4A4A47] bg-[#FAFAF8] border border-[#E3E2DF] px-2.5 py-1 rounded-md">{r.description}</span>
-              ))}
-              {constFactors.map(f => (
-                <span key={f} className="inline-flex items-center text-[12px] font-semibold text-[#4A4A47] bg-[#FAFAF8] border border-[#E3E2DF] px-2.5 py-1 rounded-md">{f}</span>
-              ))}
-            </div>
-          </div>
-
           <div className="flex items-center gap-2 pt-2">
             <div className="w-1.5 h-5 bg-[#2563EB] rounded-full" />
             <h3 className="text-[14px] font-bold text-[#0F0F0E]">Recommended remedy</h3>
-            <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-[4px] bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE]">AI · Direct from summary</span>
           </div>
 
           <div className="space-y-4">

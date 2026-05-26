@@ -27,6 +27,15 @@ function extractJson<T = any>(raw: string): T | null {
 
 export const aiRouter: Router = Router();
 
+// POST /api/ai/analyze-report
+aiRouter.post('/analyze-report', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const uc = getConsultationUseCase();
+    const result = await uc.analyzeLabReport(getTenant(req), getUserId(req), req.body);
+    sendSuccess(res, result);
+  } catch (err) { next(err); }
+});
+
 // Helper to extract tenant/user from request (set by middleware)
 function getTenant(req: Request): string {
   return (req as any).tenantSlug || (req as any).tenantId || 'default';
@@ -467,6 +476,54 @@ aiRouter.post('/case/summary', async (req: Request, res: Response, next: NextFun
     const result = await uc.generateSummary(getTenant(req), getUserId(req), req.body);
     sendSuccess(res, result);
   } catch (err) { next(err); }
+});
+
+// POST /api/ai/followup/summarize — Summarize a free-form follow-up conversation
+// transcript into a single concise clinical paragraph. Used by the medical-case
+// AI Follow-up drawer (recorded Dr/Patient conversation → analysed summary).
+aiRouter.post('/followup/summarize', async (req: Request, res: Response) => {
+  try {
+    const { transcript, patientAge, patientGender, chiefComplaint } = req.body ?? {};
+    const cleaned = String(transcript || '').trim();
+    if (!cleaned || cleaned.length < 20) {
+      sendSuccess(res, { summary: '' });
+      return;
+    }
+
+    const chain = getAiProviderChain();
+    const ctxBits = [
+      patientAge ? `Patient age: ${patientAge}` : '',
+      patientGender ? `Patient gender: ${patientGender}` : '',
+      chiefComplaint ? `Chief complaint: ${chiefComplaint}` : '',
+    ].filter(Boolean).join(' · ');
+
+    const response = await chain.complete({
+      systemPrompt: `You are a homeopathic clinical scribe summarising a follow-up consultation.
+Given a Doctor–Patient conversation transcript, write ONE concise clinical paragraph (4–8 sentences) capturing:
+- How the patient is doing since the last visit (better / same / worse, % improvement if mentioned)
+- Current symptoms, new symptoms, or returning old symptoms
+- Modalities, mental/emotional state changes (only if mentioned)
+- Compliance with previous remedy & any side effects mentioned
+- Doctor's next plan if stated
+
+Rules:
+- Plain English prose, NO bullet points, NO markdown headings.
+- Do NOT invent symptoms or facts not present in the transcript.
+- If the transcript has no clinical content, reply with exactly: "No clinical content to summarise."`,
+      userPrompt: `${ctxBits ? ctxBits + '\n\n' : ''}Transcript:\n"""\n${cleaned.slice(0, 12000)}\n"""\n\nWrite the follow-up summary paragraph now.`,
+      temperature: 0.2,
+      maxTokens: 600,
+    });
+
+    const summary = (response.content || '').trim();
+    sendSuccess(res, { summary });
+  } catch (err: any) {
+    logger.error({ err: err?.message }, '[followup/summarize] failed');
+    res.status(502).json({
+      success: false,
+      error: { code: 'AI_PROVIDER_FAILED', message: err?.message || 'AI providers unavailable.' },
+    });
+  }
 });
 
 // POST /api/ai/translate — Text translation
@@ -941,7 +998,7 @@ OUTPUT FORMAT:
       maxTokens: 1000,
       responseFormat: 'json',
       useCache: false,
-      preferredProvider: 'groq'
+      preferredProvider: 'gemini'
     });
 
     const parsed = extractJson<{

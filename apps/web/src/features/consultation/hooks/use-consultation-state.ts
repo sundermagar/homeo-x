@@ -10,7 +10,7 @@ import type { Visit } from '../../../types/visit';
 import type { Patient } from '../../../types/patient';
 
 // ─── Stage Type ───
-export type ConsultStage = 'CONVERSATION' | 'SUMMARY' | 'PRESCRIPTION' | 'FINALIZE_RX';
+export type ConsultStage = 'CONVERSATION' | 'SUMMARY' | 'LAB_REPORTS' | 'PRESCRIPTION' | 'FINALIZE_RX';
 
 // ─── Types ───
 
