@@ -1,204 +1,259 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Wallet, Building2, DollarSign, TrendingUp, TrendingDown,
-  Calendar, RefreshCw, Download, ArrowRight, PieChart
-} from 'lucide-react';
-import { useBalanceSummary, useDailyCollection } from '../hooks/use-billing';
+import { Download, Search, X, Wallet, FileText, CheckCircle2 } from 'lucide-react';
+import { usePatientBalances, useUpdateBalanceNote } from '../hooks/use-billing';
+import { Pagination } from '@/shared/components/Pagination';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
+import { EmptyState } from '@/components/shared/empty-state';
 import '../styles/billing.css';
 
 export default function ViewBalancePage() {
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState(
-    () => new Date().toISOString().split('T')[0]
-  );
+  const { data: balances, isLoading } = usePatientBalances();
+  const updateNoteMutation = useUpdateBalanceNote();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
+  
+  // State for editing notes
+  const [editingRegId, setEditingRegId] = useState<number | null>(null);
+  const [editNoteText, setEditNoteText] = useState('');
 
-  const { data: collection } = useDailyCollection(selectedDate);
-  const { data: balanceSummary } = useBalanceSummary(selectedDate);
+  const filteredBalances = useMemo(() => {
+    return balances?.filter(b => 
+      b.regid.toString().includes(searchQuery) ||
+      b.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (b.doctorName && b.doctorName.toLowerCase().includes(searchQuery.toLowerCase()))
+    ) || [];
+  }, [balances, searchQuery]);
 
-  const totalReceived = collection?.totalReceived || 0;
-  const totalCharges = collection?.totalCharges || 0;
-  const totalBalance = collection?.totalBalance || 0;
+  const paginatedBalances = useMemo(() => {
+    return filteredBalances.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  }, [filteredBalances, page]);
 
-  // Mock data - in real implementation these would come from API
-  const cashInHand = totalReceived * 0.6; // Assuming 60% cash
-  const bankBalance = totalReceived * 0.4; // Assuming 40% bank
-  const todayExpenses = 1500; // Mock
-  const todayDeposits = 2000; // Mock
-
-  const handlePrevDay = () => {
-    const d = new Date(selectedDate + 'T00:00:00');
-    d.setDate(d.getDate() - 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+  const handleEditNote = (regid: number, currentNote: string | null) => {
+    setEditingRegId(regid);
+    setEditNoteText(currentNote || '');
   };
 
-  const handleNextDay = () => {
-    const d = new Date(selectedDate + 'T00:00:00');
-    d.setDate(d.getDate() + 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+  const handleSaveNote = async (regid: number) => {
+    try {
+      await updateNoteMutation.mutateAsync({ regid, note: editNoteText });
+      setEditingRegId(null);
+    } catch (err) {
+      console.error('Failed to save note:', err);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRegId(null);
+    setEditNoteText('');
   };
 
   return (
-    <div className="billing-page">
+    <div className="pp-page-container bill-page animate-fade-in">
       {/* Header */}
-      <div className="billing-header">
-        <div className="billing-header-left">
-          <h1 className="billing-title">
-            <Wallet size={24} />
+      <div className="bill-header">
+        <div>
+          <h1 className="bill-header-title">
+            <Wallet size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
             View Balance
           </h1>
-          <p className="billing-subtitle">Daily balance overview - Cash in hand and bank positions</p>
+          <p className="bill-header-sub">Track patients with outstanding balances and manage follow-up notes.</p>
         </div>
-        <div className="billing-header-actions">
-          <button className="billing-btn secondary">
-            <Download size={16} />
-            Export Report
+        <div className="bill-header-actions">
+          <button className="bill-btn bill-btn-secondary">
+            <FileText size={14} strokeWidth={2} /> Excel
+          </button>
+          <button className="bill-btn bill-btn-secondary">
+            <Download size={14} strokeWidth={2} /> PDF
           </button>
         </div>
       </div>
 
-      {/* Date Navigator */}
-      <div className="date-navigator">
-        <button className="date-nav-btn" onClick={handlePrevDay}>
-          ← Previous
-        </button>
-        <div className="date-input-group">
-          <Calendar size={16} />
+      {/* Filters */}
+      <div className="bill-filters" style={{ marginBottom: 'var(--pp-space-4)' }}>
+        <div className="bill-search-wrap">
+          <Search size={13} className="bill-search-icon" strokeWidth={2} />
           <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="date-input"
+            type="text"
+            className="bill-filter-input bill-search-input"
+            style={{ width: '250px' }}
+            placeholder="Search by RegID, Patient or Doctor..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
           />
         </div>
-        <button className="date-nav-btn" onClick={handleNextDay}>
-          Next →
-        </button>
+        {searchQuery && (
+          <button
+            className="bill-btn bill-btn-sm"
+            onClick={() => { setSearchQuery(''); setPage(1); }}
+            title="Clear filters"
+          >
+            <X size={12} strokeWidth={2.5} /> Clear
+          </button>
+        )}
+        <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--pp-text-3)', fontFamily: 'var(--pp-font-mono)' }}>
+          {filteredBalances.length} record{filteredBalances.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
-      {/* Balance Summary Cards */}
-      <div className="balance-cards-grid">
-        {/* Cash in Hand */}
-        <div className="balance-card cash">
-          <div className="balance-card-header">
-            <DollarSign size={28} />
-            <span className="balance-card-badge">Cash</span>
-          </div>
-          <div className="balance-card-amount">
-            ₹{cashInHand.toLocaleString('en-IN')}
-          </div>
-          <div className="balance-card-label">Cash in Hand</div>
-          <div className="balance-card-breakdown">
-            <span>Received: ₹{totalReceived.toLocaleString('en-IN')}</span>
+      {/* Content */}
+      {isLoading ? (
+        <TableSkeleton rows={10} columns={5} />
+      ) : filteredBalances.length === 0 ? (
+        <EmptyState 
+          icon={Wallet}
+          title={searchQuery ? "No matches found" : "No outstanding balances"}
+          description={searchQuery ? "No patients matching your search criteria were found." : "All patient balances are cleared."}
+          actionLabel={searchQuery ? "Clear Search" : undefined}
+          onAction={searchQuery ? () => { setSearchQuery(''); setPage(1); } : undefined}
+          variant="card"
+          className="my-8"
+        />
+      ) : (
+        <div className="bill-card fade-in" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
+          <div className="bill-table-container">
+            <table className="bill-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 100 }}>RegID</th>
+                  <th>Patient Name</th>
+                  <th>Doctor Name</th>
+                  <th style={{ width: 120 }}>Balance</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedBalances.map((b) => (
+                  <tr key={b.regid}>
+                    <td data-label="RegID">
+                      <div className="plat-cell-val">
+                        <div style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.8rem', fontWeight: 600, color: 'var(--pp-ink)' }}>
+                          REG #{b.regid}
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="Patient Name">
+                      <div className="plat-cell-val">
+                        <span 
+                          onClick={() => navigate(`/medical-cases/${b.regid}`)}
+                          style={{ 
+                            fontWeight: 600, 
+                            fontSize: '0.875rem', 
+                            color: 'var(--pp-blue)', 
+                            textTransform: 'capitalize',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                            textDecorationColor: 'transparent',
+                            transition: 'text-decoration-color 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.textDecorationColor = 'var(--pp-blue)'}
+                          onMouseLeave={(e) => e.currentTarget.style.textDecorationColor = 'transparent'}
+                        >
+                          {b.patientName}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Doctor Name">
+                      <div className="plat-cell-val">
+                        <div style={{ fontSize: '0.875rem', color: 'var(--pp-text-3)', textTransform: 'capitalize' }}>
+                          {b.doctorName || '—'}
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="Balance">
+                      <div className="plat-cell-val">
+                        <div style={{
+                          fontFamily: 'var(--pp-font-mono)',
+                          fontWeight: 700,
+                          fontSize: '1rem',
+                          color: 'var(--pp-danger-fg)',
+                          letterSpacing: '-0.01em',
+                        }}>
+                          ₹{b.balance.toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="Notes">
+                      <div className="plat-cell-val">
+                        {editingRegId === b.regid ? (
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', width: '100%', maxWidth: '300px' }}>
+                            <input
+                              type="text"
+                              value={editNoteText}
+                              onChange={(e) => setEditNoteText(e.target.value)}
+                              className="bill-form-input"
+                              style={{ padding: '4px 8px', fontSize: '0.8rem', height: '28px', flex: 1 }}
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveNote(b.regid);
+                                if (e.key === 'Escape') handleCancelEdit();
+                              }}
+                            />
+                            <button 
+                              onClick={() => handleSaveNote(b.regid)}
+                              className="bill-btn bill-btn-sm bill-btn-primary" 
+                              style={{ padding: '0 8px', height: '28px' }}
+                              disabled={updateNoteMutation.isPending}
+                            >
+                              <CheckCircle2 size={13} />
+                            </button>
+                            <button 
+                              onClick={handleCancelEdit}
+                              className="bill-btn bill-btn-sm" 
+                              style={{ padding: '0 8px', height: '28px', background: 'var(--pp-warm-3)', color: 'var(--pp-ink)' }}
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <div style={{ fontSize: '0.85rem', color: b.notes ? 'var(--pp-ink)' : 'var(--pp-text-4)', flex: 1 }}>
+                              {b.notes || <span style={{ fontStyle: 'italic' }}>No notes</span>}
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px', marginLeft: '12px' }}>
+                              <button 
+                                onClick={() => handleEditNote(b.regid, b.notes)}
+                                className="bill-btn bill-btn-sm bill-btn-secondary" 
+                                style={{ padding: '2px 10px', fontSize: '0.75rem', height: '24px' }}
+                              >
+                                {b.notes ? 'Edit' : 'Add Note'}
+                              </button>
+                              {b.notes && (
+                                <button 
+                                  onClick={() => {
+                                    if (confirm('Are you sure you want to remove this note?')) {
+                                      updateNoteMutation.mutate({ regid: b.regid, note: '' });
+                                    }
+                                  }}
+                                  className="bill-btn bill-btn-sm" 
+                                  style={{ padding: '2px 10px', fontSize: '0.75rem', height: '24px', background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)', border: 'none' }}
+                                >
+                                  Clear
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
+      )}
 
-        {/* Bank Balance */}
-        <div className="balance-card bank">
-          <div className="balance-card-header">
-            <Building2 size={28} />
-            <span className="balance-card-badge">Bank</span>
-          </div>
-          <div className="balance-card-amount">
-            ₹{bankBalance.toLocaleString('en-IN')}
-          </div>
-          <div className="balance-card-label">Bank Deposits</div>
-          <div className="balance-card-breakdown">
-            <span>Total: ₹{totalReceived.toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-
-        {/* Total Collection */}
-        <div className="balance-card total">
-          <div className="balance-card-header">
-            <TrendingUp size={28} />
-            <span className="balance-card-badge">Collection</span>
-          </div>
-          <div className="balance-card-amount">
-            ₹{totalReceived.toLocaleString('en-IN')}
-          </div>
-          <div className="balance-card-label">Total Collection</div>
-          <div className="balance-card-breakdown">
-            <span>Charges: ₹{totalCharges.toLocaleString('en-IN')}</span>
-          </div>
-        </div>
-
-        {/* Pending Balance */}
-        <div className="balance-card pending">
-          <div className="balance-card-header">
-            <TrendingDown size={28} />
-            <span className="balance-card-badge">Pending</span>
-          </div>
-          <div className="balance-card-amount">
-            ₹{totalBalance.toLocaleString('en-IN')}
-          </div>
-          <div className="balance-card-label">Balance Pending</div>
-          <div className="balance-card-breakdown">
-            <span>{collection?.recordCount || 0} transactions</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Summary */}
-      <div className="balance-summary-section">
-        <h3 className="section-title">
-          <PieChart size={20} />
-          Balance Summary for {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
-        </h3>
-
-        <div className="balance-summary-grid">
-          {/* Opening Balance */}
-          <div className="balance-summary-item">
-            <span className="balance-summary-label">Opening Balance</span>
-            <span className="balance-summary-value">₹0.00</span>
-          </div>
-
-          {/* Total Collection */}
-          <div className="balance-summary-item highlight-success">
-            <span className="balance-summary-label">+ Total Collection</span>
-            <span className="balance-summary-value">₹{totalReceived.toLocaleString('en-IN')}</span>
-          </div>
-
-          {/* Cash Deposits */}
-          <div className="balance-summary-item">
-            <span className="balance-summary-label">- Cash Deposits</span>
-            <span className="balance-summary-value">₹{todayDeposits.toLocaleString('en-IN')}</span>
-          </div>
-
-          {/* Expenses */}
-          <div className="balance-summary-item highlight-danger">
-            <span className="balance-summary-label">- Expenses</span>
-            <span className="balance-summary-value">₹{todayExpenses.toLocaleString('en-IN')}</span>
-          </div>
-
-          {/* Closing Balance */}
-          <div className="balance-summary-item closing">
-            <span className="balance-summary-label">Closing Balance</span>
-            <span className="balance-summary-value">
-              ₹{(cashInHand - todayExpenses).toLocaleString('en-IN')}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Links */}
-      <div className="balance-nav-links">
-        <button className="balance-nav-card" onClick={() => navigate('/billing/collection')}>
-          <DollarSign size={24} />
-          <span>View Collection</span>
-          <ArrowRight size={16} />
-        </button>
-        <button className="balance-nav-card" onClick={() => navigate('/billing/deposits')}>
-          <Building2 size={24} />
-          <span>Deposits</span>
-          <ArrowRight size={16} />
-        </button>
-        <button className="balance-nav-card" onClick={() => navigate('/billing/expenses')}>
-          <TrendingDown size={24} />
-          <span>Expenses</span>
-          <ArrowRight size={16} />
-        </button>
-      </div>
+      {/* Pagination */}
+      <Pagination
+        totalItems={filteredBalances.length}
+        itemsPerPage={itemsPerPage}
+        currentPage={page}
+        onPageChange={(p) => setPage(p)}
+        onLimitChange={() => {}}
+      />
     </div>
   );
 }

@@ -13,6 +13,8 @@ import {
   GetDailyCollectionUseCase,
   GetPatientBillsUseCase,
   UpdateChargesUseCase,
+  GetPatientBalancesUseCase,
+  UpdatePatientBalanceNoteUseCase,
 } from '../../../domains/billing/index.js';
 import { createBillSchema, listBillsQuerySchema, createCustomBillSchema } from '@mmc/validation';
 import type { DbClient } from '@mmc/database';
@@ -23,6 +25,41 @@ export function createBillingRouter(): Router {
 
   // Helper to get repository for current tenant
   const getRepo = (req: Request) => new BillingRepositoryPg(req.tenantDb);
+
+  // GET /api/billing/balances
+  router.get(
+    '/balances',
+    asyncHandler(async (req: Request, res: Response) => {
+      const clinicId = (req as any).user?.contextId;
+      const useCase = new GetPatientBalancesUseCase(getRepo(req));
+      const result = await useCase.execute(clinicId);
+      if (!result.success) {
+        res.status(400).json({ success: false, error: result.error });
+        return;
+      }
+      res.json({ success: true, data: result.data });
+    })
+  );
+
+  // POST /api/billing/balances/:regid/notes
+  router.post(
+    '/balances/:regid/notes',
+    asyncHandler(async (req: Request, res: Response) => {
+      const regid = parseInt(req.params.regid as string, 10);
+      const { note } = req.body;
+      if (isNaN(regid)) {
+        res.status(400).json({ success: false, error: 'Invalid regid' });
+        return;
+      }
+      const useCase = new UpdatePatientBalanceNoteUseCase(getRepo(req));
+      const result = await useCase.execute(regid, note);
+      if (!result.success) {
+        res.status(400).json({ success: false, error: result.error });
+        return;
+      }
+      res.json({ success: true, message: 'Note updated successfully' });
+    })
+  );
 
   // GET /api/billing?regid=&date=&page=&limit=
   router.get(
