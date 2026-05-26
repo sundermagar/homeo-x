@@ -328,7 +328,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/platform/employees', label: 'Employees', icon: User },
           { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
           { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
-          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
+          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck, roles: ['SuperAdmin', 'Admin'] },
         ],
       },
     },
