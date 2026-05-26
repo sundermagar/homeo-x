@@ -186,6 +186,25 @@ export function createBillingRouter(): Router {
     }),
   );
 
+  // DELETE /api/billing/:id
+  router.delete(
+    '/:id',
+    asyncHandler(async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id as string, 10);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, error: 'Invalid ID' });
+        return;
+      }
+      const repo = getRepo(req);
+      const success = await repo.softDelete(id);
+      if (!success) {
+        res.status(400).json({ success: false, error: 'Failed to delete bill or bill not found' });
+        return;
+      }
+      res.json({ success: true });
+    }),
+  );
+
   // ─── ViewCollection Legacy Parity Routes ──────────────────────────────────
 
   /**

@@ -353,3 +353,17 @@ export function useSetTarget() {
   });
 }
 
+export function useDeleteBill() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (billId: number) => {
+      const { data } = await apiClient.delete<{ success: boolean }>(`/billing/${billId}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
+    },
+  });
+}
+

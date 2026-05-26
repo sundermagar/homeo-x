@@ -1,11 +1,11 @@
 import type { BillWithPatient } from '@mmc/types';
 import { format } from 'date-fns';
-import { RefreshCw, Receipt, Printer, X, DollarSign, CreditCard, ChevronRight, ChevronDown } from 'lucide-react';
+import { RefreshCw, Receipt, Printer, X, DollarSign, CreditCard, ChevronRight, ChevronDown, Trash2, MoreHorizontal, Eye } from 'lucide-react';
 import { printBill, printGroupedBills } from '@/shared/utils/print';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { useState, useMemo, Fragment } from 'react';
-import { useRecordPayment, usePatientBills, useUpdateCharges } from '../hooks/use-billing';
+import { useRecordPayment, usePatientBills, useUpdateCharges, useDeleteBill } from '../hooks/use-billing';
 import { Drawer } from '@/shared/components/drawer';
 
 
@@ -34,6 +34,23 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
   const { data: patientHistory } = usePatientBills(selectedGroup?.regid || 0);
   const [editingChargeId, setEditingChargeId] = useState<number | null>(null);
   const [newChargeAmount, setNewChargeAmount] = useState<number>(0);
+
+  const [activeDropdownRegId, setActiveDropdownRegId] = useState<number | null>(null);
+  const deleteBill = useDeleteBill();
+
+  const handleDeleteGroup = async (billsList: any[]) => {
+    if (window.confirm(`Are you sure you want to delete this billing group? This will delete all ${billsList.length} invoice(s) under this group.`)) {
+      try {
+        for (const b of billsList) {
+          await deleteBill.mutateAsync(b.id);
+        }
+        alert('Billing group deleted successfully.');
+      } catch (err) {
+        console.error(err);
+        alert('Failed to delete billing group.');
+      }
+    }
+  };
 
   // We keep the grouping logic
 
@@ -346,9 +363,51 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                         </div>
                       </td>
                       <td data-label="Action" style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="plat-cell-val" style={{ justifyContent: 'flex-end' }}>
-                          <button className="bill-btn bill-btn-sm" style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 12, padding: '0 4px' }} onClick={() => setSelectedGroup(group)}>
-                            View Details
+                        <div className="plat-cell-val" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', width: '100%' }}>
+                          <button 
+                            className="bill-btn bill-btn-sm" 
+                            style={{ 
+                              color: 'var(--pp-blue)', 
+                              border: '1px solid var(--pp-warm-3)', 
+                              background: 'var(--bg-surface-2)', 
+                              cursor: 'pointer', 
+                              padding: '5px',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: 'var(--pp-shadow-sm)',
+                              transition: 'all 0.2s ease',
+                              width: '28px',
+                              height: '28px'
+                            }} 
+                            onClick={() => setSelectedGroup(group)}
+                            title="View Details"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          
+                          <button 
+                            className="bill-btn bill-btn-sm" 
+                            style={{ 
+                              color: 'var(--pp-danger-fg)', 
+                              border: '1px solid var(--pp-warm-3)', 
+                              background: 'var(--bg-surface-2)', 
+                              cursor: 'pointer', 
+                              padding: '5px',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: 'var(--pp-shadow-sm)',
+                              transition: 'all 0.2s ease',
+                              width: '28px',
+                              height: '28px'
+                            }} 
+                            onClick={() => handleDeleteGroup(group.bills)}
+                            title="Delete Group"
+                          >
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>
