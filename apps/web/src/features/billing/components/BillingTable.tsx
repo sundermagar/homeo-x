@@ -199,35 +199,78 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
 
   const renderBillCard = (bill: any, isPast: boolean = false) => {
     const showPeriod = bill.fromDate || bill.toDate;
+    const isPaid = bill.balance === 0;
+    
+    // Premium Left Border Color based on treatment / billType
+    let accentColor = 'var(--pp-blue)';
+    const t = bill.treatment || bill.billType || 'Consultation';
+    const treatmentLabel = t === 'Consultation' ? 'Medicine Charge' : t;
+    
+    if (bill.billType === 'Additional') {
+      accentColor = 'var(--pp-purple)';
+    } else if (bill.treatment?.startsWith('Package:')) {
+      accentColor = 'var(--pp-success-fg)';
+    } else if (bill.billType === 'Registration') {
+      accentColor = 'var(--pp-blue)';
+    } else if (bill.billType === 'Consultation') {
+      accentColor = 'var(--pp-warning-fg)';
+    }
+
     return (
-      <div key={bill.id} style={{ padding: 16, border: '1px solid var(--pp-warm-3)', borderRadius: 16, background: 'var(--bg-surface-2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div 
+        key={bill.id} 
+        style={{ 
+          padding: '16px 20px', 
+          border: '1px solid var(--pp-warm-3)', 
+          borderLeft: `5px solid ${accentColor}`,
+          borderRadius: 16, 
+          background: 'var(--bg-card)', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 12,
+          boxShadow: 'var(--pp-shadow-sm)',
+          transition: 'all 0.2s ease',
+        }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
-              {(() => {
-                const t = bill.treatment || bill.billType || 'Consultation';
-                return t === 'Consultation' ? 'Medicine Charge' : t;
-              })()}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--pp-ink)' }}>
+                {treatmentLabel}
+              </span>
+              <span className={`bill-badge ${isPaid ? 'bill-badge-success' : 'bill-badge-danger'}`} style={{ fontSize: '0.6rem', padding: '1px 6px' }}>
+                {isPaid ? 'Paid' : 'Unpaid'}
+              </span>
             </div>
+            
             {showPeriod && (
-              <div style={{ fontSize: '0.8rem', color: 'var(--pp-blue)', fontWeight: 650, marginTop: 4 }}>
-                Period: {bill.fromDate ? format(new Date(bill.fromDate), 'dd-MM-yyyy') : ''} → {bill.toDate ? format(new Date(bill.toDate), 'dd-MM-yyyy') : ''}
+              <div style={{ fontSize: '0.78rem', color: 'var(--pp-blue)', fontWeight: 650, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ background: 'var(--pp-blue-tint)', padding: '2px 6px', borderRadius: 4 }}>
+                  Period: {bill.fromDate ? format(new Date(bill.fromDate), 'dd-MM-yyyy') : ''} → {bill.toDate ? format(new Date(bill.toDate), 'dd-MM-yyyy') : ''}
+                </span>
               </div>
             )}
-            <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 4 }}>
-              Bill #{bill.billNo} • {isPast && bill.billDate ? format(new Date(bill.billDate), 'dd MMM yyyy') + ' • ' : ''}{bill.paymentMode ?? 'No Payment Mode'}
+            
+            <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>Bill #{bill.billNo}</span>
+              <span style={{ color: 'var(--pp-warm-4)' }}>•</span>
+              <span>{isPast && bill.billDate ? format(new Date(bill.billDate), 'dd MMM yyyy') + ' • ' : ''}{bill.paymentMode ?? 'No Payment'}</span>
             </div>
           </div>
+          
           <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-                ₹{bill.charges.toLocaleString()}
+            <div style={{ fontSize: '1rem', fontWeight: 850, color: 'var(--pp-ink)', fontFamily: 'var(--pp-font-mono)' }}>
+              ₹{bill.charges.toLocaleString()}
+            </div>
+            {!isPaid && (
+              <div style={{ fontSize: '0.72rem', color: 'var(--pp-danger-fg)', fontWeight: 700, marginTop: 4, background: 'var(--pp-danger-bg)', padding: '2px 6px', borderRadius: 4, display: 'inline-block' }}>
+                Owes ₹{bill.balance.toLocaleString()}
               </div>
-            {bill.balance > 0 && (
-              <div style={{ fontSize: '0.75rem', color: 'var(--pp-danger-fg)', fontWeight: 700, marginTop: 4 }}>Owes ₹{bill.balance.toLocaleString()}</div>
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid var(--pp-warm-3)', paddingTop: 10, marginTop: 4 }}>
+        
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid var(--pp-warm-2)', paddingTop: 10, marginTop: 2 }}>
           <button 
             className="bill-btn bill-btn-sm" 
             style={{ 
@@ -242,7 +285,8 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
               cursor: 'pointer',
               color: 'var(--pp-ink)',
               fontSize: '0.75rem',
-              fontWeight: 600
+              fontWeight: 650,
+              transition: 'all 0.2s ease'
             }}
             onClick={() => setPrintingBill(bill)}
           >
@@ -548,80 +592,183 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
         title="Patient Billing Details"
         maxWidth="600px"
       >
-        {selectedGroup && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ padding: 20, background: 'var(--pp-blue-tint)', borderRadius: 20, border: '1px solid var(--pp-blue-border)' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--pp-blue)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.05em' }}>Daily Summary</div>
-              <div style={{ fontWeight: 850, fontSize: '1.2rem', color: 'var(--pp-ink)' }}>{selectedGroup.patientName}</div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 4 }}>
-                {selectedGroup.billDate ? format(new Date(selectedGroup.billDate), 'dd MMM yyyy') : 'No Date'} • {selectedGroup.bills.length} Items
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginTop: 16 }}>
+        {selectedGroup && (() => {
+          const cleanName = selectedGroup.patientName 
+            ? selectedGroup.patientName.trim().replace(/,\s*$/, '').replace(/\b\w/g, (c: string) => c.toUpperCase()) 
+            : '—';
+          
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Daily Summary Main Card */}
+              <div style={{ 
+                padding: '24px 20px', 
+                background: 'linear-gradient(135deg, var(--pp-blue-tint) 0%, rgba(37, 99, 235, 0.05) 100%)', 
+                borderRadius: 24, 
+                border: '1px solid var(--pp-blue-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16
+              }}>
                 <div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>Charges Breakdown</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}><span style={{ color: 'var(--pp-text-3)' }}>Registration:</span> <span style={{ fontWeight: 600 }}>₹{selectedGroup.registrationCharge}</span></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}><span style={{ color: 'var(--pp-text-3)' }}>Medicine Days:</span> <span style={{ fontWeight: 600 }}>₹{selectedGroup.medicineDaysCharge}</span></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}><span style={{ color: 'var(--pp-text-3)' }}>Package Plan:</span> <span style={{ fontWeight: 600 }}>₹{selectedGroup.packageCharge}</span></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}><span style={{ color: 'var(--pp-text-3)' }}>Additional:</span> <span style={{ fontWeight: 600 }}>₹{selectedGroup.additionalCharge}</span></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginTop: 4, paddingTop: 4, borderTop: '1px solid var(--border-main)' }}><span style={{ color: 'var(--pp-ink)', fontWeight: 700 }}>Total Bill Amount:</span> <span style={{ fontWeight: 800, color: 'var(--pp-blue)' }}>₹{selectedGroup.totalCharges.toLocaleString()}</span></div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--pp-blue)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.08em' }}>Daily Summary</div>
+                  <div style={{ fontWeight: 850, fontSize: '1.35rem', color: 'var(--pp-ink)', letterSpacing: '-0.01em' }}>{cleanName}</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 4 }}>
+                    {selectedGroup.billDate ? format(new Date(selectedGroup.billDate), 'dd MMM yyyy') : 'No Date'} • {selectedGroup.bills.length} Invoice Item{selectedGroup.bills.length !== 1 ? 's' : ''}
                   </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>Received</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-success-fg)', marginTop: 6 }}>₹{selectedGroup.totalReceived.toLocaleString()}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase' }}>Balance</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: selectedGroup.totalBalance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)', marginTop: 6 }}>
-                    {selectedGroup.totalBalance > 0 ? `₹${selectedGroup.totalBalance.toLocaleString()}` : '—'}
+
+                {/* KPI Metrics Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  {/* Total Bill Card */}
+                  <div style={{ 
+                    background: 'var(--bg-card)', 
+                    border: '1px solid var(--pp-warm-3)', 
+                    borderRadius: 16, 
+                    padding: '12px 14px',
+                    boxShadow: 'var(--pp-shadow-sm)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4
+                  }}>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Billed</span>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 850, color: 'var(--pp-blue)', fontFamily: 'var(--pp-font-mono)' }}>₹{selectedGroup.totalCharges.toLocaleString()}</span>
+                  </div>
+
+                  {/* Received Card */}
+                  <div style={{ 
+                    background: 'var(--bg-card)', 
+                    border: '1px solid var(--pp-warm-3)', 
+                    borderRadius: 16, 
+                    padding: '12px 14px',
+                    boxShadow: 'var(--pp-shadow-sm)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4
+                  }}>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Received</span>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 850, color: 'var(--pp-success-fg)', fontFamily: 'var(--pp-font-mono)' }}>₹{selectedGroup.totalReceived.toLocaleString()}</span>
+                  </div>
+
+                  {/* Balance Card */}
+                  <div style={{ 
+                    background: selectedGroup.totalBalance > 0 ? 'var(--pp-danger-bg)' : 'var(--bg-card)', 
+                    border: selectedGroup.totalBalance > 0 ? '1px solid var(--pp-danger-border)' : '1px solid var(--pp-warm-3)', 
+                    borderRadius: 16, 
+                    padding: '12px 14px',
+                    boxShadow: 'var(--pp-shadow-sm)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4
+                  }}>
+                    <span style={{ fontSize: '0.65rem', color: selectedGroup.totalBalance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Balance</span>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 850, color: selectedGroup.totalBalance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)', fontFamily: 'var(--pp-font-mono)' }}>
+                      {selectedGroup.totalBalance > 0 ? `₹${selectedGroup.totalBalance.toLocaleString()}` : '₹0'}
+                    </span>
                   </div>
                 </div>
-              </div>
-              
-              <div style={{ display: 'flex', gap: 10, marginTop: 16, paddingTop: 16, borderTop: '1px dashed var(--pp-blue-border)' }}>
-                {selectedGroup.totalBalance > 0 && (
+
+                {/* Charges Breakdown panel */}
+                <div style={{ 
+                  background: 'var(--bg-card)', 
+                  border: '1px solid var(--pp-warm-3)', 
+                  borderRadius: 16, 
+                  padding: 16,
+                  boxShadow: 'var(--pp-shadow-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12
+                }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--pp-warm-2)', paddingBottom: 8 }}>Itemized Charges Breakdown</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {[
+                      { label: 'Registration Fee', val: selectedGroup.registrationCharge, color: 'var(--pp-blue)' },
+                      { label: 'Medicine & Consultation', val: selectedGroup.medicineDaysCharge, color: 'var(--pp-warning-fg)' },
+                      { label: 'Package Treatment Plans', val: selectedGroup.packageCharge, color: 'var(--pp-success-fg)' },
+                      { label: 'Additional Charges / Services', val: selectedGroup.additionalCharge, color: 'var(--pp-purple)' }
+                    ].map((item, idx) => {
+                      // show registration by default or any other items with positive values
+                      if (item.val === 0 && idx > 0) return null;
+                      return (
+                        <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} />
+                            <span style={{ color: 'var(--pp-text-2)', fontWeight: 600 }}>{item.label}</span>
+                          </div>
+                          <span style={{ fontWeight: 750, color: 'var(--pp-ink)', fontFamily: 'var(--pp-font-mono)' }}>₹{item.val.toLocaleString()}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                
+                {/* Actions Button Row */}
+                <div style={{ display: 'flex', gap: 10, borderTop: '1px dashed var(--pp-blue-border)', paddingTop: 16 }}>
+                  {selectedGroup.totalBalance > 0 && (
+                    <button 
+                      className="bill-btn bill-btn-primary" 
+                      style={{ 
+                        flex: 1, 
+                        height: 40, 
+                        borderRadius: 12, 
+                        fontSize: '0.82rem', 
+                        fontWeight: 750,
+                        gap: 6
+                      }}
+                      onClick={() => { 
+                        setReceivingGroup(selectedGroup); 
+                        setReceiveAmount(selectedGroup.totalBalance); 
+                      }}
+                    >
+                      <DollarSign size={14} />
+                      Receive Total (₹{selectedGroup.totalBalance.toLocaleString()})
+                    </button>
+                  )}
                   <button 
-                    className="bill-btn bill-btn-primary" 
-                    style={{ flex: 1, height: 36, borderRadius: 10, fontSize: 12, fontWeight: 700 }}
-                    onClick={() => { 
-                      setReceivingGroup(selectedGroup); 
-                      setReceiveAmount(selectedGroup.totalBalance); 
+                    className="bill-btn" 
+                    style={{ 
+                      flex: selectedGroup.totalBalance > 0 ? 'none' : 1, 
+                      width: selectedGroup.totalBalance > 0 ? 'auto' : '100%', 
+                      height: 40, 
+                      padding: '0 16px', 
+                      borderRadius: 12, 
+                      background: 'var(--bg-card)', 
+                      border: '1px solid var(--border-main)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: 6,
+                      fontSize: '0.82rem',
+                      fontWeight: 750,
+                      color: 'var(--pp-ink)'
+                    }}
+                    onClick={() => {
+                      if (myOrg) printGroupedBills(selectedGroup, myOrg);
                     }}
                   >
-                    Receive Total (₹{selectedGroup.totalBalance.toLocaleString()})
+                    <Printer size={14} />
+                    <span>Print Bill</span>
                   </button>
-                )}
-                <button 
-                  className="bill-btn bill-btn-sm" 
-                  style={{ flex: selectedGroup.totalBalance > 0 ? 'none' : 1, width: selectedGroup.totalBalance > 0 ? 'auto' : '100%', height: 36, padding: '0 16px', borderRadius: 10, background: 'var(--bg-card)', border: '1px solid var(--border-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                  onClick={() => {
-                    if (myOrg) printGroupedBills(selectedGroup, myOrg);
-                  }}
-                >
-                  <Printer size={14} />
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>Print Consolidated Statement</span>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--pp-ink)', marginBottom: 12 }}>Selected Date Invoices</div>
-              <div style={{ display: 'grid', gap: 12 }}>
-                {selectedGroup.bills.map((bill: any) => renderBillCard(bill, false))}
-              </div>
-              
-              {pastBills.length > 0 && (
-                <div style={{ marginTop: 32 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--pp-ink)', marginBottom: 12, paddingTop: 16, borderTop: '1px solid var(--border-main)' }}>Past Invoices</div>
-                  <div style={{ display: 'grid', gap: 12 }}>
-                    {pastBills.map((bill: any) => renderBillCard(bill, true))}
-                  </div>
                 </div>
-              )}
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-ink)', marginBottom: 12 }}>Selected Date Invoices</div>
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {selectedGroup.bills.map((bill: any) => renderBillCard(bill, false))}
+                </div>
+                
+                {pastBills.length > 0 && (
+                  <div style={{ marginTop: 32 }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-ink)', marginBottom: 12, paddingTop: 16, borderTop: '1px solid var(--border-main)' }}>Past Invoices</div>
+                    <div style={{ display: 'grid', gap: 12 }}>
+                      {pastBills.map((bill: any) => renderBillCard(bill, true))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </Drawer>
     </>
   );
