@@ -48,6 +48,7 @@ export const API = {
     KENT_SEARCH: '/api/ai/rubrics/kent-search',
     SUGGEST_QUESTIONS: '/api/ai/suggest/questions',
     EXTRACT_SYMPTOMS: '/api/ai/extract/symptoms',
+    DISEASE_RUBRICS: '/api/ai/disease-rubrics',
   },
 
   ICD10: {

@@ -3,6 +3,7 @@ export interface SoapSuggestion {
   objective: string;
   assessment: string;
   plan: string;
+  advice?: string;
   icdCodes: Array<{ code: string; description: string }>;
   confidence: number;
   auditLogId: string;
@@ -236,6 +237,7 @@ export interface ScoredRemedy {
 
 export interface AnalyzeCaseInput {
   conversation?: string;
+  transcript?: string;
   labReports?: string;
   doctorNotes?: string;
   patientAge?: number;
@@ -250,6 +252,15 @@ export interface ClinicalExtractionResult {
   mentalState: string[];
   physicalGenerals?: string[];
   particularSymptoms?: string[];
+  // Constitutional factors the AI may extract from the conversation
+  thermalReaction?: string;
+  miasm?: string;
+  thirstPattern?: string;
+  sleepPosition?: string;
+  perspiration?: string;
+  causation?: string[];
+  location?: string[];
+  concomitants?: string[];
   provisionalDiagnosis?: {
     name: string;
     icdCode: string;

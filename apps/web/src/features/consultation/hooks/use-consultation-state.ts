@@ -10,7 +10,7 @@ import type { Visit } from '../../../types/visit';
 import type { Patient } from '../../../types/patient';
 
 // ─── Stage Type ───
-export type ConsultStage = 'PATIENT_INFO' | 'CONSULTATION' | 'TOTALITY' | 'REPERTORY' | 'PRESCRIPTION';
+export type ConsultStage = 'CONVERSATION' | 'SUMMARY' | 'PRESCRIPTION' | 'FINALIZE_RX';
 
 // ─── Types ───
 
@@ -28,6 +28,7 @@ export interface SoapState {
   objective: string;
   assessment: string;
   plan: string;
+  advice?: string;
   clinicalSummary: string;
 }
 
@@ -43,6 +44,9 @@ export interface AiContext {
   thirstPattern?: string;
   sleepPosition?: string;
   perspiration?: string;
+  causation?: string;
+  location?: string;
+  concomitants?: string;
   doctorNotes?: string;
   allergies?: string[];
   transcript?: string;
@@ -149,6 +153,10 @@ export interface UseConsultationStateReturn {
   setConcomitants: (val: string) => void;
   doctorNotes: string;
   setDoctorNotes: (val: string) => void;
+
+  // Case summary (editable narrative generated from the conversation)
+  caseSummary: string;
+  setCaseSummary: (val: string) => void;
 
   // Google Meet
   sessionId: string | null;
@@ -258,10 +266,12 @@ export function useConsultationState({
   const [concomitants, setConcomitants] = useState('');
   const [doctorNotes, setDoctorNotes] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
+  // Editable narrative summary generated from the whole conversation
+  const [caseSummary, setCaseSummary] = useState('');
 
   // ─── Stage Navigation ───
-  const STAGE_ORDER: ConsultStage[] = ['PATIENT_INFO', 'CONSULTATION', 'TOTALITY', 'REPERTORY', 'PRESCRIPTION'];
-  const [consultStage, setConsultStage] = useState<ConsultStage>('PATIENT_INFO');
+  const STAGE_ORDER: ConsultStage[] = ['CONVERSATION', 'SUMMARY', 'PRESCRIPTION'];
+  const [consultStage, setConsultStage] = useState<ConsultStage>('CONVERSATION');
   const [scoredRemedies, setScoredRemedies] = useState<ScoredRemedy[]>([]);
 
   // ─── Consultation Mode & Categorized Symptoms ───
@@ -336,6 +346,7 @@ export function useConsultationState({
     setConcomitants('');
     setDoctorNotes('');
     setSessionId(null);
+    setCaseSummary('');
     setSuggestedRubrics([]);
     setGnmAnalysis(null);
     setConsultationMode('acute');
@@ -923,6 +934,8 @@ export function useConsultationState({
     setConcomitants,
     doctorNotes,
     setDoctorNotes,
+    caseSummary,
+    setCaseSummary,
     scribeSuggestion,
     setScribeSuggestion,
     sttLanguage,

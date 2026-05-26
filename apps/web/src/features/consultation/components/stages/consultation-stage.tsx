@@ -351,99 +351,99 @@ export function ConsultationStage({
   const lastQuestionRef = useRef<string>('');
 
   // Sync mode questions to local state so they persist and don't disappear during thinking state
-  useEffect(() => {
-    if (modeQuestions.data?.questions) {
-      setSuggestedQuestions(modeQuestions.data.questions);
-    }
-  }, [modeQuestions.data]);
+  // useEffect(() => {
+  //   if (modeQuestions.data?.questions) {
+  //     setSuggestedQuestions(modeQuestions.data.questions);
+  //   }
+  // }, [modeQuestions.data]);
 
   // --- Auto-extract symptoms from live transcript during calls ---
   const lastExtractedSegCountRef = useRef(0);
   const extractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    // Auto-extract for ALL modes:
-    // - AUDIO/VIDEO: dual-mic, segments are labeled DOCTOR vs PATIENT
-    // - IN_PERSON: single mic, all segments labeled DOCTOR — extract from raw text
-    if (!binaryTranscriber.isRecording) return;
+  // useEffect(() => {
+  //   // Auto-extract for ALL modes:
+  //   // - AUDIO/VIDEO: dual-mic, segments are labeled DOCTOR vs PATIENT
+  //   // - IN_PERSON: single mic, all segments labeled DOCTOR — extract from raw text
+  //   if (!binaryTranscriber.isRecording) return;
 
-    const finalSegs = segments.filter(s => s.isFinal);
-    const newSegCount = finalSegs.length;
+  //   const finalSegs = segments.filter(s => s.isFinal);
+  //   const newSegCount = finalSegs.length;
 
-    // Need at least 4 new segments since last extraction (saves credits)
-    if (newSegCount - lastExtractedSegCountRef.current < 4) return;
+  //   // Need at least 4 new segments since last extraction (saves credits)
+  //   if (newSegCount - lastExtractedSegCountRef.current < 4) return;
 
-    // Debounce: wait 4 seconds of silence
-    if (extractionTimerRef.current) {
-      clearTimeout(extractionTimerRef.current);
-    }
+  //   // Debounce: wait 4 seconds of silence
+  //   if (extractionTimerRef.current) {
+  //     clearTimeout(extractionTimerRef.current);
+  //   }
 
-    extractionTimerRef.current = setTimeout(() => {
-      const newSegs = finalSegs.slice(lastExtractedSegCountRef.current);
-      const isInPerson = callMode === 'IN_PERSON';
+  //   extractionTimerRef.current = setTimeout(() => {
+  //     const newSegs = finalSegs.slice(lastExtractedSegCountRef.current);
+  //     const isInPerson = callMode === 'IN_PERSON';
 
-      let questionText: string;
-      let answerText: string;
+  //     let questionText: string;
+  //     let answerText: string;
 
-      if (isInPerson) {
-        // Single-mic mode: send all new transcript text as the answer.
-        // The AI will extract symptoms regardless of who said what.
-        const allText = newSegs.map(s => s.translatedText || s.text).join(' ');
-        if (!allText.trim()) return;
-        questionText = lastQuestionRef.current || 'Doctor-patient conversation';
-        answerText = allText;
-      } else {
-        // Dual-mic mode: pair doctor question with patient answer
-        const doctorSegs = newSegs.filter(s => s.speaker === 'DOCTOR');
-        const patientSegs = newSegs.filter(s => s.speaker === 'PATIENT');
-        if (patientSegs.length === 0) return;
-        questionText = doctorSegs.length > 0
-          ? doctorSegs.map(s => s.translatedText || s.text).join(' ')
-          : 'General conversation';
-        answerText = patientSegs.map(s => s.translatedText || s.text).join(' ');
-      }
+  //     if (isInPerson) {
+  //       // Single-mic mode: send all new transcript text as the answer.
+  //       // The AI will extract symptoms regardless of who said what.
+  //       const allText = newSegs.map(s => s.translatedText || s.text).join(' ');
+  //       if (!allText.trim()) return;
+  //       questionText = lastQuestionRef.current || 'Doctor-patient conversation';
+  //       answerText = allText;
+  //     } else {
+  //       // Dual-mic mode: pair doctor question with patient answer
+  //       const doctorSegs = newSegs.filter(s => s.speaker === 'DOCTOR');
+  //       const patientSegs = newSegs.filter(s => s.speaker === 'PATIENT');
+  //       if (patientSegs.length === 0) return;
+  //       questionText = doctorSegs.length > 0
+  //         ? doctorSegs.map(s => s.translatedText || s.text).join(' ')
+  //         : 'General conversation';
+  //       answerText = patientSegs.map(s => s.translatedText || s.text).join(' ');
+  //     }
 
-      lastExtractedSegCountRef.current = newSegCount;
+  //     lastExtractedSegCountRef.current = newSegCount;
 
-      // Extract symptoms from this Q&A pair
-      const genAtDispatch = clearGenerationRef.current;
-      symptomExtraction.mutate(
-        {
-          visitId,
-          consultationMode,
-          question: questionText,
-          answer: answerText,
-          existingSymptoms: categorizedSymptoms,
-          labContext: labContextRef.current || undefined,
-        },
-        {
-          onSuccess: (result) => {
-            if (clearGenerationRef.current !== genAtDispatch) return; // user cleared — discard stale result
-            if (result) {
-              onSymptomsExtracted(result);
-            }
-          },
-        },
-      );
+  //     // Extract symptoms from this Q&A pair
+  //     const genAtDispatch = clearGenerationRef.current;
+  //     symptomExtraction.mutate(
+  //       {
+  //         visitId,
+  //         consultationMode,
+  //         question: questionText,
+  //         answer: answerText,
+  //         existingSymptoms: categorizedSymptoms,
+  //         labContext: labContextRef.current || undefined,
+  //       },
+  //       {
+  //         onSuccess: (result) => {
+  //           if (clearGenerationRef.current !== genAtDispatch) return; // user cleared — discard stale result
+  //           if (result) {
+  //             onSymptomsExtracted(result);
+  //           }
+  //         },
+  //       },
+  //     );
 
-      // Also regenerate mode-specific questions based on updated transcript
-      modeQuestions.mutate({
-        consultationMode,
-        transcript: finalSegs.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-        answeredQuestions,
-        chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
-        patientAge,
-        patientGender: patient?.gender,
-      });
-    }, 8000);
+  //     // Also regenerate mode-specific questions based on updated transcript
+  //     modeQuestions.mutate({
+  //       consultationMode,
+  //       transcript: finalSegs.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
+  //       answeredQuestions,
+  //       chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
+  //       patientAge,
+  //       patientGender: patient?.gender,
+  //     });
+  //   }, 8000);
 
-    return () => {
-      if (extractionTimerRef.current) {
-        clearTimeout(extractionTimerRef.current);
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segments.length, callMode, binaryTranscriber.isRecording]);
+  //   return () => {
+  //     if (extractionTimerRef.current) {
+  //       clearTimeout(extractionTimerRef.current);
+  //     }
+  //   };
+  // // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [segments.length, callMode, binaryTranscriber.isRecording]);
 
   const handleLoadModeQuestions = useCallback(() => {
     setSuggestedQuestions([]);
@@ -458,11 +458,11 @@ export function ConsultationStage({
   }, [consultationMode, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions, setSuggestedQuestions]);
 
   // Auto-load questions when mode changes
-  useEffect(() => {
-    setSuggestedQuestions([]);
-    handleLoadModeQuestions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [consultationMode]);
+  // useEffect(() => {
+  //   setSuggestedQuestions([]);
+  //   handleLoadModeQuestions();
+  // // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [consultationMode]);
 
   const totalSymptoms = categorizedSymptoms.mental.length + categorizedSymptoms.physical.length + categorizedSymptoms.particular.length;
 
@@ -677,7 +677,7 @@ export function ConsultationStage({
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3B82F6] opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-[#2563EB]"></span>
           </span>
-          {MODE_CONFIG[consultationMode].label} <span className="opacity-50">|</span> {CALL_MODE_LABELS[callMode]}
+          {CALL_MODE_LABELS[callMode]}
         </span>
       </div>
 
@@ -698,11 +698,11 @@ export function ConsultationStage({
       )}
       */}
 
-      {/* 4. Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
+      {/* 4. Full-width layout */}
+      <div className="w-full">
 
-        {/* LEFT COLUMN: chat-wrap */}
-        <div className="space-y-4 min-w-0">
+        {/* chat-wrap */}
+        <div className="space-y-4 w-full">
 
           {/* Call interface panel (AICaptureModule + CallInterfacePanel) */}
           <AICaptureModule
@@ -739,9 +739,9 @@ export function ConsultationStage({
                     if (clearGenerationRef.current !== genAtDispatch) return;
                     if (result) {
                       onSymptomsExtracted(result);
-                      
+
                       const added = (result.mental?.length || 0) + (result.physical?.length || 0) + (result.particular?.length || 0);
-                      
+
                       if (added === 0) {
                         toast({
                           title: 'No abnormal findings detected',
@@ -821,6 +821,7 @@ export function ConsultationStage({
 
 
           {/* AI Suggested Inquiries panel */}
+          {false && (
             <div className="pp-card overflow-hidden">
               <div className="px-5 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -959,10 +960,12 @@ export function ConsultationStage({
 
               </div>
             </div>
+          )}
 
         </div>
 
         {/* RIGHT COLUMN: Live Symptom Extraction panel */}
+        {false && (
           <div className="space-y-0">
             <div className="pp-card sticky top-8">
               <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] flex items-center justify-between">
@@ -1073,6 +1076,7 @@ export function ConsultationStage({
               </div>
             </div>
           </div>
+        )}
       </div>
 
       {/* Navigation buttons are in the bottom bar — no duplicate here */}

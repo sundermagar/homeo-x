@@ -276,6 +276,10 @@ export class ConsultationUseCase {
     return this.repertorizationEngine.extractRubrics(tenantId, userId, input);
   }
 
+  async extractDiseaseRubrics(tenantId: string, userId: string, input: { disease: string; consultationMode?: string }) {
+    return this.repertorizationEngine.extractDiseaseRubrics(tenantId, userId, input);
+  }
+
   async scoreRemedies(tenantId: string, userId: string, input: any) {
     return this.repertorizationEngine.scoreRemedies(tenantId, userId, input);
   }

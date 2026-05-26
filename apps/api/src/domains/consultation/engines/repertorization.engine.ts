@@ -1,5 +1,5 @@
 // ─── Repertorization Engine ───────────────────────────────────────────────────
-// AI-powered Kent's Repertory rubric extraction + remedy scoring.
+// AI-powered Mac Repertory rubric extraction + remedy scoring.
 // The core homeopathic analysis engine.
 // Ported from: Ai-Counsultaion/apps/api/src/modules/ai/engines/repertorization.engine.ts
 
@@ -484,7 +484,7 @@ export class RepertorizationEngine {
   constructor(private providerChain: AiProviderChain) { }
 
   /**
-   * Phase A: Extract rubrics from symptoms using AI Kent's Pattern Matcher
+   * Phase A: Extract rubrics from symptoms using AI Mac Repertory Pattern Matcher
    */
   async extractRubrics(tenantId: string, userId: string, input: RepertorizeExtractInput): Promise<RubricExtractionResult> {
     try {
@@ -512,7 +512,7 @@ export class RepertorizationEngine {
         return this.emptyExtractionResult();
       }
 
-      logger.info(`Extracting Kent rubrics for: ${symptomText.substring(0, 100)}...`);
+      logger.info(`Extracting Mac Repertory rubrics for: ${symptomText.substring(0, 100)}...`);
 
       const modeOverride = input.consultationMode
         ? `## STEP 0 (PRE-DETERMINED): The doctor has selected "${input.consultationMode.toUpperCase()}" as the case type. USE THIS — do not re-classify.`
@@ -586,7 +586,7 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
 
       const res = await this.providerChain.complete({
         systemPrompt,
-        userPrompt: `Patient Case for Deep Clinical Analysis:\n${symptomText}\n\nDetermine case type (ACUTE/CHRONIC), perform INDIVIDUAL analysis, and extract Kent Rubrics:`,
+        userPrompt: `Patient Case for Deep Clinical Analysis:\n${symptomText}\n\nDetermine case type (ACUTE/CHRONIC), perform INDIVIDUAL analysis, and extract Mac Repertory Rubrics:`,
         responseFormat: 'json',
         temperature: 0.1,
       });
@@ -625,6 +625,58 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
   }
 
   /**
+   * Manual Disease to Rubrics Search
+   */
+  async extractDiseaseRubrics(tenantId: string, userId: string, input: { disease: string; consultationMode?: string }): Promise<{ suggestedRubrics: SuggestedRubric[] }> {
+    try {
+      if (!input.disease?.trim()) return { suggestedRubrics: [] };
+
+      logger.info(`Extracting Mac Repertory rubrics for disease: ${input.disease}`);
+
+      const systemPrompt = `You are a homeopathic repertory assistant. 
+Your task is to take a clinical disease or condition name and return the 5-8 most characteristic Mac Repertory rubrics associated with it.
+
+CRITICAL RULES:
+- Only return exact or highly accurate classical rubrics.
+- Keep them directly related to the disease pathognomonic symptoms.
+- Output MUST be strictly JSON.
+
+OUTPUT FORMAT:
+{
+  "suggestedRubrics": [
+    { "chapter": "Generalities", "category": "GENERAL", "description": "Generalities - Ailments from - ...", "importance": 4, "remedyCount": 50 }
+  ]
+}`;
+
+      const res = await this.providerChain.complete({
+        systemPrompt,
+        userPrompt: `Disease/Condition: ${input.disease}\n\nGenerate the relevant Mac Repertory rubrics:`,
+        responseFormat: 'json',
+        temperature: 0.1,
+      });
+
+      const parsed: any = safeJsonParse(res.content);
+      if (!parsed) return { suggestedRubrics: [] };
+
+      const suggestedRubrics: SuggestedRubric[] = (parsed.suggestedRubrics || []).map((r: any, i: number) => ({
+        rubricId: `ai-disease-${Date.now()}-${i}`,
+        description: r.description,
+        category: r.category || 'PARTICULAR',
+        chapter: r.chapter || 'Unknown',
+        importance: r.importance || 3,
+        source: 'ai' as const,
+        confidence: 0.9,
+        remedyCount: r.remedyCount || 50,
+      }));
+
+      return { suggestedRubrics };
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Disease rubric extraction failed');
+      return { suggestedRubrics: [] };
+    }
+  }
+
+  /**
    * Phase B: AI Repertorization Scoring (Materia Medica Grid)
    */
   async scoreRemedies(tenantId: string, userId: string, input: RepertorizeScoreInput): Promise<RepertorizationResult> {
@@ -632,11 +684,11 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
       return { scoredRemedies: [], maxPossibleScore: 0, totalRubricsUsed: 0, confidence: 0 };
     }
 
-    const systemPrompt = `You are a Master Homeopathic Repertorizer engine combining Kent's methodology and Materia Medica knowledge.
-Take a list of EXACT rubrics and score the TOP 8 classically indicated remedies.
+    const systemPrompt = `You are a Master Homeopathic Repertorizer engine combining Mac Repertory methodology and Materia Medica knowledge.
+Take a list of EXACT rubrics and score up to 6 highly relevant, classically indicated remedies.
 
 CRITICAL RULES:
-1. Identify EXACTLY 8 remedies that best cover the combined totality.
+1. Identify up to 6 remedies that best cover the combined totality. ONLY include remedies that are strong, genuine matches. Do NOT include poorly matching remedies just to fill a quota.
 2. FULL COVERAGE MAPPING: You MUST evaluate and list coverage for ALL selected rubrics that each remedy is known to cover in classical repertories. Do NOT just list 1 or 2 rubrics; if a remedy is indicated for 4 of the selected rubrics, you must list all 4 of them in the remedy's "coverage" array.
 3. ANTI-POLYCREST BIAS: Do NOT automatically default to Arsenicum album, Sulphur, Nux vomica, or Pulsatilla unless the case strictly demands it. Heavily favor smaller, specific remedies if they perfectly match a highly characteristic or "Grade 3" rubric in the case.
 4. For EACH remedy, provide a unique "coverage" array with the EXACT grade for each rubric.
@@ -714,12 +766,16 @@ JSON Output Template:
       return { scoredRemedies: [], totalRubrics: input.selectedRubrics.length, totalRemediesScored: 0 } as any;
     }
 
-    const maxPossibleScore = input.selectedRubrics.reduce((sum, r) => {
+    const theoreticalMaxScore = input.selectedRubrics.reduce((sum, r) => {
       let catWeight = 1;
       if (r.category === 'MIND') catWeight = 3;
       else if (r.category === 'GENERAL') catWeight = 2;
       return sum + (4 * r.importance * catWeight);
     }, 0) || 1;
+    
+    // A realistic excellent match covers maybe 60-70% of all rubrics perfectly,
+    // especially when conflicting rubrics (like 5 types of pain) are present.
+    const maxPossibleScore = Math.max(1, theoreticalMaxScore * 0.65);
 
     let scoredRemedies: ScoredRemedy[] = (parsed.scoredRemedies || []).map((rem: any, i: number) => {
       let totalScore = 0;
@@ -920,12 +976,12 @@ JSON Output Template:
   async searchKentRubrics(query: string): Promise<SuggestedRubric[]> {
     if (!query?.trim() || query.trim().length < 2) return [];
 
-    const systemPrompt = `You are a digital Kent's Repertory and Boericke's Materia Medica reference engine.
-Given a search keyword or symptom phrase, return ALL matching rubrics from Kent's Repertory.
+    const systemPrompt = `You are a digital Mac Repertory and Boericke's Materia Medica reference engine.
+Given a search keyword or symptom phrase, return ALL matching rubrics from Mac Repertory.
 
 CRITICAL RULES:
 1. Return 10-20 matching rubrics.
-2. Use EXACT Kent's Repertory rubric format: "Chapter - Symptom - Modifier".
+2. Use EXACT Mac Repertory rubric format: "Chapter - Symptom - Modifier".
 3. Category must be one of: 'MIND', 'GENERAL', 'PARTICULAR'.
 4. Include rubrics from various chapters.
 5. Sort by clinical relevance.
@@ -938,19 +994,19 @@ JSON Output:
     try {
       const res = await this.providerChain.complete({
         systemPrompt,
-        userPrompt: `Search Kent's Repertory for: "${query}"`,
+        userPrompt: `Search Mac Repertory for: "${query}"`,
         responseFormat: 'json',
         temperature: 0.1,
       });
 
       const parsed: any = safeJsonParse(res.content);
       if (!parsed) {
-        logger.error({ contentPreview: res.content.slice(0, 300) }, 'Kent rubric search: JSON unrecoverable even after repair');
+        logger.error({ contentPreview: res.content.slice(0, 300) }, 'Mac Repertory rubric search: JSON unrecoverable even after repair');
         return [];
       }
 
       return (parsed.rubrics || []).map((r: any, i: number) => ({
-        rubricId: `kent-search-${Date.now()}-${i}`,
+        rubricId: `mac-search-${Date.now()}-${i}`,
         description: r.description || '',
         category: r.category || 'PARTICULAR',
         chapter: r.chapter || 'Unknown',
@@ -960,7 +1016,7 @@ JSON Output:
         remedyCount: r.remedyCount || 50,
       }));
     } catch (error: any) {
-      logger.error({ error: error.message }, 'Kent rubric search failed');
+      logger.error({ error: error.message }, 'Mac Repertory rubric search failed');
       return [];
     }
   }

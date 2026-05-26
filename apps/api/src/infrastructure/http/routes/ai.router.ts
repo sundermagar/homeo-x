@@ -102,6 +102,15 @@ aiRouter.post('/consult/homeopathy', async (req: Request, res: Response, next: N
   } catch (err) { next(err); }
 });
 
+// POST /api/ai/disease-rubrics — Disease to Rubrics Search
+aiRouter.post('/disease-rubrics', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const uc = getConsultationUseCase();
+    const result = await uc.extractDiseaseRubrics(getTenant(req), getUserId(req), req.body);
+    sendSuccess(res, result);
+  } catch (err) { next(err); }
+});
+
 // POST /api/ai/repertorize/extract — Rubric extraction
 aiRouter.post('/repertorize/extract', async (req: Request, res: Response, next: NextFunction) => {
   try {
