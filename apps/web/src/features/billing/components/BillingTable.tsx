@@ -180,31 +180,62 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
     });
   }, [patientHistory, selectedGroup, todayBillIds]);
 
-  const renderBillCard = (bill: any, isPast: boolean = false) => (
-    <div key={bill.id} style={{ padding: 16, border: '1px solid var(--pp-warm-3)', borderRadius: 16, background: 'var(--bg-surface-2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
-            {(() => {
-              const t = bill.treatment || bill.billType || 'Consultation';
-              return t === 'Consultation' ? 'Medicine Charge' : t;
-            })()}
+  const renderBillCard = (bill: any, isPast: boolean = false) => {
+    const showPeriod = bill.fromDate || bill.toDate;
+    return (
+      <div key={bill.id} style={{ padding: 16, border: '1px solid var(--pp-warm-3)', borderRadius: 16, background: 'var(--bg-surface-2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
+              {(() => {
+                const t = bill.treatment || bill.billType || 'Consultation';
+                return t === 'Consultation' ? 'Medicine Charge' : t;
+              })()}
+            </div>
+            {showPeriod && (
+              <div style={{ fontSize: '0.8rem', color: 'var(--pp-blue)', fontWeight: 650, marginTop: 4 }}>
+                Period: {bill.fromDate ? format(new Date(bill.fromDate), 'dd-MM-yyyy') : ''} → {bill.toDate ? format(new Date(bill.toDate), 'dd-MM-yyyy') : ''}
+              </div>
+            )}
+            <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 4 }}>
+              Bill #{bill.billNo} • {isPast && bill.billDate ? format(new Date(bill.billDate), 'dd MMM yyyy') + ' • ' : ''}{bill.paymentMode ?? 'No Payment Mode'}
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 2 }}>
-            Bill #{bill.billNo} • {isPast && bill.billDate ? format(new Date(bill.billDate), 'dd MMM yyyy') + ' • ' : ''}{bill.paymentMode ?? 'No Payment Mode'}
+          <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                ₹{bill.charges.toLocaleString()}
+              </div>
+            {bill.balance > 0 && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--pp-danger-fg)', fontWeight: 700, marginTop: 4 }}>Owes ₹{bill.balance.toLocaleString()}</div>
+            )}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-              ₹{bill.charges.toLocaleString()}
-            </div>
-          {bill.balance > 0 && (
-            <div style={{ fontSize: '0.75rem', color: 'var(--pp-danger-fg)', fontWeight: 700, marginTop: 4 }}>Owes ₹{bill.balance.toLocaleString()}</div>
-          )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid var(--pp-warm-3)', paddingTop: 10, marginTop: 4 }}>
+          <button 
+            className="bill-btn bill-btn-sm" 
+            style={{ 
+              height: 28, 
+              padding: '0 12px', 
+              borderRadius: 8, 
+              background: 'var(--bg-card)', 
+              border: '1px solid var(--border-main)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 4, 
+              cursor: 'pointer',
+              color: 'var(--pp-ink)',
+              fontSize: '0.75rem',
+              fontWeight: 600
+            }}
+            onClick={() => setPrintingBill(bill)}
+          >
+            <Printer size={12} />
+            Print Bill
+          </button>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (isLoading) {
     return (

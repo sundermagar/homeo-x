@@ -24,13 +24,21 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
   }[template];
 
   let bodyRows = '';
+  const periodRow = (bill.fromDate || bill.toDate) ? `
+    <tr>
+      <td class="label">Period:</td>
+      <td class="right" style="font-weight:600; color:#2563eb;">${bill.fromDate ? format(new Date(bill.fromDate), 'dd-MM-yyyy') : ''} → ${bill.toDate ? format(new Date(bill.toDate), 'dd-MM-yyyy') : ''}</td>
+    </tr>` : '';
+
   if (template === 'standard') {
     bodyRows = `
       <tr><td class="label">Consultation Charges:</td><td class="right amount">₹${bill.charges.toLocaleString()}</td></tr>
+      ${periodRow}
       <tr><td class="label">Received:</td><td class="right amount">₹${bill.received.toLocaleString()}</td></tr>`;
   } else if (template === 'pharmacy') {
     bodyRows = `
       <tr><td class="label">Medicines Charges:</td><td class="right amount">₹${bill.charges.toLocaleString()}</td></tr>
+      ${periodRow}
       <tr><td class="label">Received:</td><td class="right amount">₹${bill.received.toLocaleString()}</td></tr>`;
   } else if (template === 'package') {
     bodyRows = `
@@ -40,6 +48,7 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
   } else {
     bodyRows = `
       <tr><td class="label">Total Charges:</td><td class="right amount">₹${bill.charges.toLocaleString()}</td></tr>
+      ${periodRow}
       <tr><td class="label">Amount Received:</td><td class="right amount">₹${bill.received.toLocaleString()}</td></tr>
       <tr><td class="label amount" style="color:${balance > 0 ? 'var(--pp-danger-fg)' : '#10b981'}">Balance Due:</td>
           <td class="right amount" style="color:${balance > 0 ? 'var(--pp-danger-fg)' : '#10b981'}">₹${balance.toLocaleString()}</td></tr>`;
@@ -164,15 +173,22 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
 export const printGroupedBills = (group: any, org: Organization) => {
   const isPaid = group.totalBalance <= 0;
   
-  const bodyRows = group.bills.map((b: any) => `
-    <tr>
-      <td class="label">
-        <div style="font-weight:700; color:#1e293b; margin-bottom:4px;">${b.treatment || b.billType || 'Consultation'}</div>
-        <div style="font-size:10px; color:#94a3b8;">INV-${b.billNo}</div>
-      </td>
-      <td class="right amount">₹${b.charges.toLocaleString()}</td>
-    </tr>
-  `).join('');
+  const bodyRows = group.bills.map((b: any) => {
+    const showPeriod = b.fromDate || b.toDate;
+    const periodHtml = showPeriod
+      ? `<div style="font-size:11px; color:#2563eb; font-weight:600; margin-bottom:4px;">Period: ${b.fromDate ? format(new Date(b.fromDate), 'dd-MM-yyyy') : ''} &rarr; ${b.toDate ? format(new Date(b.toDate), 'dd-MM-yyyy') : ''}</div>`
+      : '';
+    return `
+      <tr>
+        <td class="label">
+          <div style="font-weight:700; color:#1e293b; margin-bottom:4px;">${b.treatment || b.billType || 'Consultation'}</div>
+          ${periodHtml}
+          <div style="font-size:10px; color:#94a3b8;">INV-${b.billNo}</div>
+        </td>
+        <td class="right amount">₹${b.charges.toLocaleString()}</td>
+      </tr>
+    `;
+  }).join('');
 
   const html = `
     <html>
