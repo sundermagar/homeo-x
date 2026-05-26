@@ -73,16 +73,7 @@ export class AssignPackageUseCase {
       billId: bill.id,
     });
 
-    // Step 2.5: Add to case potencies (prescriptions)
-    if (this.patientRepo) {
-      await this.patientRepo.savePrescription({
-        regid: regid,
-        dateval: new Date().toISOString().split('T')[0],
-        instructions: `Package Plan: ${plan.name}`,
-        remedyName: plan.name,
-      } as any).catch(e => console.error('[AssignPackageUseCase] Failed to add prescription for package:', e));
-    }
-
+    // (Removed prescription creation for package as per user workflow)
     // DECOMMISSIONED: SMS session moved to WhatsApp
     /*
     // Step 3: Send SMS notification (matching legacy behavior)
