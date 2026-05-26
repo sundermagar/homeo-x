@@ -39,6 +39,8 @@ export class BillingRepositoryPg implements BillingRepository {
       conditions.push(lt(bills.createdAt, end));
     }
     const where = and(...conditions);
+    
+    console.log('[BillingRepositoryPg.findAll] params:', params, 'start:', date ? new Date(date) : null, 'end:', date ? (() => { const e = new Date(date); e.setDate(e.getDate() + 1); return e; })() : null);
 
     try {
       const [rows, countRows] = await Promise.all([

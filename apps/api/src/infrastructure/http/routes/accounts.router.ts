@@ -191,6 +191,7 @@ export function createAccountsRouter(): Router {
     '/pending-bills',
     asyncHandler(async (req: Request, res: Response) => {
       const { regid, dateval, regular, daysCharge } = req.body;
+      console.log('[pending-bills] Received sync request:', { regid, dateval, regular, daysCharge });
       if (!regid || !dateval) {
         res.status(400).json({ success: false, error: 'regid and dateval required' });
         return;
@@ -211,7 +212,7 @@ export function createAccountsRouter(): Router {
       };
 
       // 1. Sync Registration Bill
-      if (regular !== undefined && regular > 0) {
+      if (regular !== undefined && regular >= 0) {
         try {
           const [existingReg] = await db
             .select({ id: bills.id, received: bills.received })
@@ -234,6 +235,7 @@ export function createAccountsRouter(): Router {
               .where(eq(bills.id, existingReg.id));
           } else {
             const billNo = await getNextBillNo();
+            console.log('[pending-bills] Creating Registration bill:', { regid, billNo, dateval, regular });
             await db.insert(bills).values({
               regid,
               billNo,
@@ -244,13 +246,16 @@ export function createAccountsRouter(): Router {
               paymentMode: 'Cash',
               billType: 'Registration',
               customTitle: 'Registration Fee',
+              createdAt: new Date(),
+              updatedAt: new Date(),
             });
+            console.log('[pending-bills] Registration bill created successfully');
           }
         } catch(e) { console.error('Failed to sync registration bill', e); }
       }
 
       // 2. Sync Consultation Bill (Medicine Days)
-      if (daysCharge !== undefined && daysCharge > 0) {
+      if (daysCharge !== undefined && daysCharge >= 0) {
         try {
           const [existingCons] = await db
             .select({ id: bills.id, received: bills.received })
@@ -274,6 +279,7 @@ export function createAccountsRouter(): Router {
               .where(eq(bills.id, existingCons.id));
           } else {
             const billNo = await getNextBillNo();
+            console.log('[pending-bills] Creating Medicine Days bill:', { regid, billNo, dateval, daysCharge });
             await db.insert(bills).values({
               regid,
               billNo,
@@ -284,7 +290,10 @@ export function createAccountsRouter(): Router {
               paymentMode: 'Cash',
               billType: 'Consultation',
               customTitle: 'Medicine Days Charge',
+              createdAt: new Date(),
+              updatedAt: new Date(),
             });
+            console.log('[pending-bills] Medicine Days bill created successfully');
           }
         } catch(e) { console.error('Failed to sync medicine bill', e); }
       }

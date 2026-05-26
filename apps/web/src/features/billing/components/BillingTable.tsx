@@ -96,7 +96,9 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
         }
       }
 
-      if (bill.paymentMode) group.paymentModes.add(bill.paymentMode);
+      if (bill.paymentMode && (bill.received || 0) > 0) {
+        group.paymentModes.add(bill.paymentMode);
+      }
       group.bills.push(bill);
     }
     return Array.from(map.values());
@@ -273,11 +275,10 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                       </td>
                       <td data-label="Charges Breakdown">
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '11px' }}>
-                          {group.registrationCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Reg:</span> <span style={{ fontWeight: 600 }}>₹{group.registrationCharge}</span></div>}
-                          {group.medicineDaysCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Med:</span> <span style={{ fontWeight: 600 }}>₹{group.medicineDaysCharge}</span></div>}
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Reg:</span> <span style={{ fontWeight: 600 }}>₹{group.registrationCharge}</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Med:</span> <span style={{ fontWeight: 600 }}>₹{group.medicineDaysCharge}</span></div>
                           {group.packageCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Pkg:</span> <span style={{ fontWeight: 600 }}>₹{group.packageCharge}</span></div>}
                           {group.additionalCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Add:</span> <span style={{ fontWeight: 600 }}>₹{group.additionalCharge}</span></div>}
-                          {group.totalCharges === 0 && <div style={{ color: 'var(--pp-text-3)' }}>—</div>}
                         </div>
                       </td>
                       <td data-label="Total" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-blue)' }}>

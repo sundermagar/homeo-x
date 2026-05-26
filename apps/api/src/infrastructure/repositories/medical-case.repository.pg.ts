@@ -834,6 +834,11 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         frequencyId: data.frequencyId,
         days: data.days,
         instructions: data.instructions,
+        rxremedy: (data as any).remedyName || (data as any).rxremedy,
+        rxfrequency: (data as any).frequencyName || (data as any).frequencyTitle || (data as any).rxfrequency,
+        rxpotency: (data as any).potencyName || (data as any).rxpotency,
+        rxdays: data.days?.toString() || (data as any).rxdays,
+        rxprescription: (data as any).prescription || (data as any).rxprescription,
       });
     }
   }

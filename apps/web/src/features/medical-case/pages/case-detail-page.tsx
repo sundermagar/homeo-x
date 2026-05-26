@@ -875,9 +875,15 @@ export default function MedicalCaseDetailPage() {
   const previousSyncRef = React.useRef({ regid: '', date: '', regular: -1, daysCharge: -1 });
 
   React.useEffect(() => {
-    if (!regid || !displayDate || !billingValues) return;
+    if (!regid || !displayDate || !billingValues) {
+      console.log('[SYNC] Skipping - missing:', { regid: !!regid, displayDate: !!displayDate, billingValues: !!billingValues });
+      return;
+    }
     const dateStr = toClinicDateString(displayDate);
-    if (!dateStr) return;
+    if (!dateStr) {
+      console.log('[SYNC] Skipping - no dateStr from displayDate:', displayDate);
+      return;
+    }
 
     const currentSync = {
       regid: regid,
@@ -887,23 +893,35 @@ export default function MedicalCaseDetailPage() {
     };
 
     const prev = previousSyncRef.current;
-    if (
+    const changed = (
       prev.regid !== currentSync.regid ||
       prev.date !== currentSync.date ||
       prev.regular !== currentSync.regular ||
       prev.daysCharge !== currentSync.daysCharge
-    ) {
+    );
+
+    console.log('[SYNC] Check:', { currentSync, prev, changed });
+
+    if (changed) {
       previousSyncRef.current = currentSync;
       
-      // We only sync if there is actually a non-zero value to sync, or if we need to update an existing one.
-      // To prevent spam, only sync if regular or daysCharge > 0.
-      if (currentSync.regular > 0 || currentSync.daysCharge > 0) {
+      if (currentSync.regular >= 0 || currentSync.daysCharge >= 0) {
+        console.log('[SYNC] Sending POST /accounts/pending-bills:', {
+          regid: Number(regid),
+          dateval: dateStr,
+          regular: currentSync.regular,
+          daysCharge: currentSync.daysCharge
+        });
         apiClient.post('/accounts/pending-bills', {
           regid: Number(regid),
           dateval: dateStr,
           regular: currentSync.regular,
           daysCharge: currentSync.daysCharge
-        }).catch(err => console.warn('Failed to sync pending bills', err));
+        }).then(res => {
+          console.log('[SYNC] SUCCESS:', res.data);
+        }).catch(err => {
+          console.error('[SYNC] FAILED:', err?.response?.data || err?.message || err);
+        });
       }
     }
   }, [regid, displayDate, billingValues, toClinicDateString]);
