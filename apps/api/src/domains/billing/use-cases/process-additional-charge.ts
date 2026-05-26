@@ -37,14 +37,7 @@ export class ProcessAdditionalChargeUseCase {
         customTitle: input.additionalName,
       });
 
-      // 3. Add to case potencies (prescriptions)
-      await this.medicalCaseRepo.savePrescription({
-        regid: input.regid!,
-        dateval: today,
-        instructions: `Additional Charge: ${input.additionalName}`,
-        remedyName: input.additionalName,
-        // using remedyName for additionalName since savePrescription takes partial Prescription
-      } as any);
+      // (Removed logic that added a prescription entry for the additional charge, as per user workflow)
 
       return { success: true, data: charge };
     } catch (err) {

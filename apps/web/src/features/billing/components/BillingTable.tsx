@@ -231,17 +231,16 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
         <div className="bill-table-container">
           <table className="bill-table">
             <thead>
-              <tr>
-                <th style={{ width: '80px' }}>Bill #</th>
-                <th style={{ width: '120px' }}>Date</th>
+              <tr style={{ textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px', color: 'var(--pp-text-3)' }}>
+                <th style={{ width: '70px' }}>Bill #</th>
+                <th style={{ width: '110px' }}>Date</th>
                 <th>Patient</th>
-                <th style={{ width: '90px' }}>Mode</th>
-                <th style={{ width: '220px' }}>Charges Breakdown</th>
-                <th style={{ width: '90px' }}>Total</th>
-                <th style={{ width: '90px' }}>Received</th>
-                <th style={{ width: '90px' }}>Balance</th>
-                <th style={{ width: '220px', textAlign: 'right' }}>Action</th>
-
+                <th style={{ width: '80px' }}>Mode</th>
+                <th style={{ width: '280px' }}>Charges Breakdown</th>
+                <th style={{ width: '100px' }}>Total</th>
+                <th style={{ width: '100px' }}>Received</th>
+                <th style={{ width: '100px' }}>Balance</th>
+                <th style={{ width: '120px', textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -250,17 +249,20 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                 return (
                   <Fragment key={`group-${group.regid}`}>
                     <tr onClick={() => setSelectedGroup(group)} style={{ cursor: 'pointer', background: isExpanded ? 'var(--bg-surface-2)' : 'transparent', transition: 'background 0.2s ease' }}>
-                      <td data-label="Bill #" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)' }}>
-                            {group.bills.length} Item{group.bills.length !== 1 ? 's' : ''}
+                      <td data-label="Bill #">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', fontFamily: 'var(--pp-font-mono)' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--pp-text-1)' }}>
+                            {group.bills.length}
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--pp-text-3)', fontWeight: 700 }}>
+                            Item{group.bills.length !== 1 ? 's' : ''}
                           </span>
                         </div>
                       </td>
-                      <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem', color: 'var(--pp-text-3)' }}>
+                      <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem', color: 'var(--pp-text-3)', fontWeight: 600 }}>
                         <div>{group.billDate ? format(new Date(group.billDate), 'dd-MM-yyyy') : '—'}</div>
                       </td>
-                      <td data-label="Patient" style={{ fontWeight: 600 }}>
+                      <td data-label="Patient" style={{ fontWeight: 700, color: 'var(--pp-text-1)' }}>
                         <div>{group.patientName ? group.patientName.replace(/\b\w/g, c => c.toUpperCase()) : '—'}</div>
                       </td>
                       <td data-label="Mode">
@@ -270,15 +272,31 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                               {mode}
                             </span>
                           ))}
-                          {group.paymentModes.size === 0 && '—'}
+                          {group.paymentModes.size === 0 && <span style={{ color: 'var(--pp-text-3)', fontWeight: 700 }}>—</span>}
                         </div>
                       </td>
                       <td data-label="Charges Breakdown">
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '11px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Reg:</span> <span style={{ fontWeight: 600 }}>₹{group.registrationCharge}</span></div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Med:</span> <span style={{ fontWeight: 600 }}>₹{group.medicineDaysCharge}</span></div>
-                          {group.packageCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Pkg:</span> <span style={{ fontWeight: 600 }}>₹{group.packageCharge}</span></div>}
-                          {group.additionalCharge > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--pp-text-3)' }}>Add:</span> <span style={{ fontWeight: 600 }}>₹{group.additionalCharge}</span></div>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '12px', fontFamily: 'var(--pp-font-mono)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>Reg:</span>
+                            <span style={{ fontWeight: 700, color: 'var(--pp-text-1)' }}>₹{group.registrationCharge}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>Med:</span>
+                            <span style={{ fontWeight: 700, color: 'var(--pp-text-1)' }}>₹{group.medicineDaysCharge}</span>
+                          </div>
+                          {group.packageCharge > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>Pkg:</span>
+                              <span style={{ fontWeight: 700, color: 'var(--pp-text-1)' }}>₹{group.packageCharge}</span>
+                            </div>
+                          )}
+                          {group.additionalCharge > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>Add:</span>
+                              <span style={{ fontWeight: 700, color: 'var(--pp-text-1)' }}>₹{group.additionalCharge}</span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td data-label="Total" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-blue)' }}>
@@ -297,12 +315,10 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                         </div>
                       </td>
                       <td data-label="Action" style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="plat-cell-val">
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-                             <button className="bill-btn bill-btn-sm" style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 11, padding: '0 8px' }} onClick={() => setSelectedGroup(group)}>
-                               View Details
-                             </button>
-                          </div>
+                        <div className="plat-cell-val" style={{ justifyContent: 'flex-end' }}>
+                          <button className="bill-btn bill-btn-sm" style={{ color: 'var(--pp-blue)', border: 'none', background: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 12, padding: '0 4px' }} onClick={() => setSelectedGroup(group)}>
+                            View Details
+                          </button>
                         </div>
                       </td>
                     </tr>

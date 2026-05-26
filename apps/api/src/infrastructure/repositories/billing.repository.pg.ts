@@ -32,11 +32,7 @@ export class BillingRepositoryPg implements BillingRepository {
     }
 
     if (date) {
-      const start = new Date(date);
-      const end = new Date(date);
-      end.setDate(end.getDate() + 1);
-      conditions.push(gte(bills.createdAt, start));
-      conditions.push(lt(bills.createdAt, end));
+      conditions.push(eq(bills.billDate, date));
     }
     const where = and(...conditions);
     
@@ -60,8 +56,12 @@ export class BillingRepositoryPg implements BillingRepository {
       ]);
 
       const total = Number(countRows[0]?.count ?? 0);
+      const res = rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null }));
+      if (res.some(b => b.regid === 10107 || b.regid === 10111)) {
+        console.log('[DEBUG BILLS] Bills:', res.filter(b => b.regid === 10107 || b.regid === 10111));
+      }
       return {
-        data: rows.map(r => ({ ...this.toDomain(r.bill), patientName: r.patientName ?? '', phone: r.phone ?? null })),
+        data: res,
         total,
       };
     } catch (err) {
@@ -90,11 +90,7 @@ export class BillingRepositoryPg implements BillingRepository {
   }
 
   async findDailyCollection(date: string, clinicId?: number): Promise<DailyCollectionSummary> {
-    const start = new Date(date);
-    const end = new Date(date);
-    end.setDate(end.getDate() + 1);
-
-    const conditions = [isNull(bills.deletedAt), gte(bills.createdAt, start), lt(bills.createdAt, end)];
+    const conditions = [isNull(bills.deletedAt), eq(bills.billDate, date)];
     if (clinicId) {
       conditions.push(eq(patients.clinicId, clinicId));
     }

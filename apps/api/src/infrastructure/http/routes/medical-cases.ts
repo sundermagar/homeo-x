@@ -10,6 +10,7 @@ import { NotificationsRepositoryPg } from '../../repositories/notifications.repo
 import { authMiddleware } from '../middleware/auth.js';
 import { SettingsRepositoryPg } from '../../repositories/settings.repository.pg.js';
 import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
+import { CourierRepositoryPg } from '../../repositories/courier.repository.pg.js';
 import { CreateMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/create-medical-case.use-case.js';
 import { GetFullMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/get-full-medical-case.use-case.js';
 import { FinalizeConsultationUseCase } from '../../../domains/medical-case/use-cases/finalize-consultation.use-case.js';
@@ -255,6 +256,23 @@ router.delete('/records/notes/:id', asyncHandler(async (req, res) => {
 router.post('/records/prescriptions', asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
   await useCase.savePrescription(req.body);
+
+  // If deliveryMode is courier or pickup, create a courier queue entry
+  const mode = (req.body.deliveryMode || '').toLowerCase();
+  if (mode === 'courier' || mode === 'pickup') {
+    const courierRepo = new CourierRepositoryPg(req.tenantDb);
+    await courierRepo.create({
+      caseId: req.body.regid,
+      regid: undefined,
+      randId: 'RX' + Date.now(),
+      remedy: req.body.remedyName || req.body.rxremedy || null,
+      potency: req.body.potencyName || req.body.rxpotency || null,
+      frequency: req.body.frequencyName || req.body.rxfrequency || null,
+      days: req.body.days?.toString() || req.body.rxdays || null,
+      postType: mode === 'pickup' ? 'Pickup' : 'Courier'
+    });
+  }
+
   sendSuccess(res, null, 'Prescription added');
 }));
 
