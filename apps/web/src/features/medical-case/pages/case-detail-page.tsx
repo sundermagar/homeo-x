@@ -1374,20 +1374,21 @@ export default function MedicalCaseDetailPage() {
                     <button
                       onClick={() => setShowReceiptModal(true)}
                       style={{
-                        padding: '10px 24px',
+                        padding: '6px 14px',
+                        fontSize: '13px',
                         background: '#2563EB',
                         color: 'white',
                         border: 'none',
-                        borderRadius: '10px',
-                        fontWeight: 700,
+                        borderRadius: '6px',
+                        fontWeight: 600,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.2)'
+                        gap: '6px',
+                        boxShadow: '0 2px 4px -1px rgba(37, 99, 235, 0.2)'
                       }}
                     >
-                      <Share2 size={16} /> Share Payment Receipt
+                      <Share2 size={14} /> Share Payment Receipt
                     </button>
                   </div>
                 )}

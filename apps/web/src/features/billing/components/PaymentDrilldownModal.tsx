@@ -27,9 +27,8 @@ export function PaymentDrilldownModal({ isOpen, onClose, date, mode, title }: Pr
             Loading records...
           </div>
         ) : records && records.length > 0 ? (
-          <div className="pp-table-container-enhanced">
-            <div className="pp-table-scroll">
-              <table className="pp-table">
+          <div>
+              <table className="pp-table vc-summary-table">
                 <thead>
                 <tr>
                   <th>Date</th>
@@ -87,7 +86,6 @@ export function PaymentDrilldownModal({ isOpen, onClose, date, mode, title }: Pr
                 </tr>
               </tfoot>
             </table>
-            </div>
           </div>
         ) : (
           <div className="vc-empty" style={{ padding: '40px 0', textAlign: 'center', color: 'var(--pp-text-muted)' }}>

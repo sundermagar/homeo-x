@@ -446,20 +446,20 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
 
   return (
     <>
-      <div className="bill-card fade-in" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
-        <div className="bill-table-container">
-          <table className="bill-table">
+      <div className="appt-card fade-in">
+        <div className="pp-table-scroll">
+          <table className="pp-table">
             <thead>
-              <tr style={{ textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px', color: 'var(--pp-text-3)' }}>
-                <th style={{ width: '70px' }}>Bill #</th>
-                <th style={{ width: '110px' }}>Date</th>
+              <tr>
+                <th>Bill #</th>
+                <th>Date</th>
                 <th>Patient</th>
-                <th style={{ width: '80px' }}>Mode</th>
-                <th style={{ width: '280px' }}>Charges Breakdown</th>
-                <th style={{ width: '100px' }}>Total</th>
-                <th style={{ width: '100px' }}>Received</th>
-                <th style={{ width: '100px' }}>Balance</th>
-                <th style={{ width: '120px', textAlign: 'right' }}>Action</th>
+                <th>Mode</th>
+                <th>Charges Breakdown</th>
+                <th>Total</th>
+                <th>Received</th>
+                <th>Balance</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -467,118 +467,61 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                 const isExpanded = selectedGroup?.regid === group.regid;
                 return (
                   <Fragment key={`group-${group.regid}`}>
-                    <tr onClick={() => setSelectedGroup(group)} style={{ cursor: 'pointer', background: isExpanded ? 'var(--bg-surface-2)' : 'transparent', transition: 'background 0.2s ease' }}>
+                    <tr onClick={() => setSelectedGroup(group)} style={{ cursor: 'pointer', background: isExpanded ? 'var(--bg-surface-2)' : undefined }}>
                       <td data-label="Bill #">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', fontFamily: 'var(--pp-font-mono)' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--pp-text-1)' }}>
-                            {group.bills.length}
-                          </span>
-                          <span style={{ fontSize: '11px', color: 'var(--pp-text-3)', fontWeight: 700 }}>
-                            Item{group.bills.length !== 1 ? 's' : ''}
-                          </span>
-                        </div>
+                        <span className="appt-cell-id">{group.bills.length}</span>
+                        <div className="appt-cell-phone">Item{group.bills.length !== 1 ? 's' : ''}</div>
                       </td>
-                      <td data-label="Date" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.78rem', color: 'var(--pp-text-3)', fontWeight: 600 }}>
-                        <div>{group.billDate ? format(new Date(group.billDate), 'dd-MM-yyyy') : '—'}</div>
+                      <td data-label="Date">
+                        <div className="appt-cell-name">{group.billDate ? format(new Date(group.billDate), 'dd-MM-yyyy') : '—'}</div>
                       </td>
-                      <td data-label="Patient" style={{ fontWeight: 700, color: 'var(--pp-text-1)' }}>
-                        <div>{group.patientName ? group.patientName.replace(/\b\w/g, c => c.toUpperCase()) : '—'}</div>
+                      <td data-label="Patient">
+                        <div className="appt-cell-name">{group.patientName ? group.patientName.replace(/\b\w/g, c => c.toUpperCase()) : '—'}</div>
                       </td>
                       <td data-label="Mode">
-                        <div className="plat-cell-val" style={{ gap: 4, display: 'flex', flexWrap: 'wrap' }}>
-                          {Array.from(group.paymentModes).map(mode => (
-                            <span key={mode} className={`bill-badge ${mode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}>
-                              {mode}
-                            </span>
-                          ))}
-                          {group.paymentModes.size === 0 && <span style={{ color: 'var(--pp-text-3)', fontWeight: 700 }}>—</span>}
-                        </div>
+                        {Array.from(group.paymentModes).map(mode => (
+                          <span key={mode} className={`bill-badge ${mode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}>
+                            {mode}
+                          </span>
+                        ))}
+                        {group.paymentModes.size === 0 && <span className="appt-cell-slash">—</span>}
                       </td>
                       <td data-label="Charges Breakdown">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '12px', fontFamily: 'var(--pp-font-mono)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>Reg:</span>
-                            <span style={{ fontWeight: 700, color: 'var(--pp-text-1)' }}>₹{group.registrationCharge}</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>Med:</span>
-                            <span style={{ fontWeight: 700, color: 'var(--pp-text-1)' }}>₹{group.medicineDaysCharge}</span>
-                          </div>
-                          {group.packageCharge > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>Pkg:</span>
-                              <span style={{ fontWeight: 700, color: 'var(--pp-text-1)' }}>₹{group.packageCharge}</span>
-                            </div>
-                          )}
-                          {group.additionalCharge > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>Add:</span>
-                              <span style={{ fontWeight: 700, color: 'var(--pp-text-1)' }}>₹{group.additionalCharge}</span>
-                            </div>
-                          )}
+                        <div className="appt-cell-phone" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <span>Reg: <strong>₹{group.registrationCharge}</strong></span>
+                          <span>Med: <strong>₹{group.medicineDaysCharge}</strong></span>
+                          {group.packageCharge > 0 && <span>Pkg: <strong>₹{group.packageCharge}</strong></span>}
+                          {group.additionalCharge > 0 && <span>Add: <strong>₹{group.additionalCharge}</strong></span>}
                         </div>
                       </td>
-                      <td data-label="Total" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-blue)' }}>
-                        <div className="plat-cell-val">
-                          ₹{group.totalCharges.toLocaleString()}
-                        </div>
+                      <td data-label="Total">
+                        <span className="appt-cell-name" style={{ color: 'var(--pp-blue)', fontFamily: 'var(--pp-font-mono)' }}>₹{group.totalCharges.toLocaleString()}</span>
                       </td>
-                      <td data-label="Received" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: 'var(--pp-success-fg)' }}>
-                        <div className="plat-cell-val">
-                          ₹{group.totalReceived.toLocaleString()}
-                        </div>
+                      <td data-label="Received">
+                        <span className="appt-cell-name" style={{ color: 'var(--pp-success-fg)', fontFamily: 'var(--pp-font-mono)' }}>₹{group.totalReceived.toLocaleString()}</span>
                       </td>
-                      <td data-label="Balance" style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 700, color: group.totalBalance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)' }}>
-                        <div className="plat-cell-val">
+                      <td data-label="Balance">
+                        <span className="appt-cell-name" style={{ color: group.totalBalance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)', fontFamily: 'var(--pp-font-mono)' }}>
                           {group.totalBalance > 0 ? `₹${group.totalBalance.toLocaleString()}` : '—'}
-                        </div>
+                        </span>
                       </td>
-                      <td data-label="Action" style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="plat-cell-val" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', width: '100%' }}>
-                          <button 
-                            className="bill-btn bill-btn-sm" 
-                            style={{ 
-                              color: 'var(--pp-blue)', 
-                              border: '1px solid var(--pp-warm-3)', 
-                              background: 'var(--bg-surface-2)', 
-                              cursor: 'pointer', 
-                              padding: '5px',
-                              borderRadius: '6px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: 'var(--pp-shadow-sm)',
-                              transition: 'all 0.2s ease',
-                              width: '28px',
-                              height: '28px'
-                            }} 
+                      <td data-label="Action" onClick={(e) => e.stopPropagation()}>
+                        <div className="appt-kebab-wrap" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button
+                            className="appt-kebab-btn"
+                            style={{ color: 'var(--pp-blue)' }}
                             onClick={() => setSelectedGroup(group)}
                             title="View Details"
                           >
-                            <Eye size={14} />
+                            <Eye size={15} />
                           </button>
-                          
-                          <button 
-                            className="bill-btn bill-btn-sm" 
-                            style={{ 
-                              color: 'var(--pp-danger-fg)', 
-                              border: '1px solid var(--pp-warm-3)', 
-                              background: 'var(--bg-surface-2)', 
-                              cursor: 'pointer', 
-                              padding: '5px',
-                              borderRadius: '6px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: 'var(--pp-shadow-sm)',
-                              transition: 'all 0.2s ease',
-                              width: '28px',
-                              height: '28px'
-                            }} 
+                          <button
+                            className="appt-kebab-btn"
+                            style={{ color: 'var(--pp-danger-fg)' }}
                             onClick={() => handleDeleteGroup(group.bills)}
                             title="Delete Group"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={15} />
                           </button>
                         </div>
                       </td>

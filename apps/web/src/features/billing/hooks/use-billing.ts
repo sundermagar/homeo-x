@@ -8,6 +8,15 @@ import type {
 } from '@mmc/types';
 import type { CreateBillInput, ListBillsQuery, CreateCustomBillInput } from '@mmc/validation';
 
+export interface PatientBalance {
+  regid: number;
+  patientName: string;
+  doctorName: string | null;
+  balance: number;
+  notes: string | null;
+  lastBillDate: string | null;
+}
+
 interface RecordPaymentInput {
   regid: number;
   billId: number;
@@ -367,3 +376,25 @@ export function useDeleteBill() {
   });
 }
 
+export function usePatientBalances() {
+  return useQuery({
+    queryKey: ['billing', 'balances'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: PatientBalance[] }>('/billing/balances');
+      return data.data;
+    },
+  });
+}
+
+export function useUpdateBalanceNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ regid, note }: { regid: number; note: string }) => {
+      const { data } = await apiClient.post<{ success: boolean }>(`/billing/balances/${regid}/notes`, { note });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing', 'balances'] });
+    },
+  });
+}

@@ -126,6 +126,71 @@ export class BillingRepositoryPg implements BillingRepository {
     }
   }
 
+  async getPatientBalances(clinicId?: number): Promise<any[]> {
+    try {
+      const res = await this.db.execute(sql`
+        WITH PatientBills AS (
+          SELECT regid, SUM(balance)::int as total_balance, MAX(created_at) as last_bill_date, MAX(doctor_id) as doctor_id
+          FROM bills
+          WHERE (deleted_at IS NULL OR deleted_at::text = '')
+          GROUP BY regid
+          HAVING SUM(balance) > 0
+        ),
+        LatestNotes AS (
+          SELECT DISTINCT ON (regid) regid, notes
+          FROM case_notes
+          WHERE notes_type = 'Balance' 
+            AND (deleted_at IS NULL OR deleted_at::text = '')
+          ORDER BY regid, id DESC
+        )
+        SELECT
+          p.regid, 
+          CONCAT(p.first_name, ' ', p.surname) as "patientName", 
+          MAX(d.name) as "doctorName",
+          pb.total_balance as balance,
+          pb.last_bill_date as "lastBillDate",
+          ln.notes
+        FROM PatientBills pb
+        JOIN case_datas p ON pb.regid = p.regid
+        LEFT JOIN doctors d ON (d.id = pb.doctor_id OR d.id::text = p.assitant_doctor OR d.id::text = p.assistant_doctor)
+        LEFT JOIN LatestNotes ln ON ln.regid = p.regid
+        WHERE (p.deleted_at IS NULL OR p.deleted_at::text = '')
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+        GROUP BY p.regid, p.first_name, p.surname, pb.total_balance, pb.last_bill_date, ln.notes
+        ORDER BY pb.total_balance DESC
+      `);
+      return res as any[];
+    } catch (err) {
+      console.error('[BillingRepositoryPg] Error in getPatientBalances:', err);
+      throw err;
+    }
+  }
+
+  async updateBalanceNote(regid: number, note: string): Promise<boolean> {
+    try {
+      const [existing] = await this.db.execute(sql`
+        SELECT id FROM case_notes WHERE regid = ${regid} AND notes_type = 'Balance' AND (deleted_at IS NULL OR deleted_at::text = '') ORDER BY id DESC LIMIT 1
+      `) as any[];
+
+      if (existing) {
+        await this.db.execute(sql`
+          UPDATE case_notes 
+          SET notes = ${note}, updated_at = NOW() 
+          WHERE id = ${existing.id}
+        `);
+      } else {
+        await this.db.execute(sql`
+          INSERT INTO case_notes (regid, notes_type, notes, created_at, updated_at) 
+          VALUES (${regid}, 'Balance', ${note}, NOW(), NOW())
+        `);
+      }
+      return true;
+    } catch (err) {
+      console.error('[BillingRepositoryPg] Error in updateBalanceNote:', err);
+      throw err;
+    }
+  }
+
   async create(data: CreateBillInput & { billNo: number }): Promise<Bill> {
     const balance = (data.charges ?? 0) - (data.received ?? 0);
     const [row] = await this.db

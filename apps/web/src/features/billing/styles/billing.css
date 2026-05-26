@@ -597,3 +597,5 @@
 /* ─── Animations ─── */
 @keyframes billModalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes spin        { from { transform: rotate(0deg); }  to { transform: rotate(360deg); } }
+
+.vc-summary-table { min-width: 100% !important; }

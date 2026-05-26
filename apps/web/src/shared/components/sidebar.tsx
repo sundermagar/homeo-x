@@ -305,6 +305,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             children: [
               { path: '/billing', label: 'Bill List', icon: Receipt, roles: ALL },
               { path: '/billing/collection', label: 'View Collection', icon: DollarSign, roles: ALL },
+              { path: '/billing/balance', label: 'View Balance', icon: Wallet, roles: ALL },
               { path: '/billing/additional-charges', label: 'Additional Charges', icon: Receipt, roles: ADMIN },
               { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },
               { path: '/billing/deposits', label: 'Deposits', icon: Building, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },

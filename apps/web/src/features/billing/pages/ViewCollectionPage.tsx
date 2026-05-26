@@ -153,7 +153,7 @@ export default function ViewCollectionPage() {
                   </div>
 
                   <div className="pp-table-scroll">
-                    <table className="pp-table">
+                    <table className="pp-table vc-summary-table">
                       <tbody>
                         <tr className="pp-hover-row">
                           <td>
@@ -248,7 +248,7 @@ export default function ViewCollectionPage() {
                   </div>
 
                   <div className="pp-table-scroll" style={{ flex: 1 }}>
-                    <table className="pp-table">
+                    <table className="pp-table vc-summary-table">
                       <tbody>
                         <tr className="pp-hover-row">
                           <td>

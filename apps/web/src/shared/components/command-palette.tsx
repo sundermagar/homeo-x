@@ -145,6 +145,8 @@ function buildCommands(
       ['bill', 'invoice', 'payment', 'finance']),
     nav('Payments', '/payments', <Wallet size={16} />, BILLING,
       ['payment', 'transaction', 'collection', 'ledger']),
+    nav('View Balance', '/billing/balance', <Wallet size={16} />, BILLING,
+      ['balance', 'due', 'outstanding', 'patient']),
     nav('Custom Bill', '/billing/custom', <Receipt size={16} />, BILLING,
       ['custom', 'bill', 'invoice']),
     nav('Additional Charges', '/billing/additional-charges', <Plus size={16} />, BILLING_ADMIN,
