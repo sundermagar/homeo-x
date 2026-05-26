@@ -34,8 +34,9 @@ export default defineConfig({
   },
   server: {
     allowedHosts: [
-      'frying-deviancy-rocklike.ngrok-free.dev',
-      'triumphantly-coloristic-lan.ngrok-free.dev'
+      'swear-scorch-capped.ngrok-free.dev', // current static ngrok domain
+      '.ngrok-free.dev',  // allow any ngrok-free.dev subdomain (future-proof)
+      '.ngrok-free.app',  // allow any ngrok-free.app subdomain (future-proof)
     ],
     proxy: {
       '/api': { 

@@ -39,6 +39,8 @@ export class BillingRepositoryPg implements BillingRepository {
       conditions.push(lt(bills.createdAt, end));
     }
     const where = and(...conditions);
+    
+    console.log('[BillingRepositoryPg.findAll] params:', params, 'start:', date ? new Date(date) : null, 'end:', date ? (() => { const e = new Date(date); e.setDate(e.getDate() + 1); return e; })() : null);
 
     try {
       const [rows, countRows] = await Promise.all([
@@ -187,6 +189,56 @@ export class BillingRepositoryPg implements BillingRepository {
     }
 
     return null;
+  }
+
+  async updateAdditionalChargeBill(regid: number, date: string, oldName: string, newName: string, amount: number): Promise<boolean> {
+    const [existing] = await this.db.select().from(bills)
+      .where(
+        and(
+          eq(bills.regid, regid),
+          eq(bills.billDate, date),
+          eq(bills.billType, 'Additional'),
+          eq(bills.customTitle, oldName),
+          isNull(bills.deletedAt)
+        )
+      ).limit(1);
+
+    if (existing) {
+      const newBalance = amount - (existing.received ?? 0);
+      const [row] = await this.db.update(bills)
+        .set({ 
+          charges: amount, 
+          balance: newBalance, 
+          customTitle: newName,
+          updatedAt: new Date() 
+        })
+        .where(eq(bills.id, existing.id))
+        .returning();
+      return !!row;
+    }
+    return false;
+  }
+
+  async deleteAdditionalChargeBill(regid: number, date: string, name: string): Promise<boolean> {
+    const [existing] = await this.db.select().from(bills)
+      .where(
+        and(
+          eq(bills.regid, regid),
+          eq(bills.billDate, date),
+          eq(bills.billType, 'Additional'),
+          eq(bills.customTitle, name),
+          isNull(bills.deletedAt)
+        )
+      ).limit(1);
+
+    if (existing) {
+      const [row] = await this.db.update(bills)
+        .set({ deletedAt: new Date() })
+        .where(eq(bills.id, existing.id))
+        .returning();
+      return !!row;
+    }
+    return false;
   }
 
   async nextBillNo(): Promise<number> {

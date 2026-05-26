@@ -856,13 +856,18 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
 
       // Automatically inject media header if configured
       if (tpl.mediaType && ['image', 'video', 'document'].includes(tpl.mediaType)) {
-        if (tpl.mediaHandle || tpl.mediaUrl) {
+        const headerRef = tpl.mediaHandle || tpl.mediaUrl;
+        if (headerRef) {
           // Only inject if frontend didn't already send a header
           if (!finalComponents.some(c => c.type === 'header')) {
-            const mediaObject = tpl.mediaHandle 
-              ? { id: tpl.mediaHandle } 
-              : { link: tpl.mediaUrl };
-              
+            // Meta accepts EITHER { link: <public URL> } OR { id: <numeric media id> }.
+            // A URL MUST go in `link` — putting it in `id` violates Meta's schema
+            // (id expects an integer-like media id) and is rejected with
+            // "violated JSON schema constraint 'type' for ... <type>.id".
+            // Only a purely-numeric value is a real media id.
+            const isMediaId = /^\d+$/.test(String(headerRef));
+            const mediaObject = isMediaId ? { id: String(headerRef) } : { link: String(headerRef) };
+
             finalComponents.push({
               type: 'header',
               parameters: [

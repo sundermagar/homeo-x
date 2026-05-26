@@ -79,6 +79,25 @@ export function BillingUpdateModal({
     });
   }, [displayDate, additionalCharges]);
 
+  const hasInitializedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (defaultTab === 'custom' && todayCharges.length > 0 && !hasInitializedRef.current) {
+      const firstCharge = todayCharges[0];
+      if (firstCharge) {
+        hasInitializedRef.current = true;
+        const title = firstCharge.name || firstCharge.additionalName || '';
+        setCustomTitle(title);
+        setAmount((firstCharge.price || firstCharge.additionalPrice || firstCharge.amount || 0).toString());
+        setQuantity(firstCharge.quantity || 1);
+        setEditingChargeId(firstCharge.id);
+
+        const match = chargesCatalog.find(c => c.charges === title);
+        const isProd = (match && match.type === 'Product') || (firstCharge.quantity !== undefined && firstCharge.quantity > 0);
+        setIsProduct(!!isProd);
+      }
+    }
+  }, [defaultTab, todayCharges, chargesCatalog]);
 
   React.useEffect(() => {
     const originalOverflow = document.body.style.overflow;
@@ -342,6 +361,27 @@ export function BillingUpdateModal({
 
           {activeTab === 'custom' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+              {editingChargeId && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600 }}>
+                    Editing existing additional charge
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingChargeId(null);
+                      setCustomTitle('');
+                      setAmount('');
+                      setQuantity(1);
+                      setIsProduct(false);
+                    }}
+                    style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                  >
+                    Add new instead
+                  </button>
+                </div>
+              )}
 
               {chargesCatalog && chargesCatalog.length > 0 && (
                 <div>

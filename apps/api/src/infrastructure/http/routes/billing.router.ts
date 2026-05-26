@@ -264,7 +264,8 @@ export function createBillingRouter(): Router {
         const card = modeMap['S'] || 0;
         const cheque = modeMap['B'] || 0;
         const online = modeMap['O'] || 0;
-        const collection = cash + card + cheque + online;
+        const upi = modeMap['U'] || 0;
+        const collection = cash + card + cheque + online + upi;
 
         const recordCount = Number((countRes as any[])[0]?.cnt) || 0;
         const expenses = Number((expRes as any[])[0]?.total) || 0;
@@ -285,6 +286,7 @@ export function createBillingRouter(): Router {
             card,
             cheque,
             online,
+            upi,
             productCharges,
             expenses,
             cashDeposited,
@@ -336,7 +338,7 @@ export function createBillingRouter(): Router {
           }));
           res.json({ success: true, data: records });
         } else {
-          const modeCode = { Cash: 'C', Card: 'S', Cheque: 'B', Online: 'O' }[mode] || 'C';
+          const modeCode = { Cash: 'C', Card: 'S', Cheque: 'B', Online: 'O', UPI: 'U' }[mode] || 'C';
           const rows: any[] = await db.execute(
             sql`SELECT r.*, cd.regid as rid, cd.first_name
                 FROM receipt r
@@ -382,74 +384,76 @@ export function createBillingRouter(): Router {
           const legacyDateDMY = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
           const isoDate = d.toISOString().split('T')[0];
 
-          // Receipts by mode
-          const receipts: any[] = await db.execute(
-            sql`SELECT mode, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total
-                FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0
-                GROUP BY mode`
-          );
+          const [
+            receipts,
+            expRes,
+            cdRes,
+            bdRes,
+            cumCash,
+            cumBank,
+            prodRes,
+            cntRes
+          ] = await Promise.all([
+            db.execute(
+              sql`SELECT mode, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total
+                  FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0
+                  GROUP BY mode`
+            ),
+            db.execute(
+              sql`SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE dateval = ${legacyDate} AND deleted_at IS NULL`
+            ),
+            db.execute(
+              sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit WHERE deposit_date = ${legacyDateDMY} AND deleted_at IS NULL`
+            ),
+            db.execute(
+              sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit WHERE deposit_date = ${legacyDateDMY} AND deleted_at IS NULL`
+            ),
+            db.execute(
+              sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit WHERE deleted_at IS NULL AND dateval <= ${isoDate} AND dateval >= '2021-01-01'`
+            ),
+            db.execute(
+              sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit WHERE deleted_at IS NULL AND dateval <= ${isoDate} AND dateval >= '2021-01-01'`
+            ),
+            db.execute(
+              sql`SELECT COALESCE(SUM(ac.additional_price * ac.additional_quantity), 0) as total
+                  FROM additional_charges ac
+                  LEFT JOIN charges c ON c.id = CAST(ac.additional_name AS INTEGER)
+                  WHERE ac.dateval = ${legacyDate} AND ac.deleted_at IS NULL AND c.type = 'Product'`
+            ),
+            db.execute(
+              sql`SELECT COUNT(*) as cnt FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0`
+            )
+          ]);
+
           const mm: Record<string, number> = {};
-          for (const r of receipts) mm[r.mode] = Number(r.total) || 0;
+          for (const r of receipts as any[]) mm[r.mode] = Number(r.total) || 0;
           const cash = mm['C'] || 0;
           const card = mm['S'] || 0;
           const cheque = mm['B'] || 0;
           const online = mm['O'] || 0;
+          const upi = mm['U'] || 0;
 
-          // Expenses
-          const expRes: any[] = await db.execute(
-            sql`SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE dateval = ${legacyDate} AND deleted_at IS NULL`
-          );
-          const expenses = Number(expRes[0]?.total) || 0;
-
-          // Cash deposit
-          const cdRes: any[] = await db.execute(
-            sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit WHERE deposit_date = ${legacyDateDMY} AND deleted_at IS NULL`
-          );
-          const cashDeposited = Number(cdRes[0]?.total) || 0;
-
-          // Bank deposit
-          const bdRes: any[] = await db.execute(
-            sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit WHERE deposit_date = ${legacyDateDMY} AND deleted_at IS NULL`
-          );
-          const bankDeposit = Number(bdRes[0]?.total) || 0;
-
-          // Cumulative cash in hand
-          const cumCash: any[] = await db.execute(
-            sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit WHERE deleted_at IS NULL AND dateval <= ${isoDate} AND dateval >= '2021-01-01'`
-          );
-          const cumBank: any[] = await db.execute(
-            sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit WHERE deleted_at IS NULL AND dateval <= ${isoDate} AND dateval >= '2021-01-01'`
-          );
-          const cashInHand = (Number(cumCash[0]?.total) || 0) - (Number(cumBank[0]?.total) || 0);
-
-          // Product charges
-          const prodRes: any[] = await db.execute(
-            sql`SELECT COALESCE(SUM(ac.additional_price * ac.additional_quantity), 0) as total
-                FROM additional_charges ac
-                LEFT JOIN charges c ON c.id = CAST(ac.additional_name AS INTEGER)
-                WHERE ac.dateval = ${legacyDate} AND ac.deleted_at IS NULL AND c.type = 'Product'`
-          );
-          const productCharges = Number(prodRes[0]?.total) || 0;
-
-          // Receipt count
-          const cntRes: any[] = await db.execute(
-            sql`SELECT COUNT(*) as cnt FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0`
-          );
+          const expenses = Number((expRes as any[])[0]?.total) || 0;
+          const cashDeposited = Number((cdRes as any[])[0]?.total) || 0;
+          const bankDeposit = Number((bdRes as any[])[0]?.total) || 0;
+          const cashInHand = (Number((cumCash as any[])[0]?.total) || 0) - (Number((cumBank as any[])[0]?.total) || 0);
+          const productCharges = Number((prodRes as any[])[0]?.total) || 0;
 
           rows.push({
             date: legacyDateDMY,
-            collection: cash + card + cheque + online,
+            collection: cash + card + cheque + online + upi,
             cash,
             card,
             cheque,
             online,
+            upi,
             productCharges,
             expenses,
             cashDeposited,
             deficit: cash - expenses - cashDeposited,
             bankDeposit,
             cashInHand,
-            recordCount: Number(cntRes[0]?.cnt) || 0,
+            recordCount: Number((cntRes as any[])[0]?.cnt) || 0,
           });
         }
 

@@ -31,7 +31,7 @@ export class SendWhatsAppTemplateUseCase {
 
       if (!channelId) throw new Error('Channel ID or Clinic ID is required');
 
-      let result = await this.gateway.sendTemplate(
+      const result = await this.gateway.sendTemplate(
         channelId,
         options.phone,
         options.templateName,
@@ -39,44 +39,14 @@ export class SendWhatsAppTemplateUseCase {
         options.components
       );
 
-      // If the template does not exist on Meta WABA, fall back to sending it as a direct text message
-      if (!result.success && (result.error?.includes('132001') || result.error?.toLowerCase().includes('not exist') || result.error?.toLowerCase().includes('translation'))) {
-        logger.info(`Template "${options.templateName}" not found on Meta. Interpolating database body and falling back to sendText...`);
-        
-        let templateBody = `Template: ${options.templateName}`;
-        try {
-          const { eq, and } = await import('drizzle-orm');
-          const { waTemplates } = await import('@mmc/database');
-          
-          const templateRows = await (this.waRepo as any).db.select()
-            .from(waTemplates)
-            .where(
-              and(
-                eq(waTemplates.name, options.templateName),
-                eq(waTemplates.channelId, channelId)
-              )
-            )
-            .limit(1);
-
-          if (templateRows.length > 0 && templateRows[0].body) {
-            templateBody = templateRows[0].body;
-
-            // Interpolate components (e.g. {{1}}, {{2}} with text values)
-            const bodyComponent = options.components?.find((c: any) => c.type === 'body');
-            if (bodyComponent?.parameters) {
-              bodyComponent.parameters.forEach((param: any, idx: number) => {
-                const val = param.text || param.value || '';
-                const placeholder = `{{${idx + 1}}}`;
-                templateBody = templateBody.split(placeholder).join(val);
-              });
-            }
-          }
-        } catch (dbErr: any) {
-          logger.warn(`Failed to retrieve or interpolate template from DB: ${dbErr.message}`);
-        }
-
-        logger.info(`Sending fallback text message: "${templateBody.substring(0, 100)}..."`);
-        result = await this.gateway.sendText(channelId, options.phone, templateBody);
+      // IMPORTANT: Do NOT fall back to sendText when a template fails.
+      // Meta silently DROPS free-form text sent outside the 24-hour customer
+      // service window, so the old fallback made an undeliverable message look
+      // "sent" while the patient never received it. Surface the real template
+      // error instead (e.g. template missing / pending approval) so the caller
+      // and UI can react appropriately.
+      if (!result.success) {
+        logger.warn(`Template "${options.templateName}" send failed (no text fallback): ${result.error}`);
       }
 
       if (result.success) {

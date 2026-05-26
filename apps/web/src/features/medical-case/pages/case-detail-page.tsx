@@ -779,18 +779,29 @@ export default function MedicalCaseDetailPage() {
       ? 0
       : rawEffectiveDaysCharge;
 
+    // Sum of all explicit Registration bills
+    const registrationBillSum = dayBills
+      .filter(b => b.billType === 'Registration')
+      .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
+
     // 4. Registration Charge (shown as "Registration Charge" row in UI)
-    // It must strictly be the base consultation/registration fee without dynamic medicine day charges.
     const originalRegular = medicalCase?.consultationFee || 0;
+    
     const regular = (() => {
-      if (isCompleted) {
-        // If completed, the savedRegularBillsSum already includes the finalized day charge.
-        // We subtract it to show only the base consultation/registration fee in this row.
-        return Math.max(0, savedRegularBillsSum - effectiveDaysCharge);
+      // If the session is active, the registration charge IS the consultation fee.
+      // We must return this so it syncs correctly to the backend pending-bills.
+      if (!isCompleted) {
+        return originalRegular;
       }
-      // Otherwise (active session), it is the saved bills sum (like registration fee) + doctor fee.
-      const baseFee = originalRegular;
-      return savedRegularBillsSum + baseFee;
+      
+      // If completed, we show what was actually finalized.
+      // In the new system, we have explicit Registration bills.
+      if (registrationBillSum > 0) {
+        return registrationBillSum;
+      }
+      
+      // Legacy fallback: unified Consultation bill where we extract registration
+      return Math.max(0, savedRegularBillsSum - effectiveDaysCharge);
     })();
 
     // Sum of all package bills currently saved in the database for today
@@ -859,6 +870,67 @@ export default function MedicalCaseDetailPage() {
     dayCharges,
     toClinicDateString
   ]);
+
+  // Sync dynamic charges to database as official bills
+  const previousSyncRef = React.useRef({ regid: '', date: '', regular: -1, daysCharge: -1 });
+
+  React.useEffect(() => {
+    if (!regid || !displayDate || !billingValues) {
+      console.log('[SYNC] Skipping - missing:', { regid: !!regid, displayDate: !!displayDate, billingValues: !!billingValues });
+      return;
+    }
+    const dateStr = toClinicDateString(displayDate);
+    if (!dateStr) {
+      console.log('[SYNC] Skipping - no dateStr from displayDate:', displayDate);
+      return;
+    }
+
+    const currentSync = {
+      regid: regid,
+      date: dateStr,
+      regular: billingValues.regular,
+      daysCharge: billingValues.daysCharge
+    };
+
+    const prev = previousSyncRef.current;
+    const changed = (
+      prev.regid !== currentSync.regid ||
+      prev.date !== currentSync.date ||
+      prev.regular !== currentSync.regular ||
+      prev.daysCharge !== currentSync.daysCharge
+    );
+
+    console.log('[SYNC] Check:', { currentSync, prev, changed });
+
+    if (changed) {
+      previousSyncRef.current = currentSync;
+      
+      if (currentSync.regular >= 0 || currentSync.daysCharge >= 0) {
+        console.log('[SYNC] Sending POST /accounts/pending-bills:', {
+          regid: Number(regid),
+          dateval: dateStr,
+          regular: currentSync.regular,
+          daysCharge: currentSync.daysCharge
+        });
+        apiClient.post('/accounts/pending-bills', {
+          regid: Number(regid),
+          dateval: dateStr,
+          regular: currentSync.regular,
+          daysCharge: currentSync.daysCharge
+        }).then(res => {
+          console.log('[SYNC] SUCCESS:', res.data);
+        }).catch(err => {
+          console.error('[SYNC] FAILED:', err?.response?.data || err?.message || err);
+        });
+      }
+    }
+  }, [regid, displayDate, billingValues, toClinicDateString]);
+
+  useEffect(() => {
+    if (regid) {
+      apiClient.get('/accounts/cleanup-duplicates').catch(() => {});
+    }
+  }, [regid]);
 
   // ─── Derived from fullData (safe after query completes) ───
   const fullVitals = fullData?.vitals;
@@ -1139,7 +1211,7 @@ export default function MedicalCaseDetailPage() {
                   {(() => {
                     const rows = [
                       { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
-                      { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
+                      { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge, action: () => setActiveTab('rx') },
                       ...(billingValues.hasActivePackage ? [{
                         label: 'Package Plan',
                         value: billingValues.packagePrice,
@@ -1239,8 +1311,12 @@ export default function MedicalCaseDetailPage() {
                           ) : (
                             <button
                               onClick={() => {
-                                setActiveBillingTab(row.tab as any);
-                                setShowBillingModal(true);
+                                if (row.action) {
+                                  row.action();
+                                } else {
+                                  setActiveBillingTab(row.tab as any);
+                                  setShowBillingModal(true);
+                                }
                               }}
                               style={{
                                 width: '28px',

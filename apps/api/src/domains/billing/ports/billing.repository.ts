@@ -13,6 +13,8 @@ export interface BillingRepository {
   create(data: CreateBillInput & { billNo: number }): Promise<Bill>;
   updateReceived(id: number, amount: number, paymentMode: string): Promise<Bill | null>;
   updateCharges(id: number, amount: number): Promise<Bill | null>;
+  updateAdditionalChargeBill(regid: number, date: string, oldName: string, newName: string, amount: number): Promise<boolean>;
+  deleteAdditionalChargeBill(regid: number, date: string, name: string): Promise<boolean>;
   nextBillNo(): Promise<number>;
   softDelete(id: number): Promise<boolean>;
 }

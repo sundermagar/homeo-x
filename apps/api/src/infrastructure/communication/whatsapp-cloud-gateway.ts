@@ -211,6 +211,45 @@ export class WhatsAppCloudGateway implements WhatsAppGateway {
     }
   }
 
+  async downloadMedia(channelId: number | null, mediaId: string): Promise<{ buffer: Buffer; mimeType: string; originalFilename?: string } | null> {
+    try {
+      logger.info(`[DownloadMedia] Fetching media metadata for mediaId: ${mediaId}`);
+      const headers = await this.getHeaders(channelId || undefined);
+      
+      // Step 1: Get media URL
+      const metaResponse = await fetch(`${this.baseUrl}/${mediaId}`, { headers });
+      const metaData = await metaResponse.json() as any;
+      
+      if (!metaResponse.ok || !metaData.url) {
+        logger.error(`[DownloadMedia] ❌ Failed to get media URL (HTTP ${metaResponse.status}): ${JSON.stringify(metaData)}`);
+        return null;
+      }
+      
+      const mediaUrl = metaData.url;
+      const mimeType = metaData.mime_type || 'application/octet-stream';
+      // Some file types have filename (like documents)
+      const originalFilename = metaData.filename; 
+
+      logger.info(`[DownloadMedia] Downloading actual binary from: ${mediaUrl}`);
+      // Step 2: Download binary data
+      const binaryResponse = await fetch(mediaUrl, { headers });
+      
+      if (!binaryResponse.ok) {
+        logger.error(`[DownloadMedia] ❌ Failed to download binary (HTTP ${binaryResponse.status})`);
+        return null;
+      }
+
+      const arrayBuffer = await binaryResponse.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      logger.info(`[DownloadMedia] ✅ Downloaded ${buffer.byteLength} bytes successfully`);
+      return { buffer, mimeType, originalFilename };
+    } catch (err: any) {
+      logger.error(`WhatsApp downloadMedia exception: ${err.message}`);
+      return null;
+    }
+  }
+
   async sendMedia(channelId: number | null, to: string, mediaId: string, mediaType: 'image' | 'video' | 'audio' | 'document', fileName?: string, caption?: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       const phoneNumberId = await this.getPhoneNumberId(channelId || undefined);
