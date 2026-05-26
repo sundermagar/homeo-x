@@ -255,7 +255,17 @@ export function MonthListView() {
                       </button>
                     </div>
                   </td>
-                  <td style={{ textAlign: 'right' }}>₹{row.expenses.toLocaleString('en-IN')}</td>
+                  <td className="vc-right">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                      ₹{row.expenses.toLocaleString('en-IN')}
+                      <button 
+                        onClick={() => openDrilldown(row.date, 'Expense', 'Expenses')}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                      >
+                        <Info size={14} />
+                      </button>
+                    </div>
+                  </td>
                   <td style={{ textAlign: 'right' }}>₹{row.cashDeposited.toLocaleString('en-IN')}</td>
                   <td style={{ textAlign: 'right', color: row.deficit < 0 ? 'var(--pp-danger-fg, #ef4444)' : 'var(--pp-success-fg, #22c55e)' }}>
                     ₹{row.deficit.toLocaleString('en-IN')}

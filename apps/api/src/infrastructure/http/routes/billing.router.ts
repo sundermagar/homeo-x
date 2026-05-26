@@ -336,7 +336,25 @@ export function createBillingRouter(): Router {
       const legacyDate = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 
       try {
-        if (mode === 'Product') {
+        if (mode === 'Expense') {
+          const rows: any[] = await db.execute(
+            sql`SELECT e.*, eh.expenseshead as head_name
+                FROM expenses e
+                LEFT JOIN expenseshead eh ON eh.id = e.head
+                WHERE e.dateval = ${legacyDate}
+                  AND e.deleted_at IS NULL
+                ORDER BY e.id DESC`
+          );
+          const records = rows.map((r: any) => ({
+            regid: 0,
+            patientName: r.head_name || 'Uncategorized',
+            amount: Number(r.amount) || 0,
+            chargeName: r.detail || '',
+            quantity: 1,
+            date: r.created_at || new Date().toISOString(),
+          }));
+          res.json({ success: true, data: records });
+        } else if (mode === 'Product') {
           const rows: any[] = await db.execute(
             sql`SELECT ac.*, c.charges as charge_name, cd.regid as rid, cd.first_name
                 FROM additional_charges ac
@@ -401,7 +419,7 @@ export function createBillingRouter(): Router {
           d.setDate(d.getDate() - i);
           const legacyDate = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
           const legacyDateDMY = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-          const isoDate = d.toISOString().split('T')[0];
+          const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
           const [
             receipts,

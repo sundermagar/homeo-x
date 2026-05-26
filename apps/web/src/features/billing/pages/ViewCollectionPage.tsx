@@ -29,7 +29,7 @@ export default function ViewCollectionPage() {
   const [drilldown, setDrilldown] = useState<{ mode: string; title: string } | null>(null);
 
   // Quick Actions Drawer States
-  const [depositDrawer, setDepositDrawer] = useState<{isOpen: boolean, tab: 'bank'|'cash'}>({ isOpen: false, tab: 'cash' });
+  const [depositDrawer, setDepositDrawer] = useState<{ isOpen: boolean, tab: 'bank' | 'cash' }>({ isOpen: false, tab: 'cash' });
   const [isExpenseDrawerOpen, setIsExpenseDrawerOpen] = useState(false);
 
   const shiftDate = (days: number) => {
@@ -126,7 +126,7 @@ export default function ViewCollectionPage() {
                 Next <ChevronRight size={14} strokeWidth={1.6} />
               </button>
             </div>
-            
+
             <div className="pp-filter-controls">
               <button className="btn-primary" onClick={handleToday}>Today</button>
             </div>
@@ -257,7 +257,11 @@ export default function ViewCollectionPage() {
                             </div>
                           </td>
                           <td className="vc-right vc-bold vc-negative" style={{ fontSize: '14px' }}>₹{summary.expenses.toLocaleString('en-IN')}</td>
-                          <td className="vc-right" style={{ width: 40 }}></td>
+                          <td className="vc-right" style={{ width: 40 }}>
+                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Expense', 'Expenses')} title="View Details">
+                              <Info size={13} />
+                            </button>
+                          </td>
                         </tr>
                         <tr className="pp-hover-row">
                           <td>
@@ -338,14 +342,14 @@ export default function ViewCollectionPage() {
       )}
 
       {/* Quick Actions Drawers */}
-      <AddDepositDrawer 
-        isOpen={depositDrawer.isOpen} 
-        onClose={() => setDepositDrawer({ ...depositDrawer, isOpen: false })} 
-        initialTab={depositDrawer.tab} 
+      <AddDepositDrawer
+        isOpen={depositDrawer.isOpen}
+        onClose={() => setDepositDrawer({ ...depositDrawer, isOpen: false })}
+        initialTab={depositDrawer.tab}
       />
-      <AddExpenseDrawer 
-        isOpen={isExpenseDrawerOpen} 
-        onClose={() => setIsExpenseDrawerOpen(false)} 
+      <AddExpenseDrawer
+        isOpen={isExpenseDrawerOpen}
+        onClose={() => setIsExpenseDrawerOpen(false)}
       />
     </div>
   );
