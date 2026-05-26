@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@/shared/components/protected-route';
 import { RoleGuard } from '@/shared/components/role-guard';
 import { AppLayout } from '@/shared/layouts/app-layout';
 import { RouteErrorBoundary } from '@/components/shared/error-boundary';
+import { useAuthStore } from '@/shared/stores/auth-store';
 
 const Loading = () => (
   <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -119,6 +120,17 @@ const PatientMeetPage = lazy(() => import('@/features/consultation/patient-meet-
 const PrivacyPolicyPage = lazy(() => import('@/features/legal/pages/privacy-policy-page'));
 const TermsOfServicePage = lazy(() => import('@/features/legal/pages/terms-of-service-page'));
 
+const WhatsAppIndexRedirect = () => {
+  const rawType = useAuthStore((s) => (s.user as any)?.type || (s.user as any)?.role);
+  const userRole = rawType?.toLowerCase().replace(/\s/g, '');
+  const isStaff = userRole === 'doctor' || userRole === 'receptionist' || userRole === 'hmis_doctor';
+  
+  if (isStaff) {
+    return <Navigate to="inbox" replace />;
+  }
+  return <Navigate to="overview" replace />;
+};
+
 export function AppRouter() {
   return (
     <RouteErrorBoundary>
@@ -172,8 +184,8 @@ export function AppRouter() {
             <Route path="/communications/sms" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><GroupSmsPage /></RoleGuard>} />
             <Route path="/communications/templates" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><SmsTemplatesPage /></RoleGuard>} />
             <Route path="/communications/reports" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><SmsReportsPage /></RoleGuard>} />
-            <Route path="/communications/whatsapp" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><WhatsAppPage /></RoleGuard>}>
-              <Route index element={<Navigate to="overview" replace />} />
+            <Route path="/communications/whatsapp" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><WhatsAppPage /></RoleGuard>}>
+              <Route index element={<WhatsAppIndexRedirect />} />
               <Route path="overview" element={<div />} />
               <Route path="inbox" element={<div />} />
               <Route path="campaigns" element={<div />} />
@@ -226,7 +238,7 @@ export function AppRouter() {
             <Route path="/platform/accounts" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><AccountsPage /></RoleGuard>} />
 
             {/* ─── Operations Hub ─── */}
-            <Route path="/operations" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><OperationsDashboard /></RoleGuard>} />
+            <Route path="/operations" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><OperationsDashboard /></RoleGuard>} />
             <Route path="/courier-queue" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><CourierQueuePage /></RoleGuard>} />
 
             {/* ─── Settings ─── */}

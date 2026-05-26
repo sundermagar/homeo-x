@@ -51,6 +51,7 @@ export interface CreateOrganizationInput {
   email?:       string;
   phone?:       string;
   address?:     string;
+  address2?:    string;
   website?:     string;
   assignedTo?:  number;
   connectSince?: string;
@@ -60,6 +61,10 @@ export interface CreateOrganizationInput {
   adminPassword?: string;
   sendWelcomeEmail?: boolean;
   registrationFee?: number;
+  tagLine?:     string;
+  registration?: string;
+  logo?:        string;
+  timing?:      string;
 }
 
 export type UpdateOrganizationInput = Partial<CreateOrganizationInput>;

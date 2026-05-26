@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Target, Save } from 'lucide-react';
 import { useCollectionTarget, useSetTarget } from '../hooks/use-billing';
+import { TableSkeleton } from '@/components/shared/table-skeleton';
 
 export function CollectionTargetView() {
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -50,18 +51,20 @@ export function CollectionTargetView() {
             className="vc-target-input"
           />
           <button
-            className="vc-target-btn"
+            className="btn-primary"
             onClick={handleSetTarget}
             disabled={setTargetMutation.isPending || !newTarget}
           >
-            <Save size={16} />
+            <Save size={14} strokeWidth={1.6} />
             {setTargetMutation.isPending ? 'Saving...' : 'Set Target'}
           </button>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="vc-loading">Loading target data...</div>
+        <div style={{ padding: '24px 0' }}>
+          <TableSkeleton rows={10} cols={7} />
+        </div>
       ) : (
         <div className="vc-table-scroll">
           <table className="vc-table vc-target-table">

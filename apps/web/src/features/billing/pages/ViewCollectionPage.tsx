@@ -9,7 +9,10 @@ import { useExtendedDailySummary } from '../hooks/use-billing';
 import { PaymentDrilldownModal } from '../components/PaymentDrilldownModal';
 import { MonthListView } from '../components/MonthListView';
 import { CollectionTargetView } from '../components/CollectionTargetView';
+import { AddDepositDrawer } from '../components/AddDepositDrawer';
+import { AddExpenseDrawer } from '../components/AddExpenseDrawer';
 import '../styles/view-collection.css';
+import '@/features/appointments/styles/appointments.css';
 
 type ViewTab = 'daily' | 'monthList' | 'target';
 
@@ -24,6 +27,10 @@ export default function ViewCollectionPage() {
 
   // Drilldown modal state
   const [drilldown, setDrilldown] = useState<{ mode: string; title: string } | null>(null);
+
+  // Quick Actions Drawer States
+  const [depositDrawer, setDepositDrawer] = useState<{isOpen: boolean, tab: 'bank'|'cash'}>({ isOpen: false, tab: 'cash' });
+  const [isExpenseDrawerOpen, setIsExpenseDrawerOpen] = useState(false);
 
   const shiftDate = (days: number) => {
     const [y, m, d] = selectedDate.split('-').map(Number);
@@ -51,51 +58,51 @@ export default function ViewCollectionPage() {
   };
 
   return (
-    <div className="vc-page">
-      {/* Header */}
-      <div className="vc-header">
-        <div className="vc-header-left">
-          <h1 className="vc-title">
-            <DollarSign size={22} />
+    <div className="pp-page-container appt-page animate-fade-in">
+      {/* Hero Header */}
+      <div className="pp-page-hero">
+        <div>
+          <h1 className="pp-page-hero-title">
+            <DollarSign size={22} strokeWidth={1.8} />
             View Collection
           </h1>
-          <p className="vc-subtitle">Daily collection overview & financial tracking</p>
+          <p className="pp-page-hero-sub">Daily collection overview & financial tracking</p>
         </div>
-        <div className="vc-header-actions">
+        <div className="pp-page-hero-actions">
           <button
-            className="vc-nav-link"
+            className="btn-secondary"
             onClick={() => navigate('/billing/deposits')}
           >
-            <Landmark size={16} /> Deposits
+            <Landmark size={14} strokeWidth={1.6} /> Deposits
           </button>
           <button
-            className="vc-nav-link"
+            className="btn-secondary"
             onClick={() => navigate('/billing/expenses')}
           >
-            <TrendingDown size={16} /> Expenses
+            <TrendingDown size={14} strokeWidth={1.6} /> Expenses
           </button>
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="vc-tabs">
+      {/* Tabs */}
+      <div className="appt-tabs">
         <button
-          className={`vc-tab ${activeTab === 'daily' ? 'active' : ''}`}
+          className={`appt-tab ${activeTab === 'daily' ? 'active' : ''}`}
           onClick={() => setActiveTab('daily')}
         >
-          <DollarSign size={16} /> Day View
+          Day View
         </button>
         <button
-          className={`vc-tab ${activeTab === 'monthList' ? 'active' : ''}`}
+          className={`appt-tab ${activeTab === 'monthList' ? 'active' : ''}`}
           onClick={() => setActiveTab('monthList')}
         >
-          <ListOrdered size={16} /> Month List
+          Month List
         </button>
         <button
-          className={`vc-tab ${activeTab === 'target' ? 'active' : ''}`}
+          className={`appt-tab ${activeTab === 'target' ? 'active' : ''}`}
           onClick={() => setActiveTab('target')}
         >
-          <Target size={16} /> Collection Target
+          Collection Target
         </button>
       </div>
 
@@ -103,103 +110,126 @@ export default function ViewCollectionPage() {
       {activeTab === 'daily' && (
         <>
           {/* Date Navigator */}
-          <div className="vc-date-nav">
-            <button className="vc-date-btn" onClick={handlePrevDay}>
-              <ChevronLeft size={18} /> Previous
-            </button>
-            <div className="vc-date-center">
+          <div className="pp-filter-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button className="btn-secondary" onClick={handlePrevDay}>
+                <ChevronLeft size={14} strokeWidth={1.6} /> Previous
+              </button>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="vc-date-input"
+                className="pp-input"
+                style={{ width: '160px', height: '36px', padding: '0 12px', borderRadius: '8px' }}
               />
+              <button className="btn-secondary" onClick={handleNextDay}>
+                Next <ChevronRight size={14} strokeWidth={1.6} />
+              </button>
             </div>
-            <button className="vc-date-btn" onClick={handleNextDay}>
-              Next <ChevronRight size={18} />
-            </button>
-            <button className="vc-today-btn" onClick={handleToday}>Today</button>
+            
+            <div className="pp-filter-controls">
+              <button className="btn-primary" onClick={handleToday}>Today</button>
+            </div>
           </div>
 
           {isLoading ? (
-            <div className="vc-loading">Loading collection data...</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'pulse 1.5s infinite', padding: '12px 0' }}>
+              <div className="skeleton-box" style={{ width: '100%', height: '60px', borderRadius: '12px' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '30px' }}>
+                <div className="skeleton-box" style={{ height: '340px', borderRadius: '16px' }} />
+                <div className="skeleton-box" style={{ height: '340px', borderRadius: '16px' }} />
+              </div>
+            </div>
           ) : summary ? (
             <div className="vc-daily-content">
               <div className="vc-ledger-layout">
                 {/* Left Column: Collection Breakdown */}
-                <div className="vc-ledger-panel">
-                  <div className="vc-ledger-header">
-                    <h3 className="vc-ledger-title">Collection Breakdown</h3>
+                <div className="appt-card" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="appt-card-header">
+                    <h3 className="appt-card-title">Collection Breakdown</h3>
                     <div className="vc-ledger-total">
-                      Total: <span>₹{summary.collection.toLocaleString('en-IN')}</span>
+                      Total: <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>₹{summary.collection.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
 
-                  <div className="vc-ledger-table-wrap">
-                    <table className="vc-ledger-table">
+                  <div className="pp-table-scroll">
+                    <table className="pp-table">
                       <tbody>
-                        <tr>
+                        <tr className="pp-hover-row">
                           <td>
-                            <div className="vc-ledger-label">
-                              <Banknote size={16} /> Cash
+                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
+                              <Banknote size={15} strokeWidth={1.8} /> Cash
                             </div>
                           </td>
-                          <td className="vc-right vc-bold">₹{summary.cash.toLocaleString('en-IN')}</td>
+                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.cash.toLocaleString('en-IN')}</td>
                           <td className="vc-right" style={{ width: 40 }}>
                             <button className="vc-info-btn-sm" onClick={() => openDrilldown('Cash', 'Cash Payment')} title="View Details">
-                              <Info size={14} />
+                              <Info size={13} />
                             </button>
                           </td>
                         </tr>
-                        <tr>
+                        <tr className="pp-hover-row">
                           <td>
-                            <div className="vc-ledger-label">
-                              <CreditCard size={16} /> Credit Card
+                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
+                              <CreditCard size={15} strokeWidth={1.8} /> Credit Card
                             </div>
                           </td>
-                          <td className="vc-right vc-bold">₹{summary.card.toLocaleString('en-IN')}</td>
+                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.card.toLocaleString('en-IN')}</td>
                           <td className="vc-right">
                             <button className="vc-info-btn-sm" onClick={() => openDrilldown('Card', 'Credit Card Payment')} title="View Details">
-                              <Info size={14} />
+                              <Info size={13} />
                             </button>
                           </td>
                         </tr>
-                        <tr>
+                        <tr className="pp-hover-row">
                           <td>
-                            <div className="vc-ledger-label">
-                              <Building2 size={16} /> Cheque
+                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
+                              <Building2 size={15} strokeWidth={1.8} /> Cheque
                             </div>
                           </td>
-                          <td className="vc-right vc-bold">₹{summary.cheque.toLocaleString('en-IN')}</td>
+                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.cheque.toLocaleString('en-IN')}</td>
                           <td className="vc-right">
                             <button className="vc-info-btn-sm" onClick={() => openDrilldown('Cheque', 'Cheque Payment')} title="View Details">
-                              <Info size={14} />
+                              <Info size={13} />
                             </button>
                           </td>
                         </tr>
-                        <tr>
+                        <tr className="pp-hover-row">
                           <td>
-                            <div className="vc-ledger-label">
-                              <Wallet size={16} /> Online
+                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
+                              <Wallet size={15} strokeWidth={1.8} /> Online
                             </div>
                           </td>
-                          <td className="vc-right vc-bold">₹{summary.online.toLocaleString('en-IN')}</td>
+                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.online.toLocaleString('en-IN')}</td>
                           <td className="vc-right">
                             <button className="vc-info-btn-sm" onClick={() => openDrilldown('Online', 'Online Payment')} title="View Details">
-                              <Info size={14} />
+                              <Info size={13} />
                             </button>
                           </td>
                         </tr>
-                        <tr>
+                        <tr className="pp-hover-row">
                           <td>
-                            <div className="vc-ledger-label">
-                              <ShoppingBag size={16} /> Product Charges
+                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
+                              <Banknote size={15} strokeWidth={1.8} /> UPI
                             </div>
                           </td>
-                          <td className="vc-right vc-bold">₹{summary.productCharges.toLocaleString('en-IN')}</td>
+                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{(summary.upi || 0).toLocaleString('en-IN')}</td>
+                          <td className="vc-right">
+                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('UPI', 'UPI Payment')} title="View Details">
+                              <Info size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                        <tr className="pp-hover-row">
+                          <td>
+                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
+                              <ShoppingBag size={15} strokeWidth={1.8} /> Product Charges
+                            </div>
+                          </td>
+                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.productCharges.toLocaleString('en-IN')}</td>
                           <td className="vc-right">
                             <button className="vc-info-btn-sm" onClick={() => openDrilldown('Product', 'Product Charges')} title="View Details">
-                              <Info size={14} />
+                              <Info size={13} />
                             </button>
                           </td>
                         </tr>
@@ -209,51 +239,51 @@ export default function ViewCollectionPage() {
                 </div>
 
                 {/* Right Column: Deposits & Balance */}
-                <div className="vc-ledger-panel">
-                  <div className="vc-ledger-header">
-                    <h3 className="vc-ledger-title">Deposits & Balance</h3>
+                <div className="appt-card" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="appt-card-header">
+                    <h3 className="appt-card-title">Deposits & Balance</h3>
                     <div className="vc-ledger-total vc-cih-highlight">
-                      Cash in Hand: <span>₹{summary.cashInHand.toLocaleString('en-IN')}</span>
+                      Cash in Hand: <span style={{ fontWeight: 800, color: 'var(--pp-success-fg)' }}>₹{summary.cashInHand.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
 
-                  <div className="vc-ledger-table-wrap">
-                    <table className="vc-ledger-table">
+                  <div className="pp-table-scroll" style={{ flex: 1 }}>
+                    <table className="pp-table">
                       <tbody>
-                        <tr>
+                        <tr className="pp-hover-row">
                           <td>
-                            <div className="vc-ledger-label">
-                              <TrendingDown size={16} /> Expenses
+                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
+                              <TrendingDown size={15} strokeWidth={1.8} /> Expenses
                             </div>
                           </td>
-                          <td className="vc-right vc-bold vc-negative">₹{summary.expenses.toLocaleString('en-IN')}</td>
+                          <td className="vc-right vc-bold vc-negative" style={{ fontSize: '14px' }}>₹{summary.expenses.toLocaleString('en-IN')}</td>
                           <td className="vc-right" style={{ width: 40 }}></td>
                         </tr>
-                        <tr>
+                        <tr className="pp-hover-row">
                           <td>
-                            <div className="vc-ledger-label">
-                              <Banknote size={16} /> Recp Handed (Cash Dep.)
+                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
+                              <Banknote size={15} strokeWidth={1.8} /> Recp Handed (Cash Dep.)
                             </div>
                           </td>
-                          <td className="vc-right vc-bold">₹{summary.cashDeposited.toLocaleString('en-IN')}</td>
+                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.cashDeposited.toLocaleString('en-IN')}</td>
                           <td className="vc-right"></td>
                         </tr>
-                        <tr>
+                        <tr className="pp-hover-row">
                           <td>
-                            <div className="vc-ledger-label">
-                              <Landmark size={16} /> Bank Deposit
+                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
+                              <Landmark size={15} strokeWidth={1.8} /> Bank Deposit
                             </div>
                           </td>
-                          <td className="vc-right vc-bold">₹{summary.bankDeposit.toLocaleString('en-IN')}</td>
+                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.bankDeposit.toLocaleString('en-IN')}</td>
                           <td className="vc-right"></td>
                         </tr>
-                        <tr className="vc-ledger-highlight-row">
+                        <tr className="vc-ledger-highlight-row pp-hover-row">
                           <td>
-                            <div className="vc-ledger-label">
-                              <BarChart3 size={16} /> Deficit / Surplus
+                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
+                              <BarChart3 size={15} strokeWidth={1.8} /> Deficit / Surplus
                             </div>
                           </td>
-                          <td className={`vc-right vc-bold ${summary.deficit >= 0 ? 'vc-positive' : 'vc-negative'}`}>
+                          <td className={`vc-right vc-bold ${summary.deficit >= 0 ? 'vc-positive' : 'vc-negative'}`} style={{ fontSize: '14px' }}>
                             {summary.deficit > 0 ? '+' : ''}₹{summary.deficit.toLocaleString('en-IN')}
                           </td>
                           <td className="vc-right"></td>
@@ -262,16 +292,23 @@ export default function ViewCollectionPage() {
                     </table>
                   </div>
 
-                  {/* Quick Links */}
-                  <div className="vc-ledger-actions">
-                    <button className="vc-action-btn" onClick={() => navigate('/billing/deposits')}>
-                      <Banknote size={16} /> Add Cash Deposit
+                  {/* Quick Actions Links */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '10px',
+                    padding: '12px 16px',
+                    background: 'var(--bg-surface-2)',
+                    borderTop: '1px solid var(--border-main)',
+                    flexWrap: 'wrap'
+                  }}>
+                    <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => setDepositDrawer({ isOpen: true, tab: 'cash' })}>
+                      <Banknote size={14} strokeWidth={1.6} /> Add Cash Deposit
                     </button>
-                    <button className="vc-action-btn" onClick={() => navigate('/billing/deposits')}>
-                      <Landmark size={16} /> Add Bank Deposit
+                    <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => setDepositDrawer({ isOpen: true, tab: 'bank' })}>
+                      <Landmark size={14} strokeWidth={1.6} /> Add Bank Deposit
                     </button>
-                    <button className="vc-action-btn vc-action-btn-danger" onClick={() => navigate('/billing/expenses')}>
-                      <TrendingDown size={16} /> Add Expense
+                    <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--pp-danger-fg)', borderColor: 'var(--pp-danger-border)' }} onClick={() => setIsExpenseDrawerOpen(true)}>
+                      <TrendingDown size={14} strokeWidth={1.6} /> Add Expense
                     </button>
                   </div>
                 </div>
@@ -299,6 +336,17 @@ export default function ViewCollectionPage() {
           title={drilldown.title}
         />
       )}
+
+      {/* Quick Actions Drawers */}
+      <AddDepositDrawer 
+        isOpen={depositDrawer.isOpen} 
+        onClose={() => setDepositDrawer({ ...depositDrawer, isOpen: false })} 
+        initialTab={depositDrawer.tab} 
+      />
+      <AddExpenseDrawer 
+        isOpen={isExpenseDrawerOpen} 
+        onClose={() => setIsExpenseDrawerOpen(false)} 
+      />
     </div>
   );
 }

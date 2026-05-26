@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List } from 'lucide-react';
+import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Download, Printer } from 'lucide-react';
 
 import { useBills, useDailyCollection } from '../hooks/use-billing';
 import { BillingTable } from '../components/BillingTable';
@@ -63,6 +63,100 @@ export default function BillingListPage() {
   const total     = billsQuery.data?.total     ?? 0;
   const bills     = billsQuery.data?.data       ?? [];
   const hasMore   = bills.length === 30;
+
+  const exportToCSV = () => {
+    if (!bills || bills.length === 0) return;
+    const headers = ['Bill No', 'Date', 'Patient Name', 'Reg ID', 'Type', 'Mode', 'Charges', 'Received', 'Balance'];
+    const csvContent = [
+      headers.join(','),
+      ...bills.map(b => [
+        b.billNo,
+        b.billDate ? format(new Date(b.billDate), 'yyyy-MM-dd') : '—',
+        `"${b.patientName || ''}"`,
+        b.regid,
+        b.billType === 'Additional' ? 'Additional' : b.treatment?.startsWith('Package:') ? 'Package' : b.billType === 'Registration' ? 'Registration' : b.billType === 'Consultation' ? 'Medicine Days' : b.billType || 'Consultation',
+        b.paymentMode || '—',
+        b.charges,
+        b.received,
+        b.balance
+      ].join(','))
+    ].join('\\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Bill_List_Export_${date || 'all'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const printPDF = () => {
+    if (!bills || bills.length === 0) return;
+    
+    const html = `
+      <html>
+        <head>
+          <title>Bill List Report</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; color: #1e293b; }
+            h2 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+            th { background: #f8fafc; font-weight: bold; }
+            .right { text-align: right; }
+            @media print {
+              body { padding: 0; }
+              @page { size: landscape; margin: 1cm; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Bill List Report (As of ${date || 'All Dates'})</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Bill #</th>
+                <th>Date</th>
+                <th>Patient</th>
+                <th>Reg ID</th>
+                <th>Type</th>
+                <th>Mode</th>
+                <th class="right">Charges</th>
+                <th class="right">Received</th>
+                <th class="right">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bills.map(b => `
+                <tr>
+                  <td>${b.billNo}</td>
+                  <td>${b.billDate ? format(new Date(b.billDate), 'yyyy-MM-dd') : '—'}</td>
+                  <td>${b.patientName || '—'}</td>
+                  <td>${b.regid}</td>
+                  <td>${b.billType === 'Additional' ? 'Additional' : b.treatment?.startsWith('Package:') ? 'Package' : b.billType === 'Registration' ? 'Registration' : b.billType === 'Consultation' ? 'Medicine Days' : b.billType || 'Consultation'}</td>
+                  <td>${b.paymentMode || '—'}</td>
+                  <td class="right">${b.charges.toLocaleString('en-IN')}</td>
+                  <td class="right">${b.received.toLocaleString('en-IN')}</td>
+                  <td class="right">${b.balance > 0 ? b.balance.toLocaleString('en-IN') : '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <script>
+            window.print();
+          </script>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    }
+  };
 
   return (
     <div className="pp-page-container bill-page animate-fade-in">
@@ -135,7 +229,15 @@ export default function BillingListPage() {
           <p className="pp-section-sub">Daily invoices and transaction history</p>
         </div>
 
-        <div className="pp-filter-controls">
+        <div className="pp-filter-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', borderRight: '1px solid var(--border-main)', paddingRight: '12px', marginRight: '4px' }}>
+            <button className="btn-secondary" onClick={exportToCSV} disabled={billsQuery.isLoading || bills.length === 0}>
+              <Download size={14} /> Export CSV
+            </button>
+            <button className="btn-secondary" onClick={printPDF} disabled={billsQuery.isLoading || bills.length === 0}>
+              <Printer size={14} /> Print / PDF
+            </button>
+          </div>
           {/* Search */}
           <div className="pp-filter-search-wrap" style={{ maxWidth: 220 }}>
             <Search size={14} />

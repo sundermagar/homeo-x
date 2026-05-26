@@ -445,7 +445,7 @@ export function createBillingRouter(): Router {
             online,
             productCharges,
             expenses,
-            cashDeposited: cash - expenses,
+            cashDeposited,
             deficit: cash - expenses - cashDeposited,
             bankDeposit,
             cashInHand,

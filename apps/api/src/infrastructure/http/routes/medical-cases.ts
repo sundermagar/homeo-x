@@ -568,12 +568,19 @@ router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
   const clinicId = (req as any).user?.contextId;
   const orgRepo = new OrganizationRepositoryPg(req.publicDb);
 
-  const [prescriptions, caseData, settings, organization] = await Promise.all([
+  const [prescriptions, caseData, settings, orgs] = await Promise.all([
     uc.getPrescriptionsForPatient(regid),
     repo.getCaseSummaryForPdf(regid),
     settingsRepo.listPdfSettings(),
-    clinicId ? orgRepo.findById(clinicId) : Promise.resolve(null)
+    orgRepo.findAll()
   ]);
+
+  let organization = null;
+  if (clinicId && orgs.find(o => o.id === clinicId)) {
+    organization = orgs.find(o => o.id === clinicId);
+  } else if (orgs.length > 0) {
+    organization = orgs[0]; // Fallback to first org, same as frontend
+  }
 
   const defaultSetting = settings.find((s: any) => s.isDefault) || settings[0];
   const patient = caseData?.medicalCase;
@@ -611,10 +618,22 @@ router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
       clinicRegistration: organization?.registration || '',
       clinicTiming: organization?.timing || '',
       patientName: patient?.patientName || `Patient ${regid}`,
-      patientAge: (patient as any)?.age,
+      patientAge: (() => {
+        let age = (patient as any)?.age;
+        if (!age && patient?.dateOfBirth) {
+          const dob = new Date(patient.dateOfBirth);
+          if (!isNaN(dob.getTime())) {
+            const ageDifMs = Date.now() - dob.getTime();
+            const ageDate = new Date(ageDifMs);
+            age = Math.abs(ageDate.getUTCFullYear() - 1970);
+          }
+        }
+        return age;
+      })(),
       patientGender: patient?.gender || '',
       patientPhone: patient?.phone || patient?.mobile || '',
       patientAddress: [patient?.address, patient?.city, patient?.state].filter(Boolean).join(', '),
+      doctorName: patient?.doctorName || '',
       diagnosis: patient?.condition || '',
       followUpNote: filteredNotes.find((n: any) => n.notesType === 'Followup')?.notes || '',
       regid,
@@ -653,10 +672,17 @@ router.get('/pdf/summary/:regid', asyncHandler(async (req, res) => {
   const clinicId = (req as any).user?.contextId;
   const orgRepo = new OrganizationRepositoryPg(req.publicDb);
 
-  const [settings, organization] = await Promise.all([
+  const [settings, orgs] = await Promise.all([
     settingsRepo.listPdfSettings(),
-    clinicId ? orgRepo.findById(clinicId) : Promise.resolve(null)
+    orgRepo.findAll()
   ]);
+
+  let organization = null;
+  if (clinicId && orgs.find(o => o.id === clinicId)) {
+    organization = orgs.find(o => o.id === clinicId);
+  } else if (orgs.length > 0) {
+    organization = orgs[0];
+  }
 
   const defaultSetting = settings.find((s: any) => s.isDefault) || settings[0];
 
