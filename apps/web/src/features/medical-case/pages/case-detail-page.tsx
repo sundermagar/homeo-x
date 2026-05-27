@@ -344,6 +344,8 @@ export default function MedicalCaseDetailPage() {
   ]);
   const [isScannedPrescription, setIsScannedPrescription] = useState(false);
   const [isSavingScannedPrescription, setIsSavingScannedPrescription] = useState(false);
+  const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
+
 
   const handlePrescriptionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
