@@ -100,7 +100,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: CLINICAL_ROLES,
       subItems: [
         { label: 'Case History', path: '/consultation-history' },
-        { label: 'AI Analysis', path: '/clinical/ai-analysis' },
+        { label: 'Remedy Matrix', path: '/clinical/remedy-chart' },
         { label: 'Height & Weight Check', path: '/vitals-check' },
         { label: 'Medical Case List', path: '/medical-cases' },
       ]
