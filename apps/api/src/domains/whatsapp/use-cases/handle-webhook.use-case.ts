@@ -95,6 +95,56 @@ export class HandleWebhookUseCase {
       });
     }
 
+    let mediaUrl: string | undefined;
+    
+    // Process media if the message is an image, video, audio, or document
+    if (['image', 'video', 'audio', 'document'].includes(message.type) && this.gateway && this.gateway.downloadMedia) {
+      logger.info(`[Media Download] Message is media type: ${message.type}. Starting process.`);
+      const mediaInfo = message[message.type];
+      if (mediaInfo && mediaInfo.id) {
+        logger.info(`[Media Download] Found media info with id: ${mediaInfo.id}`);
+        try {
+          const downloaded = await this.gateway.downloadMedia(channel.id, mediaInfo.id);
+          if (downloaded) {
+            logger.info(`[Media Download] Successfully downloaded media buffer of size: ${downloaded.buffer.byteLength}`);
+            const fs = await import('fs');
+            const path = await import('path');
+            const os = await import('os');
+            const crypto = await import('crypto');
+            const { uploadFileToR2 } = await import('../../../infrastructure/storage/r2-storage.js');
+            
+            const cleanMime = downloaded.mimeType.split(';')[0];
+            const extension = cleanMime.split('/')[1] || 'bin';
+            const tempFileName = downloaded.originalFilename || `${crypto.randomBytes(8).toString('hex')}.${extension}`;
+            const tempFilePath = path.join(os.tmpdir(), tempFileName);
+            
+            logger.info(`[Media Download] Writing to temp file: ${tempFilePath}`);
+            await fs.promises.writeFile(tempFilePath, downloaded.buffer);
+            
+            logger.info(`[Media Download] Uploading to R2...`);
+            mediaUrl = await uploadFileToR2(tempFilePath, tempFileName, downloaded.mimeType);
+            
+            logger.info(`[Media Download] Upload complete. mediaUrl: ${mediaUrl}`);
+            // Assign mediaUrl to metadata so the frontend can access it
+            message.mediaUrl = mediaUrl;
+          } else {
+            logger.error(`[Media Download] this.gateway.downloadMedia returned null!`);
+          }
+        } catch (mediaErr: any) {
+          logger.error(`Failed to process incoming media: ${mediaErr.message}`);
+          logger.error(mediaErr.stack);
+          try {
+            const fs = await import('fs');
+            fs.writeFileSync('media_error.log', mediaErr.stack || mediaErr.message);
+          } catch(e) {}
+        }
+      } else {
+        logger.warn(`[Media Download] No mediaInfo or mediaInfo.id found!`);
+      }
+    } else {
+      logger.info(`[Media Download] Condition failed. type=${message.type}, gateway=${!!this.gateway}, downloadMedia=${!!(this.gateway && this.gateway.downloadMedia)}`);
+    }
+
     const savedMessage = await this.waRepo.saveMessage({
       conversationId: conversation.id,
       whatsappMessageId: message.id,

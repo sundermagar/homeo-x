@@ -44,6 +44,17 @@ router.get('/casemonthwise', asyncHandler(async (req: any, res) => {
   sendSuccess(res, result.data);
 }));
 
+router.get('/casemonthwise/product-details', asyncHandler(async (req: any, res) => {
+  const monthKey = req.query.monthKey as string;
+  if (!monthKey) throw new Error('monthKey is required');
+  const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
+
+  const useCases = getUseCases(req);
+  const result = await useCases.getProductDetails(clinicId, monthKey);
+  if (!result.success) throw new Error(result.error);
+  sendSuccess(res, result.data);
+}));
+
 router.get('/monthwisedue', asyncHandler(async (req: any, res) => {
   const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
   const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);

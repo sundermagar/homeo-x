@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X, CreditCard, Plus, Receipt, IndianRupee,
   ChevronRight, Save, Loader2, AlertCircle, CheckCircle2,
@@ -30,6 +31,8 @@ interface BillingUpdateModalProps {
   visitId?: number;
   pendingBalance?: number;
   receivedAmount?: number;
+  currentMedicineCharge?: number;
+  onUpdateMedicineCharge?: (amount: number) => void;
 }
 
 type TabType = 'regular' | 'custom' | 'payment';
@@ -45,14 +48,19 @@ export function BillingUpdateModal({
   rxWorkflow,
   visitId,
   pendingBalance,
-  receivedAmount
+  receivedAmount,
+  currentMedicineCharge,
+  onUpdateMedicineCharge
 }: BillingUpdateModalProps) {
-  const [activeTab, setActiveTab] = useState<TabType>(defaultTab || 'regular');
+  const [activeTab, setActiveTab] = useState<TabType>(defaultTab === 'medicine' ? 'regular' : (defaultTab || 'regular'));
   const [amount, setAmount] = useState<string>(() => {
     if (defaultTab === 'payment') {
       return (pendingBalance !== undefined && pendingBalance > 0 ? pendingBalance : 0).toString();
     }
     return currentConsultationFee?.toString() || '';
+  });
+  const [medicineAmount, setMedicineAmount] = useState<string>(() => {
+    return (currentMedicineCharge !== undefined ? currentMedicineCharge : 0).toString();
   });
   const [customTitle, setCustomTitle] = useState('');
   const [notes, setNotes] = useState('');
@@ -79,6 +87,25 @@ export function BillingUpdateModal({
     });
   }, [displayDate, additionalCharges]);
 
+  const hasInitializedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (defaultTab === 'custom' && todayCharges.length > 0 && !hasInitializedRef.current) {
+      const firstCharge = todayCharges[0];
+      if (firstCharge) {
+        hasInitializedRef.current = true;
+        const title = firstCharge.name || firstCharge.additionalName || '';
+        setCustomTitle(title);
+        setAmount((firstCharge.price || firstCharge.additionalPrice || firstCharge.amount || 0).toString());
+        setQuantity(firstCharge.quantity || 1);
+        setEditingChargeId(firstCharge.id);
+
+        const match = chargesCatalog.find(c => c.charges === title);
+        const isProd = (match && match.type === 'Product') || (firstCharge.quantity !== undefined && firstCharge.quantity > 0);
+        setIsProduct(!!isProd);
+      }
+    }
+  }, [defaultTab, todayCharges, chargesCatalog]);
 
   React.useEffect(() => {
     const originalOverflow = document.body.style.overflow;
@@ -89,12 +116,16 @@ export function BillingUpdateModal({
   }, []);
 
   const handleUpdateRegular = async () => {
-    if (!amount || isNaN(Number(amount))) return;
     try {
-      await updatePatient.mutateAsync({
-        regid,
-        consultationFee: Number(amount)
-      });
+      if (amount && !isNaN(Number(amount))) {
+        await updatePatient.mutateAsync({
+          regid,
+          consultationFee: Number(amount)
+        });
+      }
+      if (medicineAmount && !isNaN(Number(medicineAmount)) && onUpdateMedicineCharge) {
+        onUpdateMedicineCharge(Number(medicineAmount));
+      }
       onClose();
     } catch (err) {
       console.error('Failed to update regular charges:', err);
@@ -224,9 +255,19 @@ export function BillingUpdateModal({
     (isProduct && maxQuantity !== null && (maxQuantity <= 0 || quantity > maxQuantity))
   );
 
-  return (
+  return createPortal(
     <>
-      <div className="mc-drawer-backdrop" onClick={onClose} />
+      <div 
+        className="mc-drawer-backdrop" 
+        onClick={onClose} 
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 999998
+        }}
+      />
       <div
         className="mc-drawer animate-slide-in-right"
         style={{
@@ -243,7 +284,8 @@ export function BillingUpdateModal({
           borderRadius: 0,
           boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.15)',
           borderLeft: '1px solid #e2e8f0',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          zIndex: 999999
         }}
       >
         <div style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px' }}>
@@ -293,7 +335,7 @@ export function BillingUpdateModal({
                 outline: 'none'
               }}
             >
-              {tab === 'regular' ? 'Registration' : tab === 'custom' ? 'Additional' : 'Payment'}
+              {tab === 'regular' ? 'Registration & Medicine' : tab === 'custom' ? 'Additional' : 'Payment'}
             </button>
           ))}
         </div>
@@ -333,6 +375,21 @@ export function BillingUpdateModal({
                     autoFocus
                   />
                 </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Medicine Days Charge (₹)</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: '#64748b' }}>₹</span>
+                  <input
+                    type="number"
+                    value={medicineAmount}
+                    onChange={e => setMedicineAmount(e.target.value)}
+                    placeholder="0"
+                    className="pp-input"
+                    style={{ width: '100%', paddingLeft: '28px', fontSize: '1rem', fontWeight: 600, borderRadius: '8px', border: '1px solid #e2e8f0', padding: '10px 14px 10px 28px' }}
+                  />
+                </div>
                 <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '8px', lineHeight: 1.4 }}>
                   This updates the default consultation fee or day charges for the patient.
                 </p>
@@ -342,6 +399,27 @@ export function BillingUpdateModal({
 
           {activeTab === 'custom' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+              {editingChargeId && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600 }}>
+                    Editing existing additional charge
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingChargeId(null);
+                      setCustomTitle('');
+                      setAmount('');
+                      setQuantity(1);
+                      setIsProduct(false);
+                    }}
+                    style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                  >
+                    Add new instead
+                  </button>
+                </div>
+              )}
 
               {chargesCatalog && chargesCatalog.length > 0 && (
                 <div>
@@ -599,7 +677,7 @@ export function BillingUpdateModal({
           <button
             className="btn-primary"
             style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '8px', background: '#0f172a', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-            disabled={isLoading || !amount || isCustomTabInvalid}
+            disabled={isLoading || (!amount && activeTab !== 'regular') || isCustomTabInvalid}
             onClick={() => {
               if (activeTab === 'regular') handleUpdateRegular();
               if (activeTab === 'custom') handleAddCustom();
@@ -608,11 +686,12 @@ export function BillingUpdateModal({
           >
             {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             <span>
-              {activeTab === 'regular' ? 'Update Charge' : activeTab === 'custom' ? (editingChargeId ? 'Save Changes' : 'Add Charge') : 'Record Payment'}
+              {activeTab === 'regular' ? 'Update Charges' : activeTab === 'custom' ? (editingChargeId ? 'Save Changes' : 'Add Charge') : 'Record Payment'}
             </span>
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

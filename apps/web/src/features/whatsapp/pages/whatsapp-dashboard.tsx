@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode, lazy, Suspense } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useWhatsApp } from '../hooks/use-whatsapp';
 import type { WhatsAppAnalytics, WhatsAppChannel } from '@mmc/types';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import { 
   MessageCircle, Send, Globe, LayoutDashboard, Zap, TrendingUp, Users, MessageSquare, 
   AlertCircle, RefreshCcw, Loader2, FileText, BarChart2, Bot, Target, 
@@ -110,6 +111,19 @@ export const WhatsAppDashboardPage = () => {
   const segments = location.pathname.split('/').filter(Boolean);
   const waIndex = segments.indexOf('whatsapp');
   const activeFeature = waIndex !== -1 ? segments[waIndex + 1] || 'overview' : 'overview';
+
+  const { user } = useAuthStore();
+  const rawRole = (user as any)?.type || (user as any)?.role;
+  const isStaff = rawRole?.toLowerCase().replace(/\s/g, '') === 'doctor' || 
+                  rawRole?.toLowerCase().replace(/\s/g, '') === 'hmis_doctor' ||
+                  rawRole?.toLowerCase().replace(/\s/g, '') === 'receptionist';
+
+  React.useEffect(() => {
+    if (isStaff && activeFeature !== 'inbox' && activeFeature !== 'contacts') {
+      navigate('/communications/whatsapp/inbox', { replace: true });
+    }
+  }, [isStaff, activeFeature, navigate]);
+
   const activeChannel = channels?.[0] as WhatsAppChannel | undefined;
 
   const getPageConfig = () => {

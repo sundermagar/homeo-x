@@ -21,6 +21,7 @@ export interface MonthWiseResult {
   online: number;
   card: number;
   product_charges: number;
+  coupon: number;
   expenses: number;
   cash_deposit: number;
   bank_deposit: number;
@@ -29,8 +30,15 @@ export interface MonthWiseResult {
 
 export interface MonthWiseDueSummary {
   month: number;
-  count: number;
   total_due: number;
+  informed: number;
+  cured: number;
+  left_uncured: number;
+  reg_only: number;
+  discontinued: number;
+  pickup: number;
+  courier: number;
+  reserve_medicine: number;
 }
 
 export interface MonthWiseDueDetail {

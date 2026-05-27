@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { type PatientSummary } from '@mmc/types';
 import { PatientFormDrawer } from '../components/patient-form-drawer';
+import { PatientCaseInterceptModal } from '../components/patient-case-intercept-modal';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import '../../appointments/styles/appointments.css';
@@ -109,6 +110,7 @@ export default function PatientListPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
   const [assignPkgPatient, setAssignPkgPatient] = useState<{ regid: number; name: string } | null>(null);
+  const [interceptPatient, setInterceptPatient] = useState<{ regid: number; name: string } | null>(null);
   const [selectedUnregistered, setSelectedUnregistered] = useState<any | null>(null);
   const [patientFilter, setPatientFilter] = useState<'registered' | 'unregistered'>('registered');
 
@@ -378,9 +380,9 @@ export default function PatientListPage() {
                           {p.isUnregistered ? (
                             <span className="appt-cell-name" style={{ color: 'var(--pp-unregistered-fg)', fontWeight: 700 }}>{p.fullName}</span>
                           ) : (
-                            <Link to={`/medical-cases/${p.regid}`} className="appt-cell-name pp-clickable-name">
+                            <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="appt-cell-name pp-clickable-name" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
                               {p.fullName || 'Unknown'}
-                            </Link>
+                            </button>
                           )}
                           <div className="appt-cell-phone">
                             {p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender || '—'}
@@ -392,9 +394,9 @@ export default function PatientListPage() {
                       {p.isUnregistered ? (
                         <span className="pp-regid-pill" style={{ opacity: 0.5, background: 'var(--pp-bg-subtle)' }}>PENDING</span>
                       ) : (
-                        <Link to={`/medical-cases/${p.regid}`} className="pp-regid-pill">
+                        <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="pp-regid-pill" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                           #{p.regid}
-                        </Link>
+                        </button>
                       )}
                     </td>
                     <td data-label="Contact">
@@ -449,9 +451,9 @@ export default function PatientListPage() {
                   {p.isUnregistered ? (
                     <span className="appt-grid-card-patient">{p.fullName}</span>
                   ) : (
-                    <Link to={`/medical-cases/${p.regid}`} className="appt-grid-card-patient clickable-link">
+                    <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="appt-grid-card-patient clickable-link" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
                       {p.fullName}
-                    </Link>
+                    </button>
                   )}
                   <div className="appt-grid-card-phone">
                     {p.isUnregistered ? (
@@ -528,6 +530,15 @@ export default function PatientListPage() {
           onClose={() => setAssignPkgPatient(null)}
           patientId={assignPkgPatient.regid}
           patientName={assignPkgPatient.name}
+        />
+      )}
+
+      {interceptPatient && (
+        <PatientCaseInterceptModal
+          isOpen={!!interceptPatient}
+          onClose={() => setInterceptPatient(null)}
+          regid={interceptPatient.regid}
+          patientName={interceptPatient.name}
         />
       )}
     </div>

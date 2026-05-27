@@ -209,12 +209,12 @@
   background: var(--pp-blue); 
   color: #ffffff; 
   border-color: var(--pp-blue); 
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 4px 12px var(--pp-blue-faded);
 }
 .bill-btn-primary:hover { 
   background: var(--pp-blue-hover); 
   border-color: var(--pp-blue-hover);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2); 
+  box-shadow: 0 6px 16px var(--pp-blue-faded); 
 }
 
 .bill-btn-danger { background: var(--pp-danger-bg); color: var(--pp-danger-fg); border-color: var(--pp-danger-border); }
@@ -248,7 +248,7 @@
 
 /* ─── Brand Token Overrides ─── */
 :root {
-  --pp-danger-border: #FECACA;
+  --pp-danger-border: var(--pp-danger-border);
 }
 
 /* ─── Filter Bar ─── */
@@ -597,3 +597,5 @@
 /* ─── Animations ─── */
 @keyframes billModalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes spin        { from { transform: rotate(0deg); }  to { transform: rotate(360deg); } }
+
+.vc-summary-table { min-width: 100% !important; }

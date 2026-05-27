@@ -1,4 +1,5 @@
 import type { AdditionalChargeRepository } from '../ports/accounts.repository.js';
+import type { BillingRepository } from '../ports/billing.repository.js';
 import type { CreateAdditionalChargeInput, UpdateAdditionalChargeInput, ListAdditionalChargesQuery } from '@mmc/validation';
 import type { AdditionalCharge, AdditionalChargeWithPatient } from '@mmc/types';
 
@@ -58,12 +59,35 @@ export class CreateAdditionalChargeUseCase {
 }
 
 export class UpdateAdditionalChargeUseCase {
-  constructor(private readonly repo: AdditionalChargeRepository) {}
+  constructor(
+    private readonly repo: AdditionalChargeRepository,
+    private readonly billingRepo?: BillingRepository
+  ) {}
 
   async execute(id: number, input: UpdateAdditionalChargeInput): Promise<AdditionalChargeResult> {
     try {
+      const oldCharge = await this.repo.findById(id);
+      if (!oldCharge) return { success: false, error: 'Additional charge not found' };
+
       const updated = await this.repo.update(id, input);
       if (!updated) return { success: false, error: 'Additional charge not found or already deleted' };
+
+      if (this.billingRepo && oldCharge.regid && oldCharge.dateval && oldCharge.additionalName) {
+        // Calculate new total amount for the bill
+        const newPrice = input.additionalPrice !== undefined ? input.additionalPrice : oldCharge.additionalPrice;
+        const newQty = input.additionalQuantity !== undefined ? input.additionalQuantity : oldCharge.additionalQuantity;
+        const newAmount = (newPrice || 0) * (newQty || 1);
+        const newName = input.additionalName || oldCharge.additionalName;
+
+        await this.billingRepo.updateAdditionalChargeBill(
+          oldCharge.regid,
+          oldCharge.dateval,
+          oldCharge.additionalName,
+          newName,
+          newAmount
+        );
+      }
+
       return { success: true, data: updated };
     } catch (err) {
       return { success: false, error: (err as Error).message };
@@ -72,12 +96,27 @@ export class UpdateAdditionalChargeUseCase {
 }
 
 export class DeleteAdditionalChargeUseCase {
-  constructor(private readonly repo: AdditionalChargeRepository) {}
+  constructor(
+    private readonly repo: AdditionalChargeRepository,
+    private readonly billingRepo?: BillingRepository
+  ) {}
 
   async execute(id: number): Promise<AdditionalChargeResult> {
     try {
+      const oldCharge = await this.repo.findById(id);
+      if (!oldCharge) return { success: false, error: 'Additional charge not found' };
+
       const deleted = await this.repo.softDelete(id);
       if (!deleted) return { success: false, error: 'Additional charge not found' };
+
+      if (this.billingRepo && oldCharge.regid && oldCharge.dateval && oldCharge.additionalName) {
+        await this.billingRepo.deleteAdditionalChargeBill(
+          oldCharge.regid,
+          oldCharge.dateval,
+          oldCharge.additionalName
+        );
+      }
+
       return { success: true };
     } catch (err) {
       return { success: false, error: (err as Error).message };

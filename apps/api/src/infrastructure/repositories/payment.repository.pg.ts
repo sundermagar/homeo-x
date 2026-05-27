@@ -84,6 +84,43 @@ export class PaymentRepositoryPg implements PaymentRepository {
         updatedAt: new Date(),
       })
       .returning();
+
+    // Dual-write to legacy receipt table to ensure legacy parity routes (View Collection) work
+    if (data.regid) {
+      try {
+        const pDate = data.paymentDate ?? new Date();
+        const istDateStr = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+        }).format(pDate);
+        
+        const legacyDate = istDateStr;
+        const [m, d, y] = istDateStr.split('/');
+        const dateval = `${y}-${(m || '0').padStart(2, '0')}-${(d || '0').padStart(2, '0')}`;
+        const modeCode: Record<string, string> = { Cash: 'C', Card: 'S', Cheque: 'B', Online: 'O', UPI: 'U' };
+        const mode = modeCode[data.paymentMode] || 'C';
+
+        // Try to insert using sequence first, if it fails, fallback to max id
+        await this.db.execute(sql`
+          INSERT INTO receipt (id, receiptdate, dateval, regid, amount, mode, created_at, updated_at)
+          VALUES (
+            COALESCE((SELECT MAX(id) FROM receipt), 0) + 1, 
+            ${legacyDate}, 
+            ${dateval}, 
+            (SELECT id FROM case_datas WHERE regid = ${data.regid} LIMIT 1), 
+            ${String(data.amount)}, 
+            ${mode}, 
+            NOW(), 
+            NOW()
+          )
+        `);
+      } catch (err: any) {
+        console.error('[PaymentRepositoryPg] Failed to dual-write to legacy receipt table:', err.message);
+      }
+    }
+
     return this.toDomain(row!);
   }
 

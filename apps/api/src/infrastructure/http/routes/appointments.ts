@@ -20,7 +20,8 @@ import { BadRequestError, ValidationError } from '../../../shared/errors.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 import { createLogger } from '../../../shared/logger.js';
 import { z } from 'zod';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
+import * as schema from '@mmc/database';
 
 /** Returns true when the doctor's is_active flag is false in the users table. */
 async function isDoctorOffline(req: any, doctorId: number): Promise<boolean> {
@@ -109,6 +110,32 @@ appointmentsRouter.get('/followups', asyncHandler(async (req, res) => {
   if (result.success) {
     sendSuccess(res, result.data);
   }
+}));
+
+// POST /api/appointments/followups/status
+appointmentsRouter.post('/followups/status', asyncHandler(async (req, res) => {
+  const { id, visitType, callStatus, actionDate } = req.body;
+
+  if (!id || !visitType) throw new BadRequestError('id and visitType are required');
+
+  const updateFields: any = { updatedAt: new Date() };
+  if (callStatus !== undefined) updateFields.callStatus = callStatus;
+  if (actionDate !== undefined) updateFields.callDate = actionDate;
+
+  if (visitType === 'Missed') {
+    await req.tenantDb.update(schema.appointments)
+      .set(updateFields)
+      .where(eq(schema.appointments.id, Number(id)));
+  } else if (visitType === 'Next Visit') {
+    const legacyUpdateFields: any = { updatedAt: new Date() };
+    if (callStatus !== undefined) legacyUpdateFields.callStatus = callStatus;
+    if (actionDate !== undefined) legacyUpdateFields.callDate = actionDate;
+    await req.tenantDb.update(schema.pendingAppointmentsLegacy)
+      .set(legacyUpdateFields)
+      .where(eq(schema.pendingAppointmentsLegacy.id, Number(id)));
+  }
+
+  sendSuccess(res, { updateFields, id, visitType }, 'Status updated successfully');
 }));
 
 // GET /api/appointments/today

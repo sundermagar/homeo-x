@@ -7,7 +7,7 @@ import type {
   Department, Dispensary, ReferralSource, Sticker,
   StaticPage, Faq, PdfSetting, Medicine, Potency, Frequency,
   MessageTemplate, StockLog, PackagePlan, Courier,
-  User, Vaccine, Stock, PackagePeriod
+  User, Vaccine, Stock, PackagePeriod, CallStatus
 } from '../../domains/settings/ports/settings.repository.js';
 
 export class SettingsRepositoryPg implements ISettingsRepository {
@@ -795,6 +795,30 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async deleteVaccine(id: number): Promise<void> {
     await this.q('DELETE FROM vaccinedatas WHERE id = $1', [id]);
+  }
+
+  // ─── Call Statuses ─────────────────────────────────────────────────────────
+  async listCallStatuses(): Promise<CallStatus[]> {
+    return this.q('SELECT * FROM call_statuses ORDER BY id ASC');
+  }
+  async getCallStatus(id: number): Promise<CallStatus | undefined> {
+    return this.q1('SELECT * FROM call_statuses WHERE id = $1', [id]);
+  }
+  async createCallStatus(data: Omit<CallStatus, 'id' | 'createdAt' | 'updatedAt'>): Promise<CallStatus> {
+    return this.q1(
+      `INSERT INTO call_statuses (name, is_active, created_at, updated_at) 
+       VALUES ($1, $2, NOW(), NOW()) RETURNING *`,
+      [data.name, data.isActive ?? true]
+    ) as Promise<CallStatus>;
+  }
+  async updateCallStatus(id: number, data: Partial<Omit<CallStatus, 'id'>>): Promise<CallStatus> {
+    return this.q1(
+      `UPDATE call_statuses SET name = COALESCE($1, name), is_active = COALESCE($2, is_active), updated_at = NOW() WHERE id = $3 RETURNING *`,
+      [data.name ?? null, data.isActive ?? null, id]
+    ) as Promise<CallStatus>;
+  }
+  async deleteCallStatus(id: number): Promise<void> {
+    await this.q('DELETE FROM call_statuses WHERE id = $1', [id]);
   }
 
   // ─── Practitioners (Doctors from users table) ──────────────────────────────

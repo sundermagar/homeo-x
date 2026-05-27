@@ -52,6 +52,21 @@ export function useCaseMonthWise(fromYearMth: string, toYearMth: string) {
   });
 }
 
+export function useProductDetails(monthKey?: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['analytics', 'productDetails', monthKey],
+    queryFn: async () => {
+      if (!monthKey) return [];
+      const res = await api.get(`/analytics/casemonthwise/product-details?monthKey=${monthKey}`);
+      const inner = unwrap<any>(res, []);
+      return Array.isArray(inner) ? inner : [];
+    },
+    enabled: !!monthKey,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useMonthWiseDues(year: number) {
   const api = useApi();
   return useQuery({

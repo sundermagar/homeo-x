@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ChevronDown,
   Plus,
+  Bell,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../hooks/use-dashboard';
@@ -229,6 +230,7 @@ export function ReceptionistDashboard() {
               <OpLink icon={<Search size={15} />} label="Registry Lookup" path="/patients" />
               <OpLink icon={<Phone size={15} />} label="Confirm Appointments" path="/appointments" />
               <OpLink icon={<CreditCard size={15} />} label="Process Payments" path="/billing" />
+              <OpLink icon={<Bell size={15} />} label="Follow-up Dues" path="/medical-cases/followups" />
               <button 
                 onClick={() => setIsPatientDrawerOpen(true)}
                 className="hover-op"

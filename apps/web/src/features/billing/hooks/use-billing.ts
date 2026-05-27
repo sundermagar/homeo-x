@@ -8,6 +8,15 @@ import type {
 } from '@mmc/types';
 import type { CreateBillInput, ListBillsQuery, CreateCustomBillInput } from '@mmc/validation';
 
+export interface PatientBalance {
+  regid: number;
+  patientName: string;
+  doctorName: string | null;
+  balance: number;
+  notes: string | null;
+  lastBillDate: string | null;
+}
+
 interface RecordPaymentInput {
   regid: number;
   billId: number;
@@ -26,6 +35,7 @@ export interface CollectionSummary {
   cardReceived: number;
   chequeReceived: number;
   onlineReceived: number;
+  upiReceived: number;
   recordCount: number;
   targetAmount?: number;
   targetAchieved?: number;
@@ -101,6 +111,7 @@ export function useCollectionSummary(date?: string) {
         cardReceived: records.filter((r: any) => r.paymentMode === 'Card').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
         chequeReceived: records.filter((r: any) => r.paymentMode === 'Cheque').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
         onlineReceived: records.filter((r: any) => r.paymentMode === 'Online').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
+        upiReceived: records.filter((r: any) => r.paymentMode === 'UPI').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
         recordCount: collection.data?.data?.recordCount || 0,
       };
 
@@ -125,6 +136,23 @@ export function useBalanceSummary(date?: string) {
         totalExpenses: 0, // TODO: sum from expenses
         cashInHand: 0, // totalReceived - totalDeposits
       };
+    },
+  });
+}
+
+export function useUpdateCharges() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ billId, amount }: { billId: number; amount: number }) => {
+      const { data } = await apiClient.patch<{ success: boolean; data: Bill }>(`/billing/${billId}/charges`, { amount });
+      return data.data;
+    },
+    onSuccess: (updatedBill) => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
+      if (updatedBill.regid) {
+        queryClient.invalidateQueries({ queryKey: ['bills', 'patient', updatedBill.regid] });
+      }
     },
   });
 }
@@ -176,6 +204,197 @@ export function useRecordPayment() {
       queryClient.invalidateQueries({ queryKey: ['bills', 'patient', variables.regid] });
       queryClient.refetchQueries({ queryKey: ['medical-case', 'full', variables.regid] });
       queryClient.refetchQueries({ queryKey: ['medical-case', 'full', String(variables.regid)] });
+    },
+  });
+}
+
+// ─── ViewCollection Legacy Parity Hooks ───────────────────────────────────────
+
+export interface ExtendedDailySummaryData {
+  date: string;
+  collection: number;
+  cash: number;
+  card: number;
+  cheque: number;
+  online: number;
+  upi: number;
+  productCharges: number;
+  expenses: number;
+  cashDeposited: number;
+  deficit: number;
+  bankDeposit: number;
+  cashInHand: number;
+  recordCount: number;
+  upi?: number;
+}
+
+export interface PaymentDrilldownRecordData {
+  regid: number;
+  patientName: string;
+  amount: number;
+  chargeName?: string;
+  quantity?: number;
+  date?: string;
+}
+
+export interface MonthListRowData extends ExtendedDailySummaryData {}
+
+export interface CollectionTargetRowData {
+  date: string;
+  collection: number;
+  dailyTarget: number;
+  difference: number;
+  cumulativeCollection: number;
+  cumulativeTarget: number;
+  cumulativeDifference: number;
+  isSunday: boolean;
+}
+
+export interface CollectionTargetResponseData {
+  monthlyTarget: number;
+  workingDays: number;
+  dailyTarget: number;
+  rows: CollectionTargetRowData[];
+}
+
+export function useExtendedDailySummary(date?: string) {
+  return useQuery({
+    queryKey: ['billing', 'extended-summary', date],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: ExtendedDailySummaryData }>(
+        '/billing/extended-summary',
+        { params: { date } }
+      );
+      return data.data;
+    },
+  });
+}
+
+export function usePaymentDrilldown(date: string, mode: string, enabled = false) {
+  return useQuery({
+    queryKey: ['billing', 'payment-drilldown', date, mode],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: PaymentDrilldownRecordData[] }>(
+        '/billing/payment-drilldown',
+        { params: { date, mode } }
+      );
+      return data.data || [];
+    },
+    enabled,
+  });
+}
+
+export function useMonthList(endDate?: string, days = 32) {
+  return useQuery({
+    queryKey: ['billing', 'month-list', endDate, days],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: MonthListRowData[] }>(
+        '/billing/month-list',
+        { params: { endDate, days } }
+      );
+      return data.data || [];
+    },
+  });
+}
+
+export function useCollectionTarget(month?: string) {
+  return useQuery({
+    queryKey: ['billing', 'collection-target', month],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: CollectionTargetResponseData }>(
+        '/billing/collection-target',
+        { params: { month } }
+      );
+      return data.data;
+    },
+  });
+}
+
+export function useSetTarget() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (amount: number) => {
+      const { data } = await apiClient.post<{ success: boolean; data: { amount: number } }>(
+        '/billing/set-target',
+        { amount }
+      );
+      return data.data;
+    },
+    onSuccess: async (_, amount) => {
+      // Optimistically update all collection-target queries with the new monthly target
+      queryClient.setQueriesData({ queryKey: ['billing', 'collection-target'] }, (oldData: any) => {
+        if (!oldData) return oldData;
+        const newDaily = oldData.workingDays > 0 ? Math.round(amount / oldData.workingDays) : 0;
+        
+        let cumulativeCollection = 0;
+        let cumulativeTarget = 0;
+        
+        const newRows = (oldData.rows || []).map((row: any) => {
+          if (row.isSunday) {
+            return {
+              ...row,
+              cumulativeCollection,
+              cumulativeTarget,
+              cumulativeDifference: cumulativeCollection - cumulativeTarget,
+            };
+          }
+          cumulativeCollection += row.collection || 0;
+          cumulativeTarget += newDaily;
+          return {
+            ...row,
+            dailyTarget: newDaily,
+            difference: (row.collection || 0) - newDaily,
+            cumulativeCollection,
+            cumulativeTarget,
+            cumulativeDifference: cumulativeCollection - cumulativeTarget,
+          };
+        });
+
+        return {
+          ...oldData,
+          monthlyTarget: amount,
+          dailyTarget: newDaily,
+          rows: newRows
+        };
+      });
+      await queryClient.invalidateQueries({ queryKey: ['billing', 'collection-target'] });
+    },
+  });
+}
+
+export function useDeleteBill() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (billId: number) => {
+      const { data } = await apiClient.delete<{ success: boolean }>(`/billing/${billId}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
+    },
+  });
+}
+
+export function usePatientBalances() {
+  return useQuery({
+    queryKey: ['billing', 'balances'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ success: boolean; data: PatientBalance[] }>('/billing/balances');
+      return data.data;
+    },
+  });
+}
+
+export function useUpdateBalanceNote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ regid, note }: { regid: number; note: string }) => {
+      const { data } = await apiClient.post<{ success: boolean }>(`/billing/balances/${regid}/notes`, { note });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing', 'balances'] });
     },
   });
 }

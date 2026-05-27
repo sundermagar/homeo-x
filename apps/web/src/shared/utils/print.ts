@@ -24,13 +24,21 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
   }[template];
 
   let bodyRows = '';
+  const periodRow = (bill.fromDate || bill.toDate) ? `
+    <tr>
+      <td class="label">Period:</td>
+      <td class="right" style="font-weight:600; color:#2563eb;">${bill.fromDate ? format(new Date(bill.fromDate), 'dd-MM-yyyy') : ''} → ${bill.toDate ? format(new Date(bill.toDate), 'dd-MM-yyyy') : ''}</td>
+    </tr>` : '';
+
   if (template === 'standard') {
     bodyRows = `
       <tr><td class="label">Consultation Charges:</td><td class="right amount">₹${bill.charges.toLocaleString()}</td></tr>
+      ${periodRow}
       <tr><td class="label">Received:</td><td class="right amount">₹${bill.received.toLocaleString()}</td></tr>`;
   } else if (template === 'pharmacy') {
     bodyRows = `
       <tr><td class="label">Medicines Charges:</td><td class="right amount">₹${bill.charges.toLocaleString()}</td></tr>
+      ${periodRow}
       <tr><td class="label">Received:</td><td class="right amount">₹${bill.received.toLocaleString()}</td></tr>`;
   } else if (template === 'package') {
     bodyRows = `
@@ -40,6 +48,7 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
   } else {
     bodyRows = `
       <tr><td class="label">Total Charges:</td><td class="right amount">₹${bill.charges.toLocaleString()}</td></tr>
+      ${periodRow}
       <tr><td class="label">Amount Received:</td><td class="right amount">₹${bill.received.toLocaleString()}</td></tr>
       <tr><td class="label amount" style="color:${balance > 0 ? 'var(--pp-danger-fg)' : '#10b981'}">Balance Due:</td>
           <td class="right amount" style="color:${balance > 0 ? 'var(--pp-danger-fg)' : '#10b981'}">₹${balance.toLocaleString()}</td></tr>`;
@@ -160,6 +169,139 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
     printWindow.document.close();
   }
 };
+
+export const printGroupedBills = (group: any, org: Organization) => {
+  const isPaid = group.totalBalance <= 0;
+  
+  const bodyRows = group.bills.map((b: any) => {
+    const showPeriod = b.fromDate || b.toDate;
+    const periodHtml = showPeriod
+      ? `<div style="font-size:11px; color:#2563eb; font-weight:600; margin-bottom:4px;">Period: ${b.fromDate ? format(new Date(b.fromDate), 'dd-MM-yyyy') : ''} &rarr; ${b.toDate ? format(new Date(b.toDate), 'dd-MM-yyyy') : ''}</div>`
+      : '';
+    return `
+      <tr>
+        <td class="label">
+          <div style="font-weight:700; color:#1e293b; margin-bottom:4px;">${b.treatment || b.billType || 'Consultation'}</div>
+          ${periodHtml}
+          <div style="font-size:10px; color:#94a3b8;">INV-${b.billNo}</div>
+        </td>
+        <td class="right amount">₹${b.charges.toLocaleString()}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const html = `
+    <html>
+      <head>
+        <title>Consolidated Statement - ${group.patientName}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+          * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
+          body { padding: 40px; color: #1e293b; line-height: 1.5; }
+          .container { max-width: 800px; margin: auto; }
+          
+          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f1f5f9; padding-bottom: 30px; }
+          .clinic-info { flex: 1; }
+          .clinic-name { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+          .clinic-tagline { font-size: 14px; color: #2563EB; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+          .clinic-details { font-size: 12px; color: #64748b; font-weight: 500; }
+          .logo { width: 80px; height: 80px; border-radius: 12px; object-fit: contain; }
+          
+          .bill-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+          .meta-box h4 { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+          .meta-value { font-size: 14px; font-weight: 700; color: #1e293b; }
+          
+          .invoice-label-wrap { text-align: center; margin-bottom: 30px; }
+          .invoice-label { display: inline-block; padding: 6px 16px; background: #0f172a; color: #fff; border-radius: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+          
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+          td { padding: 16px 0; border-bottom: 1px dashed #e2e8f0; }
+          .label { font-size: 13px; font-weight: 600; color: #64748b; }
+          .right { text-align: right; font-weight: 700; color: #0f172a; }
+          .amount { font-size: 18px; font-weight: 800; }
+          
+          .footer { margin-top: 60px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+          .footer-text { font-size: 11px; color: #94a3b8; font-weight: 600; }
+          
+          @media print {
+            body { padding: 20px; }
+            .no-print { display: none; }
+            @page { margin: 1cm; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="no-print" style="margin-bottom: 20px; text-align: right;">
+            <button onclick="window.print()" style="padding: 10px 20px; background: #2563EB; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 13px;">Confirm Print</button>
+          </div>
+
+          <div class="header">
+            <div class="clinic-info">
+              <h1 class="clinic-name">${org.name}</h1>
+              <p class="clinic-tagline">${org.tagLine || 'Healthcare Excellence'}</p>
+              <div class="clinic-details">
+                ${org.address} ${org.address2 ? `<br>${org.address2}` : ''}<br>
+                ${org.phone ? `Phone: ${org.phone}` : ''} ${org.email ? ` | Email: ${org.email}` : ''}<br>
+                ${org.registration ? `Reg No: ${org.registration}` : ''}
+              </div>
+            </div>
+            ${org.logo ? `<img src="${org.logo}" class="logo" />` : ''}
+          </div>
+
+          <div class="invoice-label-wrap">
+            <span class="invoice-label">Consolidated Statement of Account</span>
+          </div>
+
+          <div class="bill-meta">
+            <div class="meta-box">
+              <h4>Statement Details</h4>
+              <p class="meta-value">Multiple Items (${group.bills.length})</p>
+              <p class="meta-value" style="font-size: 12px; margin-top: 4px;">Date: ${group.billDate ? format(new Date(group.billDate), 'PPPP') : 'N/A'}</p>
+            </div>
+            <div class="meta-box">
+              <h4>Patient Nomenclature</h4>
+              <p class="meta-value">${group.patientName}</p>
+              <p class="meta-value" style="font-size: 12px; margin-top: 4px;">Reg ID: #${group.regid}</p>
+            </div>
+          </div>
+
+          <table>
+            ${bodyRows}
+            <tr>
+              <td class="label">Total Charges:</td>
+              <td class="right amount" style="color: #2563EB">₹${group.totalCharges.toLocaleString()}</td>
+            </tr>
+          </table>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 20px; borderRadius: 16px;">
+             <div>
+                <h4 style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Payment Status</h4>
+                <p style="font-size: 14px; font-weight: 800; color: ${isPaid ? '#10b981' : '#ef4444'}">${isPaid ? 'FULLY SETTLED' : 'PARTIAL SETTLEMENT'}</p>
+                ${!isPaid ? `<p style="font-size: 11px; font-weight: 700; color: #ef4444; margin-top: 4px;">Balance Due: ₹${group.totalBalance.toLocaleString()}</p>` : ''}
+             </div>
+             <div style="text-align: right;">
+                <h4 style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Total Received</h4>
+                <p style="font-size: 24px; font-weight: 800; color: #0f172a;">₹${group.totalReceived.toLocaleString()}</p>
+             </div>
+          </div>
+
+          <div class="footer">
+            <p class="footer-text">This is a computer-generated statement. No signature required.</p>
+            <p class="footer-text" style="margin-top: 4px;">Thank you for choosing ${org.name}</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+};
+
 
 export const printPrescription = (caseData: any, org: Organization) => {
   const html = `

@@ -155,4 +155,10 @@ export const remedyTreeNodes = pgTable('remedy_tree_nodes', {
   deletedAt: timestamp('deleted_at'),
 });
 
-
+export const callStatuses = pgTable('call_statuses', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});

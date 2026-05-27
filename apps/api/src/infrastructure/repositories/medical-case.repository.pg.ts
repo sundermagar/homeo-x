@@ -144,6 +144,12 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           dateOfBirth: schema.patients.dateOfBirth,
           city: schema.patients.city,
           state: schema.patients.state,
+          doctorName: sql<string>`COALESCE(
+            (SELECT name FROM doctors WHERE id::text = TRIM(${schema.patients.assistantDoctor}) LIMIT 1),
+            (SELECT name FROM users WHERE id::text = TRIM(${schema.patients.assistantDoctor}) LIMIT 1),
+            ${schema.patients.assistantDoctor},
+            ''
+          )`,
         })
         .from(schema.medicalCases)
         .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
@@ -156,13 +162,29 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       if (!finalMedicalCase) {
         // Fallback to patient only if no case
         const [patient] = await this.db
-          .select()
+          .select({
+            firstName: schema.patients.firstName,
+            surname: schema.patients.surname,
+            phone: schema.patients.phone,
+            mobile1: schema.patients.mobile1,
+            gender: schema.patients.gender,
+            address: schema.patients.address,
+            dateOfBirth: schema.patients.dateOfBirth,
+            city: schema.patients.city,
+            state: schema.patients.state,
+            doctorName: sql<string>`COALESCE(
+              (SELECT name FROM doctors WHERE id::text = TRIM(${schema.patients.assistantDoctor}) LIMIT 1),
+              (SELECT name FROM users WHERE id::text = TRIM(${schema.patients.assistantDoctor}) LIMIT 1),
+              ${schema.patients.assistantDoctor},
+              ''
+            )`,
+          })
           .from(schema.patients)
           .where(eq(schema.patients.regid, regid))
           .limit(1);
-        
+
         if (!patient) return null;
-        
+
         finalMedicalCase = {
           id: 0,
           regid,
@@ -175,6 +197,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           dateOfBirth: patient.dateOfBirth,
           city: patient.city,
           state: patient.state,
+          doctorName: patient.doctorName,
         };
       }
 
@@ -398,14 +421,14 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         this.getReminders(regid),
 
         this.getAdditionalCharges(regid),
-        
-        this.db.select({ 
+
+        this.db.select({
           totalCharges: sql<number>`SUM(${schema.billLegacy.charges})::int`,
           totalReceived: sql<number>`SUM(${schema.billLegacy.received})::int`
         })
           .from(schema.billLegacy)
           .where(and(
-            eq(schema.billLegacy.regid, regid), 
+            eq(schema.billLegacy.regid, regid),
             sql`(${schema.billLegacy.deletedAt} IS NULL OR CAST(${schema.billLegacy.deletedAt} AS text) = '')`
           )),
 
@@ -425,7 +448,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             packagePrice: schema.packagePlans.price,
             colorCode: schema.packagePlans.colorCode,
             // Hardcode covers for now as these flags aren't in schema yet, but logic is uniform
-            coversConsultation: sql<boolean>`true`, 
+            coversConsultation: sql<boolean>`true`,
             coversMedicine: sql<boolean>`true`,
           })
           .from(schema.patientPackages)
@@ -444,37 +467,37 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       const legacyAdditionalRows = additionalChargesRes as any[];
       const modernBills = (modernPaymentsRes as any[]) || [];
       const legacySums = (paymentsRes as any)[0];
-      
+
       const modernRegularBills = modernBills.filter(b => b.billType !== 'Custom' && b.billType !== 'Additional');
       const modernCustomBills = modernBills.filter(b => b.billType === 'Custom');
 
       const totalRegular = (legacySums?.totalCharges || 0) + modernRegularBills.reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
-      
+
       // Combine legacy additional and modern custom bills
       const combinedAdditional = [
-        ...legacyAdditionalRows.map(r => ({ 
+        ...legacyAdditionalRows.map(r => ({
           id: r.id,
-          name: r.name, 
-          amount: r.amount, 
-          price: r.price, 
-          quantity: r.quantity, 
-          notes: null, 
-          createdAt: r.createdAt 
+          name: r.name,
+          amount: r.amount,
+          price: r.price,
+          quantity: r.quantity,
+          notes: null,
+          createdAt: r.createdAt
         })),
-        ...modernCustomBills.map(b => ({ 
+        ...modernCustomBills.map(b => ({
           id: b.id,
-          name: b.customTitle || 'Additional Charge', 
-          amount: b.charges, 
-          price: b.charges, 
-          quantity: 1, 
-          notes: b.notes, 
-          createdAt: b.createdAt 
+          name: b.customTitle || 'Additional Charge',
+          amount: b.charges,
+          price: b.charges,
+          quantity: 1,
+          notes: b.notes,
+          createdAt: b.createdAt
         }))
       ];
 
       const totalAdditional = combinedAdditional.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
       const totalBill = totalRegular + totalAdditional;
-      
+
       const totalPaid = (legacySums?.totalReceived || 0) + modernBills.reduce((sum, b) => sum + (Number(b.received) || 0), 0);
       const balance = totalBill - totalPaid;
 
@@ -629,12 +652,12 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         // Find existing rows for this visitId
         const existingRows = (data.visitId !== undefined && data.visitId !== null)
           ? await this.db
-              .select({ 
-                id: schema.legacySoapNotes.id,
-                createdAt: schema.legacySoapNotes.createdAt
-              })
-              .from(schema.legacySoapNotes)
-              .where(eq(schema.legacySoapNotes.visitId, data.visitId!))
+            .select({
+              id: schema.legacySoapNotes.id,
+              createdAt: schema.legacySoapNotes.createdAt
+            })
+            .from(schema.legacySoapNotes)
+            .where(eq(schema.legacySoapNotes.visitId, data.visitId!))
           : [];
 
         // Check if there is an existing SOAP note for this visit on the SAME day
@@ -834,6 +857,11 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         frequencyId: data.frequencyId,
         days: data.days,
         instructions: data.instructions,
+        rxremedy: (data as any).remedyName || (data as any).rxremedy,
+        rxfrequency: (data as any).frequencyName || (data as any).frequencyTitle || (data as any).rxfrequency,
+        rxpotency: (data as any).potencyName || (data as any).rxpotency,
+        rxdays: data.days?.toString() || (data as any).rxdays,
+        rxprescription: (data as any).prescription || (data as any).rxprescription,
       });
     }
   }
