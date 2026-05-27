@@ -39,6 +39,7 @@ import { AssignPackageModal } from '../../packages/components/assign-package-mod
 import { VitalsFormModal } from '../components/vitals-form-modal';
 import { FinalizeConsultationModal } from '../components/finalize-consultation-modal';
 import { FollowupScheduler } from '../components/followup-scheduler';
+import { AiFollowupTranscriptPanel } from '../components/ai-followup-transcript-panel';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { RemedyChartSession } from '../components/remedy-chart-session';
@@ -60,7 +61,7 @@ import { generatePrescriptionHtml } from '@/lib/print-templates';
 import type { PrescriptionPrintData } from '@/lib/print-templates';
 import { getClinicLetterhead, getDoctorLetterhead } from '@/lib/clinic-letterhead';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
-import { usePdfSettings, useMedicines } from '../../settings/hooks/use-settings';
+import { usePdfSettings } from '../../settings/hooks/use-settings';
 import '../styles/medical-case.css';
 export function useTableGrouping(data: any[], dateField: string = 'createdAt') {
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
@@ -216,7 +217,6 @@ export default function MedicalCaseDetailPage() {
   const medicalCase = fullData?.medicalCase;
   const visitId = medicalCase?.id;
   const { data: dayCharges = [] } = useDayCharges();
-  const { data: medicines = [] } = useMedicines();
 
   const formatName = useCallback((name?: string | null) => {
     if (!name) return '';
@@ -323,19 +323,12 @@ export default function MedicalCaseDetailPage() {
 
   // Diagnosis State
   const [showDiagnosisDrawer, setShowDiagnosisDrawer] = useState(false);
+  const [isDirectEdit, setIsDirectEdit] = useState(false);
   const [editingDiagnosisRecord, setEditingDiagnosisRecord] = useState<any>(null);
   const [diagForm, setDiagForm] = useState({
     diagnosis: '',
     complaint: '',
-    medication: '',
-    medicationTaking: ''
   });
-
-  const [medicationRows, setMedicationRows] = useState<MedicationRow[]>([
-    { medicine: '', frequency: 'Once', days: '', issue: '' }
-  ]);
-  const [activeMedicineFocusIdx, setActiveMedicineFocusIdx] = useState<number | null>(null);
-  const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
 
   // AI Prescription Scanner State
   const parsePrescriptionMutation = useParsePrescription();
@@ -349,6 +342,10 @@ export default function MedicalCaseDetailPage() {
   const [scannedMedicationRows, setScannedMedicationRows] = useState<MedicationRow[]>([
     { medicine: '', frequency: 'Once', days: '', issue: '' }
   ]);
+  const [isScannedPrescription, setIsScannedPrescription] = useState(false);
+  const [isSavingScannedPrescription, setIsSavingScannedPrescription] = useState(false);
+  const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
+
 
   const handlePrescriptionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -372,6 +369,7 @@ export default function MedicalCaseDetailPage() {
             }))
             : [{ medicine: '', frequency: 'Once', days: '', issue: '' }]
         );
+        setIsScannedPrescription(true);
         setShowPrescriptionPreview(true);
       }
     } catch (err) {
@@ -390,34 +388,61 @@ export default function MedicalCaseDetailPage() {
 
   const handleSaveScannedPrescription = async () => {
     if (!scannedPrescription) return;
+    setIsSavingScannedPrescription(true);
     try {
       if (scannedPrescription.diagnosis.trim()) {
         await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: scannedPrescription.diagnosis.trim() });
       }
-      const serializedMeds = JSON.stringify(scannedMedicationRows.filter(r => r.medicine.trim() !== ''));
-      const soapDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
+      const medications = scannedMedicationRows.filter(r => r.medicine.trim() !== '');
+      const noteDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
+      const payload = {
+        diagnosis: scannedPrescription.diagnosis,
+        complaint: scannedPrescription.complaint,
+        investigation: scannedPrescription.investigation,
+        medications
+      };
 
-      await saveSoap.mutateAsync({
-        id: currentVisitSoap?.id,
+      await saveNote.mutateAsync({
+        id: currentVisitHomeoDetail?.id,
         regid: Number(regid),
-        visitId: currentVisitId || visitId,
-        subjective: scannedPrescription.complaint,
-        objective: serializedMeds,
-        assessment: scannedPrescription.diagnosis,
-        plan: scannedPrescription.investigation,
-        dateval: soapDate,
-        createdAt: soapDate
+        notesType: 'HomeoDetails',
+        notes: JSON.stringify(payload),
+        dateval: noteDate.split('T')[0]
       });
 
-      if (!currentVisitSoap) {
-        setSelectedDate(soapDate);
+      if (!currentVisitHomeoDetail) {
+        setSelectedDate(noteDate);
       }
 
       setShowPrescriptionPreview(false);
       setScannedPrescription(null);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSavingScannedPrescription(false);
     }
+  };
+
+  const handleEditHomeoDetails = () => {
+    let payload = { diagnosis: '', complaint: '', investigation: '', medications: [] };
+    if (currentVisitHomeoDetail?.notes) {
+      try {
+         payload = JSON.parse(currentVisitHomeoDetail.notes);
+      } catch (e) {}
+    }
+    
+    setScannedPrescription({
+      diagnosis: payload.diagnosis || '',
+      complaint: payload.complaint || '',
+      investigation: payload.investigation || '',
+    });
+    setScannedMedicationRows(
+      payload.medications && payload.medications.length > 0 
+        ? payload.medications 
+        : [{ medicine: '', frequency: 'Once', days: '', issue: '' }]
+    );
+    setIsScannedPrescription(false);
+    setShowPrescriptionPreview(true);
   };
 
   const updateScannedMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
@@ -440,7 +465,26 @@ export default function MedicalCaseDetailPage() {
     });
   };
 
-  const handleOpenDiagnosis = (record?: any) => {
+  const detectScannedMedicineIssue = async (index: number, medicineName: string) => {
+    if (!medicineName.trim()) return;
+    setAiDetectingIdx(index);
+    try {
+      const res = await apiClient.post<{ success: boolean; data: { issue: string; provider?: string } }>(
+        '/medical-cases/ai-detect-medicine-issue',
+        { medicine: medicineName.trim() }
+      );
+      const detected = res.data?.data?.issue;
+      if (detected) {
+        updateScannedMedicationRow(index, 'issue', detected);
+      }
+    } catch (err) {
+      console.warn('AI medicine detection failed:', err);
+    } finally {
+      setAiDetectingIdx(null);
+    }
+  };
+
+  const handleOpenDiagnosis = (record?: any, forceDirectEdit?: boolean) => {
     // Priority: 1. Passed record (from table), 2. Current visit record (from sidebar context)
     const activeRecord = record || currentVisitSoap;
 
@@ -458,66 +502,25 @@ export default function MedicalCaseDetailPage() {
         initialMeds = [{ medicine: objectiveStr, frequency: 'Once', days: '', issue: '' }];
       }
     }
-    setMedicationRows(initialMeds);
+    setScannedMedicationRows(initialMeds);
 
     if (activeRecord) {
       setDiagForm({
-        diagnosis: activeRecord.assessment || '',
-        complaint: activeRecord.subjective || '',
-        medication: activeRecord.plan || '',
-        medicationTaking: activeRecord.objective || ''
+        diagnosis: record.assessment || '',
+        complaint: record.subjective || '',
       });
-      setEditingDiagnosisRecord(activeRecord);
+      setEditingDiagnosisRecord(record);
     } else {
-      // New record for today
-      setDiagForm({
-        diagnosis: '',
-        complaint: '',
-        medication: '',
-        medicationTaking: ''
-      });
+      setDiagForm({ diagnosis: '', complaint: '' });
       setEditingDiagnosisRecord(null);
     }
+
+    const direct = forceDirectEdit !== undefined 
+      ? forceDirectEdit 
+      : (record !== undefined && record !== null);
+
+    setIsDirectEdit(direct);
     setShowDiagnosisDrawer(true);
-  };
-
-  const updateMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
-    setMedicationRows(prev => prev.map((row, idx) => {
-      if (idx === index) {
-        return { ...row, [field]: value };
-      }
-      return row;
-    }));
-  };
-
-  const addMedicationRow = () => {
-    setMedicationRows(prev => [...prev, { medicine: '', frequency: 'Once', days: '', issue: '' }]);
-  };
-
-  const removeMedicationRow = (index: number) => {
-    setMedicationRows(prev => {
-      const updated = prev.filter((_, idx) => idx !== index);
-      return updated.length > 0 ? updated : [{ medicine: '', frequency: 'Once', days: '', issue: '' }];
-    });
-  };
-
-  const detectMedicineIssue = async (index: number, medicineName: string) => {
-    if (!medicineName.trim()) return;
-    setAiDetectingIdx(index);
-    try {
-      const res = await apiClient.post<{ success: boolean; data: { issue: string; provider?: string } }>(
-        '/medical-cases/ai-detect-medicine-issue',
-        { medicine: medicineName.trim() }
-      );
-      const detected = res.data?.data?.issue;
-      if (detected) {
-        updateMedicationRow(index, 'issue', detected);
-      }
-    } catch (err) {
-      console.warn('AI medicine detection failed:', err);
-    } finally {
-      setAiDetectingIdx(null);
-    }
   };
 
   const handleSaveDiagnosis = async () => {
@@ -531,7 +534,6 @@ export default function MedicalCaseDetailPage() {
           effectiveVisitId = res.data.data.id;
         }
       }
-      const serializedMeds = JSON.stringify(medicationRows.filter(r => r.medicine.trim() !== ''));
 
       const soapDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
 
@@ -540,9 +542,9 @@ export default function MedicalCaseDetailPage() {
         regid: Number(regid),
         visitId: effectiveVisitId,
         subjective: diagForm.complaint,
-        objective: serializedMeds,
+        objective: '',
         assessment: diagForm.diagnosis,
-        plan: diagForm.medication,
+        plan: '',
         dateval: soapDate,
         createdAt: soapDate
       });
@@ -655,6 +657,19 @@ export default function MedicalCaseDetailPage() {
   }, [displayDate, fullData?.soap, filterByDate]);
 
   const currentVisitSoap = currentVisitSoaps[0] || null;
+
+  const homeoDetailNotes = useMemo(() => {
+    return (notes || []).filter((n: any) =>
+      n.notesType === 'HomeoDetails' || n.noteType === 'HomeoDetails' || n.notes_type === 'HomeoDetails'
+    ).sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime());
+  }, [notes]);
+
+  const currentVisitHomeoDetails = useMemo(() => {
+    if (!displayDate || !homeoDetailNotes.length) return [];
+    return filterByDate(homeoDetailNotes, displayDate);
+  }, [displayDate, homeoDetailNotes, filterByDate]);
+
+  const currentVisitHomeoDetail = currentVisitHomeoDetails[0] || null;
 
   const currentVisitPrescriptions = useMemo(() => {
     if (!displayDate) return [];
@@ -794,7 +809,7 @@ export default function MedicalCaseDetailPage() {
     const hasActivePackage = !!fullData?.activePackage || !!activePackage;
 
     // Waive medicine charges if covered by package and session isn't completed yet
-    const effectiveDaysCharge = (hasActivePackage && (fullData?.activePackage?.coversMedicine ?? activePackage?.coversMedicine ?? true) && !isCompleted)
+    const effectiveDaysCharge = (hasActivePackage && (fullData?.activePackage?.coversMedicine ?? (activePackage as any)?.coversMedicine ?? true) && !isCompleted)
       ? 0
       : rawEffectiveDaysCharge;
 
@@ -826,7 +841,7 @@ export default function MedicalCaseDetailPage() {
     // Sum of all package bills currently saved in the database for today
     const savedPackageBill = dayBills.find(b => b.treatment?.startsWith('Package:'));
     const savedPackageBillsSum = savedPackageBill ? (Number(savedPackageBill.charges) || 0) : 0;
-    const savedPackageName = savedPackageBill ? savedPackageBill.treatment.replace('Package: ', '') : '';
+    const savedPackageName = savedPackageBill?.treatment ? savedPackageBill.treatment.replace('Package: ', '') : '';
 
     const isPurchaseDate = (() => {
       if (!displayDate) return false;
@@ -1015,7 +1030,7 @@ export default function MedicalCaseDetailPage() {
         isDateFiltered={!!displayDate}
       /></div>;
       case 'media': return <div className="mc-tab-content-wrapper"><MediaView regid={Number(regid)} visitId={medicalCase.id} images={filteredImages} isDateFiltered={!!displayDate} /></div>;
-      case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} isDateFiltered={!!displayDate} /></div>;
+      case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} isDateFiltered={!!displayDate} displayDate={displayDate} /></div>;
       case 'vitals': return <div className="mc-tab-content-wrapper"><VitalsView vitals={filteredVitals} onRecord={(data) => {
         setEditingVitals(data || null);
         setShowVitalsModal(true);
@@ -1424,13 +1439,11 @@ export default function MedicalCaseDetailPage() {
 
             {/* ─── Homeo Details Snapshot ─── */}
             <HomeoDetailsSnapshotWidget
-              currentVisitSoap={currentVisitSoap}
+              currentHomeoDetail={currentVisitHomeoDetail}
               isToday={!!isToday}
-              currentVisitSoapsCount={currentVisitSoaps.length}
               isPendingScan={parsePrescriptionMutation.isPending}
               onTriggerScan={triggerPrescriptionScan}
-              onEditAssessment={() => handleOpenDiagnosis(currentVisitSoap)}
-              onSeeAll={() => setActiveTab('diagnosis')}
+              onEditAssessment={handleEditHomeoDetails}
               prescriptionFileInputRef={prescriptionFileInputRef}
               handlePrescriptionFileChange={handlePrescriptionFileChange}
             />
@@ -1442,10 +1455,10 @@ export default function MedicalCaseDetailPage() {
             {showDiagnosisDrawer && ReactDOM.createPortal(
               <>
                 <div className="mc-drawer-backdrop" onClick={() => setShowDiagnosisDrawer(false)} />
-                <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
+                <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '680px', width: '100%' }}>
                   <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
                     <div className="mc-drawer-header-title">
-                      <Sparkles size={18} /> {editingDiagnosisRecord ? 'Edit AI Follow up' : 'New AI Follow up'}
+                      <Sparkles size={18} /> AI Follow up
                     </div>
                     <button className="mc-drawer-close" onClick={() => setShowDiagnosisDrawer(false)} style={{ color: 'white', opacity: 0.8 }}>
                       <X size={16} />
@@ -1460,198 +1473,34 @@ export default function MedicalCaseDetailPage() {
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosis</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={diagForm.diagnosis}
-                        onChange={e => setDiagForm({ ...diagForm, diagnosis: e.target.value })}
-                        placeholder="Final clinical assessment..."
-                        style={{ minHeight: '60px', fontSize: '1rem', fontWeight: 700 }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Complaint Intensity</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={diagForm.complaint}
-                        onChange={e => setDiagForm({ ...diagForm, complaint: e.target.value })}
-                        placeholder="Patient symptoms & intensity..."
-                        style={{ minHeight: '100px' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medication Taking</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {medicationRows.map((row, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '8px',
-                              padding: '12px',
-                              background: '#f8fafc',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Medication #{idx + 1}
-                              </span>
-                              <button
-                                type="button"
-                                className="btn-ghost"
-                                style={{
-                                  color: '#ef4444',
-                                  padding: '6px',
-                                  border: '1px solid transparent',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  background: '#fef2f2',
-                                  transition: 'all 0.2s ease'
-                                }}
-                                onClick={() => removeMedicationRow(idx)}
-                                title="Remove medication"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
-                                <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Medicine Name</label>
-                                <input
-                                  type="text"
-                                  className="pp-input"
-                                  placeholder="Search or enter medicine name"
-                                  value={row.medicine}
-                                  onChange={e => updateMedicationRow(idx, 'medicine', e.target.value)}
-                                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
-                                  autoComplete="off"
-                                />
-                              </div>
-
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Frequency</label>
-                                  <select
-                                    className="pp-input"
-                                    value={row.frequency}
-                                    onChange={e => updateMedicationRow(idx, 'frequency', e.target.value)}
-                                    style={{ width: '100%', padding: '8px', fontSize: '0.85rem', height: '38px', background: 'white' }}
-                                  >
-                                    <option value="Once">Once</option>
-                                    <option value="Twice">Twice</option>
-                                    <option value="Thrice">Thrice</option>
-                                    <option value="Bed Time">Bed Time</option>
-                                    <option value="Empty Stomach">Empty Stomach</option>
-                                    <option value="weekly">weekly</option>
-                                  </select>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
-                                    <button
-                                      type="button"
-                                      disabled={!row.medicine.trim() || aiDetectingIdx === idx}
-                                      onClick={() => detectMedicineIssue(idx, row.medicine)}
-                                      title="AI auto-detect issue from medicine name"
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        fontSize: '0.6rem',
-                                        fontWeight: 700,
-                                        color: aiDetectingIdx === idx ? '#94a3b8' : '#7c3aed',
-                                        background: aiDetectingIdx === idx ? '#f1f5f9' : 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
-                                        border: '1px solid',
-                                        borderColor: aiDetectingIdx === idx ? '#e2e8f0' : '#c4b5fd',
-                                        borderRadius: '6px',
-                                        padding: '3px 8px',
-                                        cursor: !row.medicine.trim() || aiDetectingIdx === idx ? 'not-allowed' : 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        opacity: !row.medicine.trim() ? 0.4 : 1,
-                                        letterSpacing: '0.02em',
-                                        textTransform: 'uppercase',
-                                      }}
-                                    >
-                                      {aiDetectingIdx === idx ? (
-                                        <><Loader2 size={10} className="animate-spin" /> Detecting...</>
-                                      ) : (
-                                        <><Sparkles size={10} /> AI Detect</>
-                                      )}
-                                    </button>
-                                  </div>
-                                  <input
-                                    type="text"
-                                    className="pp-input"
-                                    placeholder="e.g. Fever"
-                                    value={row.issue}
-                                    onChange={e => updateMedicationRow(idx, 'issue', e.target.value)}
-                                    style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', height: '38px', background: 'white' }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                    {isDirectEdit ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Summary Text
+                        </label>
+                        <textarea
+                          value={diagForm.diagnosis || diagForm.complaint || ''}
+                          onChange={(e) => setDiagForm((prev: any) => ({ ...prev, diagnosis: e.target.value, complaint: e.target.value }))}
+                          placeholder="Type or edit the summary text here..."
+                          className="pp-textarea"
+                          style={{ minHeight: '300px', fontSize: '0.92rem', lineHeight: 1.6, padding: '14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}
+                        />
                       </div>
-                      <button
-                        type="button"
-                        onClick={addMedicationRow}
-                        style={{
-                          alignSelf: 'flex-start',
-                          marginTop: '4px',
-                          padding: '6px 12px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          color: '#2563eb',
-                          background: '#eff6ff',
-                          border: '1px dashed #bfdbfe',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#dbeafe';
-                          e.currentTarget.style.borderColor = '#3b82f6';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#eff6ff';
-                          e.currentTarget.style.borderColor = '#bfdbfe';
-                        }}
-                      >
-                        <Plus size={14} /> Add Medication
-                      </button>
-                      <datalist id="medicines-catalog-list">
-                        {(medicines as any[]).map((m: any) => (
-                          <option key={m.id} value={m.name} />
-                        ))}
-                      </datalist>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Investigation</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={diagForm.medication}
-                        onChange={e => setDiagForm({ ...diagForm, medication: e.target.value })}
-                        placeholder="Investigations or next steps..."
-                        style={{ minHeight: '80px' }}
+                    ) : (
+                      <AiFollowupTranscriptPanel
+                        visitId={currentVisitId || visitId || `regid-${regid}`}
+                        patientAge={(() => {
+                          const dob = medicalCase?.dateOfBirth || medicalCase?.dob;
+                          if (!dob) return undefined;
+                          const yrs = Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
+                          return yrs > 0 ? yrs : undefined;
+                        })()}
+                        patientGender={medicalCase?.gender}
+                        initialSummary={diagForm.diagnosis || diagForm.complaint}
+                        onSummaryChange={(s) => setDiagForm((prev: any) => ({ ...prev, diagnosis: s, complaint: s }))}
                       />
-                    </div>
+                    )}
+
                   </div>
 
                   <footer style={{
@@ -1705,12 +1554,14 @@ export default function MedicalCaseDetailPage() {
                   </header>
 
                   <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div style={{ padding: '10px 14px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Sparkles size={14} style={{ color: '#7c3aed' }} />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5b21b6' }}>
-                        Handwritten prescription successfully scanned by AI
-                      </span>
-                    </div>
+                    {isScannedPrescription && (
+                      <div style={{ padding: '10px 14px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={14} style={{ color: '#7c3aed' }} />
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5b21b6' }}>
+                          Handwritten prescription successfully scanned by AI
+                        </span>
+                      </div>
+                    )}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosis</label>
@@ -1810,7 +1661,39 @@ export default function MedicalCaseDetailPage() {
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                    <button
+                                      type="button"
+                                      disabled={!row.medicine.trim() || aiDetectingIdx === idx}
+                                      onClick={() => detectScannedMedicineIssue(idx, row.medicine)}
+                                      title="AI auto-detect issue from medicine name"
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '0.6rem',
+                                        fontWeight: 700,
+                                        color: aiDetectingIdx === idx ? '#94a3b8' : '#7c3aed',
+                                        background: aiDetectingIdx === idx ? '#f1f5f9' : 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                                        border: '1px solid',
+                                        borderColor: aiDetectingIdx === idx ? '#e2e8f0' : '#c4b5fd',
+                                        borderRadius: '6px',
+                                        padding: '3px 8px',
+                                        cursor: !row.medicine.trim() || aiDetectingIdx === idx ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        opacity: !row.medicine.trim() ? 0.4 : 1,
+                                        letterSpacing: '0.02em',
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      {aiDetectingIdx === idx ? (
+                                        <><Loader2 size={10} className="animate-spin" /> Detecting...</>
+                                      ) : (
+                                        <><Sparkles size={10} /> AI Detect</>
+                                      )}
+                                    </button>
+                                  </div>
                                   <input
                                     type="text"
                                     className="pp-input"
@@ -1892,15 +1775,20 @@ export default function MedicalCaseDetailPage() {
                     </button>
                     <button
                       onClick={handleSaveScannedPrescription}
+                      disabled={isSavingScannedPrescription}
                       style={{
                         flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
-                        background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', fontWeight: 700,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                        background: isSavingScannedPrescription ? '#94a3b8' : 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', fontWeight: 700,
+                        cursor: isSavingScannedPrescription ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center',
                         justifyContent: 'center', gap: '8px',
                         boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.1)'
                       }}
                     >
-                      <Save size={18} /> Save Details
+                      {isSavingScannedPrescription ? (
+                        <><Loader2 size={18} className="animate-spin" /> Saving...</>
+                      ) : (
+                        <><Save size={18} /> Save Details</>
+                      )}
                     </button>
                   </footer>
                 </div>
@@ -3051,7 +2939,8 @@ const LAB_CONFIG: Record<string, any[]> = {
   ]
 };
 
-function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered }: { investigations: any[]; regid: number; visitId: number; onAppendNote?: (text: string) => void; isDateFiltered?: boolean }) {
+function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered, displayDate }: { investigations: any[]; regid: number; visitId: number; onAppendNote?: (text: string) => void; isDateFiltered?: boolean; displayDate?: string | Date | null }) {
+  const navigate = useNavigate();
   const [activeType, setActiveType] = useState('CBC');
   const [labData, setLabData] = useState<any>({});
   const [saved, setSaved] = useState(false);
@@ -3107,14 +2996,16 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
 
   const handleSave = async (copyToFollowup = false) => {
     try {
-      const investDate = new Date().toISOString().split('T')[0];
+      const { investDate: dataDate, attachmentUrl, summary, id: _ignoreId, ...actualData } = labData;
+      const investDate = dataDate || new Date().toISOString().split('T')[0];
       await saveInvestigation.mutateAsync({
         id: editingInv?.id,
-        regid, visitId, type: activeType, data: labData, investDate
+        regid, visitId, type: activeType, data: actualData, investDate,
+        summary, attachmentUrl
       });
 
       if (copyToFollowup) {
-        const summary = Object.entries(labData)
+        const findingsSummary = Object.entries(actualData)
           .filter(([_, v]) => v)
           .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
           .join(', ');
@@ -3122,7 +3013,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
           regid,
           visitId,
           notesType: 'Followup',
-          notes: `Investigation (${activeType}): ${summary}`
+          notes: `Investigation (${activeType}): ${findingsSummary}`
         });
       }
 
@@ -3151,7 +3042,11 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
 
   const handleDownload = () => {
     const content = `Investigation Report: ${activeType}\nDate: ${new Date().toLocaleDateString()}\n\n` +
-      Object.entries(labData).filter(([_, v]) => v).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join('\n');
+      (labData.summary ? `Summary:\n${labData.summary}\n\nFindings:\n` : '') +
+      Object.entries(labData)
+        .filter(([k, v]) => v && !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k))
+        .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
+        .join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -3196,7 +3091,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
         }
         setActiveType('Specific');
         setLabData({
-          investDate: new Date().toISOString().split('T')[0],
+          investDate: (displayDate ? new Date(displayDate).toISOString().split('T')[0] : null) || new Date().toISOString().split('T')[0],
           attachmentUrl: data.data?.attachmentUrl || '',
           summary: ''
         });
@@ -3207,7 +3102,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
         setActiveType(type || 'Specific');
         setLabData({
           ...(parsedData || {}),
-          investDate: date || new Date().toISOString().split('T')[0],
+          investDate: (displayDate ? new Date(displayDate).toISOString().split('T')[0] : null) || date || new Date().toISOString().split('T')[0],
           attachmentUrl: data.data.attachmentUrl,
           summary: summary || ''
         });
@@ -3287,92 +3182,53 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                   <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
                   <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
                 </div>
-                <table className="mc-data-table" style={{ marginBottom: 0 }}>
-                  <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
-                    <tr>
-                      <th style={{ width: '110px' }}>Date</th>
-                      <th style={{ width: '130px' }}>Category</th>
-                      <th>Results</th>
-                      <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groupedInvs.map((group) => (
-                      <React.Fragment key={group.date}>
-                        {group.items.map((inv, idx) => {
-                          const isExpanded = isDateFiltered || expandedDates.has(group.date);
-                          if (idx > 0 && !isExpanded) return null;
-
-                          const dateVal = inv.investDate || 0;
-
-                          return (
-                            <tr
-                              key={inv.id}
-                              className="hover-row"
-                              style={{
-                                background: idx > 0 ? '#f8fafc' : 'white',
-                                borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
-                              }}
-                            >
-                              <td className="appt-cell-mono">
-                                <DateGroupCell
-                                  dateVal={dateVal}
-                                  isFirst={idx === 0}
-                                  isExpanded={isExpanded}
-                                  itemsCount={group.items.length}
-                                  onToggle={() => toggleDate(group.date)}
-                                />
-                              </td>
-                              <td style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{inv.type}</td>
-                              <td>
-                                <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.5' }}>
-                                  {inv.data?.summary || inv.summary || (
-                                    <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No summary available</span>
-                                  )}
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '16px', gap: '16px', background: '#f8fafc' }}>
+                  {sortedInvs.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>No investigations found for this page.</div>
+                  ) : (
+                    sortedInvs.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(inv => {
+                      const dateVal = inv.investDate || 0;
+                      return (
+                        <div key={inv.id} className="pp-card hover-card" style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ background: '#f5f3ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontWeight: 800, fontSize: '0.85rem' }}>
+                                {inv.type}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Calendar size={14} style={{ color: '#94a3b8' }} />
+                                {new Date(dateVal).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              {onAppendNote && (
+                                <button onClick={() => handleCopyToFollowup(inv)} className="btn-ghost" style={{ color: '#16a34a', padding: '6px 8px', borderRadius: '6px' }} title="Copy to Follow-up"><Copy size={15} /></button>
+                              )}
+                              <button onClick={() => navigate('/clinical/ai-analysis?query=' + encodeURIComponent(inv.summary || inv.data?.summary || ''))} className="btn-ghost" style={{ color: '#8b5cf6', padding: '6px 8px', borderRadius: '6px' }} title="Suggest Remedy"><BrainCircuit size={15} /></button>
+                              <button onClick={() => setPreviewingInv(inv)} className="btn-ghost" style={{ color: 'var(--pp-blue)', padding: '6px 8px', borderRadius: '6px' }} title="View Report Details"><Eye size={15} /></button>
+                              <button onClick={() => { if (confirm('Delete this investigation?')) { deleteRecord.mutateAsync({ type: 'investigations', id: inv.id }); } }} className="btn-ghost" style={{ color: '#ef4444', padding: '6px 8px', borderRadius: '6px' }} title="Delete"><Trash2 size={15} /></button>
+                            </div>
+                          </div>
+                          
+                          <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: '1.6', marginBottom: '12px' }}>
+                            {inv.data?.summary || inv.summary || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No summary available</span>}
+                          </div>
+                          
+                          {inv.data && Object.keys(inv.data).filter(k => !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '12px', background: '#f1f5f9', borderRadius: '8px' }}>
+                              {Object.entries(inv.data).filter(([k, v]) => v && !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).map(([k, v]) => (
+                                <div key={k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px', background: 'white', padding: '6px 10px', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', border: '1px solid #e2e8f0' }}>
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{k}</span>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{String(v)}</span>
                                 </div>
-                              </td>
-                              <td style={{ textAlign: 'center' }}>
-                                <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
-                                  {onAppendNote && (
-                                    <button
-                                      onClick={() => handleCopyToFollowup(inv)}
-                                      className="btn-ghost"
-                                      style={{ color: '#16a34a', padding: '4px 8px' }}
-                                      title="Copy to Follow-up"
-                                    >
-                                      <Copy size={14} />
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => setPreviewingInv(inv)}
-                                    className="btn-ghost"
-                                    style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                    title="View Report Details"
-                                  >
-                                    <Eye size={14} />
-                                  </button>
-
-                                  <button
-                                    onClick={() => {
-                                      if (confirm('Delete this investigation?')) {
-                                        deleteRecord.mutateAsync({ type: 'investigations', id: inv.id });
-                                      }
-                                    }}
-                                    className="btn-ghost"
-                                    style={{ color: '#dc2626', padding: '4px 8px' }}
-                                    title="Delete"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
               <Pagination
                 currentPage={currentPage}
@@ -3425,33 +3281,36 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
             </div>
 
             <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: '16px' }}>
-                {fields.map(field => (
-                  <div key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: '6px', ...(field.type === 'full' ? { gridColumn: '1 / -1' } : {}) }}>
-                    <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{field.label}</label>
-                    {field.type === 'full' ? (
-                      <textarea
-                        className="pp-textarea"
-                        placeholder={`Enter ${field.label}...`}
-                        value={getLabValue(field.key)}
-                        onChange={e => handleLabValueChange(field.key, e.target.value)}
-                        style={{ minHeight: '100px' }}
-                      />
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input
-                          type="text"
-                          className="pp-input"
-                          placeholder="0.00"
-                          value={getLabValue(field.key)}
-                          onChange={e => handleLabValueChange(field.key, e.target.value)}
-                          style={{ flex: 1 }}
-                        />
-                        {field.range && <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--pp-text-3)', background: 'var(--pp-warm-2)', padding: '4px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>{field.range}</span>}
-                      </div>
-                    )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Summary / Findings</label>
+                  <textarea
+                    className="pp-textarea"
+                    placeholder="Enter or edit investigation summary..."
+                    value={labData.summary || ''}
+                    onChange={(e) => setLabData({ ...labData, summary: e.target.value })}
+                    style={{ minHeight: '120px', fontSize: '0.9rem', lineHeight: 1.6 }}
+                  />
+                </div>
+                
+                {Object.keys(labData).filter(k => !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).length > 0 && (
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', display: 'block' }}>Extracted Parameters</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: '16px' }}>
+                      {Object.keys(labData).filter(k => !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).map(key => (
+                        <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{key}</label>
+                          <input
+                            type="text"
+                            className="pp-input"
+                            value={labData[key]}
+                            onChange={e => setLabData({ ...labData, [key]: e.target.value })}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -4525,28 +4384,33 @@ const renderMedicationTakingHistory = (objectiveVal: string) => {
 };
 
 interface HomeoDetailsSnapshotWidgetProps {
-  currentVisitSoap: any;
+  currentHomeoDetail: any;
   isToday: boolean;
-  currentVisitSoapsCount: number;
   isPendingScan: boolean;
   onTriggerScan: () => void;
   onEditAssessment: () => void;
-  onSeeAll: () => void;
-  prescriptionFileInputRef: React.RefObject<HTMLInputElement>;
+  prescriptionFileInputRef: React.RefObject<HTMLInputElement | null>;
   handlePrescriptionFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const HomeoDetailsSnapshotWidget = React.memo(({
-  currentVisitSoap,
+  currentHomeoDetail,
   isToday,
-  currentVisitSoapsCount,
   isPendingScan,
   onTriggerScan,
   onEditAssessment,
-  onSeeAll,
   prescriptionFileInputRef,
   handlePrescriptionFileChange
 }: HomeoDetailsSnapshotWidgetProps) => {
+  const data = React.useMemo(() => {
+    if (!currentHomeoDetail?.notes) return null;
+    try {
+      return JSON.parse(currentHomeoDetail.notes);
+    } catch {
+      return null;
+    }
+  }, [currentHomeoDetail]);
+
   return (
     <div className="mc-side-card" style={{ marginBottom: '16px' }}>
       <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -4598,34 +4462,30 @@ const HomeoDetailsSnapshotWidget = React.memo(({
               </div>
             </>
           )}
-          {!isToday && currentVisitSoapsCount > 1 && (
-            <div
-              onClick={onSeeAll}
-              style={{ color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-            >
-              See all ({currentVisitSoapsCount}) <ChevronRight size={14} />
-            </div>
-          )}
         </div>
       </div>
-      <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '400px', overflowY: 'auto' }}>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
-          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.assessment || '—'}</div>
-        </div>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
-          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.subjective || '—'}</div>
-        </div>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
-          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-            {renderMedicationTakingSnapshot(currentVisitSoap?.objective)}
+      <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', maxHeight: '400px', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.diagnosis || '—'}</div>
           </div>
-        </div>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
-          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.plan || currentVisitSoap?.advice || '—'}</div>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.complaint || '—'}</div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+              {data?.medications && data.medications.length > 0 
+                ? renderMedicationTakingSnapshot(JSON.stringify(data.medications)) 
+                : '—'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.investigation || '—'}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -4723,7 +4583,27 @@ function DiagnosisView({
       <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div className="mc-section-header" style={{ margin: 0 }}>Clinical Assessments</div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          {/* Main tab 'Add Diagnosis' button removed as requested. User uses sidebar button instead. */}
+          {onAddRecord && (
+            <button
+              onClick={onAddRecord}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'var(--pp-blue)',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 4px rgba(37,99,235,0.15)',
+              }}
+            >
+              <Sparkles size={14} /> New AI Follow up
+            </button>
+          )}
         </div>
       </div>
 
@@ -4731,11 +4611,34 @@ function DiagnosisView({
       {!soapRecords ? (
         <TableSkeleton rows={5} cols={5} />
       ) : soapRecords.length === 0 ? (
-        <EmptyState
-          icon={Sparkles}
-          title="No AI Follow up recorded yet"
-          description="Use the AI Follow up button in the sidebar to start recording clinical findings for this patient."
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <EmptyState
+            icon={Sparkles}
+            title="No AI Follow up recorded yet"
+            description="Start a new AI Follow up to record and analyse the conversation with this patient."
+          />
+          {onAddRecord && (
+            <button
+              onClick={onAddRecord}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 18px',
+                borderRadius: '10px',
+                border: 'none',
+                background: 'var(--pp-blue)',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)',
+              }}
+            >
+              <Sparkles size={16} /> Start AI Follow up
+            </button>
+          )}
+        </div>
       ) : (
         <>
           <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #fde68a', marginBottom: '20px' }}>
@@ -4748,9 +4651,7 @@ function DiagnosisView({
               <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
                 <tr>
                   <th style={{ width: '120px' }}>Date</th>
-                  <th style={{ width: '220px' }}>Diagnosis</th>
-                  <th>Complaints (S)</th>
-                  <th>Plan (P)</th>
+                  <th>Summary</th>
                   <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
@@ -4782,16 +4683,10 @@ function DiagnosisView({
                             />
                           </td>
                           <td>
-                            <div style={{ fontWeight: 700, color: 'var(--pp-blue)', fontSize: '0.85rem', marginBottom: '2px' }}>{record.assessment || 'No Diagnosis'}</div>
-                            {record.objective && renderMedicationTakingHistory(record.objective)}
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5 }}>
-                              {record.subjective || '—'}
+                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5, marginBottom: '6px' }}>
+                              {record.subjective || record.assessment || '—'}
                             </div>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-2)' }}>{record.plan || record.advice || '—'}</div>
+                            {record.objective && renderMedicationTakingHistory(record.objective)}
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>

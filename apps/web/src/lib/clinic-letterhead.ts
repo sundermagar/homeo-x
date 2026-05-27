@@ -106,7 +106,7 @@ export function buildDoctorLetterhead(user?: any, override?: Partial<DoctorLette
   })();
 
   const fullName = u
-    ? `${u.firstName || ''} ${u.lastName || ''}`.trim()
+    ? u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim()
     : '';
 
   return {

@@ -10,7 +10,7 @@ import type { Visit } from '../../../types/visit';
 import type { Patient } from '../../../types/patient';
 
 // ─── Stage Type ───
-export type ConsultStage = 'PATIENT_INFO' | 'CONSULTATION' | 'TOTALITY' | 'REPERTORY' | 'PRESCRIPTION';
+export type ConsultStage = 'CONVERSATION' | 'SUMMARY' | 'LAB_REPORTS' | 'PRESCRIPTION' | 'FINALIZE_RX';
 
 // ─── Types ───
 
@@ -28,6 +28,7 @@ export interface SoapState {
   objective: string;
   assessment: string;
   plan: string;
+  advice?: string;
   clinicalSummary: string;
 }
 
@@ -43,6 +44,9 @@ export interface AiContext {
   thirstPattern?: string;
   sleepPosition?: string;
   perspiration?: string;
+  causation?: string;
+  location?: string;
+  concomitants?: string;
   doctorNotes?: string;
   allergies?: string[];
   transcript?: string;
@@ -141,8 +145,18 @@ export interface UseConsultationStateReturn {
   setSleepPosition: (val: string) => void;
   perspiration: string;
   setPerspiration: (val: string) => void;
+  causation: string;
+  setCausation: (val: string) => void;
+  location: string;
+  setLocation: (val: string) => void;
+  concomitants: string;
+  setConcomitants: (val: string) => void;
   doctorNotes: string;
   setDoctorNotes: (val: string) => void;
+
+  // Case summary (editable narrative generated from the conversation)
+  caseSummary: string;
+  setCaseSummary: (val: string) => void;
 
   // Google Meet
   sessionId: string | null;
@@ -247,12 +261,17 @@ export function useConsultationState({
   const [thirstPattern, setThirstPattern] = useState('');
   const [sleepPosition, setSleepPosition] = useState('');
   const [perspiration, setPerspiration] = useState('');
+  const [causation, setCausation] = useState('');
+  const [location, setLocation] = useState('');
+  const [concomitants, setConcomitants] = useState('');
   const [doctorNotes, setDoctorNotes] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
+  // Editable narrative summary generated from the whole conversation
+  const [caseSummary, setCaseSummary] = useState('');
 
   // ─── Stage Navigation ───
-  const STAGE_ORDER: ConsultStage[] = ['PATIENT_INFO', 'CONSULTATION', 'TOTALITY', 'REPERTORY', 'PRESCRIPTION'];
-  const [consultStage, setConsultStage] = useState<ConsultStage>('PATIENT_INFO');
+  const STAGE_ORDER: ConsultStage[] = ['CONVERSATION', 'SUMMARY', 'PRESCRIPTION'];
+  const [consultStage, setConsultStage] = useState<ConsultStage>('CONVERSATION');
   const [scoredRemedies, setScoredRemedies] = useState<ScoredRemedy[]>([]);
 
   // ─── Consultation Mode & Categorized Symptoms ───
@@ -265,6 +284,14 @@ export function useConsultationState({
     // The backend now returns the completely merged and deduplicated list.
     // Replace the state entirely instead of appending.
     setCategorizedSymptoms(newSymptoms);
+    if (newSymptoms.thermalReaction) setThermalReaction(newSymptoms.thermalReaction.toLowerCase());
+    if (newSymptoms.miasm) setMiasm(newSymptoms.miasm.toLowerCase());
+    if (newSymptoms.thirstPattern) setThirstPattern(newSymptoms.thirstPattern.toLowerCase());
+    if (newSymptoms.sleepPosition) setSleepPosition(newSymptoms.sleepPosition.toLowerCase());
+    if (newSymptoms.perspiration) setPerspiration(newSymptoms.perspiration.toLowerCase());
+    if (newSymptoms.causation) setCausation(newSymptoms.causation);
+    if (newSymptoms.location) setLocation(newSymptoms.location);
+    if (newSymptoms.concomitants) setConcomitants(newSymptoms.concomitants);
   }, []);
 
   const handleNextStage = useCallback(() => {
@@ -314,8 +341,12 @@ export function useConsultationState({
     setThirstPattern('');
     setSleepPosition('');
     setPerspiration('');
+    setCausation('');
+    setLocation('');
+    setConcomitants('');
     setDoctorNotes('');
     setSessionId(null);
+    setCaseSummary('');
     setSuggestedRubrics([]);
     setGnmAnalysis(null);
     setConsultationMode('acute');
@@ -351,6 +382,9 @@ export function useConsultationState({
         thirstPattern,
         sleepPosition,
         perspiration,
+        causation,
+        location,
+        concomitants,
         doctorNotes,
         allergies: patient?.allergies,
         transcript: ongoingTranscript,
@@ -656,6 +690,18 @@ export function useConsultationState({
   const handleHomeopathyConsultGenerated = useCallback((result: HomeopathyConsultResult) => {
     console.log('[useConsultationState] Homeopathy consult generated:', result);
 
+    // Auto-fill constitutional factors from AI extraction if they aren't already set
+    if (result.clinicalData) {
+      setThermalReaction(prev => prev || result.clinicalData.thermalReaction?.toLowerCase() || '');
+      setMiasm(prev => prev || result.clinicalData.miasm?.toLowerCase() || '');
+      setThirstPattern(prev => prev || result.clinicalData.thirstPattern?.toLowerCase() || '');
+      setSleepPosition(prev => prev || result.clinicalData.sleepPosition?.toLowerCase() || '');
+      setPerspiration(prev => prev || result.clinicalData.perspiration?.toLowerCase() || '');
+      setCausation(prev => prev || result.clinicalData.causation?.join(', ') || '');
+      setLocation(prev => prev || result.clinicalData.location?.join(', ') || '');
+      setConcomitants(prev => prev || result.clinicalData.concomitants?.join(', ') || '');
+    }
+
     if (result.followUpAssessment) {
       const assessment = result.followUpAssessment;
 
@@ -880,8 +926,16 @@ export function useConsultationState({
     setSleepPosition,
     perspiration,
     setPerspiration,
+    causation,
+    setCausation,
+    location,
+    setLocation,
+    concomitants,
+    setConcomitants,
     doctorNotes,
     setDoctorNotes,
+    caseSummary,
+    setCaseSummary,
     scribeSuggestion,
     setScribeSuggestion,
     sttLanguage,
