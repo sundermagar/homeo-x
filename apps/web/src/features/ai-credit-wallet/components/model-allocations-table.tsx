@@ -1,4 +1,5 @@
 import React from 'react';
+import { Server } from 'lucide-react';
 import { useAIModels } from '../hooks/use-ai-models-data';
 import { Pagination } from '@/components/shared/pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';

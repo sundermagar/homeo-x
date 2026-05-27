@@ -5,6 +5,7 @@ import { useAIModels } from '../hooks/use-ai-models-data';
 import { toast } from '@/hooks/use-toast';
 import { Pagination } from '@/components/shared/pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
+import { ModelSelectDropdown } from './model-select-dropdown';
 
 export function RoutingRulesTable() {
   const initialRules = useRoutingRules();
@@ -23,6 +24,16 @@ export function RoutingRulesTable() {
   useEffect(() => {
     setRules(initialRules);
   }, [initialRules]);
+
+  const handleUpdatePrimaryModel = (ruleId: string, newModelId: string) => {
+    setRules(prev => prev.map(rule => {
+      if (rule.id === ruleId) {
+        return { ...rule, primaryModel: newModelId };
+      }
+      return rule;
+    }));
+    toast({ title: 'Primary Model Updated', description: 'The routing rule has been saved.' });
+  };
 
   const handleRemoveFallback = (ruleId: string, idxToRemove: number) => {
     setRules(prev => prev.map(rule => {
@@ -53,13 +64,14 @@ export function RoutingRulesTable() {
       if (rule.id === ruleId) {
         // Just add a random active model for demo purposes that isn't already primary or in chain
         const available = activeModels.filter(m => m.id !== rule.primaryModel && !rule.fallbackModels.includes(m.id));
-        if (available.length > 0) {
+        const modelToAdd = available[0];
+        if (modelToAdd) {
           return {
             ...rule,
-            fallbackModels: [...rule.fallbackModels, available[0].id]
+            fallbackModels: [...rule.fallbackModels, modelToAdd.id]
           };
         } else {
-          toast({ title: 'No models available', description: 'All active models are already in the chain.', variant: 'destructive' });
+          toast({ title: 'No models available', description: 'All active models are already in the chain.', variant: 'error' });
         }
       }
       return rule;
@@ -97,11 +109,12 @@ export function RoutingRulesTable() {
                 </div>
               </td>
               <td data-label="PRIMARY MODEL" style={{ padding: '16px 24px', verticalAlign: 'middle' }}>
-                <select className="cw-form-select" defaultValue={rule.primaryModel} style={{ width: '160px', padding: '6px 10px', fontSize: '13px' }}>
-                  {activeModels.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
+                <ModelSelectDropdown 
+                  value={rule.primaryModel} 
+                  options={activeModels} 
+                  onChange={(val) => handleUpdatePrimaryModel(rule.id, val)}
+                  variant="primary"
+                />
               </td>
               <td data-label="FALLBACK CHAIN" style={{ padding: '16px 24px', verticalAlign: 'middle' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
@@ -113,15 +126,12 @@ export function RoutingRulesTable() {
                       return (
                         <React.Fragment key={`${modelId}-${idx}`}>
                           <div style={{ display: 'flex', alignItems: 'center', background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: '4px', padding: '2px 6px', fontSize: '12px', color: '#4B5563' }}>
-                            <select 
+                            <ModelSelectDropdown 
                               value={modelId}
-                              onChange={(e) => handleUpdateFallback(rule.id, idx, e.target.value)}
-                              style={{ background: 'transparent', border: 'none', outline: 'none', color: '#111827', fontSize: 'inherit', fontWeight: 600, cursor: 'pointer', appearance: 'none', paddingRight: '8px' }}
-                            >
-                              {activeModels.map(m => (
-                                <option key={m.id} value={m.id}>{m.name}</option>
-                              ))}
-                            </select>
+                              options={activeModels}
+                              onChange={(val) => handleUpdateFallback(rule.id, idx, val)}
+                              variant="fallback"
+                            />
                             <button 
                               onClick={() => handleRemoveFallback(rule.id, idx)}
                               style={{ background: 'none', border: 'none', padding: 0, marginLeft: '6px', color: '#9CA3AF', cursor: 'pointer', display: 'flex' }}
