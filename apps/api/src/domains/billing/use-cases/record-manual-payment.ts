@@ -11,9 +11,8 @@ export class RecordManualPaymentUseCase {
   ) {}
 
   async execute(input: RecordManualPaymentInput): Promise<Result<Payment[]>> {
-    if (input.paymentMode === 'Online') {
-      return fail('Online payments must go through the Razorpay verify flow');
-    }
+    // Staff are permitted to manually record 'Online' payments if they have verified it via their bank/dashboard.
+    // Online payments via the patient portal go through VerifyPaymentUseCase instead.
 
     const payments: Payment[] = [];
     let totalAmount = 0;
@@ -31,11 +30,25 @@ export class RecordManualPaymentUseCase {
           status: 'Completed',
           paymentMode: split.paymentMode,
           paymentDate: input.receivedDate ? new Date(input.receivedDate) : new Date(),
+          skipLegacyReceipt: true,
         });
         payments.push(p);
         totalAmount += split.amount;
         if (!modesUsed.includes(split.paymentMode)) {
           modesUsed.push(split.paymentMode);
+        }
+        
+        await this.billingRepo.updateReceived(split.billId, split.amount, split.paymentMode);
+      }
+      if (totalAmount > 0 && input.regid) {
+        for (const mode of modesUsed) {
+          const modeAmount = input.splitPayments.filter(s => s.paymentMode === mode).reduce((sum, s) => sum + s.amount, 0);
+          await this.paymentRepo.recordLegacyReceipt({
+            regid: input.regid,
+            amount: modeAmount,
+            paymentMode: mode,
+            paymentDate: input.receivedDate ? new Date(input.receivedDate) : new Date(),
+          });
         }
       }
     } else if (input.amount && input.amount > 0) {

@@ -4601,27 +4601,7 @@ function DiagnosisView({
       <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div className="mc-section-header" style={{ margin: 0 }}>Clinical Assessments</div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          {onAddRecord && (
-            <button
-              onClick={onAddRecord}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                border: 'none',
-                background: 'var(--pp-blue)',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(37,99,235,0.15)',
-              }}
-            >
-              <Sparkles size={14} /> New AI Follow up
-            </button>
-          )}
+
         </div>
       </div>
 
@@ -4701,7 +4681,7 @@ function DiagnosisView({
                             />
                           </td>
                           <td>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5, marginBottom: '6px' }}>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5, marginBottom: '6px', whiteSpace: 'pre-wrap' }}>
                               {record.subjective || record.assessment || '—'}
                             </div>
                             {record.objective && renderMedicationTakingHistory(record.objective)}

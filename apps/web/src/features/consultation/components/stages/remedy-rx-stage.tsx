@@ -224,7 +224,7 @@ export function PrescriptionStage({
                 />
               </div>
               <button onClick={() => setSubmitted(query.trim())} className="pp-btn-primary h-11 px-5 text-[14px] shadow-sm">
-                <Sparkles className="h-4 w-4 mr-2" /> Get rubrics & remedy
+                <Sparkles className="h-4 w-4 mr-2" /> Analyse
               </button>
             </div>
           </div>

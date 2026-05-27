@@ -1,6 +1,6 @@
 import type { BillWithPatient } from '@mmc/types';
 import { format } from 'date-fns';
-import { RefreshCw, Receipt, Printer, X, DollarSign, CreditCard, ChevronRight, ChevronDown, Trash2, MoreHorizontal, Eye } from 'lucide-react';
+import { RefreshCw, Receipt, Printer, X, DollarSign, CreditCard, ChevronRight, ChevronDown, Trash2, MoreHorizontal, Eye, FileText } from 'lucide-react';
 import { printBill, printGroupedBills } from '@/shared/utils/print';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -140,8 +140,8 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       setReceivingBill(null);
       setReceiveAmount(0);
     } catch (err) {
-      console.error(err);
-      alert('Failed to record payment');
+      const errorMsg = (err as any)?.response?.data?.error || (err as Error).message || 'Unknown error';
+      alert(`Failed to record payment: ${errorMsg}`);
     }
   };
 
@@ -149,12 +149,12 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
     if (!receivingGroup || receiveAmount <= 0) return;
     try {
       let remaining = receiveAmount;
+      const splitPayments = [];
       for (const bill of receivingGroup.bills) {
         if (remaining <= 0) break;
         if (bill.balance > 0) {
           const payAmt = Math.min(bill.balance, remaining);
-          await recordPayment.mutateAsync({
-            regid: bill.regid,
+          splitPayments.push({
             billId: bill.id,
             amount: payAmt,
             paymentMode: paymentMode,
@@ -162,12 +162,21 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
           remaining -= payAmt;
         }
       }
+
+      if (splitPayments.length > 0) {
+        await recordPayment.mutateAsync({
+          regid: receivingGroup.regid,
+          paymentMode: paymentMode,
+          splitPayments: splitPayments,
+        });
+      }
+
       setReceivingGroup(null);
       setReceiveAmount(0);
       setSelectedGroup(null);
     } catch (err) {
-      console.error(err);
-      alert('Failed to record consolidated payment');
+      const errorMsg = (err as any)?.response?.data?.error || (err as Error).message || 'Unknown error';
+      alert(`Failed to record consolidated payment: ${errorMsg}`);
     }
   };
 
@@ -565,34 +574,41 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
 
             <div className="bill-form-group" style={{ marginTop: 16 }}>
               <label className="bill-form-label">Payment Mode</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 <button
                   className={`bill-view-toggle-btn ${paymentMode === 'Cash' ? 'is-active' : ''}`}
                   onClick={() => setPaymentMode('Cash')}
-                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
                 >
                   <DollarSign size={14} /> Cash
                 </button>
                 <button
                   className={`bill-view-toggle-btn ${paymentMode === 'UPI' ? 'is-active' : ''}`}
                   onClick={() => setPaymentMode('UPI')}
-                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
                 >
                   <CreditCard size={14} /> UPI
                 </button>
                 <button
                   className={`bill-view-toggle-btn ${paymentMode === 'Card' ? 'is-active' : ''}`}
                   onClick={() => setPaymentMode('Card')}
-                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
                 >
                   <CreditCard size={14} /> Card
                 </button>
                 <button
                   className={`bill-view-toggle-btn ${paymentMode === 'Online' ? 'is-active' : ''}`}
                   onClick={() => setPaymentMode('Online')}
-                  style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
                 >
                   <CreditCard size={14} /> Online
+                </button>
+                <button
+                  className={`bill-view-toggle-btn ${paymentMode === 'Cheque' ? 'is-active' : ''}`}
+                  onClick={() => setPaymentMode('Cheque')}
+                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                >
+                  <FileText size={14} /> Cheque
                 </button>
               </div>
             </div>

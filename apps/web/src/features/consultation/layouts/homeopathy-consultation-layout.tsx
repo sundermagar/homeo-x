@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, ArrowRight, Stethoscope, FileText, FlaskConical, History, ChevronLeft, Save, Monitor, Phone, Video, Copy, MessageSquare, ScrollText, Check } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Stethoscope, FileText, FlaskConical, History, ChevronLeft, Save, Monitor, Phone, Video, Copy, MessageSquare, ScrollText, Check, Loader2 } from 'lucide-react';
 
 import type { VideoCallState, CallMode } from '../components/consultation-header';
 import { ConsultationStage } from '../components/stages/consultation-stage';
@@ -52,6 +52,7 @@ export function HomeopathyConsultationLayout({
   const [isVideoPaused, setIsVideoPaused] = useState(true);
   // Gates the live chat behind a Start click so mic permission is requested in a user gesture.
   const [started, setStarted] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Click-handler for both "Next Patient" buttons — invalidates the dashboard,
   // queue, waitlist, appointments, and visit caches so the doctor sees fresh
@@ -312,7 +313,7 @@ export function HomeopathyConsultationLayout({
           return [...(prev || []), ...newRubrics];
         });
       }
-      
+
       const mergedRubrics = [...(state.suggestedRubrics || []), ...(rubricsData?.suggestedRubrics || [])];
 
       if (nextStage === 'LAB_REPORTS') {
@@ -596,7 +597,7 @@ export function HomeopathyConsultationLayout({
   const typeIcon = { IN_PERSON: '🏥', AUDIO: '📞', VIDEO: '📹' }[callMode];
 
   // ── Bottom-bar helpers ──
-  const isBusy = state.isCompleting || homeopathyConsult.isPending;
+  const isBusy = state.isCompleting || homeopathyConsult.isPending || analyzeCase.isPending || suggestSoap.isPending || extractRubrics.isPending || repertorizeScore.isPending || isTransitioning;
 
   const completeLabel =
     state.consultStage === 'CONVERSATION'
@@ -618,7 +619,11 @@ export function HomeopathyConsultationLayout({
     } else if (state.consultStage === 'LAB_REPORTS') {
       handleScoreRemedies(state.suggestedRubrics); // This scores collected rubrics and moves to PRESCRIPTION
     } else if (state.consultStage === 'PRESCRIPTION') {
-      state.setConsultStage('FINALIZE_RX');
+      setIsTransitioning(true);
+      setTimeout(() => {
+        state.setConsultStage('FINALIZE_RX');
+        setIsTransitioning(false);
+      }, 300);
     } else if (state.consultStage === 'FINALIZE_RX') {
       const { rows, advice, followUp } = repertoryDataRef.current;
       if (rows.length > 0) {
@@ -761,14 +766,14 @@ export function HomeopathyConsultationLayout({
                     disabled={isBusy}
                     className="pp-btn-secondary h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
                   >
-                    {isBusy ? 'Processing…' : 'Upload Lab Reports'}
+                    {isBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : 'Upload Lab Reports'}
                   </button>
                   <button
                     onClick={() => handleExtractSummaryRubrics('PRESCRIPTION')}
                     disabled={isBusy}
                     className="pp-btn-primary h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
                   >
-                    {isBusy ? 'Processing…' : 'Skip to Remedy →'}
+                    {isBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : 'Skip to Remedy →'}
                   </button>
                 </>
               ) : (
@@ -777,7 +782,7 @@ export function HomeopathyConsultationLayout({
                   disabled={isBusy}
                   className="pp-btn-primary h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
                 >
-                  {isBusy ? 'Processing…' : completeLabel}
+                  {isBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : completeLabel}
                 </button>
               )}
             </div>
