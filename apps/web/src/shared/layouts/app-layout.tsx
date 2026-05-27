@@ -5,6 +5,7 @@ import { Sidebar } from '../components/sidebar';
 import { DashboardHeader } from '../components/dashboard-header';
 import { CommandPalette } from '../components/command-palette';
 import { ScrollToTop } from '../components/scroll-to-top';
+import { RouteErrorBoundary } from '@/components/shared/error-boundary';
 import { useMobile } from '../hooks/use-mobile';
 import { useCallback, useEffect } from 'react';
 import { useAuthStore } from '../stores/auth-store';
@@ -81,7 +82,9 @@ export function AppLayout() {
               </div>
             )} */}
             <div className="page-content-main">
-              <Outlet />
+              <RouteErrorBoundary>
+                <Outlet />
+              </RouteErrorBoundary>
             </div>
           </div>
         </div>

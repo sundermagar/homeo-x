@@ -394,7 +394,7 @@ export default function PatientListPage() {
                       {p.isUnregistered ? (
                         <span className="pp-regid-pill" style={{ opacity: 0.5, background: 'var(--pp-bg-subtle)' }}>PENDING</span>
                       ) : (
-                        <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="pp-regid-pill" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                        <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="pp-regid-pill" style={{ cursor: 'pointer' }}>
                           #{p.regid}
                         </button>
                       )}

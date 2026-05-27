@@ -72,7 +72,7 @@ export function MonthListView() {
             th:first-child, td:first-child { text-align: left; }
             @media print {
               body { padding: 0; }
-              @page { size: landscape; margin: 1cm; }
+              @page { size: portrait; margin: 1cm; }
             }
           </style>
         </head>

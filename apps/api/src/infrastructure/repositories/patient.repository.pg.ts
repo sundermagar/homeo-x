@@ -417,6 +417,38 @@ export class PatientRepositoryPg implements PatientRepository {
     return rows.map(row => this.toSummary({ ...row.patient, doctorName: row.doctorName }));
   }
 
+  async findTodayRegistrations(clinicId?: number): Promise<PatientSummary[]> {
+    const conditions = [
+      sql`(deleted_at IS NULL OR deleted_at::text = '')`,
+      sql`${patients.createdAt}::date = CURRENT_DATE`
+    ];
+
+    if (clinicId) {
+      conditions.push(
+        or(
+          eq(patients.clinicId, clinicId),
+          isNull(patients.clinicId),
+          eq(patients.clinicId, 0),
+          eq(patients.clinicId, 1),
+        )!
+      );
+    }
+
+    const rows = await this.db
+      .select({
+        patient: patients,
+        doctorName: sql<string>`COALESCE(
+          (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
+          case_datas.assitant_doctor
+        )`
+      })
+      .from(patients)
+      .where(and(...conditions))
+      .orderBy(sql`${patients.id} DESC`);
+    return rows.map(row => this.toSummary({ ...row.patient, doctorName: row.doctorName }));
+  }
+
   async getFormMeta(clinicId?: number): Promise<PatientFormMeta> {
     try {
       // 1. Fetch Doctors — Primary source is doctorsLegacy (tenant's doctors table)

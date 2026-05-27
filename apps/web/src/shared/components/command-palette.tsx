@@ -137,7 +137,7 @@ function buildCommands(
     // ── Packages ─────────────────────────────────────────────────────────────
     nav('Packages', '/packages', <Package size={16} />, ADMIN_CLINIC,
       ['package', 'membership', 'subscription', 'plan']),
-    nav('Package Tracking', '/packages/tracking', <PackageCheck size={16} />, ADMIN_CLINIC,
+    nav('Package Tracking', '/packages/tracking', <PackageCheck size={16} />, [...ADMIN_CLINIC, 'Receptionist'],
       ['tracking', 'package', 'membership']),
 
     // ── Billing & Payments ────────────────────────────────────────────────────
@@ -153,7 +153,7 @@ function buildCommands(
       ['additional', 'charges', 'extra']),
     nav('Assigned Charges', '/billing/assigned-charges', <Plus size={16} />, BILLING_ADMIN,
       ['assigned', 'charges', 'patient', 'allocation']),
-    nav('Day Charges', '/billing/day-charges', <Calendar size={16} />, BILLING_ADMIN,
+    nav('Day Charges', '/billing/day-charges', <Calendar size={16} />, ADMIN_CLINIC,
       ['day', 'charges', 'daily']),
     nav('Deposits', '/billing/deposits', <Wallet size={16} />, BILLING_ADMIN,
       ['deposit', 'advance', 'prepaid']),

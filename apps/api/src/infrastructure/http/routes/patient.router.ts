@@ -115,6 +115,18 @@ patientRouter.get('/meta/birthdays', authMiddleware, async (req: Request, res: R
   }
 });
 
+// GET /api/patients/today — Today's new registrations
+patientRouter.get('/today', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const repo = getRepo(req);
+    const clinicId = req.user?.contextId;
+    const data = await repo.findTodayRegistrations(clinicId);
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // GET /api/patients/unregistered
 patientRouter.get('/unregistered', authMiddleware, async (req: Request, res: Response) => {
   try {
