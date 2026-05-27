@@ -90,16 +90,8 @@ function DefaultFallback({ error, reset, errorId, occurredAt }: FallbackProps): 
     error.message.includes('Failed to fetch dynamically imported module') ||
     error.message.includes('Loading chunk');
 
-  // Auto-reset once for chunk errors to handle network blips gracefully
-  useEffect(() => {
-    if (isChunkError) {
-      const timer = setTimeout(() => {
-        console.log('[ErrorBoundary] Auto-retrying chunk load error...');
-        reset();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isChunkError, reset]);
+  // We removed the auto-reset here to prevent infinite React rendering loops
+  // when a chunk permanently fails to load (e.g., Vite dev server restarts).
 
   const reload = (): void => window.location.reload();
   

@@ -389,6 +389,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             w.id as wl_id,
             w.appointment_id,
             w.patient_id,
+            w.unregistered_patient_id,
             w.doctor_id,
             w.waiting_number as token_no,
             w.status,
@@ -402,6 +403,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           q.wl_id,
           q.id,
           q.patient_id,
+          q.unregistered_patient_id,
           q.doctor_id,
           q.token_no,
           q.status,
@@ -410,6 +412,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           q.booking_time,
           q.visit_id,
           q.notes,
+          COALESCE(p.mobile1, p.phone, q.a_phone) as phone,
           COALESCE(p.first_name || ' ' || p.surname, q.manual_name, 'Unknown Patient') as patient_name,
           COALESCE(p.regid, p.id, q.patient_id) as regid,
           COALESCE(
@@ -434,6 +437,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             tw.wl_id,
             COALESCE(a.id, tw.wl_id * -1) as id,
             tw.patient_id,
+            tw.unregistered_patient_id,
             tw.doctor_id,
             tw.token_no,
             CASE WHEN tw.status = 1 THEN 'Consultation' WHEN tw.status = 2 THEN 'Completed' ELSE 'Waitlist' END as status,
@@ -441,7 +445,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             tw.checked_in_at as created_at,
             COALESCE(a.booking_time, '') as booking_time,
             COALESCE(a.id, tw.appointment_id) as visit_id,
-            a.notes
+            a.notes,
+            a.phone as a_phone
           FROM today_waitlist tw
           LEFT JOIN appointments a ON a.id = tw.appointment_id
 
@@ -451,6 +456,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             NULL as wl_id,
             a.id,
             a.patient_id,
+            a.unregistered_patient_id,
             a.doctor_id,
             a.token_no,
             CASE WHEN a.status IN ('In Progress', 'InProgress') THEN 'Consultation' ELSE a.status END as status,
@@ -458,7 +464,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.created_at,
             a.booking_time,
             a.id as visit_id,
-            a.notes
+            a.notes,
+            a.phone as a_phone
           FROM appointments a
           WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL OR a.clinic_id = 0 OR a.clinic_id = 1)
@@ -493,12 +500,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         id: r.id,
         wlId: r.wl_id,
         patientId: r.patient_id,
+        unregisteredId: r.unregistered_patient_id,
         regid: r.regid,
         patientName: r.patient_name,
         doctorName: r.doctor_name,
         bookingTime: r.booking_time || '',
         tokenNo: r.token_no,
         status: r.status,
+        phone: r.phone || '',
         isUrgent: false,
         age: undefined,
         gender: undefined,

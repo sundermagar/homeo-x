@@ -217,10 +217,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'memberships',
         label: 'Memberships',
         icon: Package,
-        roles: ADMIN,
+        roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'],
         children: [
-          { path: '/packages', label: 'Package Plans', icon: Layers },
-          { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck },
+          { path: '/packages', label: 'Package Plans', icon: Layers, roles: ADMIN },
+          { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },
         ],
       },
     },
@@ -300,13 +300,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             path: '/billing', label: 'Billing', icon: Receipt,
             roles: ALL,
             children: [
-              { path: '/billing', label: 'Bill List', icon: Receipt, roles: ALL },
-              { path: '/billing/collection', label: 'View Collection', icon: DollarSign, roles: ALL },
-              { path: '/billing/balance', label: 'View Balance', icon: Wallet, roles: ALL },
+              { path: '/billing', label: 'Bill List', icon: Receipt },
+              { path: '/billing/collection', label: 'View Collection', icon: DollarSign },
+              { path: '/billing/balance', label: 'View Balance', icon: Wallet },
               { path: '/billing/additional-charges', label: 'Additional Charges', icon: Receipt, roles: ADMIN },
-              { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },
-              { path: '/billing/deposits', label: 'Deposits', icon: Building, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },
-              { path: '/billing/expenses', label: 'Expenses', icon: DollarSign, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },
+              { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar, roles: ['SuperAdmin', 'Admin', 'Clinicadmin'] },
+              { path: '/billing/deposits', label: 'Deposits', icon: Building },
+              { path: '/billing/expenses', label: 'Expenses', icon: DollarSign },
             ]
           },
           { path: '/payments', label: 'Payment Ledger', icon: Banknote, roles: ALL },
@@ -513,10 +513,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside className={`sidebar ${isOpen ? 'is-open' : ''} ${effectiveCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
-            <div 
-              className="sidebar-logo" 
-              style={{ 
-                background: 'transparent', 
+            <div
+              className="sidebar-logo"
+              style={{
+                background: 'transparent',
                 padding: '0',
                 width: '32px',
                 height: '32px',

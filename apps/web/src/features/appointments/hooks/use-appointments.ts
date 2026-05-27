@@ -101,7 +101,10 @@ export function useCreateAppointment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (dto: CreateAppointmentDto) => apiClient.post('/appointments', dto),
-    onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: apptKeys.all });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }
 
@@ -110,7 +113,10 @@ export function useUpdateAppointment() {
   return useMutation({
     mutationFn: ({ id, dto }: { id: number; dto: UpdateAppointmentDto }) =>
       apiClient.put(`/appointments/${id}`, dto),
-    onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: apptKeys.all });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }
 
@@ -119,7 +125,10 @@ export function useUpdateStatus() {
   return useMutation({
     mutationFn: ({ id, status, cancellationReason }: { id: number; status: string; cancellationReason?: string }) =>
       apiClient.post(`/appointments/${id}/status`, { status, cancellationReason }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: apptKeys.all });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }
 
@@ -127,7 +136,10 @@ export function useDeleteAppointment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => apiClient.delete(`/appointments/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: apptKeys.all });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }
 
@@ -136,7 +148,10 @@ export function useIssueToken() {
   return useMutation({
     mutationFn: (appointmentId: number) =>
       apiClient.post(`/appointments/${appointmentId}/issue-token`, {}),
-    onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: apptKeys.all });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }
 
@@ -145,7 +160,10 @@ export function useAddToWaitlist() {
   return useMutation({
     mutationFn: (dto: { patientId?: number; appointmentId?: number; unregisteredPatientId?: number; doctorId?: number; consultationFee?: number }) =>
       apiClient.post('/appointments/waiting', dto),
-    onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: apptKeys.all });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }
 
