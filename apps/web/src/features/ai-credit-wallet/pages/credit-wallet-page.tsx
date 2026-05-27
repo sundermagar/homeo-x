@@ -3,8 +3,7 @@ import { Wallet, Plus } from 'lucide-react';
 import { CreditAlertBar } from '../components/credit-alert-bar';
 import { CreditMetricCards } from '../components/credit-metric-cards';
 import { UsageTimelineChart } from '../components/usage-timeline-chart';
-import { ModuleBreakdown } from '../components/module-breakdown';
-import { ModuleBreakdownList } from '../components/module-breakdown-list';
+import { DashboardShortcuts } from '../components/dashboard-shortcuts';
 import { RecentTransactions } from '../components/recent-transactions';
 import { BurnRateForecast } from '../components/burn-rate-forecast';
 import { AddCreditsModal } from '../components/add-credits-modal';
@@ -44,11 +43,8 @@ export default function CreditWalletPage() {
       {/* Main Chart */}
       <UsageTimelineChart />
 
-      {/* Split Row: Donut + Detailed List */}
-      <div className="cw-row-split">
-        <ModuleBreakdown />
-        <ModuleBreakdownList />
-      </div>
+      {/* Quick Navigation Shortcuts */}
+      <DashboardShortcuts />
 
       {/* Half Row: Recent Transactions + Forecast */}
       <div className="cw-row-half">

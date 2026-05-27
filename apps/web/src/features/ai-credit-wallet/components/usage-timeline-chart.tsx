@@ -4,7 +4,8 @@ import { useCreditTimeline } from '../hooks/use-credit-data';
 
 export function UsageTimelineChart() {
   const [days, setDays] = useState<7 | 14 | 30>(7);
-  const data = useCreditTimeline(days);
+  const [endDateStr, setEndDateStr] = useState<string>('2026-05-27');
+  const data = useCreditTimeline(days, endDateStr);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -44,10 +45,33 @@ export function UsageTimelineChart() {
     <div className="cw-card">
       <div className="cw-card-header">
         <h3 className="cw-card-title">Credit consumption over time</h3>
-        <div className="cw-toggle-group">
-          <button className={`cw-toggle-btn ${days === 7 ? 'active' : ''}`} onClick={() => setDays(7)}>7 days</button>
-          <button className={`cw-toggle-btn ${days === 14 ? 'active' : ''}`} onClick={() => setDays(14)}>14 days</button>
-          <button className={`cw-toggle-btn ${days === 30 ? 'active' : ''}`} onClick={() => setDays(30)}>30 days</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: '#6B7280' }}>
+              {data.length > 0 ? `${data[0].date} – ` : ''}
+            </span>
+            <input 
+              type="date"
+              value={endDateStr}
+              onChange={(e) => setEndDateStr(e.target.value)}
+              style={{ 
+                border: '1px solid #D1D5DB', 
+                borderRadius: '6px', 
+                padding: '4px 8px', 
+                fontSize: '12px', 
+                color: '#374151',
+                fontWeight: 600,
+                background: 'white',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+          <div className="cw-toggle-group">
+            <button className={`cw-toggle-btn ${days === 7 ? 'active' : ''}`} onClick={() => setDays(7)}>7 days</button>
+            <button className={`cw-toggle-btn ${days === 14 ? 'active' : ''}`} onClick={() => setDays(14)}>14 days</button>
+            <button className={`cw-toggle-btn ${days === 30 ? 'active' : ''}`} onClick={() => setDays(30)}>30 days</button>
+          </div>
         </div>
       </div>
       

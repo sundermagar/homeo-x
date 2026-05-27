@@ -12,20 +12,42 @@ export function useCreditSummary() {
   }), []);
 }
 
-export function useCreditTimeline(days: 7 | 14 | 30 = 7) {
+export function useCreditTimeline(days: 7 | 14 | 30 = 7, endDateStr: string = '2026-05-27') {
   return useMemo(() => {
-    // Generate data that matches the curve in the screenshot roughly
-    const data = [
-      { date: 'May 21', Consultation: 1800, STT: 900, Summarisation: 700, Prescription: 400, WhatsApp: 350, EmailSMS: 200 },
-      { date: 'May 22', Consultation: 1950, STT: 1100, Summarisation: 750, Prescription: 420, WhatsApp: 380, EmailSMS: 180 },
-      { date: 'May 23', Consultation: 2100, STT: 980, Summarisation: 900, Prescription: 350, WhatsApp: 410, EmailSMS: 220 },
-      { date: 'May 24', Consultation: 1750, STT: 1050, Summarisation: 650, Prescription: 320, WhatsApp: 290, EmailSMS: 170 },
-      { date: 'May 25', Consultation: 2200, STT: 1200, Summarisation: 800, Prescription: 500, WhatsApp: 450, EmailSMS: 210 },
-      { date: 'May 26', Consultation: 2050, STT: 1000, Summarisation: 820, Prescription: 400, WhatsApp: 500, EmailSMS: 240 },
-      { date: 'May 27', Consultation: 1800, STT: 850, Summarisation: 700, Prescription: 350, WhatsApp: 520, EmailSMS: 200 },
-    ];
+    if (days === 7 && endDateStr === '2026-05-27') {
+      return [
+        { date: 'May 21', Consultation: 1800, STT: 900, Summarisation: 700, Prescription: 400, WhatsApp: 350, EmailSMS: 200 },
+        { date: 'May 22', Consultation: 1950, STT: 1100, Summarisation: 750, Prescription: 420, WhatsApp: 380, EmailSMS: 180 },
+        { date: 'May 23', Consultation: 2100, STT: 980, Summarisation: 900, Prescription: 350, WhatsApp: 410, EmailSMS: 220 },
+        { date: 'May 24', Consultation: 1750, STT: 1050, Summarisation: 650, Prescription: 320, WhatsApp: 290, EmailSMS: 170 },
+        { date: 'May 25', Consultation: 2200, STT: 1200, Summarisation: 800, Prescription: 500, WhatsApp: 450, EmailSMS: 210 },
+        { date: 'May 26', Consultation: 2050, STT: 1000, Summarisation: 820, Prescription: 400, WhatsApp: 500, EmailSMS: 240 },
+        { date: 'May 27', Consultation: 1800, STT: 850, Summarisation: 700, Prescription: 350, WhatsApp: 520, EmailSMS: 200 },
+      ];
+    }
+    
+    const data = [];
+    const endDate = new Date(endDateStr);
+    
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(endDate);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      const seed = d.getTime() / 100000000;
+      const base = 1000 + (Math.sin(seed * 0.5) * 200) + (Math.cos(seed * 0.2) * 100);
+      data.push({
+        date: dateStr,
+        Consultation: Math.floor(base * 1.8),
+        STT: Math.floor(base * 0.9),
+        Summarisation: Math.floor(base * 0.7),
+        Prescription: Math.floor(base * 0.4),
+        WhatsApp: Math.floor(base * 0.45),
+        EmailSMS: Math.floor(base * 0.2),
+      });
+    }
     return data;
-  }, [days]);
+  }, [days, endDateStr]);
 }
 
 export function useModuleBreakdown() {
