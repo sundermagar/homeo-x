@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, UsersRound, Calendar, FileText,
   LogOut, X, Briefcase, ChevronDown, ChevronRight, Circle,
   BarChart3, Stethoscope, Receipt, Settings, MessageCircle, Truck,
-  Bot, MessageSquare, Send, Zap, Globe
+  Bot, MessageSquare, Send, Zap, Globe, Wallet
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { useQuery } from '@tanstack/react-query';
@@ -134,6 +134,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: <BarChart3 size={20} />,
       path: '/analytics',
       roles: [...ADMIN_ROLES, 'Doctor'],
+    },
+    {
+      label: 'AI Credits',
+      icon: <Wallet size={20} />,
+      path: '/ai-credits',
+      roles: ADMIN_ROLES,
     },
     {
       label: 'WhatsApp Pro',

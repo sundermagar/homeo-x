@@ -102,6 +102,13 @@ const BirthdayBroadcastPage = lazy(() => import('@/features/communications/pages
 const DashboardAnalyticsPage = lazy(() => import('@/features/analytics/pages/dashboard-analytics-page').then(m => ({ default: m.DashboardAnalyticsPage })));
 const ReportsPage = lazy(() => import('@/features/analytics/pages/reports-page').then(m => ({ default: m.ReportsPage })));
 
+// AI Credits
+const CreditWalletPage = lazy(() => import('@/features/ai-credit-wallet/pages/credit-wallet-page'));
+const AiModelsPage = lazy(() => import('@/features/ai-credit-wallet/pages/models-management-page'));
+const AiModelRoutingPage = lazy(() => import('@/features/ai-credit-wallet/pages/model-routing-page'));
+const AiApiKeyVaultPage = lazy(() => import('@/features/ai-credit-wallet/pages/api-key-vault-page'));
+const AiRequestLogsPage = lazy(() => import('@/features/ai-credit-wallet/pages/request-logs-page'));
+
 // Settings
 const RolesPermissionsPage = lazy(() => import('@/features/settings/pages/roles-permissions-page').then(m => ({ default: m.RolesPermissionsPage })));
 
@@ -187,6 +194,13 @@ export function AppRouter() {
             </Route>
             <Route path="/communications/birthdays" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><BirthdayBroadcastPage /></RoleGuard>} />
             <Route path="/communications" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><GroupSmsPage /></RoleGuard>} />
+
+            {/* ─── AI Credits ─── */}
+            <Route path="/ai-credits" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CreditWalletPage /></RoleGuard>} />
+            <Route path="/ai-credits/models" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiModelsPage /></RoleGuard>} />
+            <Route path="/ai-credits/routing" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiModelRoutingPage /></RoleGuard>} />
+            <Route path="/ai-credits/keys" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiApiKeyVaultPage /></RoleGuard>} />
+            <Route path="/ai-credits/logs" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiRequestLogsPage /></RoleGuard>} />
 
             {/* ─── Analytics ─── */}
             <Route path="/analytics" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><DashboardAnalyticsPage /></RoleGuard>} />

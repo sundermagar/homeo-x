@@ -290,6 +290,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         ],
       },
     },
+
     {
       type: 'group',
       group: {
@@ -382,6 +383,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
           { path: '/settings/staff', label: 'Staff Management', icon: UserCircle },
           { path: '/settings/vaccines', label: 'Vaccines', icon: Shield },
+        ],
+      },
+    },
+    {
+      type: 'group',
+      group: {
+        id: 'ai-credits-group',
+        label: 'AI Operations',
+        icon: BrainCircuit,
+        roles: ADMIN,
+        defaultPath: '/ai-credits',
+        children: [
+          { path: '/ai-credits', label: 'Dashboard', icon: LayoutDashboard },
+          { path: '/ai-credits/models', label: 'Model Directory', icon: Database },
+          { path: '/ai-credits/routing', label: 'Routing Rules', icon: Activity },
+          { path: '/ai-credits/keys', label: 'Security Vault', icon: Shield },
+          { path: '/ai-credits/logs', label: 'Credit Ledger', icon: FileText },
         ],
       },
     },
@@ -485,7 +503,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <NavLink
         key={child.path}
         to={child.path}
-        end={['/', '/analytics', '/billing', '/patients', '/packages', '/appointments'].includes(child.path)}
+        end={['/', '/analytics', '/billing', '/patients', '/packages', '/appointments', '/ai-credits'].includes(child.path)}
         className={({ isActive }) => {
           const currentFull = location.pathname + location.search;
           const isMatch = child.path.includes('?')
