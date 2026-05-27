@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FlaskConical, X, Check, Activity, Clock, CalendarDays, ScrollText } from 'lucide-react';
 import { cn } from '../../../../lib/cn';
 import type { RemedyRxRow } from './repertory-stage';
-import { useDayCharges } from '@/features/billing/hooks/use-accounts';
+import { useDayCharges } from '../../../billing/hooks/use-accounts';
 
 interface FinalizeRxStageProps {
   selectedRemedies: RemedyRxRow[];
@@ -14,19 +14,19 @@ interface FinalizeRxStageProps {
 function parseDurationToDays(durationStr: string): number {
   if (!durationStr) return 0;
   const cleaned = durationStr.toLowerCase().trim();
-  
+
   const daysMatch = cleaned.match(/^(\d+)\s*day/);
   if (daysMatch) return parseInt(daysMatch[1]!, 10);
-  
+
   const weeksMatch = cleaned.match(/^(\d+)\s*week/);
   if (weeksMatch) return parseInt(weeksMatch[1]!, 10) * 7;
-  
+
   const monthsMatch = cleaned.match(/^(\d+)\s*month/);
   if (monthsMatch) return parseInt(monthsMatch[1]!, 10) * 30;
-  
+
   const bareNumberMatch = cleaned.match(/^(\d+)$/);
   if (bareNumberMatch) return parseInt(bareNumberMatch[1]!, 10);
-  
+
   return 0;
 }
 
@@ -37,10 +37,12 @@ export function FinalizeRxStage({ selectedRemedies, initialAdvice, initialFollow
   const userEditedFollowUp = React.useRef(false);
   const { data: dayCharges = [] } = useDayCharges();
 
+  const { data: dayCharges } = useDayCharges();
+
   // Auto-fill Next Review Date based on max duration
   useEffect(() => {
     if (userEditedFollowUp.current || rxRows.length === 0) return;
-    
+
     let maxDays = 0;
     for (const row of rxRows) {
       const days = parseDurationToDays(row.duration);
@@ -48,7 +50,7 @@ export function FinalizeRxStage({ selectedRemedies, initialAdvice, initialFollow
         maxDays = days;
       }
     }
-    
+
     if (maxDays > 0) {
       const date = new Date();
       date.setDate(date.getDate() + maxDays);
@@ -105,7 +107,7 @@ export function FinalizeRxStage({ selectedRemedies, initialAdvice, initialFollow
                   <p className="text-[11px] font-bold text-[#2563EB] mt-1 tracking-wide uppercase">Selected Remedy</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => removeRx(row.remedyId)}
                 className="text-[12px] font-bold text-[#D92D20] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-3 py-1.5 rounded-md transition-colors border border-[#FECACA]"
               >
@@ -166,11 +168,15 @@ export function FinalizeRxStage({ selectedRemedies, initialAdvice, initialFollow
                     value={row.duration}
                     onChange={(e) => updateRx(row.remedyId, 'duration', e.target.value)}
                   >
+                    <option value="" disabled>Select duration</option>
                     <option value="Stat">Stat (Immediate)</option>
-                    {dayCharges.map(dc => (
-                      <option key={dc.id} value={dc.days || ''}>{dc.days}</option>
-                    ))}
-                    {dayCharges.length === 0 && (
+                    {dayCharges && dayCharges.length > 0 ? (
+                      dayCharges.map(charge => (
+                        <option key={charge.id} value={charge.days || ''}>
+                          {charge.days}
+                        </option>
+                      ))
+                    ) : (
                       <>
                         <option value="1 week">1 week</option>
                         <option value="15 days">15 days</option>

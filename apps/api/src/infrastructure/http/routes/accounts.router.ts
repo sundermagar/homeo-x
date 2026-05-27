@@ -161,7 +161,7 @@ export function createAccountsRouter(): Router {
       // Do the same for Medicine Days
       const allMedBills = await db.select()
         .from(bills)
-        .where(and(eq(bills.billType, 'Consultation'), eq(bills.customTitle, 'Medicine Days Charge'), isNull(bills.deletedAt)))
+        .where(and(eq(bills.billType, 'Consultation'), isNull(bills.deletedAt)))
         .orderBy(desc(bills.id));
 
       const medGroups: Record<string, any[]> = {};
