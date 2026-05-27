@@ -108,7 +108,7 @@ export default function BillingListPage() {
             .right { text-align: right; }
             @media print {
               body { padding: 0; }
-              @page { size: landscape; margin: 1cm; }
+              @page { size: A4 portrait; margin: 1cm; }
             }
           </style>
         </head>

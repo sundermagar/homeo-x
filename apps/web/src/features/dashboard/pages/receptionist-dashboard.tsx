@@ -21,6 +21,8 @@ import {
   Ticket,
   ChevronRight,
   CheckCircle2,
+  Send,
+  MessageSquare
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -32,6 +34,7 @@ import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import { PatientFormDrawer } from '../../patients/components/patient-form-drawer';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import { ReportUploadModal } from '../components/ReportUploadModal';
+import { PatientBillingDrawer } from '../../billing/components/PatientBillingDrawer';
 import { apiClient } from '@/infrastructure/api-client';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { toast } from '@/hooks/use-toast';
@@ -69,6 +72,15 @@ export function ReceptionistDashboard() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isPatientDrawerOpen, setIsPatientDrawerOpen] = useState(false);
+  const [billingDrawerTarget, setBillingDrawerTarget] = useState<{ regid: number; name: string } | null>(null);
+
+  const { data: followups = [], isLoading: followupsLoading } = useQuery({
+    queryKey: ['dashboard-followups'],
+    queryFn: async () => {
+      const res = await apiClient.get('/appointments/followups', { params: { limit: 10, _t: Date.now() } });
+      return res.data?.data?.data || [];
+    }
+  });
 
   // Vitals modal state
   const [vitalsTarget, setVitalsTarget] = useState<{ regid: number; visitId: number } | null>(null);
@@ -77,6 +89,10 @@ export function ReceptionistDashboard() {
 
   const { useSendText } = useWhatsApp();
   const sendText = useSendText();
+
+  // Birthday select-all state
+  const [selectedBirthdays, setSelectedBirthdays] = useState<Set<number>>(new Set());
+  const [sendingBulk, setSendingBulk] = useState(false);
 
   const handleApptWhatsApp = (appt: any) => {
     const phone = appt.phone;
@@ -115,6 +131,56 @@ export function ReceptionistDashboard() {
         onError: (err: any) => toast({ description: '❌ Failed to send WhatsApp: ' + (err.response?.data?.message || err.message), variant: 'error' })
       }
     );
+  };
+
+  const handleBulkBirthdayWhatsApp = async () => {
+    if (selectedBirthdays.size === 0) {
+      toast({ description: 'No birthdays selected', variant: 'error' });
+      return;
+    }
+    setSendingBulk(true);
+    let sent = 0;
+    let failed = 0;
+    for (const regid of selectedBirthdays) {
+      const b = birthdays.find((bd: BirthdayPatient) => bd.regid === regid);
+      if (!b) continue;
+      const name = `${b.first_name || ''} ${b.surname || ''}`.trim() || 'Unknown';
+      const phone = b.mobile1 || b.phone || '';
+      if (!phone) { failed++; continue; }
+      const cleanPhone = phone.replace(/\D/g, '');
+      const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+      const message = `Happy Birthday ${name}! 🎂🎉 Wishing you a healthy and wonderful year ahead. — MMC HomeoTech`;
+      try {
+        await sendText.mutateAsync({ phone: finalPhone, message });
+        sent++;
+      } catch {
+        failed++;
+      }
+    }
+    setSendingBulk(false);
+    setSelectedBirthdays(new Set());
+    toast({
+      description: `✅ Sent ${sent} greeting${sent !== 1 ? 's' : ''}${failed > 0 ? `, ${failed} failed` : ''}`,
+      variant: failed > 0 ? 'error' : 'success',
+    });
+  };
+
+  const toggleBirthdaySelect = (regid: number) => {
+    setSelectedBirthdays(prev => {
+      const next = new Set(prev);
+      if (next.has(regid)) next.delete(regid);
+      else next.add(regid);
+      return next;
+    });
+  };
+
+  const toggleSelectAllBirthdays = () => {
+    const validBirthdays = birthdays.filter((b: BirthdayPatient) => b.mobile1 || b.phone);
+    if (selectedBirthdays.size === validBirthdays.length && validBirthdays.length > 0) {
+      setSelectedBirthdays(new Set());
+    } else {
+      setSelectedBirthdays(new Set(validBirthdays.map((b: BirthdayPatient) => b.regid)));
+    }
   };
 
   // Kebab menu state
@@ -242,6 +308,9 @@ export function ReceptionistDashboard() {
     return <DashboardSkeleton />;
   }
 
+  const validBirthdays = birthdays.filter((b: BirthdayPatient) => b.mobile1 || b.phone);
+  const allBirthdaysSelected = validBirthdays.length > 0 && selectedBirthdays.size === validBirthdays.length;
+
   return (
     <div className="dash-root">
       {/* ── 1. KPI Strip ─────────────────────────────────────────────── */}
@@ -252,50 +321,16 @@ export function ReceptionistDashboard() {
         <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="var(--pp-blue)" />
       </div>
 
-      {/* ── 2. Birthday + New Patients Cards ──────────────────────────── */}
-      <div className="rd-dual-grid">
-        {/* Birthday List */}
-        <div className="rd-compact-card">
-          <div className="rd-compact-card-header">
-            <div className="rd-compact-card-title">
-              <Cake size={14} style={{ color: '#ec4899' }} /> Today's Birthdays
-            </div>
-            <span className="dash-badge badge-primary">{birthdays.length}</span>
-          </div>
-          <div className="rd-compact-card-body">
-            {birthdays.length === 0 ? (
-              <div className="rd-empty">🎂 No birthdays today</div>
-            ) : (
-              birthdays.map((b: BirthdayPatient) => {
-                const name = `${b.first_name || ''} ${b.surname || ''}`.trim() || 'Unknown';
-                const phone = b.mobile1 || b.phone || '';
-                return (
-                  <div key={b.regid} className="rd-list-item">
-                    <div className="rd-list-avatar" style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }}>
-                      {name.charAt(0)}
-                    </div>
-                    <div className="rd-list-info">
-                      <div className="rd-list-name">{name}</div>
-                      <div className="rd-list-sub">
-                        #{b.regid} · {formatDob(b.dob || b.date_birth)}
-                      </div>
-                    </div>
-                    <div className="rd-list-actions">
-                      {phone && (
-                        <button 
-                          className="rd-action-pill green" 
-                          title="WhatsApp Greeting" 
-                          onClick={() => handleBirthdayWhatsApp(phone, name)}
-                          disabled={sendText.isPending}
-                        >
-                          <MessageCircle size={13} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
+      {/* ── 2. TOP ROW: Quick Operations + New Patients + Today's Appointments ── */}
+      <div className="rd-triple-grid">
+        {/* Quick Operations */}
+        <div className="dash-sidebar-card">
+          <h3 className="dash-section-title">Quick Operations</h3>
+          <div className="db-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '280px', paddingRight: 4 }}>
+            <OpLink icon={<Search size={15} />} label="Registry Lookup" path="/patients" />
+            <OpLink icon={<Phone size={15} />} label="Confirm Appointments" path="/appointments" />
+            <OpLink icon={<CreditCard size={15} />} label="Process Payments" path="/billing" />
+            <OpLink icon={<Bell size={15} />} label="Follow-up Dues" path="/medical-cases/followups" />
           </div>
         </div>
 
@@ -305,9 +340,18 @@ export function ReceptionistDashboard() {
             <div className="rd-compact-card-title">
               <UserCheck size={14} style={{ color: 'var(--pp-success-fg)' }} /> Today's New Patients
             </div>
-            <span className="dash-badge badge-success">{todayPatients?.length || 0}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                className="rd-action-pill"
+                title="Add New Patient"
+                onClick={() => setIsPatientDrawerOpen(true)}
+              >
+                <Plus size={13} />
+              </button>
+              <span className="dash-badge badge-success">{todayPatients?.length || 0}</span>
+            </div>
           </div>
-          <div className="rd-compact-card-body">
+          <div className="rd-compact-card-body db-scroll" style={{ maxHeight: '280px', paddingRight: 4 }}>
             {!todayPatients?.length ? (
               <div className="rd-empty">No new registrations today</div>
             ) : (
@@ -327,7 +371,7 @@ export function ReceptionistDashboard() {
                     <button className="rd-action-pill" title="Upload Report" onClick={() => setUploadTarget({ regid: p.regid, name: p.fullName })}>
                       <Upload size={13} />
                     </button>
-                    <button className="rd-action-pill" title="View Case" onClick={() => navigate(`/medical-cases/${p.regid}`)}>
+                    <button className="rd-action-pill" title="View Billing" onClick={() => setBillingDrawerTarget({ regid: p.regid, name: p.fullName })}>
                       <Eye size={13} />
                     </button>
                   </div>
@@ -336,159 +380,13 @@ export function ReceptionistDashboard() {
             )}
           </div>
         </div>
-      </div>
 
-      {/* ── 3. Token Queue (Enhanced) ─────────────────────────────────── */}
-      <div className="dash-card">
-        <div className="dash-card-header">
-          <h3 className="dash-section-title">
-            <Calendar size={16} style={{ marginRight: 8, color: 'var(--pp-blue)' }} /> Today's Schedule
-          </h3>
-          <span className="dash-badge badge-primary">{todayAppts.length} TOTAL</span>
-        </div>
-
-        <div className="rd-table-wrap">
-          <div className="pp-table-container">
-            <table className="pp-table">
-              <thead>
-                <tr>
-                  <th>TOKEN / TIME</th>
-                  <th>PATIENT</th>
-                  <th>STATUS</th>
-                  <th style={{ textAlign: 'center' }}>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentAppts.map((a: any, i: number) => {
-                  const canCheckIn = a.status === 'Scheduled';
-                  const isWaitlist = a.status === 'Waitlist';
-                  const patientRegid = a.regid || a.patientId;
-
-                  return (
-                    <tr key={i} className="hover-row">
-                      <td style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: 'var(--text-muted)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {a.tokenNo ? (
-                            <div className="token-badge">{a.tokenNo}</div>
-                          ) : (
-                            <Clock size={14} />
-                          )}
-                          {a.bookingTime || 'Walk-in'}
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div className="dash-avatar">{a.patientName?.charAt(0)}</div>
-                          <div>
-                            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{a.patientName}</div>
-                            <div className="text-label" style={{ fontSize: 10 }}>ID: PT-{patientRegid}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Waitlist' ? 'warning' : 'primary'}`}>
-                          {a.status}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-                          {canCheckIn && (
-                            <button
-                              className="dash-action-btn btn-checkin"
-                              onClick={(e) => { e.stopPropagation(); handleAction(a); }}
-                              disabled={queueMgmt.isLoading}
-                            >
-                              {queueMgmt.checkIn.isPending ? '...' : 'Check In'}
-                            </button>
-                          )}
-                          {isWaitlist && (
-                            <button
-                              className="dash-action-btn btn-call"
-                              onClick={(e) => { e.stopPropagation(); handleAction(a); }}
-                              disabled={queueMgmt.isLoading}
-                            >
-                              Call
-                            </button>
-                          )}
-                          <button
-                            className="rd-queue-btn vitals"
-                            onClick={(e) => { e.stopPropagation(); setVitalsTarget({ regid: patientRegid, visitId: a.id || 0 }); }}
-                            title="Record Vitals"
-                          >
-                            <Stethoscope size={11} style={{ marginRight: 3 }} /> Vitals
-                          </button>
-                          <button
-                            className="rd-queue-btn upload"
-                            onClick={(e) => { e.stopPropagation(); setUploadTarget({ regid: patientRegid, name: a.patientName }); }}
-                            title="Upload Report"
-                          >
-                            <Upload size={11} style={{ marginRight: 3 }} /> Upload
-                          </button>
-                          <button className="dash-view-btn" onClick={(e) => { e.stopPropagation(); navigate(`/medical-cases/${patientRegid}`); }}>View</button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {todayAppts.length === 0 && (
-                  <tr>
-                    <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                      <p className="text-small">No appointments scheduled today.</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {todayAppts.length > 0 && totalPages > 1 && (
-          <Pagination
-            currentPage={page}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={todayAppts.length}
-            onPageChange={setPage}
-            onPageSizeChange={(newSize) => {
-              setPageSize(newSize);
-              setPage(1);
-            }}
-          />
-        )}
-      </div>
-
-      {/* ── 4. Quick Operations + Live Activity ───────────────────────── */}
-      <div className="rd-bottom-grid">
-        <div className="dash-sidebar-card">
-          <h3 className="dash-section-title">Quick Operations</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <OpLink icon={<Search size={15} />} label="Registry Lookup" path="/patients" />
-            <OpLink icon={<Phone size={15} />} label="Confirm Appointments" path="/appointments" />
-            <OpLink icon={<CreditCard size={15} />} label="Process Payments" path="/billing" />
-            <OpLink icon={<Bell size={15} />} label="Follow-up Dues" path="/medical-cases/followups" />
-            <button
-              onClick={() => setIsPatientDrawerOpen(true)}
-              className="hover-op"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 14px', background: 'var(--bg-surface-2)',
-                border: '1px solid var(--border-main)', borderRadius: '8px',
-                textDecoration: 'none', color: 'var(--text-main)',
-                transition: 'all 0.15s', width: '100%', textAlign: 'left', cursor: 'pointer'
-              }}
-            >
-              <span style={{ color: 'var(--pp-blue)' }}><UserPlus size={15} /></span>
-              <span style={{ fontSize: 12, fontWeight: 700, flex: 1 }}>Add New Patient</span>
-              <Plus size={13} style={{ color: 'var(--text-muted)' }} />
-            </button>
-          </div>
-        </div>
-
+        {/* Today's Appointments */}
         <div className="dash-sidebar-card">
           <h3 className="dash-section-title">
             <Calendar size={15} style={{ color: 'var(--pp-blue)' }} /> Today's Appointments
           </h3>
-          <div className="dash-list">
+          <div className="dash-list db-scroll" style={{ maxHeight: '280px' }}>
             {todayAppts.map((a: any, i: number) => (
               <div key={i} className="dash-list-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
@@ -544,6 +442,207 @@ export function ReceptionistDashboard() {
         </div>
       </div>
 
+      {/* ── 4. BOTTOM ROW: Today's Followup + Birthday List ────────────── */}
+      <div className="rd-dual-grid" style={{ gridTemplateColumns: '2fr 1fr' }}>
+        {/* Today's Followup (Table) */}
+        <div className="dash-card">
+          <div className="dash-card-header">
+            <h3 className="dash-section-title">
+              <Calendar size={16} style={{ marginRight: 8, color: 'var(--pp-blue)' }} /> Today's Followup
+            </h3>
+            <span className="dash-badge badge-primary">{followups.length} TOTAL</span>
+          </div>
+
+          <div className="rd-table-wrap">
+            <div className="pp-table-container db-scroll" style={{ maxHeight: '360px', overflowY: 'auto' }}>
+              <table className="pp-table">
+                <thead>
+                  <tr>
+                    <th>REG ID</th>
+                    <th>PATIENT</th>
+                    <th>NEXT DATE</th>
+                    <th>STATUS</th>
+                    <th style={{ textAlign: 'center' }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {followups.map((f: any, i: number) => {
+                    const isMissed = f.visitType === 'Missed';
+                    return (
+                      <tr key={i} className="hover-row">
+                        <td style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: 'var(--text-muted)' }}>
+                          #{f.patientId}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div className="dash-avatar">{f.patientName?.charAt(0)}</div>
+                            <div>
+                              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{f.patientName}</div>
+                              <div className="text-label" style={{ fontSize: 10 }}>{f.phone || 'No Contact'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-main)' }}>
+                            <Calendar size={13} style={{ color: 'var(--text-muted)' }} />
+                            {f.bookingDate ? new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`dash-badge badge-${isMissed ? 'danger' : 'success'}`}>
+                            {f.visitType}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button
+                              className="dash-action-btn"
+                              style={{ background: '#f0fdf4', color: 'var(--pp-success-fg)', borderColor: '#bbf7d0' }}
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                const phone = f.phone?.replace(/\D/g, '');
+                                if (!phone) { toast({ description: "No mobile number", variant: "error" }); return; }
+                                const finalPhone = phone.length === 10 ? `91${phone}` : phone;
+                                sendText.mutate({ phone: finalPhone, message: `Dear ${f.patientName},\n\nThis is a friendly reminder for your upcoming follow-up appointment.\n\nPlease let us know if you need to reschedule.\n\nRegards,\nMMC HomeoTech` },
+                                { onSuccess: () => {
+                                  toast({ description: '✅ Reminder sent!', variant: 'success' });
+                                  apiClient.post('/appointments/followups/status', {
+                                    id: f.id,
+                                    visitType: f.visitType,
+                                    callStatus: 'WhatsApp Sent',
+                                    actionDate: new Date().toISOString().split('T')[0]
+                                  });
+                                }});
+                              }}
+                              title="Send WhatsApp"
+                            >
+                              <MessageSquare size={13} />
+                            </button>
+                            <button className="dash-view-btn" onClick={(e) => { e.stopPropagation(); navigate(`/medical-cases/${f.patientId}`); }}>View</button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {followups.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <p className="text-small">{followupsLoading ? 'Loading...' : 'No followups found today.'}</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Birthday List */}
+        <div className="rd-compact-card">
+          <div className="rd-compact-card-header">
+            <div className="rd-compact-card-title">
+              <Cake size={14} style={{ color: '#ec4899' }} /> Today's Birthdays
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {birthdays.length > 0 && selectedBirthdays.size > 0 && (
+                <button
+                  className="dash-action-btn"
+                  style={{
+                    background: '#25D366',
+                    color: 'white',
+                    border: 'none',
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    cursor: sendingBulk ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    opacity: sendingBulk ? 0.6 : 1,
+                  }}
+                  onClick={handleBulkBirthdayWhatsApp}
+                  disabled={sendingBulk}
+                  title="Send birthday wishes to selected"
+                >
+                  <Send size={11} /> {sendingBulk ? 'Sending...' : `Send (${selectedBirthdays.size})`}
+                </button>
+              )}
+              <span className="dash-badge badge-primary">{birthdays.length}</span>
+            </div>
+          </div>
+          <div className="rd-compact-card-body db-scroll" style={{ maxHeight: '360px' }}>
+            {birthdays.length === 0 ? (
+              <div className="rd-empty">🎂 No birthdays today</div>
+            ) : (
+              <>
+                {/* Select All Row */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 20px',
+                    borderBottom: '1px solid var(--pp-warm-2)',
+                    background: 'var(--pp-warm-1)',
+                    cursor: 'pointer',
+                  }}
+                  onClick={toggleSelectAllBirthdays}
+                >
+                  <input
+                    type="checkbox"
+                    checked={allBirthdaysSelected}
+                    onChange={toggleSelectAllBirthdays}
+                    style={{ width: 16, height: 16, accentColor: '#ec4899', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Select All ({validBirthdays.length})
+                  </span>
+                </div>
+
+                {birthdays.map((b: BirthdayPatient) => {
+                  const name = `${b.first_name || ''} ${b.surname || ''}`.trim() || 'Unknown';
+                  const phone = b.mobile1 || b.phone || '';
+                  const isSelected = selectedBirthdays.has(b.regid);
+                  return (
+                    <div key={b.regid} className="rd-list-item" style={{ background: isSelected ? 'rgba(236, 72, 153, 0.04)' : undefined }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleBirthdaySelect(b.regid)}
+                        disabled={!phone}
+                        style={{ width: 16, height: 16, accentColor: '#ec4899', cursor: phone ? 'pointer' : 'not-allowed', flexShrink: 0 }}
+                      />
+                      <div className="rd-list-avatar" style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }}>
+                        {name.charAt(0)}
+                      </div>
+                      <div className="rd-list-info">
+                        <div className="rd-list-name">{name}</div>
+                        <div className="rd-list-sub">
+                          #{b.regid} · {formatDob(b.dob || b.date_birth)}
+                        </div>
+                      </div>
+                      <div className="rd-list-actions">
+                        {phone && (
+                          <button 
+                            className="rd-action-pill green" 
+                            title="WhatsApp Greeting" 
+                            onClick={() => handleBirthdayWhatsApp(phone, name)}
+                            disabled={sendText.isPending}
+                          >
+                            <MessageCircle size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* ── Drawers & Modals ───────────────────────────────────────────── */}
       <PatientFormDrawer
         isOpen={isPatientDrawerOpen}
@@ -565,6 +664,15 @@ export function ReceptionistDashboard() {
           regid={uploadTarget.regid}
           patientName={uploadTarget.name}
           onClose={() => setUploadTarget(null)}
+        />
+      )}
+
+      {billingDrawerTarget && (
+        <PatientBillingDrawer
+          regid={billingDrawerTarget.regid}
+          patientName={billingDrawerTarget.name}
+          isOpen={true}
+          onClose={() => setBillingDrawerTarget(null)}
         />
       )}
     </div>

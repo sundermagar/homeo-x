@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Bell, Filter, RotateCw, List, LayoutGrid, MessageSquare,
   AlertCircle, CalendarClock, Search, ChevronRight, Clock,
-  CheckCircle2, User, Calendar, MoreVertical, X, Phone
+  CheckCircle2, User, Calendar, MoreVertical, X, Phone, Download, Printer
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/infrastructure/api-client';
@@ -42,6 +42,9 @@ export default function FollowupsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
+
+  // Sorting State
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
 
   const { data: doctors = [] } = useDoctors();
   const { data: callStatuses = [] } = useCallStatuses();
@@ -94,6 +97,20 @@ export default function FollowupsPage() {
     setSelectedIds(newSet);
   };
 
+  const updateActionStatus = async (f: any, callStatus: string) => {
+    try {
+      await apiClient.post('/appointments/followups/status', {
+        id: f.id,
+        visitType: f.visitType,
+        callStatus: callStatus,
+        actionDate: new Date().toISOString().split('T')[0]
+      });
+      fetchFollowups();
+    } catch (err) {
+      console.error('Failed to update action status', err);
+    }
+  };
+
   const handleSendAll = () => {
     if (selectedIds.size === 0) return;
     if (!confirm(`Are you sure you want to send WhatsApp reminders to ${selectedIds.size} selected patients?`)) return;
@@ -102,13 +119,16 @@ export default function FollowupsPage() {
     const selectedList = followups.filter(f => selectedIds.has(f.id + '-' + f.visitType));
     
     selectedList.forEach(f => {
-      const phone = f.phone ? f.phone.replace(/[^0-9]/g, '') : '';
+      const phone = f.phone ? f.phone.replace(/\D/g, '') : '';
       if (!phone || phone.length < 10) return;
       const finalPhone = phone.length === 10 ? '91' + phone : phone;
       const textMessage = `Dear ${f.patientName || 'Patient'},\n\nThis is a friendly reminder for your upcoming follow-up appointment.\n\nPlease let us know if you need to reschedule.\n\nRegards,\nMMC HomeoTech`;
       
       sendText.mutate({ phone: finalPhone, message: textMessage }, {
-        onSuccess: () => { successCount++; }
+        onSuccess: () => { 
+          successCount++;
+          updateActionStatus(f, 'WhatsApp Sent');
+        }
       });
     });
     alert(`Bulk send initiated for ${selectedIds.size} patients.`);
@@ -145,7 +165,7 @@ export default function FollowupsPage() {
   };
 
   const openWhatsApp = (f: any) => {
-    const phone = f.phone ? f.phone.replace(/[^0-9]/g, '') : '';
+    const phone = f.phone ? f.phone.replace(/\D/g, '') : '';
     if (!phone) {
       alert('Mobile number not available');
       return;
@@ -158,7 +178,10 @@ export default function FollowupsPage() {
       phone: finalPhone,
       message: textMessage
     }, {
-      onSuccess: () => alert('✅ Follow-up reminder sent via WhatsApp!'),
+      onSuccess: () => {
+        alert('✅ Follow-up reminder sent via WhatsApp!');
+        updateActionStatus(f, 'WhatsApp Sent');
+      },
       onError: (err: any) => alert('❌ Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))
     });
   };
@@ -166,6 +189,136 @@ export default function FollowupsPage() {
   const missedCount = followups.filter(f => f.visitType === 'Missed').length;
   const nextVisitCount = followups.filter(f => f.visitType === 'Next Visit').length;
   const actionTakenCount = followups.filter(f => f.callStatus).length;
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedFollowups = React.useMemo(() => {
+    let sortableItems = [...followups];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let valA = a[sortConfig.key];
+        let valB = b[sortConfig.key];
+
+        // String comparison for names
+        if (sortConfig.key === 'patientName') {
+          valA = valA ? valA.toLowerCase() : '';
+          valB = valB ? valB.toLowerCase() : '';
+        }
+
+        // Date comparison
+        if (sortConfig.key === 'lastDate' || sortConfig.key === 'bookingDate') {
+          valA = valA ? new Date(valA).getTime() : 0;
+          valB = valB ? new Date(valB).getTime() : 0;
+        }
+
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [followups, sortConfig]);
+
+  const exportToCSV = () => {
+    const headers = ['Reg ID', 'Patient Name', 'Phone', 'Enc. Type', 'Prescription Date', 'Next Date', 'Call Status', 'Action Date'];
+    const data = sortedFollowups.map(f => [
+      `#${f.patientId}`,
+      f.patientName || '',
+      f.phone || '',
+      f.visitType,
+      f.lastDate ? new Date(f.lastDate).toLocaleDateString('en-GB') : '',
+      f.bookingDate ? new Date(f.bookingDate).toLocaleDateString('en-GB') : '',
+      f.callStatus || '',
+      f.actionDate ? new Date(f.actionDate).toLocaleDateString('en-GB') : ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Followups_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    if (!sortedFollowups || sortedFollowups.length === 0) return;
+    
+    const html = `
+      <html>
+        <head>
+          <title>Follow-up Dues Report</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; color: #1e293b; }
+            h2 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+            th { background: #f8fafc; font-weight: bold; }
+            @media print {
+              body { padding: 0; }
+              @page { size: A4 portrait; margin: 1cm; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Follow-up Dues Report (As of ${new Date().toLocaleDateString('en-GB')})</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Reg ID</th>
+                <th>Patient Name</th>
+                <th>Phone</th>
+                <th>Enc. Type</th>
+                <th>Prescription Date</th>
+                <th>Next Date</th>
+                <th>Call Status</th>
+                <th>Action Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedFollowups.map(f => `
+                <tr>
+                  <td>#${f.patientId}</td>
+                  <td>${f.patientName || ''}</td>
+                  <td>${f.phone || ''}</td>
+                  <td>${f.visitType}</td>
+                  <td>${f.lastDate ? new Date(f.lastDate).toLocaleDateString('en-GB') : ''}</td>
+                  <td>${f.bookingDate ? new Date(f.bookingDate).toLocaleDateString('en-GB') : ''}</td>
+                  <td>${f.callStatus || ''}</td>
+                  <td>${f.actionDate ? new Date(f.actionDate).toLocaleDateString('en-GB') : ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <script>
+            window.print();
+          </script>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    }
+  };
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig?.key !== columnKey) return <span style={{ opacity: 0.3, marginLeft: 4 }}>↕</span>;
+    return <span style={{ marginLeft: 4, color: 'var(--pp-primary)' }}>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   return (
     <div className="pp-page-container animate-fade-in">
@@ -177,7 +330,15 @@ export default function FollowupsPage() {
             <p className="text-subtitle">{followups.length} clinical encounters pending attention</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 hide-on-print">
+          <button className="btn-secondary" onClick={exportToCSV}>
+            <Download size={14} />
+            <span className="hide-mobile">CSV</span>
+          </button>
+          <button className="btn-secondary" onClick={handlePrint}>
+            <Printer size={14} />
+            <span className="hide-mobile">PDF</span>
+          </button>
           <button className="btn-secondary" onClick={fetchFollowups}>
             <RotateCw size={14} className={loading ? 'fu-spin' : ''} />
             <span className="hide-mobile">Sync Data</span>
@@ -360,17 +521,23 @@ export default function FollowupsPage() {
                         />
                       </th>
                       <th>Reg ID</th>
-                      <th>Patient Details</th>
+                      <th onClick={() => handleSort('patientName')} style={{ cursor: 'pointer', userSelect: 'none' }} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                        Patient Details <SortIcon columnKey="patientName" />
+                      </th>
                       <th>Enc. Type</th>
-                      <th>Last Visit</th>
-                      <th>Due Date</th>
+                      <th onClick={() => handleSort('lastDate')} style={{ cursor: 'pointer', userSelect: 'none' }} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                        Prescription Date <SortIcon columnKey="lastDate" />
+                      </th>
+                      <th onClick={() => handleSort('bookingDate')} style={{ cursor: 'pointer', userSelect: 'none' }} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                        Next Date <SortIcon columnKey="bookingDate" />
+                      </th>
                       <th>Call Status</th>
                       <th>Action Date</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
+                      <th className="hide-on-print" style={{ textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {followups.map(f => (
+                    {sortedFollowups.map(f => (
                       <tr key={f.id + '-' + f.visitType} className="hover-row">
                         <td>
                           <input 
@@ -396,7 +563,7 @@ export default function FollowupsPage() {
                             {f.visitType}
                           </span>
                         </td>
-                        <td data-label="Last Visit">
+                        <td data-label="Prescription Date">
                           <div className="flex items-center gap-1.5 fu-meta-cell">
                             {f.lastDate ? (
                               <>
@@ -406,7 +573,7 @@ export default function FollowupsPage() {
                             ) : '—'}
                           </div>
                         </td>
-                        <td data-label="Due Date">
+                        <td data-label="Next Date">
                           <div className="flex items-center gap-1.5 fu-meta-cell">
                             {f.bookingDate ? (
                               <>
@@ -431,12 +598,22 @@ export default function FollowupsPage() {
                             ) : '—'}
                           </div>
                         </td>
-                        <td data-label="Actions" style={{ textAlign: 'right' }}>
+                        <td className="hide-on-print" data-label="Actions" style={{ textAlign: 'right' }}>
                           <div className="flex justify-end gap-2 fu-action-wrap">
-                            <button className="fu-action-btn wa" onClick={() => openWhatsApp(f)} title="Send WhatsApp">
+                            <button 
+                              className="fu-action-btn wa" 
+                              onClick={() => openWhatsApp(f)} 
+                              title="Send WhatsApp"
+                              style={f.callStatus === 'WhatsApp Sent' ? { background: '#25D366', color: 'white', borderColor: '#25D366' } : {}}
+                            >
                               <MessageSquare size={14} />
                             </button>
-                            <button className="fu-action-btn" onClick={() => openStatusModal(f)} title="Update Status">
+                            <button 
+                              className="fu-action-btn" 
+                              onClick={() => openStatusModal(f)} 
+                              title="Update Status"
+                              style={f.callStatus && f.callStatus !== 'WhatsApp Sent' ? { background: 'var(--pp-blue)', color: 'white', borderColor: 'var(--pp-blue)' } : {}}
+                            >
                               <Phone size={14} />
                             </button>
                             <Link to={`/medical-cases/${f.patientId}`} className="fu-action-btn" title="View Case">
@@ -451,7 +628,7 @@ export default function FollowupsPage() {
               </div>
             ) : (
               <div className="fu-grid-view-inner">
-                {followups.map(f => (
+                {sortedFollowups.map(f => (
                   <div key={f.id} className="fu-patient-card pp-card-premium">
                     <div className="flex justify-between items-start mb-4">
                       <div className="fu-avatar-lg">{f.patientName?.[0]}</div>
@@ -466,7 +643,7 @@ export default function FollowupsPage() {
                     <div className="fu-card-meta mb-4">
                       <div className="fu-meta-row">
                         <Calendar size={14} />
-                        <span>Due: {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        <span>Next Date: {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                       </div>
                       <div className="fu-meta-row">
                         <Clock size={14} />

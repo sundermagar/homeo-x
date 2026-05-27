@@ -88,6 +88,10 @@ export default function ViewBalancePage() {
             th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
             th { background-color: #f8f9fa; font-weight: 600; }
             .amount { color: #d32f2f; font-weight: bold; }
+            @media print {
+              body { padding: 0; }
+              @page { size: A4 portrait; margin: 1cm; }
+            }
           </style>
         </head>
         <body>

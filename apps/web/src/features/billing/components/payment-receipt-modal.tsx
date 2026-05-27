@@ -60,6 +60,11 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white">
         <div className="p-6 print:p-0" id="receipt-content">
+          <style>{`
+            @media print {
+              @page { size: A4 portrait; margin: 1cm; }
+            }
+          `}</style>
           {/* Receipt Header */}
           <div className="text-center mb-6 border-bottom pb-4">
             <h2 className="text-2xl font-bold text-gray-800">Payment Receipt</h2>

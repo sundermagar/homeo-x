@@ -273,7 +273,14 @@ export function AiRemedyView({ regid }: { regid?: number }) {
     if (printWindow) {
       printWindow.document.write(`
         <html>
-          <head><title>Remedy Path</title></head>
+          <head>
+            <title>Remedy Path</title>
+            <style>
+              @media print {
+                @page { size: A4 portrait; margin: 1cm; }
+              }
+            </style>
+          </head>
           <body style="font-family: sans-serif; padding: 40px;">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:20px;">
               <h1 style="margin:0;">Clinical Remedy Selection</h1>

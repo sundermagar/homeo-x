@@ -171,41 +171,53 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         a.patient_id as patient_id,
         a.doctor_id as doctor_id,
         (
-          CASE 
-            WHEN a.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a.booking_date::text, 'DD/MM/YYYY')
-            ELSE a.booking_date::date
-          END
-        )::date as booking_date,
+          SELECT max(val) FROM (
+            SELECT (
+              CASE 
+                WHEN p2.next_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(p2.next_date::text, 'DD/MM/YYYY')
+                ELSE p2.next_date::date
+              END
+            )::date as val
+            FROM pending_appointments p2
+            WHERE p2.regid = (SELECT regid FROM case_datas WHERE id = a.patient_id LIMIT 1)
+              AND (p2.deleted_at IS NULL OR p2.deleted_at = '')
+            
+            UNION ALL
+            
+            SELECT (
+              substring(cn.notes from 'Next Follow-up: (\\d{4}-\\d{2}-\\d{2})')
+            )::date as val
+            FROM case_notes cn
+            WHERE cn.regid = (SELECT regid FROM case_datas WHERE id = a.patient_id LIMIT 1)
+              AND cn.notes_type = 'Followup'
+              
+            UNION ALL
+            
+            SELECT (
+              CASE WHEN cp.dateval IS NOT NULL THEN (cp.dateval::date + (COALESCE(NULLIF(regexp_replace(cp.rxdays::text, '\\D', '', 'g'), ''), '0')::integer) * INTERVAL '1 day')::date ELSE NULL END
+            ) as val
+            FROM case_potencies cp
+            WHERE cp.regid = (SELECT regid FROM case_datas WHERE id = a.patient_id LIMIT 1)
+          ) sub
+        ) as booking_date,
         a.booking_time::text as booking_time,
         a.status::text as status,
-        'Missed'::text as visit_type,
+        (
+          CASE 
+            WHEN a.status IN ('Done', 'Visited', 'Completed') THEN 'Completed' 
+            ELSE 'Missed' 
+          END
+        )::text as visit_type,
         a.consultation_fee::numeric as consultation_fee,
         a.token_no::integer as token_no,
         a.call_status::text as call_status,
         a.call_date::text as call_date,
         (
-          SELECT max(
-            CASE 
-              WHEN a2.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a2.booking_date::text, 'DD/MM/YYYY')
-              ELSE a2.booking_date::date
-            END
-          )::date::text
-          FROM appointments a2
-          WHERE a2.patient_id = a.patient_id
-            AND a2.status IN ('Done', 'Visited', 'Completed')
-            AND a2.deleted_at IS NULL
-            AND (
-              CASE 
-                WHEN a2.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a2.booking_date::text, 'DD/MM/YYYY')
-                ELSE a2.booking_date::date
-              END
-            ) < (
-              CASE 
-                WHEN a.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a.booking_date::text, 'DD/MM/YYYY')
-                ELSE a.booking_date::date
-              END
-            )
-        ) as last_date,
+          CASE 
+            WHEN a.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a.booking_date::text, 'DD/MM/YYYY')
+            ELSE a.booking_date::date
+          END
+        )::date::text as last_date,
         a.notes::text as notes,
         a.phone::text as phone,
         a.patient_name::text as patient_name,
@@ -224,8 +236,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       FROM appointments a
       LEFT JOIN doctors d ON d.id = a.doctor_id
       LEFT JOIN users u ON u.id = a.doctor_id
+      /* Trigger restart */
       WHERE a.deleted_at IS NULL
-        AND a.status NOT IN ('Done', 'Visited', 'Completed', 'Cancelled')
+        AND a.status != 'Cancelled'
         AND ${getBaseDateCompare('a.booking_date', '<')}
         ${clinicId ? sql`AND a.clinic_id = ${clinicId}` : sql``}
         ${doctorId ? sql`AND a.doctor_id = ${doctorId}` : sql``}
@@ -280,7 +293,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     const unionQuery = sql`
       SELECT * FROM (${apptsQuery} UNION ALL ${pendingQuery}) as combined
-      ORDER BY booking_date DESC, id DESC
+      ORDER BY COALESCE(booking_date, last_date::date) DESC, id DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
 
