@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FlaskConical, X, Check, Activity, Clock, CalendarDays, ScrollText } from 'lucide-react';
 import { cn } from '../../../../lib/cn';
 import type { RemedyRxRow } from './repertory-stage';
+import { useDayCharges } from '../../../billing/hooks/use-accounts';
 
 interface FinalizeRxStageProps {
   selectedRemedies: RemedyRxRow[];
@@ -34,6 +35,8 @@ export function FinalizeRxStage({ selectedRemedies, initialAdvice, initialFollow
   const [advice, setAdvice] = useState(initialAdvice || '');
   const [followUp, setFollowUp] = useState(initialFollowUp || '');
   const userEditedFollowUp = React.useRef(false);
+
+  const { data: dayCharges } = useDayCharges();
 
   // Auto-fill Next Review Date based on max duration
   useEffect(() => {
@@ -164,10 +167,21 @@ export function FinalizeRxStage({ selectedRemedies, initialAdvice, initialFollow
                     value={row.duration}
                     onChange={(e) => updateRx(row.remedyId, 'duration', e.target.value)}
                   >
+                    <option value="" disabled>Select duration</option>
                     <option value="Stat">Stat (Immediate)</option>
-                    <option value="1 week">1 week</option>
-                    <option value="15 days">15 days</option>
-                    <option value="30 days">30 days</option>
+                    {dayCharges && dayCharges.length > 0 ? (
+                      dayCharges.map(charge => (
+                        <option key={charge.id} value={charge.days || ''}>
+                          {charge.days}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="1 week">1 week</option>
+                        <option value="15 days">15 days</option>
+                        <option value="30 days">30 days</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
