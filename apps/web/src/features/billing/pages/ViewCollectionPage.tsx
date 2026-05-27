@@ -19,8 +19,8 @@ type ViewTab = 'daily' | 'monthList' | 'target';
 export default function ViewCollectionPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ViewTab>('daily');
-  const [selectedDate, setSelectedDate] = useState(
-    () => new Date().toISOString().split('T')[0]
+  const [selectedDate, setSelectedDate] = useState<string>(
+    () => new Date().toISOString().split('T')[0]!
   );
 
   const { data: summary, isLoading } = useExtendedDailySummary(selectedDate);
@@ -33,7 +33,7 @@ export default function ViewCollectionPage() {
   const [isExpenseDrawerOpen, setIsExpenseDrawerOpen] = useState(false);
 
   const shiftDate = (days: number) => {
-    const [y, m, d] = selectedDate.split('-').map(Number);
+    const [y, m, d] = selectedDate.split('-').map(Number) as [number, number, number];
     const dateObj = new Date(y, m - 1, d + days);
     const newY = dateObj.getFullYear();
     const newM = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -45,7 +45,7 @@ export default function ViewCollectionPage() {
   const handleNextDay = () => shiftDate(1);
 
   const handleToday = () => {
-    setSelectedDate(new Date().toISOString().split('T')[0]);
+    setSelectedDate(new Date().toISOString().split('T')[0]!);
   };
 
   const formatDate = (date: string) => {

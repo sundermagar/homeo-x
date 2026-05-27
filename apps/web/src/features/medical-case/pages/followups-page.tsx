@@ -118,7 +118,7 @@ export default function FollowupsPage() {
   const openStatusModal = (f: any) => {
     setSelectedFollowup(f);
     setNewCallStatus(f.callStatus || '');
-    setNewActionDate(f.actionDate ? new Date(f.actionDate).toISOString().split('T')[0] : '');
+    setNewActionDate(f.actionDate ? new Date(f.actionDate).toISOString().split('T')[0] || '' : '');
     setStatusModalOpen(true);
   };
 

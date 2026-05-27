@@ -351,7 +351,7 @@ function ManualPaymentDrawerContent({ onClose }: { onClose: () => void }) {
       
       // Auto-send WhatsApp receipt
       if (patient && (patient.phone || patient.mobile1)) {
-        const rawPhone = patient.phone || patient.mobile1;
+        const rawPhone = patient.phone || patient.mobile1 || '';
         const cleaned = rawPhone.replace(/\D/g, '');
         const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
         try {

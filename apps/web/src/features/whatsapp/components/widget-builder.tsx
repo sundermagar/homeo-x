@@ -263,7 +263,7 @@ export const WidgetBuilder = () => {
               copyCode={copyCode}
               onSave={handleSave}
               isSaving={saveWidgetSettings.isPending}
-              channelId={activeChannel.id}
+              channelId={String(activeChannel.id)}
             />
           )}
         </div>

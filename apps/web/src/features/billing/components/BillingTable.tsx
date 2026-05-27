@@ -96,7 +96,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       group.totalBalance += bill.balance || 0;
 
       // Breakdown calculation
-      if (bill.billType === 'Additional') {
+      if ((bill.billType as string) === 'Additional') {
         group.additionalCharge += chargeAmount;
       } else if (bill.treatment?.startsWith('Package:')) {
         group.packageCharge += chargeAmount;
@@ -193,14 +193,14 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
 
     for (const bill of patientHistory.bills) {
       if (todayBillIds.has(bill.id)) continue;
-      const bDate = new Date(bill.billDate);
+      const bDate = new Date(bill.billDate || '');
       bDate.setHours(0, 0, 0, 0);
       if (bDate.getTime() >= selectedDate.getTime()) continue;
 
-      const dateStr = bDate.toISOString().split('T')[0];
+      const dateStr = bDate.toISOString().split('T')[0]!;
       if (!map.has(dateStr)) {
         map.set(dateStr, {
-          patientName: bill.patientName,
+          patientName: (bill as any).patientName,
           regid: bill.regid,
           billDate: dateStr,
           totalCharges: 0,
@@ -221,7 +221,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       group.totalReceived += bill.received || 0;
       group.totalBalance += bill.balance || 0;
 
-      if (bill.billType === 'Additional') {
+      if ((bill.billType as string) === 'Additional') {
         group.additionalCharge += chargeAmount;
       } else if (bill.treatment?.startsWith('Package:')) {
         group.packageCharge += chargeAmount;

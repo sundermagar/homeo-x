@@ -56,11 +56,10 @@ export default function GroupSmsPage() {
       : [];
     try {
       const res = await waBroadcast.mutateAsync({ 
-        patientIds: ids.length ? ids : undefined, 
+        phones: ids.map(String).concat(recipientType === 'manual' && phone ? [phone] : []), 
         message,
-        phone: recipientType === 'manual' && phone ? [phone] : undefined
       });
-      setResult(res.data as { sent: number; failed: number });
+      setResult(res as { sent: number; failed: number });
     } catch (err: unknown) {
       setError(parseError(err));
     }

@@ -97,7 +97,9 @@ export function CourierQueuePage() {
         sendText.mutate({
           phone: finalPhone,
           message: textMessage,
-        }).catch(err => console.error('Auto WhatsApp failed', err));
+        }, {
+          onError: (err) => console.error('Auto WhatsApp failed', err)
+        });
       }
 
       setAssignModal(null);
