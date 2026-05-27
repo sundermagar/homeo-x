@@ -54,7 +54,7 @@ export function BillingUpdateModal({
   currentMedicineCharge,
   onUpdateMedicineCharge
 }: BillingUpdateModalProps) {
-  const [activeTab, setActiveTab] = useState<TabType>((defaultTab as string) === 'medicine' ? 'regular' : (defaultTab || 'regular'));
+  const [activeTab, setActiveTab] = useState<TabType>((defaultTab === 'medicine' ? 'regular' : defaultTab || 'regular') as TabType);
   const [amount, setAmount] = useState<string>(() => {
     if (defaultTab === 'payment') {
       return (pendingBalance !== undefined && pendingBalance > 0 ? pendingBalance : 0).toString();

@@ -52,24 +52,38 @@ export default function BillingListPage() {
   const [isCustomBillOpen, setIsCustomBillOpen] = useState(false);
 
   const parsedRegid = parseInt(regidFilter, 10);
-  const billsQuery      = useBills({ 
-    page, 
-    limit: pageSize, 
+  // Fetch a large batch to allow client-side grouping and pagination
+  const billsQuery = useBills({ 
+    page: 1, 
+    limit: 1000, 
     regid: (!isNaN(parsedRegid) && regidFilter) ? parsedRegid : undefined, 
     date: date || undefined 
   });
   const collectionQuery = useDailyCollection(date);
 
-  const total     = billsQuery.data?.total     ?? 0;
-  const bills     = billsQuery.data?.data       ?? [];
-  const hasMore   = bills.length === 30;
+  const allBills = billsQuery.data?.data ?? [];
+
+  // Group by regid to determine actual pagination items for List view
+  const uniqueRegIds = Array.from(new Set(allBills.map(b => b.regid)));
+  const totalItems = viewMode === 'list' ? uniqueRegIds.length : allBills.length;
+  
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  
+  let displayedBills: typeof allBills = [];
+  if (viewMode === 'list') {
+    const pageRegIds = new Set(uniqueRegIds.slice(startIndex, endIndex));
+    displayedBills = allBills.filter(b => pageRegIds.has(b.regid));
+  } else {
+    displayedBills = allBills.slice(startIndex, endIndex);
+  }
 
   const exportToCSV = () => {
-    if (!bills || bills.length === 0) return;
+    if (!allBills || allBills.length === 0) return;
     const headers = ['Bill No', 'Date', 'Patient Name', 'Reg ID', 'Type', 'Mode', 'Charges', 'Received', 'Balance'];
     const csvContent = [
       headers.join(','),
-      ...bills.map(b => [
+      ...allBills.map(b => [
         b.billNo,
         b.billDate ? format(new Date(b.billDate), 'yyyy-MM-dd') : '—',
         `"${b.patientName || ''}"`,
@@ -93,7 +107,7 @@ export default function BillingListPage() {
   };
 
   const printPDF = () => {
-    if (!bills || bills.length === 0) return;
+    if (!allBills || allBills.length === 0) return;
     
     const html = `
       <html>
@@ -129,7 +143,7 @@ export default function BillingListPage() {
               </tr>
             </thead>
             <tbody>
-              ${bills.map(b => `
+              ${allBills.map(b => `
                 <tr>
                   <td>${b.billNo}</td>
                   <td>${b.billDate ? format(new Date(b.billDate), 'yyyy-MM-dd') : '—'}</td>
@@ -231,10 +245,10 @@ export default function BillingListPage() {
 
         <div className="pp-filter-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: '8px', borderRight: '1px solid var(--border-main)', paddingRight: '12px', marginRight: '4px' }}>
-            <button className="btn-secondary" onClick={exportToCSV} disabled={billsQuery.isLoading || bills.length === 0}>
+            <button className="btn-secondary" onClick={exportToCSV} disabled={billsQuery.isLoading || allBills.length === 0}>
               <Download size={14} /> Export CSV
             </button>
-            <button className="btn-secondary" onClick={printPDF} disabled={billsQuery.isLoading || bills.length === 0}>
+            <button className="btn-secondary" onClick={printPDF} disabled={billsQuery.isLoading || allBills.length === 0}>
               <Printer size={14} /> Print / PDF
             </button>
           </div>
@@ -273,7 +287,7 @@ export default function BillingListPage() {
 
       {billsQuery.isLoading ? (
         <TableSkeleton rows={8} columns={8} />
-      ) : bills.length === 0 ? (
+      ) : allBills.length === 0 ? (
         <EmptyState 
           icon={Receipt}
           title={regidFilter ? "No billing records found" : "No transactions today"}
@@ -284,10 +298,10 @@ export default function BillingListPage() {
           className="my-8"
         />
       ) : viewMode === 'list' ? (
-        <BillingTable bills={bills} isLoading={false} />
+        <BillingTable bills={displayedBills} isLoading={false} />
       ) : (
         <div className="bill-card-grid">
-          {bills.map((bill) => (
+          {displayedBills.map((bill) => (
             <div key={bill.id} className="bill-card bill-grid-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
                 <div>
@@ -322,9 +336,9 @@ export default function BillingListPage() {
 
       <Pagination
         currentPage={page}
-        totalPages={Math.ceil(total / pageSize)}
+        totalPages={Math.ceil(totalItems / pageSize)}
         pageSize={pageSize}
-        totalItems={total}
+        totalItems={totalItems}
         onPageChange={(p) => setPage(p)}
         onPageSizeChange={(s) => {
           setPageSize(s);

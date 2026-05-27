@@ -55,7 +55,8 @@ export class AiProviderChain {
   async complete(request: AiCompletionRequest): Promise<AiCompletionResponse> {
     // ── Cache check ──
     if (request.useCache !== false) {
-      const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt }));
+      const docHash = request.documents ? JSON.stringify(request.documents.map(d => d.base64.substring(0, 100))) : '';
+      const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt, d: docHash }));
       const cached = responseCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
         logger.info(`Cache hit for key ${cacheKey}`);
@@ -93,7 +94,8 @@ export class AiProviderChain {
 
         // Cache successful response (1 hour TTL)
         if (request.useCache !== false) {
-          const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt }));
+          const docHash = request.documents ? JSON.stringify(request.documents.map(d => d.base64.substring(0, 100))) : '';
+          const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt, d: docHash }));
           responseCache.set(cacheKey, { response, expiresAt: Date.now() + 3600_000 });
           // Evict oldest if over limit
           if (responseCache.size > MAX_CACHE_SIZE) {

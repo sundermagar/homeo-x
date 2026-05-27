@@ -37,8 +37,6 @@ export function FinalizeRxStage({ selectedRemedies, initialAdvice, initialFollow
   const userEditedFollowUp = React.useRef(false);
   const { data: dayCharges = [] } = useDayCharges();
 
-  const { data: dayCharges } = useDayCharges();
-
   // Auto-fill Next Review Date based on max duration
   useEffect(() => {
     if (userEditedFollowUp.current || rxRows.length === 0) return;

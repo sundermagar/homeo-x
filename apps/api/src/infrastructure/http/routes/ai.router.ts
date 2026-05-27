@@ -499,7 +499,7 @@ aiRouter.post('/followup/summarize', async (req: Request, res: Response) => {
 
     const response = await chain.complete({
       systemPrompt: `You are a homeopathic clinical scribe summarising a follow-up consultation.
-Given a Doctor–Patient conversation transcript, write ONE concise clinical paragraph (4–8 sentences) capturing:
+Given a Doctor–Patient conversation transcript, provide a concise bulleted summary capturing:
 - How the patient is doing since the last visit (better / same / worse, % improvement if mentioned)
 - Current symptoms, new symptoms, or returning old symptoms
 - Modalities, mental/emotional state changes (only if mentioned)
@@ -507,10 +507,10 @@ Given a Doctor–Patient conversation transcript, write ONE concise clinical par
 - Doctor's next plan if stated
 
 Rules:
-- Plain English prose, NO bullet points, NO markdown headings.
+- Use clear bullet points for readability. Do NOT write a single dense paragraph.
 - Do NOT invent symptoms or facts not present in the transcript.
 - If the transcript has no clinical content, reply with exactly: "No clinical content to summarise."`,
-      userPrompt: `${ctxBits ? ctxBits + '\n\n' : ''}Transcript:\n"""\n${cleaned.slice(0, 12000)}\n"""\n\nWrite the follow-up summary paragraph now.`,
+      userPrompt: `${ctxBits ? ctxBits + '\n\n' : ''}Transcript:\n"""\n${cleaned.slice(0, 12000)}\n"""\n\nWrite the follow-up bulleted summary now.`,
       temperature: 0.2,
       maxTokens: 600,
     });

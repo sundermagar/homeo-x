@@ -1,9 +1,10 @@
 // @ts-nocheck
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Search, Sparkles, Check, BrainCircuit, X 
+  Search, Sparkles, Check, BrainCircuit, X, UploadCloud, FileText, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { api } from '@/lib/api-client';
 import { useExtractDiseaseRubrics, useRepertorizeScore } from '@/hooks/use-repertorization';
 import { useSearchParams } from 'react-router-dom';
 import type { ScoredRemedy, SuggestedRubric } from '@/types/ai';
@@ -19,30 +20,97 @@ export default function AiAnalysisPage() {
   const [searchParams] = useSearchParams();
   const urlQuery = searchParams.get('query') || '';
 
+  const [activeTab, setActiveTab] = useState<'disease' | 'report'>('disease');
+
   // ── Disease lookup ──
   const [query, setQuery] = useState(urlQuery);
   const [submitted, setSubmitted] = useState(urlQuery);
   const extractDisease = useExtractDiseaseRubrics();
   const score = useRepertorizeScore();
   const [diseaseScored, setDiseaseScored] = useState<ScoredRemedy[] | null>(null);
+  const [displayRubrics, setDisplayRubrics] = useState<SuggestedRubric[]>([]);
 
   // ── Rubric selection for Disease mode ──
   const [selectedDiseaseRubrics, setSelectedDiseaseRubrics] = useState<string[]>([]);
-  const diseaseRubrics = extractDisease.data?.suggestedRubrics || [];
+
+  // ── Report Upload ──
+  const [files, setFiles] = useState<{ name: string; base64: string; type: string; size: number }[]>([]);
+  const [isAnalyzingReport, setIsAnalyzingReport] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportSummary, setReportSummary] = useState<string | null>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+    setReportError(null);
+    selectedFiles.forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        setReportError(`File ${file.name} is too large. Max 5MB allowed.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1];
+        if (!base64) return;
+        setFiles((prev) => [...prev, { name: file.name, base64, type: file.type, size: file.size }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAnalyzeReport = async () => {
+    if (files.length === 0) return;
+    setIsAnalyzingReport(true);
+    setReportError(null);
+    try {
+      const data = await api.post<any>('/api/ai/analyze-report', {
+        visitId: 'standalone-analysis',
+        documents: files.map(f => ({ base64: f.base64, mimeType: f.type }))
+      });
+      if (data && data.rubrics) {
+        setDisplayRubrics(data.rubrics);
+        setReportSummary(data.reportSummary || null);
+        setSubmitted('Uploaded Report');
+        setSelectedDiseaseRubrics(data.rubrics.map((r: any) => r.rubricId));
+        score.mutate(
+          { selectedRubrics: data.rubrics.map((r: any) => ({ rubricId: r.rubricId, description: r.description, category: r.category, importance: r.importance })) },
+          {
+            onSuccess: (res) => {
+              setDiseaseScored(res.scoredRemedies);
+            }
+          }
+        );
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (err: any) {
+      setReportError(err.message || 'Failed to analyze report');
+    } finally {
+      setIsAnalyzingReport(false);
+    }
+  };
 
   useEffect(() => {
-    if (diseaseRubrics.length > 0) {
-      setSelectedDiseaseRubrics(diseaseRubrics.map(r => r.rubricId));
+    if (displayRubrics.length > 0) {
+      setSelectedDiseaseRubrics(displayRubrics.map(r => r.rubricId));
     }
-  }, [diseaseRubrics]);
+  }, [displayRubrics]);
 
   useEffect(() => {
     if (!submitted) return;
+    if (activeTab !== 'disease') return;
 
     // 1. Fetch rubrics for disease
     extractDisease.mutate({ disease: submitted }, {
       onSuccess: (rubricsRes) => {
         if (!rubricsRes.suggestedRubrics?.length) return;
+        setDisplayRubrics(rubricsRes.suggestedRubrics);
         // 2. Score remedies based on those rubrics
         score.mutate(
           { selectedRubrics: rubricsRes.suggestedRubrics.map((r: any) => ({ rubricId: r.rubricId, description: r.description, category: r.category, importance: r.importance })) },
@@ -59,8 +127,8 @@ export default function AiAnalysisPage() {
 
   // Re-score when disease rubrics are toggled
   useEffect(() => {
-    if (!submitted || diseaseRubrics.length === 0) return;
-    const selected = diseaseRubrics.filter(r => selectedDiseaseRubrics.includes(r.rubricId));
+    if (!submitted || displayRubrics.length === 0) return;
+    const selected = displayRubrics.filter(r => selectedDiseaseRubrics.includes(r.rubricId));
     if (selected.length === 0) {
       setDiseaseScored([]);
       return;
@@ -79,13 +147,13 @@ export default function AiAnalysisPage() {
   // Group rubrics by chapter for disease mode
   const rubricsByChapter = useMemo(() => {
     const groups: Record<string, SuggestedRubric[]> = {};
-    diseaseRubrics.forEach(r => {
+    displayRubrics.forEach(r => {
       const chapter = (r as any).chapter || r.category || 'GENERALITIES';
       if (!groups[chapter]) groups[chapter] = [];
       groups[chapter].push(r);
     });
     return groups;
-  }, [diseaseRubrics]);
+  }, [displayRubrics]);
 
   const effective = diseaseScored || [];
   const best = effective[0];
@@ -108,34 +176,143 @@ export default function AiAnalysisPage() {
 
       <div className="space-y-6">
         
-        {/* SEARCH CARD */}
-        <div className="pp-card p-5 border border-[#E3E2DF] space-y-4 bg-white rounded-xl shadow-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-5 bg-[#2563EB] rounded-full" />
-            <h3 className="text-[14px] font-bold text-[#0F0F0E]">Type a disease — get its rubrics and remedies</h3>
-          </div>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="h-5 w-5 text-[#888786] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') setSubmitted(query.trim()); }}
-                placeholder="e.g. Migraine, Kidney stones, Psoriasis..."
-                className="w-full h-11 pl-10 pr-4 text-[15px] font-medium rounded-lg border border-[#E3E2DF] bg-white outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] shadow-sm transition-all"
-              />
-            </div>
-            <button 
-              onClick={() => setSubmitted(query.trim())} 
-              disabled={extractDisease.isPending || !query.trim()}
-              className="pp-btn-primary h-11 px-5 text-[14px] shadow-sm flex items-center justify-center disabled:opacity-50"
-            >
-              <Sparkles className="h-4 w-4 mr-2" /> Get rubrics & remedy
-            </button>
-          </div>
+        {/* TABS */}
+        <div className="flex border-b border-[#E3E2DF]">
+          <button 
+            className={cn(
+              "px-6 py-3 text-[14px] font-bold border-b-2 transition-colors",
+              activeTab === 'disease' ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-[#64748B] hover:text-[#0F0F0E]"
+            )}
+            onClick={() => {
+              setActiveTab('disease');
+              setDisplayRubrics([]);
+              setDiseaseScored(null);
+              setSubmitted('');
+              setQuery('');
+            }}
+          >
+            Disease Search
+          </button>
+          <button 
+            className={cn(
+              "px-6 py-3 text-[14px] font-bold border-b-2 transition-colors",
+              activeTab === 'report' ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-[#64748B] hover:text-[#0F0F0E]"
+            )}
+            onClick={() => {
+              setActiveTab('report');
+              setDisplayRubrics([]);
+              setDiseaseScored(null);
+              setSubmitted('');
+              setFiles([]);
+              setReportError(null);
+              setReportSummary(null);
+            }}
+          >
+            Lab Report Analysis
+          </button>
         </div>
 
-        {(submitted || diseaseRubrics.length > 0) && (
+        {/* SEARCH CARD */}
+        {activeTab === 'disease' && (
+          <div className="pp-card p-5 border border-[#E3E2DF] space-y-4 bg-white rounded-xl shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-5 bg-[#2563EB] rounded-full" />
+              <h3 className="text-[14px] font-bold text-[#0F0F0E]">Type a disease — get its rubrics and remedies</h3>
+            </div>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="h-5 w-5 text-[#888786] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') setSubmitted(query.trim()); }}
+                  placeholder="e.g. Migraine, Kidney stones, Psoriasis..."
+                  className="w-full h-11 pl-10 pr-4 text-[15px] font-medium rounded-lg border border-[#E3E2DF] bg-white outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] shadow-sm transition-all"
+                />
+              </div>
+              <button 
+                onClick={() => setSubmitted(query.trim())} 
+                disabled={extractDisease.isPending || !query.trim()}
+                className="pp-btn-primary h-11 px-5 text-[14px] shadow-sm flex items-center justify-center disabled:opacity-50"
+              >
+                <Sparkles className="h-4 w-4 mr-2" /> Analyse
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* REPORT UPLOAD CARD */}
+        {activeTab === 'report' && (
+          <div className="pp-card p-6 border border-[#E3E2DF] bg-white rounded-xl shadow-sm">
+            <div className="flex flex-col gap-5">
+              <label className="relative flex flex-col items-center justify-center w-full h-40 border-2 border-[#E3E2DF] border-dashed rounded-xl cursor-pointer bg-[#FAFAF8] hover:bg-[#F1F5F9] hover:border-[#94A3B8] transition-all group">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <div className="w-12 h-12 mb-3 text-[#94A3B8] group-hover:text-[#2563EB] bg-white rounded-full shadow-sm flex items-center justify-center transition-colors">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <p className="mb-1 text-[14px] text-[#4A4A47] font-medium">
+                    <span className="font-bold text-[#2563EB]">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-[12px] text-[#888786]">PDF, PNG, JPG (Max 10MB)</p>
+                </div>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  multiple 
+                  accept="image/png, image/jpeg, application/pdf" 
+                  onChange={handleFileUpload} 
+                />
+              </label>
+
+              {reportError && (
+                <div className="text-[13px] text-red-500 bg-red-50 p-3 rounded-lg border border-red-100 flex items-start gap-2">
+                  <X className="w-4 h-4 mt-0.5 shrink-0" /> {reportError}
+                </div>
+              )}
+
+              {files.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-[12px] font-bold text-[#888786] uppercase tracking-widest">Attached Files</h4>
+                  <div className="flex flex-wrap items-stretch gap-3">
+                    {files.map((file, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 min-w-[280px] max-w-[320px] bg-white border border-[#E3E2DF] rounded-lg shadow-sm group hover:border-[#BFDBFE] transition-colors">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className="w-8 h-8 rounded bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center shrink-0">
+                            <FileText className="h-4 w-4" />
+                          </div>
+                          <div className="truncate pr-4">
+                            <p className="text-[13px] font-bold text-[#0F0F0E] truncate">{file.name}</p>
+                            <p className="text-[11px] text-[#888786]">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={(e) => { e.preventDefault(); removeFile(i); }}
+                          className="p-1.5 text-[#94A3B8] hover:text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    <button 
+                      onClick={handleAnalyzeReport}
+                      disabled={isAnalyzingReport}
+                      className="pp-btn-primary px-8 text-[14px] shadow-sm flex items-center justify-center disabled:opacity-50 rounded-lg whitespace-nowrap"
+                    >
+                      {isAnalyzingReport ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing...</>
+                      ) : (
+                        <><Sparkles className="h-4 w-4 mr-2" /> Analyse</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {(submitted || displayRubrics.length > 0) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
             
             {/* Left Pane: Rubrics */}
@@ -145,15 +322,21 @@ export default function AiAnalysisPage() {
                   <Check className="h-4 w-4 text-[#2563EB]" /> Rubrics for “{submitted}”
                 </span>
                 <span className="text-[11px] font-bold text-[#4A4A47] bg-white border border-[#E3E2DF] px-2 py-0.5 rounded-full">
-                  {diseaseRubrics.length} shown
+                  {displayRubrics.length} shown
                 </span>
               </div>
               <div className="overflow-y-auto flex-1 bg-[#FAFAF8] p-4 space-y-5">
+                {activeTab === 'report' && reportSummary && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
+                    <h4 className="text-[12px] font-bold text-blue-800 uppercase tracking-widest mb-1.5">Report Summary</h4>
+                    <p className="text-[13px] text-blue-900 leading-relaxed">{reportSummary}</p>
+                  </div>
+                )}
                 {extractDisease.isPending ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <p className="text-[13px] text-[#888786] italic">Searching “{submitted}”…</p>
                   </div>
-                ) : diseaseRubrics.length === 0 ? (
+                ) : displayRubrics.length === 0 ? (
                   <p className="text-[13px] text-[#888786] italic text-center py-6">No rubrics found.</p>
                 ) : (
                   Object.entries(rubricsByChapter).map(([chapter, rubrics]) => (
