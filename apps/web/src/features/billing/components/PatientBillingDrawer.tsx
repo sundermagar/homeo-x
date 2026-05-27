@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Drawer } from '@/shared/components/drawer';
 import { format } from 'date-fns';
-import { DollarSign, Printer, CreditCard } from 'lucide-react';
+import { DollarSign, Printer, CreditCard, FileText } from 'lucide-react';
 import { usePatientBills, useRecordPayment } from '../hooks/use-billing';
 import { printGroupedBills } from '@/shared/utils/print';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
@@ -250,19 +250,60 @@ export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Pr
             </div>
             <div className="bill-form-group">
               <label className="bill-form-label">Amount Received (₹)</label>
-              <input type="number" className="bill-form-input" style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }} value={receiveAmount} onChange={e => setReceiveAmount(Number(e.target.value))} />
+              <input 
+                type="number" 
+                className="bill-form-input" 
+                style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }} 
+                value={receiveAmount} 
+                onChange={e => setReceiveAmount(Number(e.target.value))} 
+              />
             </div>
             <div className="bill-form-group" style={{ marginTop: 16 }}>
               <label className="bill-form-label">Payment Mode</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
-                {['Cash', 'UPI', 'Card', 'Online'].map(mode => (
-                  <button key={mode} className={`bill-view-toggle-btn ${paymentMode === mode ? 'is-active' : ''}`} onClick={() => setPaymentMode(mode)} style={{ justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}>
-                    {mode === 'Cash' ? <DollarSign size={14} /> : <CreditCard size={14} />} {mode}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <button
+                  className={`bill-view-toggle-btn ${paymentMode === 'Cash' ? 'is-active' : ''}`}
+                  onClick={() => setPaymentMode('Cash')}
+                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                >
+                  <DollarSign size={14} /> Cash
+                </button>
+                <button
+                  className={`bill-view-toggle-btn ${paymentMode === 'UPI' ? 'is-active' : ''}`}
+                  onClick={() => setPaymentMode('UPI')}
+                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                >
+                  <CreditCard size={14} /> UPI
+                </button>
+                <button
+                  className={`bill-view-toggle-btn ${paymentMode === 'Card' ? 'is-active' : ''}`}
+                  onClick={() => setPaymentMode('Card')}
+                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                >
+                  <CreditCard size={14} /> Card
+                </button>
+                <button
+                  className={`bill-view-toggle-btn ${paymentMode === 'Online' ? 'is-active' : ''}`}
+                  onClick={() => setPaymentMode('Online')}
+                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                >
+                  <CreditCard size={14} /> Online
+                </button>
+                <button
+                  className={`bill-view-toggle-btn ${paymentMode === 'Cheque' ? 'is-active' : ''}`}
+                  onClick={() => setPaymentMode('Cheque')}
+                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                >
+                  <FileText size={14} /> Cheque
+                </button>
               </div>
             </div>
-            <button className="bill-btn bill-btn-primary" style={{ width: '100%', height: 44, borderRadius: 12, marginTop: 24, fontSize: '0.9rem' }} onClick={handleReceiveGroupPayment} disabled={recordPayment.isPending || receiveAmount <= 0}>
+            <button 
+              className="bill-btn bill-btn-primary" 
+              style={{ width: '100%', marginTop: 24, height: 48, borderRadius: 14, fontSize: '0.95rem' }} 
+              onClick={handleReceiveGroupPayment} 
+              disabled={recordPayment.isPending || receiveAmount <= 0}
+            >
               Confirm Payment (₹{receiveAmount})
             </button>
           </div>

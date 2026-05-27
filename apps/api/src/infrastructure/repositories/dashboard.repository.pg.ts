@@ -504,6 +504,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         regid: r.regid,
         patientName: r.patient_name,
         doctorName: r.doctor_name,
+        doctorId: r.doctor_id,
         bookingTime: r.booking_time || '',
         tokenNo: r.token_no,
         status: r.status,

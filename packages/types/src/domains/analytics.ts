@@ -106,6 +106,7 @@ export interface QueueItem {
   regid: number;
   patientName: string;
   doctorName: string;
+  doctorId?: number;
   bookingTime: string;
   tokenNo: number | string;
   status: string;
