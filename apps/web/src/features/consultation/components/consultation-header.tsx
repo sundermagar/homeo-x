@@ -32,10 +32,9 @@ interface ConsultationHeaderProps {
 }
 
 const STAGE_CONFIG: { key: ConsultStage; number: number; label: string }[] = [
-  { key: 'PATIENT_INFO', number: 1, label: 'Patient Info' },
-  { key: 'CONSULTATION', number: 2, label: 'Consult' },
-  { key: 'TOTALITY', number: 3, label: 'Analysis' },
-  { key: 'REPERTORY', number: 4, label: 'Remedy' },
+  { key: 'CONVERSATION', number: 1, label: 'Conversation' },
+  { key: 'SUMMARY', number: 2, label: 'Summary' },
+  { key: 'PRESCRIPTION', number: 3, label: 'Remedy' },
 ];
 
 function getStageIndex(stage: ConsultStage): number {
@@ -116,15 +115,12 @@ export function ConsultationHeader({
 
     switch (consultStage) {
       case 'PRESCRIPTION':
-        onStageChange('REPERTORY');
+        onStageChange('SUMMARY');
         break;
-      case 'REPERTORY':
-        onStageChange('TOTALITY');
+      case 'SUMMARY':
+        onStageChange('CONVERSATION');
         break;
-      case 'TOTALITY':
-        onStageChange('CONSULTATION');
-        break;
-      case 'CONSULTATION':
+      case 'CONVERSATION':
       default:
         navigate(ROUTES.DOCTOR_QUEUE);
         break;
@@ -162,7 +158,7 @@ export function ConsultationHeader({
         {consultStage && onStageChange && (
           <div className="flex items-center gap-1 ml-4">
             {STAGE_CONFIG.map((stage, i) => {
-              const isActive = consultStage === stage.key || (stage.key === 'TOTALITY' && consultStage === 'REPERTORY');
+              const isActive = consultStage === stage.key;
               const isCompleted = currentStageIndex > i;
               return (
                 <button
@@ -185,17 +181,17 @@ export function ConsultationHeader({
               );
             })}
 
-            {/* Repertorization tab — show when on REP or TOTALITY stage */}
+            {/* Prescription quick-tab */}
             <button
               type="button"
-              onClick={() => onStageChange('REPERTORY')}
+              onClick={() => onStageChange('PRESCRIPTION')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
-                consultStage === 'REPERTORY'
+                consultStage === 'PRESCRIPTION'
                   ? 'bg-teal-500 text-white shadow-sm'
                   : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
               }`}
             >
-              Rep <span className="text-[9px]">✓</span>
+              Rx <span className="text-[9px]">✓</span>
             </button>
           </div>
         )}

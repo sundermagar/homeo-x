@@ -13,6 +13,7 @@ export interface SoapSuggestion {
   objective: string;
   assessment: string;
   plan: string;
+  advice?: string;
   icdCodes: Array<{ code: string; description: string }>;
   confidence: number;
   auditLogId?: string;
@@ -39,6 +40,7 @@ Rules:
 - OBJECTIVE: Extract physical examination findings, vital signs, clinical observations.
 - ASSESSMENT: Synthesize clinical assessment, diagnosis, differential diagnoses.
 - PLAN: Extract treatment plan, medications prescribed, follow-up instructions, referrals.
+- ADVICE: Extract specific dietary, lifestyle, or general advice given to the patient.
 - Include relevant ICD-10 codes based on the assessment.
 - Never fabricate information not present in the transcript.
 - IMPORTANT: Always extract as much clinically relevant information as possible.
@@ -58,6 +60,7 @@ Respond in valid JSON:
   "objective": "...",
   "assessment": "...",
   "plan": "...",
+  "advice": "...",
   "icdCodes": [{ "code": "J06.9", "description": "Acute upper respiratory infection" }],
   "confidence": 0.85
 }`;
@@ -105,6 +108,7 @@ Generate a complete, clinically appropriate SOAP note based strictly on the tran
         objective: String(parsed.objective || ''),
         assessment: String(parsed.assessment || ''),
         plan: String(parsed.plan || ''),
+        advice: parsed.advice ? String(parsed.advice) : undefined,
         icdCodes,
         confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
       };

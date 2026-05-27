@@ -55,6 +55,7 @@ interface PrintPrescriptionButtonProps {
       phone?: string;
     } | null;
   };
+  getInlineData?: () => PrintPrescriptionButtonProps['inlineData'];
 }
 
 export function PrintPrescriptionButton({
@@ -63,7 +64,8 @@ export function PrintPrescriptionButton({
   size = 'sm',
   className,
   label = 'Print Rx',
-  inlineData,
+  inlineData: initialInlineData,
+  getInlineData,
 }: PrintPrescriptionButtonProps) {
   const { data: summary, isLoading } = useConsultationSummary(visitId);
   const { data: orgs = [] } = useOrganizations();
@@ -71,6 +73,7 @@ export function PrintPrescriptionButton({
   const user = useAuthStore(s => s.user);
 
   const handlePrint = () => {
+    const inlineData = getInlineData ? getInlineData() : initialInlineData;
     // Determine data source: inline (in-memory) data takes priority over API data
     const useInline = inlineData && (
       (inlineData.soapData?.subjective || inlineData.soapData?.assessment) ||
@@ -262,10 +265,10 @@ export function PrintPrescriptionButton({
   };
 
   // Enable button if we have inline data OR API summary
-  const hasData = !!(inlineData && (
-    (inlineData.soapData?.subjective || inlineData.soapData?.assessment) ||
-    (inlineData.rxItems && inlineData.rxItems.length > 0)
-  )) || !!summary;
+  const hasData = !!(getInlineData || (initialInlineData && (
+    (initialInlineData.soapData?.subjective || initialInlineData.soapData?.assessment) ||
+    (initialInlineData.rxItems && initialInlineData.rxItems.length > 0)
+  ))) || !!summary;
 
   return (
     <Button

@@ -643,23 +643,16 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
 
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [appliedFrom, setAppliedFrom] = useState<Date | undefined>(undefined);
-  const [appliedTo, setAppliedTo] = useState<Date | undefined>(undefined);
-
-  const handleSubmit = () => {
-    setAppliedFrom(fromDate ? new Date(fromDate) : undefined);
-    setAppliedTo(toDate ? new Date(toDate) : undefined);
-    setPage(1);
-  };
 
   const handleClear = () => {
     setSearch('');
     setFromDate('');
     setToDate('');
-    setAppliedFrom(undefined);
-    setAppliedTo(undefined);
     setPage(1);
   };
+
+  const appliedFrom = fromDate ? new Date(fromDate) : undefined;
+  const appliedTo = toDate ? new Date(toDate) : undefined;
 
   const { data, isLoading } = useReferenceListing(appliedFrom, appliedTo);
   const [search, setSearch] = useState('');
@@ -703,12 +696,6 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
             onChange={e => setToDate(e.target.value)} 
             title="To Date"
           />
-          <button 
-            className="btn-primary" 
-            onClick={handleSubmit}
-          >
-            Submit
-          </button>
           <button 
             className="btn-secondary" 
             onClick={handleClear}

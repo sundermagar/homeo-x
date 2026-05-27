@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Brain, Heart, Search, Plus, X } from 'lucide-react';
+import { Brain, Heart, Search, Star, AlertTriangle, ArrowRight, Activity, ChevronRight, X, Plus, Zap, Thermometer, Dna, Droplets, Moon, Droplet, MapPin, Layers, Stethoscope, ChevronDown } from 'lucide-react';
 import type { GnmAnalysis, CategorizedSymptoms } from '../../../../types/ai';
 import type { ScoredRemedy } from '../../../../types/ai';
 
@@ -23,6 +23,12 @@ interface TotalityStageProps {
   onSleepPositionChange?: (val: string) => void;
   perspiration?: string;
   onPerspirationChange?: (val: string) => void;
+  causation?: string;
+  onCausationChange?: (val: string) => void;
+  location?: string;
+  onLocationChange?: (val: string) => void;
+  concomitants?: string;
+  onConcomitantsChange?: (val: string) => void;
   doctorNotes?: string;
   onDoctorNotesChange?: (val: string) => void;
 }
@@ -47,6 +53,12 @@ export function TotalityStage({
   onSleepPositionChange,
   perspiration: parentPerspiration,
   onPerspirationChange,
+  causation: parentCausation,
+  onCausationChange,
+  location: parentLocation,
+  onLocationChange,
+  concomitants: parentConcomitants,
+  onConcomitantsChange,
   doctorNotes: parentDoctorNotes,
   onDoctorNotesChange,
 }: TotalityStageProps) {
@@ -70,6 +82,12 @@ export function TotalityStage({
   const setSleepPosition = (val: string) => onSleepPositionChange?.(val);
   const perspiration = parentPerspiration || '';
   const setPerspiration = (val: string) => onPerspirationChange?.(val);
+  const causation = parentCausation || '';
+  const setCausation = (val: string) => onCausationChange?.(val);
+  const location = parentLocation || '';
+  const setLocation = (val: string) => onLocationChange?.(val);
+  const concomitants = parentConcomitants || '';
+  const setConcomitants = (val: string) => onConcomitantsChange?.(val);
   const doctorNotes = parentDoctorNotes || '';
   const setDoctorNotes = (val: string) => onDoctorNotesChange?.(val);
 
@@ -226,96 +244,167 @@ export function TotalityStage({
         <h3 className="text-[14px] font-bold text-[#0F0F0E] mb-5 flex items-center gap-2">
           <div className="w-1.5 h-5 rounded-full bg-[#2563EB]" /> Constitutional Factors
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           {/* Thermal Reaction */}
-          <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Thermal Reaction</label>
-            <select
-              value={thermalReaction}
-              onChange={(e) => setThermalReaction(e.target.value)}
-              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2 rounded-md focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all"
-            >
-              <option value="">Select...</option>
-              <option value="chilly">Chilly</option>
-              <option value="hot">Hot</option>
-              <option value="ambithermal">Ambithermal</option>
-            </select>
+          <div className="relative group">
+            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              <Thermometer className="w-3 h-3 text-[#2563EB]" /> Thermal
+            </label>
+            <div className="relative">
+              <select
+                value={thermalReaction}
+                onChange={(e) => setThermalReaction(e.target.value)}
+                className="w-full text-[13px] font-semibold text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] pl-3 pr-8 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all appearance-none cursor-pointer hover:border-[#BFDBFE]"
+              >
+                <option value="">Select...</option>
+                <option value="chilly">🥶 Chilly</option>
+                <option value="hot">🥵 Hot</option>
+                <option value="ambithermal">🌡️ Ambithermal</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-[#888786] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-[#2563EB] transition-colors" />
+            </div>
           </div>
+
           {/* Dominant Miasm */}
-          <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Dominant Miasm</label>
-            <select
-              value={dominantMiasm}
-              onChange={(e) => setDominantMiasm(e.target.value)}
-              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2 rounded-md focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all"
-            >
-              <option value="">Select...</option>
-              <option value="psora">Psora</option>
-              <option value="sycosis">Sycosis</option>
-              <option value="syphilis">Syphilis</option>
-              <option value="tubercular">Tubercular</option>
-            </select>
+          <div className="relative group">
+            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              <Activity className="w-3 h-3 text-[#2563EB]" /> Miasm
+            </label>
+            <div className="relative">
+              <select
+                value={dominantMiasm}
+                onChange={(e) => setDominantMiasm(e.target.value)}
+                className="w-full text-[13px] font-semibold text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] pl-3 pr-8 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all appearance-none cursor-pointer hover:border-[#BFDBFE]"
+              >
+                <option value="">Select...</option>
+                <option value="psora">Psora</option>
+                <option value="sycosis">Sycosis</option>
+                <option value="syphilis">Syphilis</option>
+                <option value="tubercular">Tubercular</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-[#888786] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-[#2563EB] transition-colors" />
+            </div>
           </div>
+
           {/* Thirst Pattern */}
+          <div className="relative group">
+            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              <Droplets className="w-3 h-3 text-[#2563EB]" /> Thirst
+            </label>
+            <div className="relative">
+              <select
+                value={thirstPattern}
+                onChange={(e) => setThirstPattern(e.target.value)}
+                className="w-full text-[13px] font-semibold text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] pl-3 pr-8 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all appearance-none cursor-pointer hover:border-[#BFDBFE]"
+              >
+                <option value="">Select...</option>
+                <option value="thirsty">Thirsty (large qtys)</option>
+                <option value="thirstless">Thirstless</option>
+                <option value="sips">Small sips</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-[#888786] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-[#2563EB] transition-colors" />
+            </div>
+          </div>
+
+          {/* Sleep Position */}
+          <div className="relative group">
+            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              <Moon className="w-3 h-3 text-[#2563EB]" /> Sleep
+            </label>
+            <div className="relative">
+              <select
+                value={sleepPosition}
+                onChange={(e) => setSleepPosition(e.target.value)}
+                className="w-full text-[13px] font-semibold text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] pl-3 pr-8 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all appearance-none cursor-pointer hover:border-[#BFDBFE]"
+              >
+                <option value="">Select...</option>
+                <option value="back">On back</option>
+                <option value="left">Left side</option>
+                <option value="right">Right side</option>
+                <option value="abdomen">On abdomen</option>
+                <option value="knees">Knee-chest</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-[#888786] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-[#2563EB] transition-colors" />
+            </div>
+          </div>
+          
+          {/* Perspiration */}
+          <div className="relative group">
+            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              <Droplet className="w-3 h-3 text-[#2563EB]" /> Perspiration
+            </label>
+            <div className="relative">
+              <select
+                value={perspiration}
+                onChange={(e) => setPerspiration(e.target.value)}
+                className="w-full text-[13px] font-semibold text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] pl-3 pr-8 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all appearance-none cursor-pointer hover:border-[#BFDBFE]"
+              >
+                <option value="">Select...</option>
+                <option value="profuse">Profuse</option>
+                <option value="scanty">Scanty</option>
+                <option value="offensive">Offensive</option>
+                <option value="staining">Staining</option>
+                <option value="head">On head only</option>
+              </select>
+              <ChevronDown className="w-4 h-4 text-[#888786] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-[#2563EB] transition-colors" />
+            </div>
+          </div>
+
+          {/* Causation */}
           <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Thirst Pattern</label>
-            <select
-              value={thirstPattern}
-              onChange={(e) => setThirstPattern(e.target.value)}
-              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2 rounded-md focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all"
-            >
-              <option value="">Select...</option>
-              <option value="thirsty">Thirsty (large quantities)</option>
-              <option value="thirstless">Thirstless</option>
-              <option value="sips">Small sips frequently</option>
-            </select>
+            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              <Zap className="w-3 h-3 text-[#2563EB]" /> Causation
+            </label>
+            <input
+              type="text"
+              value={causation}
+              onChange={(e) => setCausation(e.target.value)}
+              placeholder="Ailments from..."
+              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all placeholder:text-[#888786]"
+            />
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              <MapPin className="w-3 h-3 text-[#2563EB]" /> Location
+            </label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Side, body part..."
+              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all placeholder:text-[#888786]"
+            />
+          </div>
+
+          {/* Concomitants */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              <Layers className="w-3 h-3 text-[#2563EB]" /> Concomitants
+            </label>
+            <input
+              type="text"
+              value={concomitants}
+              onChange={(e) => setConcomitants(e.target.value)}
+              placeholder="Associated symptoms..."
+              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all placeholder:text-[#888786]"
+            />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Sleep Position */}
-          <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Sleep Position</label>
-            <select
-              value={sleepPosition}
-              onChange={(e) => setSleepPosition(e.target.value)}
-              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2 rounded-md focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all"
-            >
-              <option value="">Select...</option>
-              <option value="back">On back</option>
-              <option value="left">Left side</option>
-              <option value="right">Right side</option>
-              <option value="abdomen">On abdomen</option>
-              <option value="knees">Knee-chest</option>
-            </select>
-          </div>
-          {/* Perspiration */}
-          <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Perspiration</label>
-            <select
-              value={perspiration}
-              onChange={(e) => setPerspiration(e.target.value)}
-              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2 rounded-md focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all"
-            >
-              <option value="">Select...</option>
-              <option value="profuse">Profuse</option>
-              <option value="scanty">Scanty</option>
-              <option value="offensive">Offensive</option>
-              <option value="staining">Staining</option>
-              <option value="head">On head only</option>
-            </select>
-          </div>
+          
           {/* Doctor Notes */}
-          <div>
-            <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Doctor Notes</label>
+          <div className="pt-2">
             <input
               type="text"
               value={doctorNotes}
               onChange={(e) => setDoctorNotes(e.target.value)}
-              placeholder="Additional observations..."
-              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2 rounded-md focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all placeholder:text-[#888786]"
+              placeholder="Add any additional observations or doctor notes..."
+              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2.5 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all placeholder:text-[#888786]"
             />
           </div>
-        </div>
+
       </div>
 
       {/* ═══ GNM Analysis (if present) ═══ */}

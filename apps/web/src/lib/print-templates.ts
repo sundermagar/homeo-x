@@ -755,6 +755,7 @@ export interface PrescriptionPrintData {
 export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   const accent = data.clinic.accentColor || '#2563EB';
   const safe = (s?: string) => (s ? escapeHtml(s) : '');
+  const cleanDoctorName = data.doctor.name.replace(/^Dr\.?\s*/i, '');
 
   const formattedDate = new Date(data.visit.date || Date.now()).toLocaleDateString('en-GB', {
     day: '2-digit', month: 'short', year: 'numeric',
@@ -795,30 +796,12 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   // ─── Resolve Header ───
   let headerHtml = data.clinic.headerHtml;
 
-  // Doctor info + date row — appended below whatever header is used
-  const doctorDateRow = `
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; padding-top:12px; border-top:1px solid #e2e8f0;">
-      <div>
-        <p style="font-size:11px; font-weight:700; color:#1F2937; margin:0;">Dr. ${safe(data.doctor.name)}${data.doctor.qualification ? ` — ${safe(data.doctor.qualification)}` : ''}</p>
-        ${data.doctor.registrationNumber ? `<p style="font-size:10px; color:#6B7280; font-weight:500; margin:2px 0 0;">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
-      </div>
-      <div style="text-align:right;">
-        <p style="font-size:10px; font-weight:700; color:#6B7280; margin:0;">Date: ${formattedDate}</p>
-        <p style="font-size:10px; font-weight:700; color:#6B7280; margin:2px 0 0;">Ref #RX-${safe(refNumber)}</p>
-      </div>
-    </div>
-  `;
+  // Ignore legacy seed HTML so the new premium default layout activates
+  if (headerHtml && (headerHtml.includes('MMC Clinical Prescription') || headerHtml.includes('HomeoX Clinical Prescription') || headerHtml.includes('Clinical Prescription'))) {
+    headerHtml = undefined;
+  }
 
-  if (headerHtml && headerHtml.trim().length > 0) {
-    // User has configured a custom letterhead in PDF & Report Designer — use it
-    headerHtml = `
-      <div style="margin-bottom:8px;">
-        ${headerHtml}
-      </div>
-      ${doctorDateRow}
-    `;
-  } else {
-    // No custom letterhead configured — use the auto-generated premium default
+  if (!headerHtml) {
     const mapPinIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
     const phoneIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`;
     const clockIcon = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
@@ -868,17 +851,25 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
           </div>
         </div>
       </div>
-      ${doctorDateRow}
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+        <div>
+          <p style="font-size:11px; font-weight:700; color:#1F2937; margin:0;">Dr. ${safe(cleanDoctorName)}${data.doctor.qualification ? ` — ${safe(data.doctor.qualification)}` : ''}</p>
+          ${data.doctor.registrationNumber ? `<p style="font-size:10px; color:#6B7280; font-weight:500; margin:2px 0 0;">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
+        </div>
+        <div style="text-align:right;">
+          <p style="font-size:10px; font-weight:700; color:#6B7280; margin:0;">Date: ${formattedDate}</p>
+          <p style="font-size:10px; font-weight:700; color:#6B7280; margin:2px 0 0;">Ref #RX-${safe(refNumber)}</p>
+        </div>
+      </div>
     `;
   }
 
   // ─── Resolve Footer ───
   let footerHtml = data.clinic.footerHtml;
-
-  if (footerHtml && footerHtml.trim().length > 0) {
-    // User has configured a custom footer in PDF & Report Designer — use it
-    footerHtml = `<div style="margin-top:30px; padding-top:12px; border-top:1px solid #e2e8f0;">${footerHtml}</div>`;
-  } else {
+  if (footerHtml && (footerHtml.includes('MMC') || footerHtml.includes('HomeoX'))) {
+    footerHtml = undefined;
+  }
+  if (!footerHtml) {
     footerHtml = `
       <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-end; gap:16px;">
         <div style="display:flex; gap:30px; flex-wrap:wrap; flex:1;">
@@ -954,23 +945,19 @@ ${PRINT_STYLES}
 
   ${labsHtml}
 
-  ${(data.advice || data.followUp) ? `
-    <div class="rx-twocol">
-      ${data.advice ? `
-        <section class="rx-section" style="margin-bottom:0;">
-          <h3 class="rx-section-label">Advice / Instructions</h3>
-          <p class="rx-prose">${escapeHtml(data.advice).replace(/\n/g, '<br>')}</p>
-        </section>
-      ` : '<div></div>'}
-      
-      ${data.followUp ? `
-        <section class="rx-section" style="margin-bottom:0;">
-          <h3 class="rx-section-label">Follow-up</h3>
-          <p class="rx-prose-em">${safe(data.followUp)}</p>
-          ${followUpDate ? `<p class="rx-prose-meta">Suggested: ${followUpDate}</p>` : ''}
-        </section>
-      ` : '<div></div>'}
-    </div>
+  ${data.advice ? `
+    <section class="rx-section">
+      <h3 class="rx-section-label">Advice / Instructions</h3>
+      <p class="rx-prose">${escapeHtml(data.advice).replace(/\n/g, '<br>')}</p>
+    </section>
+  ` : ''}
+
+  ${data.followUp ? `
+    <section class="rx-section">
+      <h3 class="rx-section-label">Follow-up</h3>
+      <p class="rx-prose-em">${safe(data.followUp)}</p>
+      ${followUpDate ? `<p class="rx-prose-meta">Suggested: ${followUpDate}</p>` : ''}
+    </section>
   ` : ''}
 
   ${data.prescriptionNotes ? `
@@ -982,7 +969,7 @@ ${PRINT_STYLES}
 
   <div class="rx-footer-wrapper">
     <footer class="rx-signature">
-      <p class="rx-sig-name">Dr. ${safe(data.doctor.name)}</p>
+      <p class="rx-sig-name">Dr. ${safe(cleanDoctorName)}</p>
       ${data.doctor.qualification ? `<p class="rx-sig-meta">${safe(data.doctor.qualification)}</p>` : ''}
       ${data.doctor.registrationNumber ? `<p class="rx-sig-meta">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
     </footer>

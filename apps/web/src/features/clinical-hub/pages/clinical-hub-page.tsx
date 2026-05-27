@@ -26,16 +26,14 @@ const FEATURES = [
     badge: 'active',
   },
   */
-  /*
   {
-    icon: Activity,
+    icon: BrainCircuit,
     iconStyle: 'alt',
-    title: 'Remedy Chart',
-    desc: 'AI-powered remedy charting with visual taxonomy matrix and cross-referencing capabilities.',
-    path: '/clinical/remedy-chart',
+    title: 'AI Analysis',
+    desc: 'Clinical AI analysis, disease rubric extraction, and indicated remedy lookup.',
+    path: '/clinical/ai-analysis',
     badge: 'new',
   },
-  */
   {
     icon: BellDot,
     iconStyle: 'green',
@@ -90,12 +88,10 @@ export default function ClinicalHubPage() {
           <BellDot size={16} />
           Follow-ups
         </Link>
-        {/*
-        <Link to="/clinical/remedy-chart" className="chub-quick-btn">
-          <Activity size={16} />
-          Remedy Chart
+        <Link to="/clinical/ai-analysis" className="chub-quick-btn">
+          <BrainCircuit size={16} />
+          AI Analysis
         </Link>
-        */}
       </div>
 
       {/* ─── Stats Row ─── */}
