@@ -482,7 +482,7 @@ export default function MedicalCaseDetailPage() {
     }
   };
 
-  const handleOpenDiagnosis = (record?: any) => {
+  const handleOpenDiagnosis = (record?: any, forceDirectEdit?: boolean) => {
     // Priority: 1. Passed record (from table), 2. Current visit record (from sidebar context)
     const activeRecord = record || currentVisitSoap;
 
@@ -500,7 +500,7 @@ export default function MedicalCaseDetailPage() {
         initialMeds = [{ medicine: objectiveStr, frequency: 'Once', days: '', issue: '' }];
       }
     }
-    setMedicationRows(initialMeds);
+    setScannedMedicationRows(initialMeds);
 
     if (activeRecord) {
       setDiagForm({
@@ -1028,7 +1028,7 @@ export default function MedicalCaseDetailPage() {
         isDateFiltered={!!displayDate}
       /></div>;
       case 'media': return <div className="mc-tab-content-wrapper"><MediaView regid={Number(regid)} visitId={medicalCase.id} images={filteredImages} isDateFiltered={!!displayDate} /></div>;
-      case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} isDateFiltered={!!displayDate} /></div>;
+      case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} isDateFiltered={!!displayDate} displayDate={displayDate} /></div>;
       case 'vitals': return <div className="mc-tab-content-wrapper"><VitalsView vitals={filteredVitals} onRecord={(data) => {
         setEditingVitals(data || null);
         setShowVitalsModal(true);
@@ -2937,7 +2937,7 @@ const LAB_CONFIG: Record<string, any[]> = {
   ]
 };
 
-function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered }: { investigations: any[]; regid: number; visitId: number; onAppendNote?: (text: string) => void; isDateFiltered?: boolean }) {
+function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered, displayDate }: { investigations: any[]; regid: number; visitId: number; onAppendNote?: (text: string) => void; isDateFiltered?: boolean; displayDate?: string | Date | null }) {
   const navigate = useNavigate();
   const [activeType, setActiveType] = useState('CBC');
   const [labData, setLabData] = useState<any>({});
@@ -2994,14 +2994,16 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
 
   const handleSave = async (copyToFollowup = false) => {
     try {
-      const investDate = new Date().toISOString().split('T')[0];
+      const { investDate: dataDate, attachmentUrl, summary, id: _ignoreId, ...actualData } = labData;
+      const investDate = dataDate || new Date().toISOString().split('T')[0];
       await saveInvestigation.mutateAsync({
         id: editingInv?.id,
-        regid, visitId, type: activeType, data: labData, investDate
+        regid, visitId, type: activeType, data: actualData, investDate,
+        summary, attachmentUrl
       });
 
       if (copyToFollowup) {
-        const summary = Object.entries(labData)
+        const findingsSummary = Object.entries(actualData)
           .filter(([_, v]) => v)
           .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
           .join(', ');
@@ -3009,7 +3011,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
           regid,
           visitId,
           notesType: 'Followup',
-          notes: `Investigation (${activeType}): ${summary}`
+          notes: `Investigation (${activeType}): ${findingsSummary}`
         });
       }
 
@@ -3038,7 +3040,11 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
 
   const handleDownload = () => {
     const content = `Investigation Report: ${activeType}\nDate: ${new Date().toLocaleDateString()}\n\n` +
-      Object.entries(labData).filter(([_, v]) => v).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join('\n');
+      (labData.summary ? `Summary:\n${labData.summary}\n\nFindings:\n` : '') +
+      Object.entries(labData)
+        .filter(([k, v]) => v && !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k))
+        .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
+        .join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -3083,7 +3089,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
         }
         setActiveType('Specific');
         setLabData({
-          investDate: new Date().toISOString().split('T')[0],
+          investDate: (displayDate ? new Date(displayDate).toISOString().split('T')[0] : null) || new Date().toISOString().split('T')[0],
           attachmentUrl: data.data?.attachmentUrl || '',
           summary: ''
         });
@@ -3094,7 +3100,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
         setActiveType(type || 'Specific');
         setLabData({
           ...(parsedData || {}),
-          investDate: date || new Date().toISOString().split('T')[0],
+          investDate: (displayDate ? new Date(displayDate).toISOString().split('T')[0] : null) || date || new Date().toISOString().split('T')[0],
           attachmentUrl: data.data.attachmentUrl,
           summary: summary || ''
         });
@@ -3174,100 +3180,53 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                   <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
                   <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
                 </div>
-                <table className="mc-data-table" style={{ marginBottom: 0 }}>
-                  <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
-                    <tr>
-                      <th style={{ width: '110px' }}>Date</th>
-                      <th style={{ width: '130px' }}>Category</th>
-                      <th>Results</th>
-                      <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groupedInvs.map((group) => (
-                      <React.Fragment key={group.date}>
-                        {group.items.map((inv, idx) => {
-                          const isExpanded = isDateFiltered || expandedDates.has(group.date);
-                          if (idx > 0 && !isExpanded) return null;
-
-                          const dateVal = inv.investDate || 0;
-
-                          return (
-                            <tr
-                              key={inv.id}
-                              className="hover-row"
-                              style={{
-                                background: idx > 0 ? '#f8fafc' : 'white',
-                                borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
-                              }}
-                            >
-                              <td className="appt-cell-mono">
-                                <DateGroupCell
-                                  dateVal={dateVal}
-                                  isFirst={idx === 0}
-                                  isExpanded={isExpanded}
-                                  itemsCount={group.items.length}
-                                  onToggle={() => toggleDate(group.date)}
-                                />
-                              </td>
-                              <td style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{inv.type}</td>
-                              <td>
-                                <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.5' }}>
-                                  {inv.data?.summary || inv.summary || (
-                                    <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No summary available</span>
-                                  )}
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '16px', gap: '16px', background: '#f8fafc' }}>
+                  {sortedInvs.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>No investigations found for this page.</div>
+                  ) : (
+                    sortedInvs.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(inv => {
+                      const dateVal = inv.investDate || 0;
+                      return (
+                        <div key={inv.id} className="pp-card hover-card" style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ background: '#f5f3ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontWeight: 800, fontSize: '0.85rem' }}>
+                                {inv.type}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Calendar size={14} style={{ color: '#94a3b8' }} />
+                                {new Date(dateVal).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              {onAppendNote && (
+                                <button onClick={() => handleCopyToFollowup(inv)} className="btn-ghost" style={{ color: '#16a34a', padding: '6px 8px', borderRadius: '6px' }} title="Copy to Follow-up"><Copy size={15} /></button>
+                              )}
+                              <button onClick={() => navigate('/clinical/ai-analysis?query=' + encodeURIComponent(inv.summary || inv.data?.summary || ''))} className="btn-ghost" style={{ color: '#8b5cf6', padding: '6px 8px', borderRadius: '6px' }} title="Suggest Remedy"><BrainCircuit size={15} /></button>
+                              <button onClick={() => setPreviewingInv(inv)} className="btn-ghost" style={{ color: 'var(--pp-blue)', padding: '6px 8px', borderRadius: '6px' }} title="View Report Details"><Eye size={15} /></button>
+                              <button onClick={() => { if (confirm('Delete this investigation?')) { deleteRecord.mutateAsync({ type: 'investigations', id: inv.id }); } }} className="btn-ghost" style={{ color: '#ef4444', padding: '6px 8px', borderRadius: '6px' }} title="Delete"><Trash2 size={15} /></button>
+                            </div>
+                          </div>
+                          
+                          <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: '1.6', marginBottom: '12px' }}>
+                            {inv.data?.summary || inv.summary || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No summary available</span>}
+                          </div>
+                          
+                          {inv.data && Object.keys(inv.data).filter(k => !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '12px', background: '#f1f5f9', borderRadius: '8px' }}>
+                              {Object.entries(inv.data).filter(([k, v]) => v && !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).map(([k, v]) => (
+                                <div key={k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px', background: 'white', padding: '6px 10px', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', border: '1px solid #e2e8f0' }}>
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{k}</span>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{String(v)}</span>
                                 </div>
-                              </td>
-                              <td style={{ textAlign: 'center' }}>
-                                <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
-                                  {onAppendNote && (
-                                    <button
-                                      onClick={() => handleCopyToFollowup(inv)}
-                                      className="btn-ghost"
-                                      style={{ color: '#16a34a', padding: '4px 8px' }}
-                                      title="Copy to Follow-up"
-                                    >
-                                      <Copy size={14} />
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => navigate('/clinical/ai-analysis?query=' + encodeURIComponent(inv.summary || inv.data?.summary || ''))}
-                                    className="btn-ghost"
-                                    style={{ color: '#8b5cf6', padding: '4px 8px' }}
-                                    title="Suggest Remedy"
-                                  >
-                                    <BrainCircuit size={14} />
-                                  </button>
-                                  <button
-                                    onClick={() => setPreviewingInv(inv)}
-                                    className="btn-ghost"
-                                    style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                    title="View Report Details"
-                                  >
-                                    <Eye size={14} />
-                                  </button>
-
-                                  <button
-                                    onClick={() => {
-                                      if (confirm('Delete this investigation?')) {
-                                        deleteRecord.mutateAsync({ type: 'investigations', id: inv.id });
-                                      }
-                                    }}
-                                    className="btn-ghost"
-                                    style={{ color: '#dc2626', padding: '4px 8px' }}
-                                    title="Delete"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
               <Pagination
                 currentPage={currentPage}
@@ -3320,33 +3279,36 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
             </div>
 
             <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: '16px' }}>
-                {fields.map(field => (
-                  <div key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: '6px', ...(field.type === 'full' ? { gridColumn: '1 / -1' } : {}) }}>
-                    <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{field.label}</label>
-                    {field.type === 'full' ? (
-                      <textarea
-                        className="pp-textarea"
-                        placeholder={`Enter ${field.label}...`}
-                        value={getLabValue(field.key)}
-                        onChange={e => handleLabValueChange(field.key, e.target.value)}
-                        style={{ minHeight: '100px' }}
-                      />
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input
-                          type="text"
-                          className="pp-input"
-                          placeholder="0.00"
-                          value={getLabValue(field.key)}
-                          onChange={e => handleLabValueChange(field.key, e.target.value)}
-                          style={{ flex: 1 }}
-                        />
-                        {field.range && <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--pp-text-3)', background: 'var(--pp-warm-2)', padding: '4px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>{field.range}</span>}
-                      </div>
-                    )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Summary / Findings</label>
+                  <textarea
+                    className="pp-textarea"
+                    placeholder="Enter or edit investigation summary..."
+                    value={labData.summary || ''}
+                    onChange={(e) => setLabData({ ...labData, summary: e.target.value })}
+                    style={{ minHeight: '120px', fontSize: '0.9rem', lineHeight: 1.6 }}
+                  />
+                </div>
+                
+                {Object.keys(labData).filter(k => !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).length > 0 && (
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', display: 'block' }}>Extracted Parameters</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: '16px' }}>
+                      {Object.keys(labData).filter(k => !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).map(key => (
+                        <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{key}</label>
+                          <input
+                            type="text"
+                            className="pp-input"
+                            value={labData[key]}
+                            onChange={e => setLabData({ ...labData, [key]: e.target.value })}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
