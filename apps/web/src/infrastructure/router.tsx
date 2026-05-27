@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@/shared/components/protected-route';
 import { RoleGuard } from '@/shared/components/role-guard';
 import { AppLayout } from '@/shared/layouts/app-layout';
 import { RouteErrorBoundary } from '@/components/shared/error-boundary';
+import { useAuthStore } from '@/shared/stores/auth-store';
 
 const Loading = () => (
   <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -90,6 +91,7 @@ const StocksPage = lazy(() => import('@/features/settings/pages/StocksPage'));
 const AiAnalysisPage = lazy(() => import('@/features/settings/pages/AiAnalysisPage'));
 const VaccinesPage = lazy(() => import('@/features/settings/pages/VaccinesPage'));
 const ChargesPage = lazy(() => import('@/features/settings/pages/ChargesPage').then(m => ({ default: m.ChargesPage })));
+const CallStatusesPage = lazy(() => import('@/features/settings/pages/CallStatusesPage'));
 
 // Communications
 const SmsTemplatesPage = lazy(() => import('@/features/communications/pages/sms-templates-page'));
@@ -117,6 +119,17 @@ const PatientMeetPage = lazy(() => import('@/features/consultation/patient-meet-
 // Legal & Compliance
 const PrivacyPolicyPage = lazy(() => import('@/features/legal/pages/privacy-policy-page'));
 const TermsOfServicePage = lazy(() => import('@/features/legal/pages/terms-of-service-page'));
+
+const WhatsAppIndexRedirect = () => {
+  const rawType = useAuthStore((s) => (s.user as any)?.type || (s.user as any)?.role);
+  const userRole = rawType?.toLowerCase().replace(/\s/g, '');
+  const isStaff = userRole === 'doctor' || userRole === 'receptionist' || userRole === 'hmis_doctor';
+  
+  if (isStaff) {
+    return <Navigate to="inbox" replace />;
+  }
+  return <Navigate to="overview" replace />;
+};
 
 export function AppRouter() {
   return (
@@ -159,20 +172,19 @@ export function AppRouter() {
             <Route path="/medical-cases/:regid" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><MedicalCaseDetailPage /></RoleGuard>} />
             <Route path="/medical-cases/followups" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><FollowupsPage /></RoleGuard>} />
             <Route path="/vitals-check" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><VitalsCheckPage /></RoleGuard>} />
-            {/* <Route path="/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiConsultantPage /></RoleGuard>} /> */}
             <Route path="/clinical/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiAnalysisPage /></RoleGuard>} />
 
 
             {/* ─── Packages & Memberships ─── */}
             <Route path="/packages" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PackagePlansPage /></RoleGuard>} />
-            <Route path="/packages/tracking" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PackageTrackingPage /></RoleGuard>} />
+            <Route path="/packages/tracking" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><PackageTrackingPage /></RoleGuard>} />
 
             {/* ─── Communications ─── */}
             <Route path="/communications/sms" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><GroupSmsPage /></RoleGuard>} />
             <Route path="/communications/templates" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><SmsTemplatesPage /></RoleGuard>} />
             <Route path="/communications/reports" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><SmsReportsPage /></RoleGuard>} />
-            <Route path="/communications/whatsapp" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><WhatsAppPage /></RoleGuard>}>
-              <Route index element={<Navigate to="overview" replace />} />
+            <Route path="/communications/whatsapp" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><WhatsAppPage /></RoleGuard>}>
+              <Route index element={<WhatsAppIndexRedirect />} />
               <Route path="overview" element={<div />} />
               <Route path="inbox" element={<div />} />
               <Route path="campaigns" element={<div />} />
@@ -191,9 +203,9 @@ export function AppRouter() {
             {/* ─── Analytics ─── */}
             <Route path="/analytics" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><DashboardAnalyticsPage /></RoleGuard>} />
             <Route path="/analytics/reports" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><ReportsPage /></RoleGuard>}>
-              <Route index element={<Navigate to="financial" replace />} />
-              <Route path="financial" element={<div />} />
-              <Route path="dues" element={<div />} />
+              <Route index element={<Navigate to="monthly-report" replace />} />
+              <Route path="monthly-report" element={<div />} />
+              <Route path="monthly-dues" element={<div />} />
               <Route path="birthdays" element={<div />} />
               <Route path="references" element={<div />} />
             </Route>
@@ -208,7 +220,7 @@ export function AppRouter() {
             <Route path="/billing/balance" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><ViewBalancePage /></RoleGuard>} />
             <Route path="/billing/assigned-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><AdditionalChargesPage /></RoleGuard>} />
             <Route path="/billing/additional-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ChargesPage /></RoleGuard>} />
-            <Route path="/billing/day-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><DayChargesPage /></RoleGuard>} />
+            <Route path="/billing/day-charges" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><DayChargesPage /></RoleGuard>} />
             <Route path="/billing/deposits" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><DepositsPage /></RoleGuard>} />
             <Route path="/billing/expenses" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist']}><ExpensesPage /></RoleGuard>} />
             <Route path="/payments" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><PaymentsPage /></RoleGuard>} />
@@ -225,7 +237,7 @@ export function AppRouter() {
             <Route path="/platform/accounts" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><AccountsPage /></RoleGuard>} />
 
             {/* ─── Operations Hub ─── */}
-            <Route path="/operations" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><OperationsDashboard /></RoleGuard>} />
+            <Route path="/operations" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><OperationsDashboard /></RoleGuard>} />
             <Route path="/courier-queue" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><CourierQueuePage /></RoleGuard>} />
 
             {/* ─── Settings ─── */}
@@ -250,6 +262,7 @@ export function AppRouter() {
             <Route path="/settings/staff" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StaffManagementPage /></RoleGuard>} />
             <Route path="/settings/roles" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><RolesPermissionsPage /></RoleGuard>} />
             <Route path="/settings/vaccines" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><VaccinesPage /></RoleGuard>} />
+            <Route path="/settings/call-statuses" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CallStatusesPage /></RoleGuard>} />
           </Route>
 
           {/* Full-screen (no layout shell) */}
