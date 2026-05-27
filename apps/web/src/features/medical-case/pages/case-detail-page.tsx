@@ -349,6 +349,8 @@ export default function MedicalCaseDetailPage() {
   const [scannedMedicationRows, setScannedMedicationRows] = useState<MedicationRow[]>([
     { medicine: '', frequency: 'Once', days: '', issue: '' }
   ]);
+  const [isScannedPrescription, setIsScannedPrescription] = useState(false);
+  const [isSavingScannedPrescription, setIsSavingScannedPrescription] = useState(false);
 
   const handlePrescriptionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -372,6 +374,7 @@ export default function MedicalCaseDetailPage() {
             }))
             : [{ medicine: '', frequency: 'Once', days: '', issue: '' }]
         );
+        setIsScannedPrescription(true);
         setShowPrescriptionPreview(true);
       }
     } catch (err) {
@@ -390,34 +393,61 @@ export default function MedicalCaseDetailPage() {
 
   const handleSaveScannedPrescription = async () => {
     if (!scannedPrescription) return;
+    setIsSavingScannedPrescription(true);
     try {
       if (scannedPrescription.diagnosis.trim()) {
         await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: scannedPrescription.diagnosis.trim() });
       }
-      const serializedMeds = JSON.stringify(scannedMedicationRows.filter(r => r.medicine.trim() !== ''));
-      const soapDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
+      const medications = scannedMedicationRows.filter(r => r.medicine.trim() !== '');
+      const noteDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
+      const payload = {
+        diagnosis: scannedPrescription.diagnosis,
+        complaint: scannedPrescription.complaint,
+        investigation: scannedPrescription.investigation,
+        medications
+      };
 
-      await saveSoap.mutateAsync({
-        id: currentVisitSoap?.id,
+      await saveNote.mutateAsync({
+        id: currentVisitHomeoDetail?.id,
         regid: Number(regid),
-        visitId: currentVisitId || visitId,
-        subjective: scannedPrescription.complaint,
-        objective: serializedMeds,
-        assessment: scannedPrescription.diagnosis,
-        plan: scannedPrescription.investigation,
-        dateval: soapDate,
-        createdAt: soapDate
+        notesType: 'HomeoDetails',
+        notes: JSON.stringify(payload),
+        dateval: noteDate.split('T')[0]
       });
 
-      if (!currentVisitSoap) {
-        setSelectedDate(soapDate);
+      if (!currentVisitHomeoDetail) {
+        setSelectedDate(noteDate);
       }
 
       setShowPrescriptionPreview(false);
       setScannedPrescription(null);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSavingScannedPrescription(false);
     }
+  };
+
+  const handleEditHomeoDetails = () => {
+    let payload = { diagnosis: '', complaint: '', investigation: '', medications: [] };
+    if (currentVisitHomeoDetail?.notes) {
+      try {
+         payload = JSON.parse(currentVisitHomeoDetail.notes);
+      } catch (e) {}
+    }
+    
+    setScannedPrescription({
+      diagnosis: payload.diagnosis || '',
+      complaint: payload.complaint || '',
+      investigation: payload.investigation || '',
+    });
+    setScannedMedicationRows(
+      payload.medications && payload.medications.length > 0 
+        ? payload.medications 
+        : [{ medicine: '', frequency: 'Once', days: '', issue: '' }]
+    );
+    setIsScannedPrescription(false);
+    setShowPrescriptionPreview(true);
   };
 
   const updateScannedMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
@@ -438,6 +468,25 @@ export default function MedicalCaseDetailPage() {
       const updated = prev.filter((_, idx) => idx !== index);
       return updated.length > 0 ? updated : [{ medicine: '', frequency: 'Once', days: '', issue: '' }];
     });
+  };
+
+  const detectScannedMedicineIssue = async (index: number, medicineName: string) => {
+    if (!medicineName.trim()) return;
+    setAiDetectingIdx(index);
+    try {
+      const res = await apiClient.post<{ success: boolean; data: { issue: string; provider?: string } }>(
+        '/medical-cases/ai-detect-medicine-issue',
+        { medicine: medicineName.trim() }
+      );
+      const detected = res.data?.data?.issue;
+      if (detected) {
+        updateScannedMedicationRow(index, 'issue', detected);
+      }
+    } catch (err) {
+      console.warn('AI medicine detection failed:', err);
+    } finally {
+      setAiDetectingIdx(null);
+    }
   };
 
   const handleOpenDiagnosis = (record?: any) => {
@@ -655,6 +704,19 @@ export default function MedicalCaseDetailPage() {
   }, [displayDate, fullData?.soap, filterByDate]);
 
   const currentVisitSoap = currentVisitSoaps[0] || null;
+
+  const homeoDetailNotes = useMemo(() => {
+    return (notes || []).filter((n: any) =>
+      n.notesType === 'HomeoDetails' || n.noteType === 'HomeoDetails' || n.notes_type === 'HomeoDetails'
+    ).sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime());
+  }, [notes]);
+
+  const currentVisitHomeoDetails = useMemo(() => {
+    if (!displayDate || !homeoDetailNotes.length) return [];
+    return filterByDate(homeoDetailNotes, displayDate);
+  }, [displayDate, homeoDetailNotes, filterByDate]);
+
+  const currentVisitHomeoDetail = currentVisitHomeoDetails[0] || null;
 
   const currentVisitPrescriptions = useMemo(() => {
     if (!displayDate) return [];
@@ -1424,13 +1486,11 @@ export default function MedicalCaseDetailPage() {
 
             {/* ─── Homeo Details Snapshot ─── */}
             <HomeoDetailsSnapshotWidget
-              currentVisitSoap={currentVisitSoap}
+              currentHomeoDetail={currentVisitHomeoDetail}
               isToday={!!isToday}
-              currentVisitSoapsCount={currentVisitSoaps.length}
               isPendingScan={parsePrescriptionMutation.isPending}
               onTriggerScan={triggerPrescriptionScan}
-              onEditAssessment={() => handleOpenDiagnosis(currentVisitSoap)}
-              onSeeAll={() => setActiveTab('diagnosis')}
+              onEditAssessment={handleEditHomeoDetails}
               prescriptionFileInputRef={prescriptionFileInputRef}
               handlePrescriptionFileChange={handlePrescriptionFileChange}
             />
@@ -1705,12 +1765,14 @@ export default function MedicalCaseDetailPage() {
                   </header>
 
                   <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div style={{ padding: '10px 14px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Sparkles size={14} style={{ color: '#7c3aed' }} />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5b21b6' }}>
-                        Handwritten prescription successfully scanned by AI
-                      </span>
-                    </div>
+                    {isScannedPrescription && (
+                      <div style={{ padding: '10px 14px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={14} style={{ color: '#7c3aed' }} />
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5b21b6' }}>
+                          Handwritten prescription successfully scanned by AI
+                        </span>
+                      </div>
+                    )}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosis</label>
@@ -1810,7 +1872,39 @@ export default function MedicalCaseDetailPage() {
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                    <button
+                                      type="button"
+                                      disabled={!row.medicine.trim() || aiDetectingIdx === idx}
+                                      onClick={() => detectScannedMedicineIssue(idx, row.medicine)}
+                                      title="AI auto-detect issue from medicine name"
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '0.6rem',
+                                        fontWeight: 700,
+                                        color: aiDetectingIdx === idx ? '#94a3b8' : '#7c3aed',
+                                        background: aiDetectingIdx === idx ? '#f1f5f9' : 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                                        border: '1px solid',
+                                        borderColor: aiDetectingIdx === idx ? '#e2e8f0' : '#c4b5fd',
+                                        borderRadius: '6px',
+                                        padding: '3px 8px',
+                                        cursor: !row.medicine.trim() || aiDetectingIdx === idx ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        opacity: !row.medicine.trim() ? 0.4 : 1,
+                                        letterSpacing: '0.02em',
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      {aiDetectingIdx === idx ? (
+                                        <><Loader2 size={10} className="animate-spin" /> Detecting...</>
+                                      ) : (
+                                        <><Sparkles size={10} /> AI Detect</>
+                                      )}
+                                    </button>
+                                  </div>
                                   <input
                                     type="text"
                                     className="pp-input"
@@ -1892,15 +1986,20 @@ export default function MedicalCaseDetailPage() {
                     </button>
                     <button
                       onClick={handleSaveScannedPrescription}
+                      disabled={isSavingScannedPrescription}
                       style={{
                         flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
-                        background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', fontWeight: 700,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                        background: isSavingScannedPrescription ? '#94a3b8' : 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', fontWeight: 700,
+                        cursor: isSavingScannedPrescription ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center',
                         justifyContent: 'center', gap: '8px',
                         boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.1)'
                       }}
                     >
-                      <Save size={18} /> Save Details
+                      {isSavingScannedPrescription ? (
+                        <><Loader2 size={18} className="animate-spin" /> Saving...</>
+                      ) : (
+                        <><Save size={18} /> Save Details</>
+                      )}
                     </button>
                   </footer>
                 </div>
@@ -4525,28 +4624,33 @@ const renderMedicationTakingHistory = (objectiveVal: string) => {
 };
 
 interface HomeoDetailsSnapshotWidgetProps {
-  currentVisitSoap: any;
+  currentHomeoDetail: any;
   isToday: boolean;
-  currentVisitSoapsCount: number;
   isPendingScan: boolean;
   onTriggerScan: () => void;
   onEditAssessment: () => void;
-  onSeeAll: () => void;
-  prescriptionFileInputRef: React.RefObject<HTMLInputElement>;
+  prescriptionFileInputRef: React.RefObject<HTMLInputElement | null>;
   handlePrescriptionFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const HomeoDetailsSnapshotWidget = React.memo(({
-  currentVisitSoap,
+  currentHomeoDetail,
   isToday,
-  currentVisitSoapsCount,
   isPendingScan,
   onTriggerScan,
   onEditAssessment,
-  onSeeAll,
   prescriptionFileInputRef,
   handlePrescriptionFileChange
 }: HomeoDetailsSnapshotWidgetProps) => {
+  const data = React.useMemo(() => {
+    if (!currentHomeoDetail?.notes) return null;
+    try {
+      return JSON.parse(currentHomeoDetail.notes);
+    } catch {
+      return null;
+    }
+  }, [currentHomeoDetail]);
+
   return (
     <div className="mc-side-card" style={{ marginBottom: '16px' }}>
       <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -4598,34 +4702,30 @@ const HomeoDetailsSnapshotWidget = React.memo(({
               </div>
             </>
           )}
-          {!isToday && currentVisitSoapsCount > 1 && (
-            <div
-              onClick={onSeeAll}
-              style={{ color: '#7c3aed', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-            >
-              See all ({currentVisitSoapsCount}) <ChevronRight size={14} />
-            </div>
-          )}
         </div>
       </div>
-      <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '400px', overflowY: 'auto' }}>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
-          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.assessment || '—'}</div>
-        </div>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
-          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.subjective || '—'}</div>
-        </div>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
-          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-            {renderMedicationTakingSnapshot(currentVisitSoap?.objective)}
+      <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', maxHeight: '400px', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.diagnosis || '—'}</div>
           </div>
-        </div>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
-          <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.plan || currentVisitSoap?.advice || '—'}</div>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.complaint || '—'}</div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+              {data?.medications && data.medications.length > 0 
+                ? renderMedicationTakingSnapshot(JSON.stringify(data.medications)) 
+                : '—'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.investigation || '—'}</div>
+          </div>
         </div>
       </div>
     </div>
