@@ -15,12 +15,13 @@ const fetchDashboard = async (period: string): Promise<UnifiedDashboardData> => 
   return res.data.data;
 };
 
-export function useDashboard(period: string = 'month') {
+export function useDashboard(period: string = 'month', options?: { refetchInterval?: number }) {
   return useQuery({
     queryKey: dashboardKeys.detail(period),
     queryFn: () => fetchDashboard(period),
     staleTime: 5 * 60_000,  // 5 min — dashboards don't change second-by-second
     gcTime: 15 * 60_000,    // keep in cache 15 min after unmount
+    refetchInterval: options?.refetchInterval,
   });
 }
 

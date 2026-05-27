@@ -61,7 +61,7 @@ function callPhone(phone: string) {
 
 export function ReceptionistDashboard() {
   const navigate = useNavigate();
-  const { data: dashData, isLoading } = useDashboard('day');
+  const { data: dashData, isLoading } = useDashboard('day', { refetchInterval: 10000 });
   const queueMgmt = useQueueMgmt();
   const updateStatus = useUpdateStatus();
   const issueToken = useIssueToken();
@@ -166,6 +166,7 @@ export function ReceptionistDashboard() {
       return data.data as any[];
     },
     staleTime: 2 * 60_000,
+    refetchInterval: 10000,
   });
 
   const todayAppts = dashData?.queue || [];
@@ -191,6 +192,10 @@ export function ReceptionistDashboard() {
 
   const handleConfirm = async (appt: any) => {
     try {
+      if (!appt.doctorId) {
+        toast({ description: 'Please assign a doctor to this appointment first.', variant: 'error' });
+        return;
+      }
       await updateStatus.mutateAsync({ id: appt.visitId || appt.id, status: 'Confirmed' });
       toast({ description: 'Appointment confirmed', variant: 'success' });
     } catch (err: any) {
@@ -201,6 +206,11 @@ export function ReceptionistDashboard() {
 
   const handleIssueToken = async (appt: any) => {
     try {
+      if (!appt.doctorId) {
+        toast({ description: 'Please assign a doctor to this appointment first.', variant: 'error' });
+        return;
+      }
+      
       const visitId = appt.visitId || appt.id;
       await issueToken.mutateAsync(visitId);
       if (appt.patientId || appt.regid) {

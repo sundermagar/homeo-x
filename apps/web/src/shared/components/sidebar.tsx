@@ -53,6 +53,7 @@ import {
   PlusCircle,
   BrainCircuit,
   BellDot,
+  PhoneCall,
   type LucideIcon,
   Truck,
   CreditCard,
@@ -205,9 +206,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         roles: CLINICAL,
         children: [
           { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
-          // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
-          // { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
-          // { path: '/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
           { path: '/clinical/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
           { path: '/medical-cases/followups', label: 'Follow-up Dues', icon: BellDot },
         ],
@@ -279,8 +277,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             label: 'Reports',
             icon: PieChart,
             children: [
-              { path: '/analytics/reports/financial', label: 'Financial Grid', icon: Activity },
-              { path: '/analytics/reports/dues', label: 'Outstanding Dues', icon: CreditCard },
+              { path: '/analytics/reports/monthly-report', label: 'Monthly Report', icon: Activity },
+              { path: '/analytics/reports/monthly-dues', label: 'Monthly Dues', icon: CreditCard },
               { path: '/analytics/reports/birthdays', label: 'Birthday List', icon: Gift },
               { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
             ]
@@ -377,6 +375,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/settings/dispensaries', label: 'Dispensaries', icon: Hospital },
           { path: '/settings/referrals', label: 'Referral Sources', icon: UserPlus },
           { path: '/settings/stickers', label: 'Medicine Stickers', icon: StickyNote },
+          { path: '/settings/call-statuses', label: 'Call Statuses', icon: PhoneCall },
           { path: '/settings/cms', label: 'Content (CMS)', icon: Globe },
           { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
           { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
@@ -513,10 +512,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside className={`sidebar ${isOpen ? 'is-open' : ''} ${effectiveCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
-            <div 
-              className="sidebar-logo" 
-              style={{ 
-                background: 'transparent', 
+            <div
+              className="sidebar-logo"
+              style={{
+                background: 'transparent',
                 padding: '0',
                 width: '32px',
                 height: '32px',

@@ -204,7 +204,7 @@ export function VideoCallPanel(props: VideoCallPanelProps) {
       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem', gap: '0.75rem' }}>
 
         {/* ── Video area ── */}
-        <div style={{ borderRadius: '0.75rem', overflow: 'hidden', background: '#0F172A', position: 'relative', height: '180px', flexShrink: 0, border: '1px solid #1E293B' }}>
+        <div style={{ borderRadius: '0.75rem', overflow: 'hidden', background: '#0F172A', position: 'relative', aspectRatio: '16/9', minHeight: '280px', maxHeight: '500px', flexShrink: 0, border: '1px solid #1E293B' }}>
           {/* Remote */}
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
             {video?.remoteUsers?.length > 0 && (

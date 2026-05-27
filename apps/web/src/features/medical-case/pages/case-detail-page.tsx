@@ -750,15 +750,35 @@ export default function MedicalCaseDetailPage() {
   }, [displayDate, summary?.bills, toClinicDateString]);
 
   const billingValues = useMemo(() => {
+    const isCompleted = medicalCase?.status === 'Completed';
+
     // 1. Calculate additional charges for the selected displayDate
     const additional = (() => {
-      if (!displayDate || !fullData?.additionalCharges) return 0;
-      const displayStr = toClinicDateString(displayDate);
-      return fullData.additionalCharges
-        .filter((ac: any) => {
-          return toClinicDateString(ac.createdAt) === displayStr;
-        })
-        .reduce((sum: number, ac: any) => sum + (Number(ac.amount) || 0), 0);
+      let sumAssigned = 0;
+      if (displayDate && fullData?.additionalCharges) {
+        const displayStr = toClinicDateString(displayDate);
+        sumAssigned = fullData.additionalCharges
+          .filter((ac: any) => toClinicDateString(ac.createdAt) === displayStr)
+          .reduce((sum: number, ac: any) => sum + ((Number(ac.price ?? ac.additionalPrice ?? ac.amount) || 0) * (Number(ac.quantity ?? ac.additionalQuantity) || 1)), 0);
+      }
+
+      let sumManual = 0;
+      if (displayDate && summary?.bills) {
+        const displayStr = toClinicDateString(displayDate);
+        sumManual = summary.bills
+          .filter(b => {
+            const d = b.billDate || b.createdAt;
+            return toClinicDateString(d) === displayStr && (b.billType as string) === 'Additional';
+          })
+          .reduce((sum: number, b: any) => sum + (Number(b.charges) || 0), 0);
+      }
+
+      // If the case is completed or a manual bill was generated, the manual bill is the source of truth for invoices
+      if (isCompleted && sumManual > 0) {
+        return sumManual;
+      }
+      
+      return Math.max(sumAssigned, sumManual);
     })();
 
     // 2. Fetch all bills for the selected displayDate to sum received amount
@@ -782,8 +802,6 @@ export default function MedicalCaseDetailPage() {
         !b.treatment?.startsWith('Package:')
       )
       .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
-
-    const isCompleted = medicalCase?.status === 'Completed';
 
     // 3. Dynamic Medicine Days Charge (e.g. 600 for 3 days of medicine)
     const rawEffectiveDaysCharge = (() => {

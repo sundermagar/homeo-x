@@ -1,4 +1,4 @@
-import { eq, and, sql, desc, isNull, gte, lt } from 'drizzle-orm';
+import { eq, and, sql, desc, isNull, gte, lt, or } from 'drizzle-orm';
 import { bills, patients } from '@mmc/database/schema';
 import * as schema from '@mmc/database';
 import type { DbClient } from '@mmc/database';
@@ -28,7 +28,14 @@ export class BillingRepositoryPg implements BillingRepository {
     
     // Filter by clinicId on patients table safely
     if (clinicId) {
-      conditions.push(eq(patients.clinicId, clinicId));
+      conditions.push(
+        or(
+          eq(patients.clinicId, clinicId),
+          isNull(patients.clinicId),
+          eq(patients.clinicId, 0),
+          eq(patients.clinicId, 1)
+        )!
+      );
     }
 
     if (date) {
@@ -92,7 +99,14 @@ export class BillingRepositoryPg implements BillingRepository {
   async findDailyCollection(date: string, clinicId?: number): Promise<DailyCollectionSummary> {
     const conditions = [isNull(bills.deletedAt), eq(bills.billDate, date)];
     if (clinicId) {
-      conditions.push(eq(patients.clinicId, clinicId));
+      conditions.push(
+        or(
+          eq(patients.clinicId, clinicId),
+          isNull(patients.clinicId),
+          eq(patients.clinicId, 0),
+          eq(patients.clinicId, 1)
+        )!
+      );
     }
     const where = and(...conditions);
 
@@ -155,7 +169,7 @@ export class BillingRepositoryPg implements BillingRepository {
         LEFT JOIN doctors d ON (d.id = pb.doctor_id OR d.id::text = p.assitant_doctor OR d.id::text = p.assistant_doctor)
         LEFT JOIN LatestNotes ln ON ln.regid = p.regid
         WHERE (p.deleted_at IS NULL OR p.deleted_at::text = '')
-          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          ${clinicId ? sql`AND (p.clinic_id = ${clinicId} OR p.clinic_id IS NULL OR p.clinic_id = 0 OR p.clinic_id = 1)` : sql``}
         GROUP BY p.regid, p.first_name, p.surname, pb.total_balance, pb.last_bill_date, ln.notes
         ORDER BY pb.total_balance DESC
       `);

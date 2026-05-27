@@ -12,6 +12,8 @@ import {
 } from '../../billing/hooks/use-billing';
 import { useUpdatePatient } from '../../patients/hooks/use-patients';
 import { usePatientBills } from '../../billing/hooks/use-billing';
+import { apiClient } from '@/infrastructure/api-client';
+import { format } from 'date-fns';
 import {
   useCreateAdditionalCharge,
   useUpdateAdditionalCharge,
@@ -24,7 +26,7 @@ interface BillingUpdateModalProps {
   patientName: string;
   onClose: () => void;
   currentConsultationFee?: number;
-  defaultTab?: TabType;
+  defaultTab?: TabType | 'medicine';
   additionalCharges?: any[];
   displayDate?: Date;
   rxWorkflow?: any;
@@ -122,10 +124,28 @@ export function BillingUpdateModal({
           regid,
           consultationFee: Number(amount)
         });
+        if (displayDate) {
+          const dateStr = format(displayDate, 'yyyy-MM-dd');
+          await apiClient.post('/accounts/pending-bills', {
+            regid: Number(regid),
+            dateval: dateStr,
+            regular: Number(amount)
+          }).catch(console.error);
+        }
       }
       if (medicineAmount && !isNaN(Number(medicineAmount)) && onUpdateMedicineCharge) {
         onUpdateMedicineCharge(Number(medicineAmount));
+        if (displayDate) {
+          const dateStr = format(displayDate, 'yyyy-MM-dd');
+          await apiClient.post('/accounts/pending-bills', {
+            regid: Number(regid),
+            dateval: dateStr,
+            daysCharge: Number(medicineAmount)
+          }).catch(console.error);
+        }
       }
+      refetchBills();
+      qc.invalidateQueries({ queryKey: ['medical-case', 'full'] });
       onClose();
     } catch (err) {
       console.error('Failed to update regular charges:', err);
