@@ -206,10 +206,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         roles: CLINICAL,
         children: [
           { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
-          // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
-          // { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
-          // { path: '/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
-          // { path: '/clinical/remedy-chart', label: 'Remedy Chart', icon: Activity },
+          { path: '/clinical/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
           { path: '/medical-cases/followups', label: 'Follow-up Dues', icon: BellDot },
         ],
       },
@@ -352,7 +349,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'operations-hub',
         label: 'Operations Hub',
         icon: Briefcase,
-        roles: ALL,
+        roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'],
         children: [
           { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck },
           { path: '/operations?tab=logistics', label: 'Logistics Tracking', icon: Layers, roles: ADMIN },

@@ -88,7 +88,7 @@ const CouriersPage = lazy(() => import('@/features/settings/pages/CouriersPage')
 const FaqsPage = lazy(() => import('@/features/settings/pages/FaqsPage'));
 const StaffManagementPage = lazy(() => import('@/features/settings/pages/StaffManagementPage'));
 const StocksPage = lazy(() => import('@/features/settings/pages/StocksPage'));
-const RemedyTreePage = lazy(() => import('@/features/settings/pages/RemedyTreePage'));
+const AiAnalysisPage = lazy(() => import('@/features/settings/pages/AiAnalysisPage'));
 const VaccinesPage = lazy(() => import('@/features/settings/pages/VaccinesPage'));
 const ChargesPage = lazy(() => import('@/features/settings/pages/ChargesPage').then(m => ({ default: m.ChargesPage })));
 const CallStatusesPage = lazy(() => import('@/features/settings/pages/CallStatusesPage'));
@@ -174,6 +174,7 @@ export function AppRouter() {
             <Route path="/vitals-check" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><VitalsCheckPage /></RoleGuard>} />
             {/* <Route path="/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiConsultantPage /></RoleGuard>} /> */}
             {/* <Route path="/clinical/remedy-chart" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><RemedyTreePage /></RoleGuard>} /> */}
+            <Route path="/clinical/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiAnalysisPage /></RoleGuard>} />
 
 
             {/* ─── Packages & Memberships ─── */}
@@ -238,7 +239,7 @@ export function AppRouter() {
             <Route path="/platform/accounts" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><AccountsPage /></RoleGuard>} />
 
             {/* ─── Operations Hub ─── */}
-            <Route path="/operations" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><OperationsDashboard /></RoleGuard>} />
+            <Route path="/operations" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><OperationsDashboard /></RoleGuard>} />
             <Route path="/courier-queue" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><CourierQueuePage /></RoleGuard>} />
 
             {/* ─── Settings ─── */}
