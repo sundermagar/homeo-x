@@ -87,7 +87,7 @@ export function createSettingsRouter(): Router {
     next();
   }));
 
-  const getRepo = (req: Request) => new SettingsRepositoryPg(req.tenantDb);
+  const getRepo = (req: Request) => new SettingsRepositoryPg(req.tenantDb, (req as any).publicDb, (req as any).user?.contextId);
 
   // ─── Departments ─────────────────────────────────────────────────────────
   router.get('/departments', asyncHandler(async (req: Request, res: Response) => {

@@ -112,6 +112,7 @@ const OperationsDashboard = lazy(() => import('@/features/operations/pages/opera
 
 // Logistics
 const CourierQueuePage = lazy(() => import('@/features/logistics/pages/courier-queue-page').then(m => ({ default: m.CourierQueuePage })));
+const StickerWorkspacePage = lazy(() => import('@/features/logistics/pages/sticker-page').then(m => ({ default: m.StickerPage })));
 
 // Clinical Hub
 const ClinicalHubPage = lazy(() => import('@/features/clinical-hub/pages/clinical-hub-page'));
@@ -238,7 +239,8 @@ export function AppRouter() {
 
               {/* ─── Operations Hub ─── */}
               <Route path="/operations" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><OperationsDashboard /></RoleGuard>} />
-              <Route path="/courier-queue" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist']}><CourierQueuePage /></RoleGuard>} />
+              <Route path="/courier-queue" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist', 'Dispensary']}><CourierQueuePage /></RoleGuard>} />
+              <Route path="/dispensary" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Dispensary']}><StickerWorkspacePage /></RoleGuard>} />
 
               {/* ─── Settings ─── */}
               <Route path="/settings" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><Navigate to="/settings/departments" replace /></RoleGuard>} />

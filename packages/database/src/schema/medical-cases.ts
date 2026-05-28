@@ -138,6 +138,8 @@ export const prescriptions = pgTable('case_potencies', {
   additionalPrice: real('additional_price').default(0),
   receivedPrice: real('received_price').default(0),
   receivedDate: varchar('received_date', { length: 20 }),
+  lastval: varchar('lastval', { length: 50 }).default('0'),
+  randId: varchar('rand_id', { length: 50 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),

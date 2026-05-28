@@ -56,22 +56,22 @@ const getGateway = (req: any) => new WhatsAppCloudGateway(getRepo(req));
 
 // ─── Webhook (Public) ────────────────────────────────────────────────────────
 
-// GET /api/whatsapp/webhook - Webhook verification
-whatsappRouter.get('/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
+// // GET /api/whatsapp/webhook - Webhook verification
+// whatsappRouter.get('/webhook', (req, res) => {
+//   const mode = req.query['hub.mode'];
+//   const token = req.query['hub.verify_token'];
+//   const challenge = req.query['hub.challenge'];
 
-  const expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.VERIFY_TOKEN || 'kreed_verify_token';
+//   const expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.VERIFY_TOKEN || 'kreed_verify_token';
 
-  if (mode === 'subscribe' && token === expectedToken) {
-    logger.info('Webhook verified successfully');
-    res.status(200).send(challenge);
-  } else {
-    logger.warn('Webhook verification failed');
-    res.sendStatus(403);
-  }
-});
+//   if (mode === 'subscribe' && token === expectedToken) {
+//     logger.info('Webhook verified successfully');
+//     res.status(200).send(challenge);
+//   } else {
+//     logger.warn('Webhook verification failed');
+//     res.sendStatus(403);
+//   }
+// });
 
 // POST /api/whatsapp/webhook - Incoming events
 whatsappRouter.post('/webhook', asyncHandler(async (req, res) => {
@@ -856,18 +856,13 @@ whatsappRouter.post('/send-template', authMiddleware, asyncHandler(async (req, r
 
       // Automatically inject media header if configured
       if (tpl.mediaType && ['image', 'video', 'document'].includes(tpl.mediaType)) {
-        const headerRef = tpl.mediaHandle || tpl.mediaUrl;
-        if (headerRef) {
+        if (tpl.mediaHandle || tpl.mediaUrl) {
           // Only inject if frontend didn't already send a header
           if (!finalComponents.some(c => c.type === 'header')) {
-            // Meta accepts EITHER { link: <public URL> } OR { id: <numeric media id> }.
-            // A URL MUST go in `link` — putting it in `id` violates Meta's schema
-            // (id expects an integer-like media id) and is rejected with
-            // "violated JSON schema constraint 'type' for ... <type>.id".
-            // Only a purely-numeric value is a real media id.
-            const isMediaId = /^\d+$/.test(String(headerRef));
-            const mediaObject = isMediaId ? { id: String(headerRef) } : { link: String(headerRef) };
-
+            const mediaObject = tpl.mediaHandle 
+              ? { id: tpl.mediaHandle } 
+              : { link: tpl.mediaUrl };
+              
             finalComponents.push({
               type: 'header',
               parameters: [

@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { CourierRepositoryPg } from '../../repositories/courier.repository.pg.js';
+import { DispensaryRepositoryPg } from '../../repositories/dispensary.repository.pg.js';
 import { sql } from 'drizzle-orm';
 
 export function createLogisticsRouter(): Router {
@@ -18,6 +19,29 @@ export function createLogisticsRouter(): Router {
       const repo = getRepo(req);
       const shipments = await repo.getByPatient(regid);
       res.json({ success: true, data: shipments });
+    })
+  );
+
+  // GET /api/logistics/stickers/pending
+  router.get(
+    '/stickers/pending',
+    asyncHandler(async (req: Request, res: Response) => {
+      const date = req.query.date as string | undefined;
+      const dispensaryRepo = new DispensaryRepositoryPg(req.tenantDb);
+      const clinicId = (req as any).user?.contextId || null;
+      const stickers = await dispensaryRepo.getPendingStickers(clinicId, date);
+      res.json({ success: true, data: stickers });
+    })
+  );
+
+  // POST /api/logistics/stickers/print
+  router.post(
+    '/stickers/print',
+    asyncHandler(async (req: Request, res: Response) => {
+      const { randId } = req.body;
+      const dispensaryRepo = new DispensaryRepositoryPg(req.tenantDb);
+      await dispensaryRepo.markStickersPrinted(randId);
+      res.json({ success: true });
     })
   );
 

@@ -71,7 +71,7 @@ import '../styles/sidebar.css';
 
 // ─── Role Definitions ────────────────────────────────────────────────────────
 
-type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist';
+type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist' | 'Dispensary';
 
 const ALL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
 const ADMIN: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
@@ -110,6 +110,7 @@ function normalizeRole(raw: string | undefined | null): UserRole | null {
   if (r === 'clinicadmin') return 'Clinicadmin';
   if (r === 'doctor' || r === 'hmis_doctor') return 'Doctor';
   if (r === 'receptionist') return 'Receptionist';
+  if (r === 'dispensary' || r === 'dispensarymanager') return 'Dispensary';
   return null;
 }
 
@@ -121,6 +122,7 @@ function getRoleLabel(role: UserRole | null): string {
     Clinicadmin: '🏥 Clinic Admin',
     Doctor: '🩺 Doctor',
     Receptionist: '📋 Receptionist',
+    Dispensary: '💊 Dispensary',
   };
   return labels[role];
 }
@@ -348,9 +350,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'operations-hub',
         label: 'Operations Hub',
         icon: Briefcase,
-        roles: ALL,
+        roles: [...ALL, 'Dispensary'],
         children: [
-          { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck, roles: ALL },
+          { path: '/dispensary', label: 'Stickers Workspace', icon: StickyNote, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Dispensary'] },
+          { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck, roles: [...ALL, 'Dispensary'] },
           { path: '/operations?tab=logistics', label: 'Logistics Tracking', icon: Layers, roles: ADMIN },
           { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users, roles: ADMIN },
           { path: '/operations?tab=knowledge', label: 'Knowledge Base', icon: BookOpen, roles: ADMIN },
