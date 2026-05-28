@@ -160,7 +160,7 @@ export default function AiAnalysisPage() {
   const alternates = effective.slice(1, 4);
 
   return (
-    <div className="pp-page-container rt-page-container animate-fade-in" style={{ padding: '24px 32px' }}>
+    <div className="pp-page-container rt-page-container animate-fade-in" style={{ padding: '0 32px 24px 32px' }}>
       
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
