@@ -73,16 +73,17 @@ export function AuditLogsTable() {
         </div>
       </div>
       
-      <div style={{ overflowX: 'hidden' }}>
-        <table className="cw-responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="cw-responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #E5E7EB', background: '#F9FAFB' }}>
               <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>TIMESTAMP</th>
-              <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>TYPE</th>
-              <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>FEATURE / DESC</th>
+              <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>FEATURE</th>
+              <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>MODEL</th>
+              <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>USER</th>
+              <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>PROMPT</th>
+              <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>TOKENS</th>
               <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>CREDITS</th>
-              <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280', textAlign: 'right' }}>AMOUNT (₹)</th>
-              <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280', textAlign: 'right' }}>RUNNING BAL</th>
               <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>STATUS</th>
             </tr>
           </thead>
@@ -120,36 +121,26 @@ export function AuditLogsTable() {
                   <td data-label="TIMESTAMP" style={{ padding: '12px 16px', verticalAlign: 'middle', fontSize: '12px', color: '#4B5563', whiteSpace: 'nowrap' }}>
                     {formatDate(log.createdAt)}
                   </td>
-                  <td data-label="TYPE" style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, color: isDeposit ? '#10B981' : '#EF4444' }}>
-                      {isDeposit ? <ArrowDownToLine size={14} /> : <ArrowUpFromLine size={14} />}
-                      {log.type}
-                    </div>
-                  </td>
-                  <td data-label="FEATURE / DESC" style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#374151', padding: '2px 8px', borderRadius: '12px', background: `${featColor}15`, marginBottom: '4px' }}>
+                  <td data-label="FEATURE" style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#374151', padding: '2px 8px', borderRadius: '12px', background: `${featColor}15` }}>
                       <Activity size={12} color={featColor} />
                       {log.feature}
                     </div>
-                    {log.type === 'DEDUCTION' && (
-                      <div style={{ fontSize: '11px', color: '#6B7280', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {log.modelId} • {log.prompt}
-                      </div>
-                    )}
-                    {log.type === 'DEPOSIT' && (
-                      <div style={{ fontSize: '11px', color: '#6B7280', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {log.prompt}
-                      </div>
-                    )}
+                  </td>
+                  <td data-label="MODEL" style={{ padding: '12px 16px', verticalAlign: 'middle', fontSize: '12px', color: '#4B5563', fontWeight: 500 }}>
+                    {log.modelId}
+                  </td>
+                  <td data-label="USER" style={{ padding: '12px 16px', verticalAlign: 'middle', fontSize: '12px', color: '#4B5563', fontWeight: 500 }}>
+                    {log.userId || '-'}
+                  </td>
+                  <td data-label="PROMPT" style={{ padding: '12px 16px', verticalAlign: 'middle', fontSize: '11px', color: '#6B7280', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {log.prompt || '-'}
+                  </td>
+                  <td data-label="TOKENS" style={{ padding: '12px 16px', verticalAlign: 'middle', fontSize: '12px', color: '#4B5563', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                    {isDeposit ? '-' : ((log.inputTokens || 0) + (log.outputTokens || 0)).toLocaleString()}
                   </td>
                   <td data-label="CREDITS" style={{ padding: '12px 16px', verticalAlign: 'middle', fontSize: '13px', fontWeight: 700, color: creditColor }}>
                     {creditText}
-                  </td>
-                  <td data-label="AMOUNT (₹)" style={{ padding: '12px 16px', verticalAlign: 'middle', textAlign: 'right', fontSize: '12px', fontWeight: 600, color: '#111827' }}>
-                    {isDeposit ? '+' : ''}₹{log.costInr.toFixed(4)}
-                  </td>
-                  <td data-label="RUNNING BAL" style={{ padding: '12px 16px', verticalAlign: 'middle', textAlign: 'right', fontSize: '13px', fontWeight: 700, color: '#374151' }}>
-                    {log.runningBalance ? log.runningBalance.toLocaleString() : '-'}
                   </td>
                   <td data-label="STATUS" style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, background: statusBg, color: statusColor }}>
