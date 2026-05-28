@@ -131,7 +131,7 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
                         "px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all whitespace-nowrap",
                         selectedCategory === cat 
                           ? "bg-pp-blue border-pp-blue text-white shadow-sm" 
-                          : "bg-white border-pp-border text-secondary hover:border-pp-blue/30"
+                          : "bg-[var(--bg-card)] border-[var(--pp-warm-4)] text-[var(--pp-text-3)] hover:border-[var(--pp-blue)]/30"
                       )}
                     >
                       {cat}
@@ -249,7 +249,7 @@ export const TemplateModal = ({ isOpen, onClose, onSelect }: TemplateModalProps)
           )}
         </div>
 
-        <div className="appt-drawer-actions flex items-center justify-end gap-3 p-6 border-t border-[var(--pp-warm-3)] bg-white">
+        <div className="appt-drawer-actions flex items-center justify-end gap-3 p-6 border-t border-[var(--pp-warm-3)] bg-[var(--bg-card)]">
           <button 
             className="px-5 py-2.5 rounded-xl border border-[var(--pp-warm-4)] bg-[var(--bg-card)] text-[var(--pp-text-2)] hover:bg-[var(--pp-warm-2)] active:scale-95 transition-all text-xs font-bold uppercase tracking-wider" 
             onClick={onClose}

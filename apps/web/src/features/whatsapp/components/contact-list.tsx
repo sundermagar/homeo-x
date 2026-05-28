@@ -206,7 +206,7 @@ export const ContactList = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Search and Advanced Filter Row (Matching Reference UX) */}
-      <div className="bg-white p-5 rounded-2xl border border-pp-border shadow-sm space-y-4">
+      <div className="bg-[var(--bg-card)] p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm space-y-4">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/60" size={16} />
           <input 
@@ -226,7 +226,7 @@ export const ContactList = () => {
                 setIsGroupDropdownOpen(!isGroupDropdownOpen);
                 setIsStatusDropdownOpen(false);
               }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-lg text-xs font-semibold text-secondary transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-secondary dark:text-white/80 transition-all"
             >
               <Filter size={14} className="text-muted" />
               <span>{selectedGroup ? `Group: ${selectedGroup}` : 'All Groups'}</span>
@@ -234,7 +234,7 @@ export const ContactList = () => {
             </button>
             
             {isGroupDropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-48 bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute left-0 mt-1.5 w-48 bg-[var(--bg-card)] border border-slate-200 dark:border-white/10 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
                 <button 
                   onClick={() => { setSelectedGroup(null); setIsGroupDropdownOpen(false); }}
                   className="w-full text-left px-4 py-2 text-xs font-medium text-main hover:bg-[var(--bg-card)] transition-colors flex items-center justify-between"
@@ -263,7 +263,7 @@ export const ContactList = () => {
                 setIsStatusDropdownOpen(!isStatusDropdownOpen);
                 setIsGroupDropdownOpen(false);
               }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-lg text-xs font-semibold text-secondary transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-secondary dark:text-white/80 transition-all"
             >
               <Filter size={14} className="text-muted" />
               <span>{selectedStatus && selectedStatus !== 'All Statuses' ? `Status: ${selectedStatus}` : 'All Statuses'}</span>
@@ -271,7 +271,7 @@ export const ContactList = () => {
             </button>
             
             {isStatusDropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-48 bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute left-0 mt-1.5 w-48 bg-[var(--bg-card)] border border-slate-200 dark:border-white/10 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
                 {['All Statuses', 'Active', 'Inactive'].map((status) => (
                   <button 
                     key={status}
@@ -292,7 +292,7 @@ export const ContactList = () => {
 
           <button 
             onClick={handleExport}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-lg text-xs font-semibold text-secondary transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-secondary dark:text-white/80 transition-all"
           >
             <Download size={14} className="text-muted" />
             <span>Export All Contacts</span>
@@ -308,7 +308,7 @@ export const ContactList = () => {
 
           <button 
             onClick={() => document.getElementById('csv-import-input')?.click()}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-lg text-xs font-semibold text-secondary transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-secondary dark:text-white/80 transition-all"
           >
             <Upload size={14} className="text-muted" />
             <span>Import Contacts</span>
@@ -316,7 +316,7 @@ export const ContactList = () => {
 
           <button 
             onClick={handleDownloadSample}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-lg text-xs font-semibold text-secondary transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-secondary dark:text-white/80 transition-all"
           >
             <Download size={14} className="text-muted" />
             <span>Download Sample Excel</span>
@@ -361,7 +361,7 @@ export const ContactList = () => {
                           </td>
                           <td>
                             <div>
-                              <p className="font-bold text-main text-[13px]">{contact.name || 'Anonymous Contact'}</p>
+                              <p className="font-bold text-main dark:text-white/90 text-[13px]">{contact.name || 'Anonymous Contact'}</p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <Mail size={10} className="text-muted" />
                                 <span className="text-[11px] text-muted font-medium">{contact.email || 'no-email@homeox.com'}</span>
@@ -373,7 +373,7 @@ export const ContactList = () => {
                               <div className="p-1.5 bg-green-50 dark:bg-green-500/10 rounded-lg text-success">
                                 <Phone size={12} />
                               </div>
-                              <span className="text-[12px] font-bold text-secondary">+{contact.phone}</span>
+                              <span className="text-[12px] font-bold text-secondary dark:text-white/90">+{contact.phone}</span>
                             </div>
                           </td>
                           <td>
@@ -435,7 +435,7 @@ export const ContactList = () => {
               filteredContacts.map((contact: any) => {
                 const isPatient = String(contact.id).startsWith('patient_');
                 return (
-                  <div key={contact.id} className="bg-white p-5 rounded-2xl border border-pp-border shadow-sm space-y-4">
+                  <div key={contact.id} className="bg-[var(--bg-card)] p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm space-y-4">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-pp-bg-subtle flex items-center justify-center text-primary font-bold text-xs">

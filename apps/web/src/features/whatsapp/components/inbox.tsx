@@ -32,7 +32,7 @@ const ForwardModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-[var(--pp-warm-3)] animate-scale-in">
+      <div className="bg-[var(--bg-card)] rounded-2xl w-full max-w-md p-6 shadow-2xl border border-[var(--pp-warm-3)] animate-scale-in">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-sm font-extrabold text-[var(--pp-ink)] uppercase tracking-[0.1em]">Forward Message</h3>
           <button onClick={onClose} className="p-1 hover:bg-[var(--pp-warm-2)] rounded-lg text-[var(--pp-text-3)] hover:text-[var(--pp-ink)] transition-all">
@@ -636,7 +636,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
   return (
     <div className="flex w-full max-w-full h-[calc(100vh-220px)] border border-[var(--pp-warm-4)] rounded-2xl overflow-hidden bg-[var(--bg-card)] shadow-[0_4px_24px_rgba(0,0,0,0.03)] animate-fade-in">
       <div className={`w-full md:w-80 lg:w-96 min-w-0 border-r border-[var(--pp-warm-3)] flex flex-col bg-[var(--pp-warm-1)]/40 backdrop-blur-md ${selectedConvId ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-5 border-b border-[var(--pp-warm-3)] space-y-4 bg-white">
+        <div className="p-5 border-b border-[var(--pp-warm-3)] space-y-4 bg-[var(--bg-card)]">
           <div className="flex justify-between items-center">
             <h3 className="text-[11px] font-extrabold text-[var(--pp-text-3)] uppercase tracking-[0.12em]">Clinical Team Chat</h3>
             <button 
@@ -665,7 +665,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                 onClick={() => setActiveChannelFilter(f)}
                 className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all whitespace-nowrap ${
                   activeChannelFilter === f 
-                    ? 'bg-white text-[var(--pp-blue)] shadow-sm border border-[var(--pp-warm-3)]' 
+                    ? 'bg-[var(--bg-card)] text-[var(--pp-blue)] shadow-sm border border-[var(--pp-warm-3)]' 
                     : 'text-[var(--pp-text-3)] hover:text-[var(--pp-ink)]'
                 }`}
               >
@@ -713,7 +713,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                 }}
                 className={`p-4 cursor-pointer transition-all relative ${
                   selectedConvId === conv.id 
-                    ? 'bg-white shadow-[0_4px_16px_rgba(0,0,0,0.015)]' 
+                    ? 'bg-[var(--bg-card)] shadow-[0_4px_16px_rgba(0,0,0,0.015)]' 
                     : 'hover:bg-[var(--bg-card)]/40'
                 }`}
               >
@@ -901,7 +901,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                         className={`p-3.5 px-4 rounded-[20px] shadow-[0_4px_16px_rgba(37,99,235,0.06)] border transition-all leading-relaxed ${
                           msg.direction === 'outbound' 
                             ? 'text-white rounded-tr-none border-white/10 bg-gradient-to-br from-[#2563EB] to-[#1E3A8A]' 
-                            : 'bg-white text-[var(--pp-ink)] border-[var(--pp-warm-3)]/90 rounded-tl-none shadow-[0_2px_12px_rgba(0,0,0,0.01)]'
+                            : 'bg-[var(--bg-card)] text-[var(--pp-ink)] border-[var(--pp-warm-3)]/90 rounded-tl-none shadow-[0_2px_12px_rgba(0,0,0,0.01)]'
                         }`}
                       >
                         {msg.metadata?.replyTo && (
@@ -1071,7 +1071,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
               </div>
             )}
 
-            <div className="p-4 border-t border-[var(--pp-warm-3)] bg-[var(--bg-card)] flex items-center gap-3">
+            <div className="flex items-end gap-2 p-4 bg-[var(--bg-card)] border-t border-[var(--pp-warm-3)] shadow-[0_-4px_24px_rgba(0,0,0,0.01)] relative z-20">
               {/* Hidden file input */}
               <input
                 type="file"
@@ -1104,7 +1104,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
               </button>
 
               {/* Message Text Input container */}
-              <div className="flex-1 min-w-0 flex items-center bg-[var(--pp-warm-1)]/30 rounded-xl border border-[var(--pp-warm-4)] focus-within:border-[var(--pp-blue)] focus-within:ring-4 focus-within:ring-[var(--pp-blue)]/5 focus-within:bg-white transition-all px-3 py-1 relative">
+              <div className="flex-1 min-w-0 flex items-center bg-[var(--pp-warm-1)]/30 rounded-xl border border-[var(--pp-warm-4)] focus-within:border-[var(--pp-blue)] focus-within:ring-4 focus-within:ring-[var(--pp-blue)]/5 focus-within:bg-[var(--bg-card)] transition-all px-3 py-1 relative">
                 <textarea 
                   rows={1}
                   value={messageText}

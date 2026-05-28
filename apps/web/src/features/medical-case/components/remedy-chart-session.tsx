@@ -209,11 +209,11 @@ export function RemedyChartSession({
   };
 
   const handlePrintRow = (rx: PrescriptionRow) => {
-    const token = useAuthStore.getState().token;
-    const dateParam = rx.created_at || rx.createdAt || rx.dateval;
+    const token = localStorage.getItem('token');
+    const dateParam = rx.created_at || (rx as any).createdAt || rx.dateval;
     const queryStr = dateParam ? `&date=${encodeURIComponent(new Date(dateParam).toISOString())}` : '';
     
-    const envUrl = import.meta.env.VITE_API_URL;
+    const envUrl = import.meta.env['VITE_API_URL'];
     const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
     const url = `${apiBase}/medical-cases/remedy-chart/pdf/${regid}?token=${token}${queryStr}`;
     
@@ -479,12 +479,12 @@ export function RemedyChartSession({
                             <td data-label="Date" style={{ padding: '8px 6px' }}>
                               {idx === 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
+                                  <div className="remedy-date-val" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
                                     {new Date(rx.created_at || rx.createdAt || rx.dateval).getDate()}
-                                  </span>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>
+                                  </div>
+                                  <div className="remedy-date-mo" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>
                                     {new Date(rx.created_at || rx.createdAt || rx.dateval).toLocaleString('default', { month: 'short' })} {new Date(rx.created_at || rx.createdAt || rx.dateval).getFullYear()}
-                                  </span>
+                                  </div>
                                   {group.items.length > 1 && (
                                     <button 
                                       onClick={(e) => { e.stopPropagation(); toggleDate(group.date); }}
@@ -541,7 +541,7 @@ export function RemedyChartSession({
                               <div className="mc-table-actions">
                                   <div className="mc-desktop-actions" style={{ gap: '4px' }}>
                                     {(() => {
-                                      const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
+                                      const rxDate = new Date(rx.created_at || (rx as any).createdAt || rx.dateval);
                                       const isToday = rxDate.toDateString() === new Date().toDateString();
                                       return (
                                         <>
@@ -578,7 +578,7 @@ export function RemedyChartSession({
                                     <button className="mc-dots-btn"><MoreHorizontal size={18} /></button>
                                     <div className="mc-dots-dropdown">
                                       {(() => {
-                                        const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
+                                        const rxDate = new Date(rx.created_at || (rx as any).createdAt || rx.dateval);
                                         const isToday = rxDate.toDateString() === new Date().toDateString();
                                         return (
                                           <>

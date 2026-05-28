@@ -176,7 +176,7 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
               const parts = dateStr.split('-'); // legacy format was "Jan-2025" or similar
               if (parts.length === 2) {
                 const monthMap: Record<string, string> = { 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12' };
-                const m = monthMap[parts[0]] || '01';
+                const m = (parts[0] ? monthMap[parts[0]] : undefined) || '01';
                 monthKey = `${parts[1]}-${m}`;
               } else {
                 monthKey = dateStr; // fallback
@@ -643,16 +643,23 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
 
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState<Date | undefined>(undefined);
+  const [appliedTo, setAppliedTo] = useState<Date | undefined>(undefined);
+
+  const handleSubmit = () => {
+    setAppliedFrom(fromDate ? new Date(fromDate) : undefined);
+    setAppliedTo(toDate ? new Date(toDate) : undefined);
+    setPage(1);
+  };
 
   const handleClear = () => {
     setSearch('');
     setFromDate('');
     setToDate('');
+    setAppliedFrom(undefined);
+    setAppliedTo(undefined);
     setPage(1);
   };
-
-  const appliedFrom = fromDate ? new Date(fromDate) : undefined;
-  const appliedTo = toDate ? new Date(toDate) : undefined;
 
   const { data, isLoading } = useReferenceListing(appliedFrom, appliedTo);
   const [search, setSearch] = useState('');
@@ -696,6 +703,12 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
             onChange={e => setToDate(e.target.value)} 
             title="To Date"
           />
+          <button 
+            className="btn-primary" 
+            onClick={handleSubmit}
+          >
+            Submit
+          </button>
           <button 
             className="btn-secondary" 
             onClick={handleClear}

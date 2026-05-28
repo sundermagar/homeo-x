@@ -9,7 +9,7 @@ import {
   Stethoscope, PackageCheck, MessageCircle, PieChart,
   Building2, Users2, UserCheck, UserPlus, Contact,
   FileBarChart, Download, Boxes, HelpCircle,
-  BookOpen, Tags, Bike, LayoutList, Sticker, Cpu, Clock
+  BookOpen, Tags, Bike, LayoutList, Sticker, Cpu, Clock, PhoneCall
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
@@ -129,8 +129,6 @@ function buildCommands(
     // ── Medical Cases ─────────────────────────────────────────────────────────
     nav('Vitals Check', '/vitals-check', <Activity size={16} />, CLINICAL,
       ['vital', 'bp', 'weight', 'pulse', 'checkup']),
-    // nav('AI Analysis', '/ai-analysis', <BrainCircuit size={16} />, CLINICAL,
-    //   ['ai', 'consultant', 'advisor', 'bot', 'assistant', 'analysis']),
     nav('AI Analysis', '/clinical/ai-analysis', <BrainCircuit size={16} />, CLINICAL,
       ['remedy', 'chart', 'tree', 'medicine', 'drug', 'ai', 'analysis']),
 
@@ -145,6 +143,8 @@ function buildCommands(
       ['bill', 'invoice', 'payment', 'finance']),
     nav('Payments', '/payments', <Wallet size={16} />, BILLING,
       ['payment', 'transaction', 'collection', 'ledger']),
+    nav('View Balance', '/billing/balance', <Wallet size={16} />, BILLING,
+      ['balance', 'due', 'outstanding', 'patient']),
     nav('Custom Bill', '/billing/custom', <Receipt size={16} />, BILLING,
       ['custom', 'bill', 'invoice']),
     nav('Additional Charges', '/billing/additional-charges', <Plus size={16} />, BILLING_ADMIN,
@@ -204,6 +204,8 @@ function buildCommands(
     // ── Settings ────────────────────────────────────────────────────────────
     nav('Settings: Departments', '/settings/departments', <LayoutList size={16} />, ADMIN_CLINIC,
       ['department', 'unit']),
+    nav('Settings: Call Statuses', '/settings/call-statuses', <PhoneCall size={16} />, ADMIN_CLINIC,
+      ['call', 'status', 'follow up']),
     nav('Settings: Medicines', '/settings/medicines', <Pill size={16} />, ADMIN_CLINIC,
       ['medicine', 'drug', 'drugstore', 'pharmacy']),
     nav('Settings: Dispensaries', '/settings/dispensaries', <Database size={16} />, ADMIN_CLINIC,

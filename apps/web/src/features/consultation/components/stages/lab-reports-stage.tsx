@@ -161,7 +161,7 @@ export function LabReportsStage({ visitId, onAnalysisComplete, onNextStage }: La
                   {extractedRubrics.map((rubric, idx) => (
                     <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-md bg-white border border-[#CBD5E1] text-[12px] text-[#334155] shadow-sm">
                       {rubric.description}
-                      {rubric.intensity ? <span className="ml-1.5 text-[#94A3B8] text-[10px]">({rubric.intensity})</span> : null}
+                      {(rubric as any).intensity ? <span className="ml-1.5 text-[#94A3B8] text-[10px]">({(rubric as any).intensity})</span> : null}
                     </span>
                   ))}
                 </div>

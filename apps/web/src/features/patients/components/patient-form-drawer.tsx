@@ -222,7 +222,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
     setErrors([]);
     try {
       if (isEdit) {
-        await updateMutation.mutateAsync({ regid: Number(regid), ...form });
+        await updateMutation.mutateAsync({ regid: Number(regid), ...form, referredById: form.referredById ? String(form.referredById) : undefined });
         onSuccess?.();
         onClose();
       } else {

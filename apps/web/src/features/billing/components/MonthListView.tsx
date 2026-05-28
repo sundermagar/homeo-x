@@ -5,7 +5,7 @@ import { PaymentDrilldownModal } from './PaymentDrilldownModal';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 
 export function MonthListView() {
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]!);
   const { data: rows, isLoading } = useMonthList(endDate, 32);
 
   const [drilldown, setDrilldown] = useState<{ date: string; mode: string; title: string } | null>(null);
@@ -14,7 +14,7 @@ export function MonthListView() {
   const convertDateForApi = (displayDate: string): string => {
     const parts = displayDate.split('/');
     if (parts.length === 3) {
-      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      return `${parts[2]!}-${parts[1]!.padStart(2, '0')}-${parts[0]!.padStart(2, '0')}`;
     }
     return endDate;
   };
@@ -72,7 +72,7 @@ export function MonthListView() {
             th:first-child, td:first-child { text-align: left; }
             @media print {
               body { padding: 0; }
-              @page { size: portrait; margin: 1cm; }
+              @page { size: A4 portrait; margin: 1cm; }
             }
           </style>
         </head>
@@ -153,7 +153,7 @@ export function MonthListView() {
           </div>
           <button
             className="btn-secondary"
-            onClick={() => setEndDate(new Date().toISOString().split('T')[0])}
+            onClick={() => setEndDate(new Date().toISOString().split('T')[0]!)}
           >
             Reset to Today
           </button>

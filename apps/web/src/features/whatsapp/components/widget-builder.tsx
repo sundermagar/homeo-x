@@ -198,7 +198,7 @@ export const WidgetBuilder = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between border-b border-pp-border pb-4">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-4">
         <div>
           <h2 className="text-xl font-bold text-main">Widget Customizer</h2>
           <p className="text-sm text-secondary">
@@ -206,12 +206,12 @@ export const WidgetBuilder = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-1 p-1.5 bg-[var(--bg-main)] rounded-[14px] border border-pp-border/30 shadow-inner">
+        <div className="flex items-center gap-1 p-1.5 bg-[var(--bg-main)] rounded-[14px] border border-slate-200/50 dark:border-white/5 shadow-inner">
           <button
             onClick={() => setActiveSubTab("builder")}
             className={`px-5 py-2 text-[13px] font-semibold rounded-xl flex items-center gap-2 transition-all select-none ${
               activeSubTab === "builder"
-                ? "bg-[var(--bg-card)] text-main shadow-sm border border-pp-border"
+                ? "bg-[var(--bg-card)] text-main shadow-sm border border-slate-200 dark:border-white/10"
                 : "text-secondary hover:text-main"
             }`}
           >
@@ -222,7 +222,7 @@ export const WidgetBuilder = () => {
             onClick={() => setActiveSubTab("code")}
             className={`px-5 py-2 text-[13px] font-semibold rounded-xl flex items-center gap-2 transition-all select-none ${
               activeSubTab === "code"
-                ? "bg-[var(--bg-card)] text-main shadow-sm border border-pp-border"
+                ? "bg-[var(--bg-card)] text-main shadow-sm border border-slate-200 dark:border-white/10"
                 : "text-secondary hover:text-main"
             }`}
           >
@@ -263,7 +263,7 @@ export const WidgetBuilder = () => {
               copyCode={copyCode}
               onSave={handleSave}
               isSaving={saveWidgetSettings.isPending}
-              channelId={activeChannel.id}
+              channelId={String(activeChannel.id)}
             />
           )}
         </div>

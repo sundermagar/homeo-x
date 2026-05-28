@@ -13,7 +13,7 @@ export function InvestigationComparisonView({ investigations }: { investigations
 
     // Sort each group by date ascending (oldest to newest left to right)
     Object.keys(groups).forEach(type => {
-      groups[type].sort((a, b) => {
+      groups[type]!.sort((a, b) => {
         const da = new Date(a.investDate || a.createdAt || 0).getTime();
         const db = new Date(b.investDate || b.createdAt || 0).getTime();
         return da - db;

@@ -305,8 +305,8 @@ export function createBillingRouter(): Router {
           db.execute(
             sql`SELECT COALESCE(SUM(ac.additional_price * ac.additional_quantity), 0) as total
                 FROM additional_charges ac
-                LEFT JOIN charges c ON c.id = CAST(ac.additional_name AS INTEGER)
-                WHERE ac.dateval = ${legacyDate}
+                LEFT JOIN charges c ON c.id::text = ac.additional_name OR c.charges = ac.additional_name
+                WHERE (ac.dateval = ${legacyDate} OR ac.dateval = ${dateParam})
                   AND ac.deleted_at IS NULL
                   AND c.type = 'Product'`
           )
@@ -395,9 +395,9 @@ export function createBillingRouter(): Router {
           const rows: any[] = await db.execute(
             sql`SELECT ac.*, c.charges as charge_name, cd.regid as rid, cd.first_name
                 FROM additional_charges ac
-                LEFT JOIN charges c ON c.id = CAST(ac.additional_name AS INTEGER)
+                LEFT JOIN charges c ON c.id::text = ac.additional_name OR c.charges = ac.additional_name
                 LEFT JOIN case_datas cd ON cd.id = ac.regid
-                WHERE ac.dateval = ${legacyDate}
+                WHERE (ac.dateval = ${legacyDate} OR ac.dateval = ${dateParam})
                   AND ac.deleted_at IS NULL
                   AND c.type = 'Product'
                 ORDER BY ac.id DESC`
@@ -491,8 +491,8 @@ export function createBillingRouter(): Router {
             db.execute(
               sql`SELECT COALESCE(SUM(ac.additional_price * ac.additional_quantity), 0) as total
                   FROM additional_charges ac
-                  LEFT JOIN charges c ON c.id = CAST(ac.additional_name AS INTEGER)
-                  WHERE ac.dateval = ${legacyDate} AND ac.deleted_at IS NULL AND c.type = 'Product'`
+                  LEFT JOIN charges c ON c.id::text = ac.additional_name OR c.charges = ac.additional_name
+                  WHERE (ac.dateval = ${legacyDate} OR ac.dateval = ${isoDate}) AND ac.deleted_at IS NULL AND c.type = 'Product'`
             ),
             db.execute(
               sql`SELECT COUNT(*) as cnt FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0`

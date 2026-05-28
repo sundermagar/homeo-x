@@ -230,7 +230,7 @@ export const Templates = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Filters bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-[var(--bg-card)] p-6 rounded-2xl border border-pp-border shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-[var(--bg-card)] p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
         <div className="flex flex-col md:flex-row gap-4 flex-1 items-stretch md:items-center">
           <div className="w-full md:w-64">
             <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Select Channel</label>
@@ -276,7 +276,7 @@ export const Templates = () => {
           <button
             onClick={handleSync}
             disabled={syncMutation.isPending || !selectedChannelId}
-            className="h-11 px-6 bg-pp-bg-subtle text-secondary font-semibold rounded-xl border border-pp-border flex items-center justify-center gap-2 hover:bg-pp-bg-subtle/80 hover:text-main transition-all whitespace-nowrap w-full sm:w-auto"
+            className="h-11 px-6 bg-[var(--bg-card)] dark:bg-white/5 text-secondary dark:text-white/80 font-semibold rounded-xl border border-slate-200 dark:border-white/10 flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-white/10 hover:text-main dark:hover:text-white transition-all whitespace-nowrap w-full sm:w-auto"
           >
             <RefreshCw className={syncMutation.isPending ? 'animate-spin' : ''} size={16} />
             Sync from Meta
@@ -290,7 +290,7 @@ export const Templates = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pp-blue" />
         </div>
       ) : filteredTemplates.length === 0 ? (
-        <div className="pp-table-container-enhanced p-16 flex flex-col items-center justify-center text-center bg-[var(--bg-card)]/50 border border-pp-border rounded-3xl">
+        <div className="pp-table-container-enhanced p-16 flex flex-col items-center justify-center text-center bg-[var(--bg-card)]/50 border border-slate-200 dark:border-white/10 rounded-3xl">
           <FileText className="w-16 h-16 text-muted/30 mb-4" />
           <h3 className="text-lg font-bold text-main">No Templates Found</h3>
           <p className="text-secondary max-w-sm mx-auto text-sm mt-1">
@@ -303,7 +303,7 @@ export const Templates = () => {
             <div
               key={template.id || template.whatsappTemplateId || template.name}
               onClick={() => setSelectedTemplate(template)}
-              className="appt-card p-6 bg-[var(--bg-card)] border border-pp-border rounded-2xl flex flex-col justify-between hover:border-pp-blue transition-all duration-300 cursor-pointer shadow-sm group hover:-translate-y-1"
+              className="appt-card p-6 bg-[var(--bg-card)] border border-slate-200 dark:border-white/10 rounded-2xl flex flex-col justify-between hover:border-pp-blue dark:hover:border-pp-blue transition-all duration-300 cursor-pointer shadow-sm group hover:-translate-y-1"
             >
               <div>
                 <div className="flex justify-between items-start gap-4">
@@ -314,13 +314,13 @@ export const Templates = () => {
                   {getStatusBadge(template.status)}
                 </div>
 
-                <div className="bg-pp-bg-subtle/50 p-4 rounded-xl mt-4 font-mono text-[11px] text-secondary leading-relaxed border border-pp-border line-clamp-4 min-h-[92px]">
+                <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl mt-4 font-mono text-[11px] text-secondary dark:text-white/80 leading-relaxed border border-slate-200 dark:border-white/10 line-clamp-4 min-h-[92px]">
                   {template.body}
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between pt-4 border-t border-pp-border text-xs text-muted">
-                <span>Lang: <strong className="text-main uppercase">{template.language}</strong></span>
+              <div className="mt-4 flex items-center justify-between pt-4 border-t border-slate-200 dark:border-white/10 text-xs text-muted">
+                <span>Lang: <strong className="text-main dark:text-white uppercase">{template.language}</strong></span>
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={(e) => {

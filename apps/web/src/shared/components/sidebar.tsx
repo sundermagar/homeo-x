@@ -53,6 +53,7 @@ import {
   PlusCircle,
   BrainCircuit,
   BellDot,
+  PhoneCall,
   type LucideIcon,
   Truck,
   CreditCard,
@@ -205,9 +206,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         roles: CLINICAL,
         children: [
           { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
-          // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
-          // { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
-          // { path: '/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
           { path: '/clinical/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
           { path: '/medical-cases/followups', label: 'Follow-up Dues', icon: BellDot },
         ],
@@ -219,10 +217,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'memberships',
         label: 'Memberships',
         icon: Package,
-        roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'],
+        roles: [...ADMIN, 'Receptionist'],
         children: [
           { path: '/packages', label: 'Package Plans', icon: Layers, roles: ADMIN },
-          { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },
+          { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck, roles: [...ADMIN, 'Receptionist'] },
         ],
       },
     },
@@ -251,16 +249,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         icon: MessageCircle,
         roles: ALL,
         children: [
-          { path: '/communications/whatsapp/overview', label: 'Dashboard', icon: LayoutDashboard },
+          { path: '/communications/whatsapp/overview', label: 'Dashboard', icon: LayoutDashboard, roles: ADMIN },
           { path: '/communications/whatsapp/inbox', label: 'Team Inbox', icon: MessageSquare },
           { path: '/communications/whatsapp/contacts', label: 'Contacts', icon: Users },
-          { path: '/communications/whatsapp/campaigns', label: 'Campaigns', icon: Send },
-          { path: '/communications/whatsapp/templates', label: 'Templates', icon: FileText },
-          { path: '/communications/whatsapp/automations', label: 'Automations', icon: Zap },
-          { path: '/communications/whatsapp/chatbots', label: 'AI Chatbot', icon: Bot },
-          { path: '/communications/whatsapp/analytics', label: 'Analytics', icon: BarChart2 },
-          { path: '/communications/whatsapp/widget-builder', label: 'Widget Builder', icon: Bot },
-          { path: '/communications/whatsapp/channels', label: 'WABA Channels', icon: Globe },
+          { path: '/communications/whatsapp/campaigns', label: 'Campaigns', icon: Send, roles: ADMIN },
+          { path: '/communications/whatsapp/templates', label: 'Templates', icon: FileText, roles: ADMIN },
+          { path: '/communications/whatsapp/automations', label: 'Automations', icon: Zap, roles: ADMIN },
+          { path: '/communications/whatsapp/chatbots', label: 'AI Chatbot', icon: Bot, roles: ADMIN },
+          { path: '/communications/whatsapp/analytics', label: 'Analytics', icon: BarChart2, roles: ADMIN },
+          { path: '/communications/whatsapp/widget-builder', label: 'Widget Builder', icon: Bot, roles: ADMIN },
+          { path: '/communications/whatsapp/channels', label: 'WABA Channels', icon: Globe, roles: ADMIN },
         ],
       },
     },
@@ -270,7 +268,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'analytics',
         label: 'Analytics',
         icon: PieChart,
-        roles: ADMIN,
+        roles: CLINICAL,
         defaultPath: '/analytics',
         children: [
           { path: '/analytics', label: 'Dashboard', icon: BarChart2 },
@@ -279,8 +277,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             label: 'Reports',
             icon: PieChart,
             children: [
-              { path: '/analytics/reports/financial', label: 'Financial Grid', icon: Activity },
-              { path: '/analytics/reports/dues', label: 'Outstanding Dues', icon: CreditCard },
+              { path: '/analytics/reports/monthly-report', label: 'Monthly Report', icon: Activity },
+              { path: '/analytics/reports/monthly-dues', label: 'Monthly Dues', icon: CreditCard },
               { path: '/analytics/reports/birthdays', label: 'Birthday List', icon: Gift },
               { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
             ]
@@ -297,22 +295,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'finance',
         label: 'Finance',
         icon: Receipt,
-        roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'],
+        roles: ALL,
         children: [
           {
-            path: '/billing', label: 'Billing', icon: Receipt,
+            path: '/billing', label: 'Billing', icon: Receipt, roles: ALL,
             children: [
-              { path: '/billing', label: 'Bill List', icon: Receipt },
-              { path: '/billing/collection', label: 'View Collection', icon: DollarSign },
-              { path: '/billing/balance', label: 'View Balance', icon: Wallet },
+              { path: '/billing', label: 'Bill List', icon: Receipt, roles: ALL },
+              { path: '/billing/collection', label: 'View Collection', icon: DollarSign, roles: ALL },
+              { path: '/billing/balance', label: 'View Balance', icon: Wallet, roles: ALL },
               { path: '/billing/additional-charges', label: 'Additional Charges', icon: Receipt, roles: ADMIN },
-              { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar, roles: ['SuperAdmin', 'Admin', 'Clinicadmin'] },
-              { path: '/billing/deposits', label: 'Deposits', icon: Building },
-              { path: '/billing/expenses', label: 'Expenses', icon: DollarSign },
+              { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar, roles: ADMIN },
+              { path: '/billing/deposits', label: 'Deposits', icon: Building, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },
+              { path: '/billing/expenses', label: 'Expenses', icon: DollarSign, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },
             ]
           },
-          { path: '/payments', label: 'Payment Ledger', icon: Banknote },
-          { path: '/settings/expenses', label: 'Expense Categories', icon: Wallet },
+          { path: '/payments', label: 'Payment Ledger', icon: Banknote, roles: ALL },
+          { path: '/settings/expenses', label: 'Expense Categories', icon: Wallet, roles: ADMIN },
         ],
       },
     },
@@ -328,7 +326,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/platform/employees', label: 'Employees', icon: User },
           { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
           { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
-          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
+          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck, roles: ['SuperAdmin', 'Admin'] },
         ],
       },
     },
@@ -351,12 +349,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'operations-hub',
         label: 'Operations Hub',
         icon: Briefcase,
-        roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'],
+        roles: ALL,
         children: [
-          { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck },
-          { path: '/operations?tab=logistics', label: 'Logistics Tracking', icon: Layers },
-          { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users },
-          { path: '/operations?tab=knowledge', label: 'Knowledge Base', icon: BookOpen },
+          { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck, roles: ALL },
+          { path: '/operations?tab=logistics', label: 'Logistics Tracking', icon: Layers, roles: ADMIN },
+          { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users, roles: ADMIN },
+          { path: '/operations?tab=knowledge', label: 'Knowledge Base', icon: BookOpen, roles: ADMIN },
         ],
       },
     },
@@ -378,6 +376,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/settings/dispensaries', label: 'Dispensaries', icon: Hospital },
           { path: '/settings/referrals', label: 'Referral Sources', icon: UserPlus },
           { path: '/settings/stickers', label: 'Medicine Stickers', icon: StickyNote },
+          { path: '/settings/call-statuses', label: 'Call Statuses', icon: PhoneCall },
           { path: '/settings/cms', label: 'Content (CMS)', icon: Globe },
           { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
           { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
@@ -531,10 +530,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside className={`sidebar ${isOpen ? 'is-open' : ''} ${effectiveCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-group">
-            <div 
-              className="sidebar-logo" 
-              style={{ 
-                background: 'transparent', 
+            <div
+              className="sidebar-logo"
+              style={{
+                background: 'transparent',
                 padding: '0',
                 width: '32px',
                 height: '32px',

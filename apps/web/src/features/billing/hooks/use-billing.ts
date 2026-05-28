@@ -225,7 +225,6 @@ export interface ExtendedDailySummaryData {
   bankDeposit: number;
   cashInHand: number;
   recordCount: number;
-  upi?: number;
 }
 
 export interface PaymentDrilldownRecordData {

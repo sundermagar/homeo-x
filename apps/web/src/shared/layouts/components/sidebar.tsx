@@ -22,6 +22,7 @@ interface NavSubItem {
   path: string;
   icon?: React.ReactNode;
   badge?: number;
+  roles?: UserRole[];
 }
 
 interface NavItem {
@@ -127,7 +128,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: 'Staff & Admin',
       icon: <Briefcase size={20} />,
       path: '/staff',
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
+      roles: ['SuperAdmin', 'Admin'],
     },
     {
       label: 'Analytics',
@@ -144,17 +145,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     {
       label: 'WhatsApp Pro',
       icon: <MessageCircle size={20} className="text-pp-blue" />,
-      roles: ADMIN_ROLES,
+      roles: [...ADMIN_ROLES, 'Doctor', 'Receptionist'],
       subItems: [
-        { label: 'Dashboard', path: '/communications/whatsapp/overview', icon: <LayoutDashboard size={14} /> },
+        { label: 'Dashboard', path: '/communications/whatsapp/overview', icon: <LayoutDashboard size={14} />, roles: ADMIN_ROLES },
         { label: 'Team Inbox', path: '/communications/whatsapp/inbox', icon: <MessageSquare size={14} /> },
         { label: 'Contacts', path: '/communications/whatsapp/contacts', icon: <Users size={14} /> },
-        { label: 'Campaigns', path: '/communications/whatsapp/campaigns', icon: <Send size={14} /> },
-        { label: 'Templates', path: '/communications/whatsapp/templates', icon: <FileText size={14} /> },
-        { label: 'Automations', path: '/communications/whatsapp/automations', icon: <Zap size={14} /> },
-        { label: 'AI Chatbot', path: '/communications/whatsapp/chatbots', icon: <Bot size={14} /> },
-        { label: 'Analytics', path: '/communications/whatsapp/analytics', icon: <BarChart3 size={14} /> },
-        { label: 'Widget Builder', path: '/communications/whatsapp/widget-builder', icon: <Bot size={14} /> },
+        { label: 'Campaigns', path: '/communications/whatsapp/campaigns', icon: <Send size={14} />, roles: ADMIN_ROLES },
+        { label: 'Templates', path: '/communications/whatsapp/templates', icon: <FileText size={14} />, roles: ADMIN_ROLES },
+        { label: 'Automations', path: '/communications/whatsapp/automations', icon: <Zap size={14} />, roles: ADMIN_ROLES },
+        { label: 'AI Chatbot', path: '/communications/whatsapp/chatbots', icon: <Bot size={14} />, roles: ADMIN_ROLES },
+        { label: 'Analytics', path: '/communications/whatsapp/analytics', icon: <BarChart3 size={14} />, roles: ADMIN_ROLES },
+        { label: 'Widget Builder', path: '/communications/whatsapp/widget-builder', icon: <Bot size={14} />, roles: ADMIN_ROLES },
       ]
     },
     {
@@ -169,7 +170,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     {
       label: 'Operations Hub',
       icon: <Settings size={20} />,
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'],
+      roles: ADMIN_ROLES,
       subItems: [
         { label: 'Logistics & Couriers', path: '/operations?tab=logistics' },
         { label: 'Lead CRM & Promos', path: '/operations?tab=crm' },
@@ -226,7 +227,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   </button>
                   {expandedFolders[item.label] && (
                     <div className="sb-sub-nav">
-                      {item.subItems.map(subItem => (
+                      {item.subItems
+                         .filter(sub => !sub.roles || sub.roles.includes(normalizedRole))
+                         .map(subItem => (
                         <NavLink
                           key={subItem.label}
                           to={subItem.path}

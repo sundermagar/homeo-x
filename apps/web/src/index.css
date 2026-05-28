@@ -443,6 +443,12 @@
 /* RESET & BASE                                                                  */
 /* ──────────────────────────────────────────────────────────────────────────── */
 
+@media print {
+  .hide-on-print {
+    display: none !important;
+  }
+}
+
 *,
 *::before,
 *::after {

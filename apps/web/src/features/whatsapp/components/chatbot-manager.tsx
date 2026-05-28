@@ -258,7 +258,7 @@ export const ChatbotManager = () => {
 
   if (!activeChannel) {
     return (
-      <div className="py-20 text-center animate-fade-in bg-[var(--bg-card)] rounded-3xl border border-pp-border">
+      <div className="py-20 text-center animate-fade-in bg-[var(--bg-card)] rounded-3xl border border-slate-200 dark:border-white/10">
         <Bot className="w-12 h-12 text-muted/30 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-main">Connect WhatsApp First</h3>
         <p className="text-secondary mt-2">You need an active WhatsApp channel to configure AI training.</p>
@@ -280,7 +280,7 @@ export const ChatbotManager = () => {
 
 
       {/* Tab Navigation */}
-      <div className="border-b border-pp-border mb-6">
+      <div className="border-b border-slate-200 dark:border-white/10 mb-6">
         <div className="flex gap-0 overflow-x-auto scrollbar-hide -mb-px">
           {tabs.map(({ key, icon: Icon, label }) => {
             const isActive = activeTab === key;
@@ -321,16 +321,16 @@ export const ChatbotManager = () => {
 
       {/* Global Training Stats Cards (matching mockup) */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="p-4 bg-blue-50/40 rounded-2xl border border-blue-100/60 text-center flex flex-col items-center justify-center min-h-[96px] transition-all hover:bg-blue-50/70">
+        <div className="p-4 bg-blue-50/40 dark:bg-blue-500/5 rounded-2xl border border-blue-100/60 dark:border-blue-500/10 text-center flex flex-col items-center justify-center min-h-[96px] transition-all hover:bg-blue-50/70 dark:hover:bg-blue-500/10">
           <span className="text-2xl font-bold text-pp-blue">{stats?.sourcesCount ?? 0}</span>
           <span className="text-xs font-bold text-secondary mt-1">Sources</span>
         </div>
-        <div className="p-4 bg-purple-50/40 rounded-2xl border border-purple-100/60 text-center flex flex-col items-center justify-center min-h-[96px] transition-all hover:bg-purple-50/70">
-          <span className="text-2xl font-bold text-purple-600">{stats?.chunksCount ?? 0}</span>
+        <div className="p-4 bg-purple-50/40 dark:bg-purple-500/5 rounded-2xl border border-purple-100/60 dark:border-purple-500/10 text-center flex flex-col items-center justify-center min-h-[96px] transition-all hover:bg-purple-50/70 dark:hover:bg-purple-500/10">
+          <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats?.chunksCount ?? 0}</span>
           <span className="text-xs font-bold text-secondary mt-1">Chunks</span>
         </div>
-        <div className="p-4 bg-emerald-50/40 rounded-2xl border border-emerald-100/60 text-center flex flex-col items-center justify-center min-h-[96px] transition-all hover:bg-emerald-50/70">
-          <span className="text-2xl font-bold text-emerald-600">{stats?.qaCount ?? 0}</span>
+        <div className="p-4 bg-emerald-50/40 dark:bg-emerald-500/5 rounded-2xl border border-emerald-100/60 dark:border-emerald-500/10 text-center flex flex-col items-center justify-center min-h-[96px] transition-all hover:bg-emerald-50/70 dark:hover:bg-emerald-500/10">
+          <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats?.qaCount ?? 0}</span>
           <span className="text-xs font-bold text-secondary mt-1">Q&A Pairs</span>
         </div>
       </div>
@@ -338,7 +338,7 @@ export const ChatbotManager = () => {
       {/* Training Data Tab Content */}
       {activeTab === 'training' && (
         <div className="space-y-4 sm:space-y-6">
-          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-slate-200 dark:border-white/10">
             <div className="mb-4">
               <h3 className="text-base font-bold text-main flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
@@ -347,7 +347,7 @@ export const ChatbotManager = () => {
               <p className="text-xs text-secondary mt-1">Sync your knowledge base articles as AI training data</p>
             </div>
             
-            <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-500/5 rounded-xl border border-pp-border/50 mb-4">
+            <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-500/5 rounded-xl border border-slate-200 dark:border-white/5 mb-4">
               <div>
                 <p className="text-sm font-bold text-main">Train from Knowledge Base</p>
                 <p className="text-xs text-secondary mt-0.5">Use KB articles to answer customer questions</p>
@@ -366,13 +366,13 @@ export const ChatbotManager = () => {
             <button 
               onClick={handleSyncKb}
               disabled={syncKb.isPending}
-              className="w-full h-11 bg-[var(--bg-card)] hover:bg-[var(--bg-card)] border border-pp-border shadow-sm rounded-xl flex items-center justify-center text-sm font-bold text-main transition-all active:scale-[0.98]">
+              className="w-full h-11 bg-[var(--bg-card)] hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm rounded-xl flex items-center justify-center text-sm font-bold text-main dark:text-white transition-all active:scale-[0.98]">
               {syncKb.isPending ? <Loader2 className="h-4 w-4 mr-2 text-pp-blue animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2 text-pp-blue" />}
               Sync Knowledge Base Articles
             </button>
           </div>
 
-          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-slate-200 dark:border-white/10">
             <div className="mb-4">
               <h3 className="text-base font-bold text-main flex items-center gap-2">
                 <Globe className="h-4 w-4" />
@@ -411,7 +411,7 @@ export const ChatbotManager = () => {
             </div>
           </div>
 
-          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-slate-200 dark:border-white/10">
             <div className="mb-4">
               <h3 className="text-base font-bold text-main flex items-center gap-2">
                 <FileUp className="h-4 w-4" />
@@ -467,7 +467,7 @@ export const ChatbotManager = () => {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadFile.isPending}
-              className="w-full h-11 bg-slate-50/50 dark:bg-slate-500/5 hover:bg-slate-100 border border-dashed border-pp-border rounded-xl flex items-center justify-center text-sm font-bold text-main transition-all active:scale-[0.98] disabled:opacity-50"
+              className="w-full h-11 bg-slate-50/50 dark:bg-slate-500/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-dashed border-slate-300 dark:border-white/20 rounded-xl flex items-center justify-center text-sm font-bold text-main dark:text-white transition-all active:scale-[0.98] disabled:opacity-50"
             >
               {uploadFile.isPending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin text-pp-blue" />
@@ -482,7 +482,7 @@ export const ChatbotManager = () => {
           </div>
 
           {sources && sources.length > 0 && (
-            <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
+            <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-slate-200 dark:border-white/10">
               <div className="mb-4">
                 <h3 className="text-base font-bold text-main flex items-center gap-2">
                   <Database className="h-4 w-4" />
@@ -492,13 +492,13 @@ export const ChatbotManager = () => {
               
               <div className="space-y-3">
                 {sources.map((source: any) => (
-                  <div key={source.id} className="flex items-center justify-between p-3 border border-pp-border rounded-xl">
+                  <div key={source.id} className="flex items-center justify-between p-3 border border-slate-200 dark:border-white/10 rounded-xl">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       {getStatusIcon(source.status)}
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-main truncate">{source.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="px-2 py-0.5 border border-pp-border rounded bg-[var(--bg-main)] text-[10px] font-bold text-secondary uppercase">
+                          <span className="px-2 py-0.5 border border-slate-200 dark:border-white/10 rounded bg-[var(--bg-main)] text-[10px] font-bold text-secondary uppercase">
                             {source.type}
                           </span>
                           {source.chunkCount > 0 && (
@@ -535,7 +535,7 @@ export const ChatbotManager = () => {
       {activeTab === 'behavior' && (
         <div className="space-y-6">
           {/* Card 1: AI Provider Configuration */}
-          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-slate-200 dark:border-white/10">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-main flex items-center gap-2">
                 <Settings className="h-4 w-4 text-secondary" />
@@ -660,7 +660,7 @@ export const ChatbotManager = () => {
               </div>
             </div>
 
-            <div className="border-t border-pp-border pt-6">
+            <div className="border-t border-slate-200 dark:border-white/10 pt-6">
               <label className="text-xs font-bold text-main flex items-center gap-1.5 mb-1">
                 <MessageSquare className="h-3.5 w-3.5 text-secondary" /> Trigger Words
               </label>
@@ -683,7 +683,7 @@ export const ChatbotManager = () => {
                   />
                 </div>
                 <button 
-                  className="btn-secondary px-4 h-10 shadow-sm border border-pp-border rounded-xl"
+                  className="btn-secondary px-4 h-10 shadow-sm border border-slate-200 dark:border-white/10 rounded-xl"
                   onClick={() => {
                     if (newTriggerWord.trim()) {
                       updateConfig("triggerWords", [...settingsForm.triggerWords, newTriggerWord.trim()]);
@@ -713,7 +713,7 @@ export const ChatbotManager = () => {
           </div>
 
           {/* Card 2: System Prompt */}
-          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-slate-200 dark:border-white/10">
             <h3 className="text-base font-bold text-main mb-1 flex items-center gap-2">
               <Bot className="h-4 w-4 text-secondary" />
               System Prompt
@@ -735,7 +735,7 @@ export const ChatbotManager = () => {
           </div>
 
           {/* Card 3: Response Settings */}
-          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
+          <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-slate-200 dark:border-white/10">
             <h3 className="text-base font-bold text-main mb-4 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-secondary" />
               Response Settings

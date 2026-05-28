@@ -122,11 +122,11 @@ appointmentsRouter.post('/followups/status', asyncHandler(async (req, res) => {
   if (callStatus !== undefined) updateFields.callStatus = callStatus;
   if (actionDate !== undefined) updateFields.callDate = actionDate;
 
-  if (visitType === 'Missed') {
+  if (visitType !== 'Next Visit') {
     await req.tenantDb.update(schema.appointments)
       .set(updateFields)
       .where(eq(schema.appointments.id, Number(id)));
-  } else if (visitType === 'Next Visit') {
+  } else {
     const legacyUpdateFields: any = { updatedAt: new Date() };
     if (callStatus !== undefined) legacyUpdateFields.callStatus = callStatus;
     if (actionDate !== undefined) legacyUpdateFields.callDate = actionDate;

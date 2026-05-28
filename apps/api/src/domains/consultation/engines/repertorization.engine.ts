@@ -679,7 +679,7 @@ OUTPUT FORMAT:
   /**
    * Lab Report to Rubrics Analysis
    */
-  async extractRubricsFromReport(tenantId: string, userId: string, input: { visitId: string, documents: { base64: string, mimeType: string }[] }): Promise<{ rubrics: SuggestedRubric[] }> {
+  async extractRubricsFromReport(tenantId: string, userId: string, input: { visitId: string, documents: { base64: string, mimeType: string }[] }): Promise<{ reportSummary?: string, rubrics: SuggestedRubric[] }> {
     try {
       if (!input.documents || input.documents.length === 0) return { rubrics: [] };
 
@@ -687,14 +687,16 @@ OUTPUT FORMAT:
 
       const systemPrompt = `You are a medical lab report analyzer and homeopathic repertory assistant. 
 Your task is to analyze the provided lab report images or documents, identify any abnormal medical findings (e.g., high cholesterol, low hemoglobin, high uric acid), and translate them into 3-6 characteristic Mac Repertory rubrics.
+Also provide a short 2-3 sentence clinical summary of the report.
 
 CRITICAL RULES:
 - Only return exact or highly accurate classical rubrics related to the abnormal lab findings.
-- If the report is normal, return an empty array.
+- If the report is normal, return an empty array for rubrics.
 - Output MUST be strictly JSON.
 
 OUTPUT FORMAT:
 {
+  "reportSummary": "The patient has elevated fasting glucose (126 mg/dL) and HbA1c (7.2%), indicating uncontrolled diabetes mellitus.",
   "rubrics": [
     { "chapter": "Generalities", "category": "GENERAL", "description": "Generalities - Anemia", "importance": 3, "remedyCount": 50 }
   ]
@@ -722,7 +724,7 @@ OUTPUT FORMAT:
         remedyCount: r.remedyCount || 50,
       }));
 
-      return { rubrics };
+      return { reportSummary: parsed.reportSummary, rubrics };
     } catch (error: any) {
       logger.error({ error: error.message }, 'Lab report rubric extraction failed');
       return { rubrics: [] };

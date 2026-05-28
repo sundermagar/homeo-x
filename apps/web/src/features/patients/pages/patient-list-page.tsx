@@ -207,7 +207,7 @@ export default function PatientListPage() {
         <MessageCircle size={14} /> WhatsApp
       </button>
       <button className="appt-kebab-item" onClick={() => {
-        const envUrl = import.meta.env.VITE_API_URL;
+        const envUrl = import.meta.env['VITE_API_URL'];
         const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
         window.open(`${apiBase}/medical-cases/remedy-chart/pdf/${p.regid}?token=${token}`, '_blank');
         closeMenu();
@@ -215,7 +215,7 @@ export default function PatientListPage() {
         <Printer size={14} /> Print Prescription
       </button>
       <button className="appt-kebab-item" onClick={() => {
-        const envUrl = import.meta.env.VITE_API_URL;
+        const envUrl = import.meta.env['VITE_API_URL'];
         const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
         window.open(`${apiBase}/medical-cases/pdf/summary/${p.regid}?token=${token}`, '_blank');
         closeMenu();
