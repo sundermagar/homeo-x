@@ -160,10 +160,23 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       )`;
     };
 
-    const fromDateCondition = fromDate ? safeDateCondition('a.booking_date', fromDate, '>=') : sql``;
-    const toDateCondition = toDate ? safeDateCondition('a.booking_date', toDate, '<=') : sql``;
-    const pendingFromDateCondition = fromDate ? safeDateCondition('p.next_date', fromDate, '>=') : sql``;
-    const pendingToDateCondition = toDate ? safeDateCondition('p.next_date', toDate, '<=') : sql``;
+    const parseDateInput = (d: string | undefined) => {
+      if (!d) return null;
+      if (d.includes('-')) return d;
+      const parts = d.split('/');
+      if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      return d;
+    };
+
+    const parsedFrom = parseDateInput(fromDate);
+    const parsedTo = parseDateInput(toDate);
+
+    const combinedDateFilter = (parsedFrom || parsedTo)
+      ? sql`WHERE 1=1 
+          ${parsedFrom ? sql`AND booking_date >= ${parsedFrom}::date` : sql``}
+          ${parsedTo ? sql`AND booking_date <= ${parsedTo}::date` : sql``}`
+      : sql`WHERE booking_date IS NULL OR booking_date <= ${todayStr}::date`;
+
 
     const apptsQuery = sql`
       SELECT
@@ -243,8 +256,6 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         ${clinicId ? sql`AND a.clinic_id = ${clinicId}` : sql``}
         ${doctorId ? sql`AND a.doctor_id = ${doctorId}` : sql``}
         ${search ? sql`AND (a.patient_name ILIKE ${'%' + search + '%'} OR a.phone ILIKE ${'%' + search + '%'})` : sql``}
-        ${fromDateCondition}
-        ${toDateCondition}
     `;
 
     const pendingQuery = sql`
@@ -284,21 +295,20 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       FROM pending_appointments p
       LEFT JOIN case_datas cd ON cd.regid = p.regid
       WHERE (p.deleted_at IS NULL OR p.deleted_at = '')
-        AND ${getBaseDateCompare('p.next_date', '<=')}
         ${clinicId ? sql`AND cd.clinic_id = ${clinicId}` : sql``}
         ${search ? sql`AND ((COALESCE(cd.first_name, '') || ' ' || COALESCE(cd.surname, '')) ILIKE ${'%' + search + '%'} OR cd.mobile1 ILIKE ${'%' + search + '%'})` : sql``}
-        ${pendingFromDateCondition}
-        ${pendingToDateCondition}
     `;
 
     const unionQuery = sql`
       SELECT * FROM (${apptsQuery} UNION ALL ${pendingQuery}) as combined
+      ${combinedDateFilter}
       ORDER BY COALESCE(booking_date, last_date::date) DESC, id DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
 
     const countQuery = sql`
       SELECT count(*)::int as total FROM (${apptsQuery} UNION ALL ${pendingQuery}) as combined
+      ${combinedDateFilter}
     `;
 
     const [rows, countRows] = await Promise.all([

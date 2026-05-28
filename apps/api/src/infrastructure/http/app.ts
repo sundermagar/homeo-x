@@ -431,6 +431,13 @@ async function ensureIndexes(db: any): Promise<void> {
     // doctors + users: used in staff-on-duty (clinic_id filter)
     `CREATE INDEX IF NOT EXISTS idx_doctors_clinic ON doctors (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_users_context_active ON users (context_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    
+    // ── Receptionist Dashboard Query Optimization Indexes ──
+    `CREATE INDEX IF NOT EXISTS idx_users_id_text ON users ((id::text)) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_doctors_id_text ON doctors ((id::text)) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_waitlist_date_text ON waitlist (clinic_id, (date::text)) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_appts_bdate_text ON appointments (clinic_id, (booking_date::text)) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    
     // ── Legacy / admin ────────────────────────────────────────────────────────
     `CREATE INDEX IF NOT EXISTS idx_appts_clinic ON appointments (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_appts_date ON appointments (booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,

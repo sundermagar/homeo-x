@@ -28,7 +28,7 @@ export default function WidgetCodeSnippet({
   channelId = "WABA_CHANNEL_ID",
 }: WidgetCodeSnippetProps) {
   return (
-    <Card className="rounded-3xl border border-pp-border shadow-sm overflow-hidden bg-[var(--bg-card)] dark:bg-[#0f0f12]">
+    <Card className="rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden bg-[var(--bg-card)] dark:bg-[#0f0f12]">
       <CardHeader>
         <CardTitle className="text-lg font-bold text-main">Embed Code</CardTitle>
         <CardDescription className="text-sm text-secondary">

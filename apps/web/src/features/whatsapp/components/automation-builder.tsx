@@ -82,7 +82,7 @@ export const AutomationBuilder = () => {
 
   if (isCreatingNew || editingAutomation) {
     return (
-      <div className="h-[calc(100vh-220px)] w-full rounded-2xl overflow-hidden border border-pp-border bg-[var(--bg-card)] shadow-sm ring-1 ring-black/5 animate-fade-in relative z-10 flex flex-col">
+      <div className="h-[calc(100vh-220px)] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-[var(--bg-card)] shadow-sm ring-1 ring-black/5 animate-fade-in relative z-10 flex flex-col">
         <AutomationFlowBuilder
           automation={editingAutomation}
           channelId={activeChannelId}
@@ -99,7 +99,7 @@ export const AutomationBuilder = () => {
     <div className="space-y-6 animate-fade-in">
       
       {/* Top Filter and Actions bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-[var(--bg-card)] p-6 rounded-2xl border border-pp-border shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-[var(--bg-card)] p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
         <div className="flex-1 max-w-md">
           <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Search Workflows</label>
           <div className="relative">
@@ -118,11 +118,11 @@ export const AutomationBuilder = () => {
       <div className="grid grid-cols-1 gap-6">
         {isLoading ? (
           Array.from({ length: pageSize }).map((_, i) => (
-            <div key={i} className="appt-card animate-pulse bg-pp-bg-subtle/20 border-pp-border h-[180px]" />
+            <div key={i} className="appt-card animate-pulse bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 h-[180px]" />
           ))
         ) : filteredAutomations.length === 0 ? (
-          <div className="py-20 bg-pp-bg-subtle/30 rounded-3xl border border-pp-border text-center flex flex-col items-center justify-center">
-            <div className="w-16 h-16 bg-pp-bg-subtle rounded-2xl flex items-center justify-center mb-6 text-muted/30">
+          <div className="py-20 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/10 text-center flex flex-col items-center justify-center">
+            <div className="w-16 h-16 bg-slate-100 dark:bg-white/10 rounded-2xl flex items-center justify-center mb-6 text-muted/30">
               <Zap size={32} />
             </div>
             <h3 className="text-xl font-bold text-main">No Journeys Configured</h3>
@@ -131,7 +131,7 @@ export const AutomationBuilder = () => {
             </p>
           </div>
         ) : filteredAutomations.map((flow: any) => (
-          <div key={flow.id} className="group p-5 md:p-6 bg-[var(--bg-card)] rounded-[24px] border border-pp-border shadow-sm hover:shadow-md transition-all flex flex-col gap-5 md:gap-6">
+          <div key={flow.id} className="group p-5 md:p-6 bg-[var(--bg-card)] rounded-[24px] border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all flex flex-col gap-5 md:gap-6">
             
             {/* Top Row: Title, Description, and Actions */}
             <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
@@ -180,8 +180,8 @@ export const AutomationBuilder = () => {
               
               {/* Stats Cards */}
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-3 px-3.5 py-2.5 bg-[#FAFAF9] dark:bg-[#1c1c21] rounded-[14px] border border-pp-border/60">
-                  <div className="p-1.5 bg-[var(--bg-card)] dark:bg-[#222226] rounded-[8px] shadow-sm text-secondary">
+                <div className="flex items-center gap-3 px-3.5 py-2.5 bg-[#FAFAF9] dark:bg-white/5 rounded-[14px] border border-slate-200 dark:border-white/10">
+                  <div className="p-1.5 bg-[var(--bg-card)] dark:bg-black/20 rounded-[8px] shadow-sm text-secondary">
                     <Target size={14} />
                   </div>
                   <div>
@@ -190,8 +190,8 @@ export const AutomationBuilder = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 px-3.5 py-2.5 bg-[#FAFAF9] dark:bg-[#1c1c21] rounded-[14px] border border-pp-border/60">
-                  <div className="p-1.5 bg-[var(--bg-card)] dark:bg-[#222226] rounded-[8px] shadow-sm text-secondary">
+                <div className="flex items-center gap-3 px-3.5 py-2.5 bg-[#FAFAF9] dark:bg-white/5 rounded-[14px] border border-slate-200 dark:border-white/10">
+                  <div className="p-1.5 bg-[var(--bg-card)] dark:bg-black/20 rounded-[8px] shadow-sm text-secondary">
                     <MessageSquare size={14} />
                   </div>
                   <div>
@@ -200,8 +200,8 @@ export const AutomationBuilder = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 px-3.5 py-2.5 bg-[#FAFAF9] dark:bg-[#1c1c21] rounded-[14px] border border-pp-border/60">
-                  <div className="p-1.5 bg-[var(--bg-card)] dark:bg-[#222226] rounded-[8px] shadow-sm text-secondary">
+                <div className="flex items-center gap-3 px-3.5 py-2.5 bg-[#FAFAF9] dark:bg-white/5 rounded-[14px] border border-slate-200 dark:border-white/10">
+                  <div className="p-1.5 bg-[var(--bg-card)] dark:bg-black/20 rounded-[8px] shadow-sm text-secondary">
                     <Clock size={14} />
                   </div>
                   <div>
@@ -213,13 +213,13 @@ export const AutomationBuilder = () => {
 
               {/* Secondary Actions */}
               <div className="flex items-center gap-2">
-                <button className="h-[38px] px-3.5 bg-[var(--bg-card)] dark:bg-[#1c1c21] border border-pp-border rounded-xl text-[13px] font-semibold text-secondary hover:text-main hover:bg-[var(--bg-card)] dark:hover:bg-[#222226] transition-all flex items-center gap-2">
+                <button className="h-[38px] px-3.5 bg-[var(--bg-card)] dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[13px] font-semibold text-secondary hover:text-main hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center gap-2">
                   Analytics <ChevronRight size={14} />
                 </button>
                 <button 
                   onClick={() => handleDelete(flow)}
                   disabled={updateMutation.isPending || deleteMutation.isPending}
-                  className="w-[38px] h-[38px] flex justify-center items-center bg-[var(--bg-card)] dark:bg-[#1c1c21] border border-pp-border rounded-xl text-muted hover:text-error hover:bg-error/5 hover:border-error/30 transition-all"
+                  className="w-[38px] h-[38px] flex justify-center items-center bg-[var(--bg-card)] dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-muted hover:text-error hover:bg-error/5 hover:border-error/30 transition-all"
                   title="Delete Automation"
                 >
                   <Trash2 size={14} />

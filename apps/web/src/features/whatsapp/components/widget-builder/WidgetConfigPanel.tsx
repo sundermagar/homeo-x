@@ -55,7 +55,7 @@ export default function WidgetConfigPanel({
 
   return (
     <Tabs defaultValue="content" className="space-y-6 flex flex-col">
-      <TabsList className="w-full flex items-center justify-start gap-1 p-1.5 bg-[#F4F3F1] rounded-2xl border border-pp-border/30 h-auto self-start shadow-sm">
+      <TabsList className="w-full flex items-center justify-start gap-1 p-1.5 bg-[#F4F3F1] dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 h-auto self-start shadow-sm">
         <TabsTrigger 
           value="content" 
           className="rounded-xl px-4.5 py-2 text-xs font-bold text-secondary transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-[#222226] data-[state=active]:text-pp-blue data-[state=active]:shadow-sm hover:text-main"
@@ -90,7 +90,7 @@ export default function WidgetConfigPanel({
 
       {/* Content Tab */}
       <TabsContent value="content" className="space-y-6">
-        <Card className="rounded-3xl border border-pp-border shadow-sm">
+        <Card className="rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold text-main">Welcome Messages</CardTitle>
             <CardDescription className="text-sm text-secondary">
@@ -177,7 +177,7 @@ export default function WidgetConfigPanel({
 
       {/* Design Tab */}
       <TabsContent value="design" className="space-y-6">
-        <Card className="rounded-3xl border border-pp-border shadow-sm">
+        <Card className="rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold text-main">Widget Style & Colors</CardTitle>
             <CardDescription className="text-sm text-secondary">
@@ -226,7 +226,7 @@ export default function WidgetConfigPanel({
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-secondary">Primary Color</Label>
                 <div className="flex gap-2 items-center">
-                  <div className="relative w-11 h-11 rounded-xl overflow-hidden shadow-sm border border-pp-border shrink-0 cursor-pointer">
+                  <div className="relative w-11 h-11 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer">
                     <input
                       type="color"
                       value={config.primaryColor}
@@ -247,7 +247,7 @@ export default function WidgetConfigPanel({
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-secondary">Accent Color</Label>
                 <div className="flex gap-2 items-center">
-                  <div className="relative w-11 h-11 rounded-xl overflow-hidden shadow-sm border border-pp-border shrink-0 cursor-pointer">
+                  <div className="relative w-11 h-11 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer">
                     <input
                       type="color"
                       value={config.accentColor}
@@ -302,7 +302,7 @@ export default function WidgetConfigPanel({
 
       {/* Layouts Tab */}
       <TabsContent value="layouts" className="space-y-6">
-        <Card className="rounded-3xl border border-pp-border shadow-sm">
+        <Card className="rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold text-main">Messenger Layout Settings</CardTitle>
             <CardDescription className="text-sm text-secondary">
@@ -353,7 +353,7 @@ export default function WidgetConfigPanel({
             <Separator className="my-4" />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50">
+              <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50 dark:hover:bg-white/10">
                 <div className="space-y-1">
                   <Label className="text-sm font-bold text-main block cursor-pointer">Show Avatars</Label>
                   <p className="text-[10px] text-secondary leading-snug max-w-[140px]">Display team member photos in widget header</p>
@@ -364,7 +364,7 @@ export default function WidgetConfigPanel({
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50">
+              <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50 dark:hover:bg-white/10">
                 <div className="space-y-1">
                   <Label className="text-sm font-bold text-main block cursor-pointer">Recent FAQs</Label>
                   <p className="text-[10px] text-secondary leading-snug max-w-[140px]">Display popular FAQ pairs to visitors</p>
@@ -381,7 +381,7 @@ export default function WidgetConfigPanel({
 
       {/* Team Tab */}
       <TabsContent value="team" className="space-y-6">
-        <Card className="rounded-3xl border border-pp-border shadow-sm">
+        <Card className="rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold text-main">Support Team</CardTitle>
             <CardDescription className="text-sm text-secondary">
@@ -390,7 +390,7 @@ export default function WidgetConfigPanel({
           </CardHeader>
           <CardContent className="space-y-4">
             {config.teamMembers.map((member, index) => (
-              <div key={member.id} className="flex items-center gap-4 p-3 border border-pp-border rounded-xl">
+              <div key={member.id} className="flex items-center gap-4 p-3 border border-slate-200 dark:border-white/10 rounded-xl">
                 <Avatar className="h-10 w-10">
                   {member.avatar ? (
                     <AvatarImage src={member.avatar} alt={member.name} />
@@ -503,7 +503,7 @@ export default function WidgetConfigPanel({
 
       {/* Advanced Tab */}
       <TabsContent value="advanced" className="space-y-6">
-        <Card className="rounded-3xl border border-pp-border shadow-sm">
+        <Card className="rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold text-main">Advanced Features</CardTitle>
             <CardDescription className="text-sm text-secondary">
@@ -512,7 +512,7 @@ export default function WidgetConfigPanel({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50">
+              <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50 dark:hover:bg-white/10">
                 <div className="space-y-1">
                   <Label className="text-sm font-bold text-main block cursor-pointer">Live Chat</Label>
                   <p className="text-[10px] text-secondary leading-snug max-w-[140px]">Enable real-time messaging with visitors</p>
@@ -526,7 +526,7 @@ export default function WidgetConfigPanel({
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-pp-border rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50">
+              <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50/50 dark:bg-slate-500/5 transition-all hover:bg-slate-50 dark:hover:bg-white/10">
                 <div className="space-y-1">
                   <Label className="text-sm font-bold text-main block cursor-pointer">AI Auto-Reply</Label>
                   <p className="text-[10px] text-secondary leading-snug max-w-[140px]">Automatically reply using AI training data</p>

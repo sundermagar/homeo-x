@@ -27,13 +27,13 @@ const WidgetBuilder = lazy(() => import('../components/widget-builder').then(m =
 
 const FeatureSkeleton = () => (
   <div className="space-y-6 animate-pulse">
-    <div className="h-12 bg-pp-bg-subtle/40 rounded-2xl w-full" />
+    <div className="h-12 bg-slate-100 dark:bg-white/5 rounded-2xl w-full" />
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="h-32 bg-pp-bg-subtle/40 rounded-2xl" />
-      <div className="h-32 bg-pp-bg-subtle/40 rounded-2xl" />
-      <div className="h-32 bg-pp-bg-subtle/40 rounded-2xl" />
+      <div className="h-32 bg-slate-100 dark:bg-white/5 rounded-2xl" />
+      <div className="h-32 bg-slate-100 dark:bg-white/5 rounded-2xl" />
+      <div className="h-32 bg-slate-100 dark:bg-white/5 rounded-2xl" />
     </div>
-    <div className="h-[400px] bg-pp-bg-subtle/40 rounded-3xl w-full" />
+    <div className="h-[400px] bg-slate-100 dark:bg-white/5 rounded-3xl w-full" />
   </div>
 );
 // Local Error Boundary for "Soft" failure handling
@@ -331,7 +331,7 @@ export const WhatsAppDashboardPage = () => {
                     <h4 className="text-base font-bold text-main">Deliverability Matrix</h4>
                     <p className="text-xs text-secondary mt-0.5">Real-time daily telemetry and dispatch activity.</p>
                   </div>
-                  <div className="flex items-center gap-1.5 p-1 bg-pp-bg-subtle rounded-xl border border-pp-border">
+                  <div className="flex items-center gap-1.5 p-1 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
                     <button 
                       onClick={() => setDays(7)}
                       className={`text-[10px] px-3 py-1.5 rounded-lg transition-all ${
@@ -381,7 +381,7 @@ export const WhatsAppDashboardPage = () => {
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-full flex items-center justify-center text-xs font-bold uppercase tracking-wider text-muted/40 border border-dashed rounded-2xl bg-pp-bg-subtle/40">No analytics data reported.</div>
+                    <div className="h-full flex items-center justify-center text-xs font-bold uppercase tracking-wider text-muted/40 border border-dashed border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-white/5">No analytics data reported.</div>
                   )}
                 </div>
               </div>

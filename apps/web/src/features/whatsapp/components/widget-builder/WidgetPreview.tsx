@@ -108,15 +108,15 @@ export default function WidgetPreview({
           font-family: ${fontFamilyValue} !important;
         }
       `}</style>
-      <div className="relative h-[720px] flex flex-col bg-[var(--bg-card)] rounded-3xl border border-pp-border shadow-lg overflow-hidden">
+      <div className="relative h-[720px] flex flex-col bg-[var(--bg-card)] rounded-3xl border border-slate-200 dark:border-white/10 shadow-lg overflow-hidden">
         {/* Browser Top Bar Mockup */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-pp-border bg-slate-50/70">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-pp-border bg-slate-50/70 dark:bg-[#16161a]">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-[#FF5F56] inline-block" />
             <span className="w-3 h-3 rounded-full bg-[#FFBD2E] inline-block" />
             <span className="w-3 h-3 rounded-full bg-[#27C93F] inline-block" />
           </div>
-          <div className="flex-1 max-w-sm mx-4 bg-[var(--bg-card)] border border-pp-border rounded-lg px-3 py-1 text-xs text-secondary font-sans text-center truncate select-none shadow-sm flex items-center justify-center gap-1">
+          <div className="flex-1 max-w-sm mx-4 bg-[var(--bg-card)] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1 text-xs text-secondary font-sans text-center truncate select-none shadow-sm flex items-center justify-center gap-1">
             <span className="text-slate-400">https://</span>{config.domain || "yourclinic.com"}
           </div>
           <div className="w-12" /> {/* spacer */}
@@ -211,7 +211,7 @@ export default function WidgetPreview({
               {previewScreen === "home" && (
                 <div className="p-4 space-y-4">
                   {/* Start Conversation Card */}
-                  <div className="bg-[var(--bg-main)] border border-pp-border rounded-xl p-4 space-y-3">
+                  <div className="bg-[var(--bg-main)] border border-slate-200 dark:border-white/10 rounded-xl p-4 space-y-3">
 
                     <Button
                       className="w-full text-xs font-semibold h-9 rounded-lg"
@@ -233,7 +233,7 @@ export default function WidgetPreview({
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                         <Input
                           placeholder={config.messengerSearchPlaceholder}
-                          className="h-9 text-xs rounded-lg border-pp-border transition-all"
+                          className="h-9 text-xs rounded-lg border-slate-200 dark:border-white/10 transition-all"
                           style={{ paddingLeft: '2.5rem', paddingRight: '2rem' }}
                           onClick={() => setPreviewScreen("search")}
                         />
@@ -256,7 +256,7 @@ export default function WidgetPreview({
                             return (
                               <div
                                 key={qa.id}
-                                className="border border-pp-border rounded-lg overflow-hidden transition-all bg-[var(--bg-card)]"
+                                className="border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden transition-all bg-[var(--bg-card)]"
                               >
                                 <button
                                   className="w-full text-left p-3 hover:bg-[var(--bg-main)] transition-colors flex items-center justify-between gap-2"
@@ -322,7 +322,7 @@ export default function WidgetPreview({
                         )}
                         <div
                           className={`rounded-2xl px-3 py-2 max-w-[80%] text-xs ${
-                            msg.role === "user" ? "text-white" : "bg-[var(--bg-main)] text-main border border-pp-border/50"
+                            msg.role === "user" ? "text-white" : "bg-[var(--bg-main)] text-main border border-slate-200 dark:border-white/10/50"
                           }`}
                           style={
                             msg.role === "user"
@@ -338,7 +338,7 @@ export default function WidgetPreview({
                       </div>
                     ))}
                   </div>
-                  <div className="p-3 border-t border-pp-border bg-[var(--bg-card)]">
+                  <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-[var(--bg-card)]">
                     <div className="flex gap-2">
                       <Input
                         placeholder="Type your message..."
@@ -366,7 +366,7 @@ export default function WidgetPreview({
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
                       placeholder="Search FAQs..."
-                      className="h-9 text-xs rounded-lg border-pp-border"
+                      className="h-9 text-xs rounded-lg border-slate-200 dark:border-white/10"
                       style={{ paddingLeft: '2.5rem' }}
                       autoFocus
                       value={searchQuery}
@@ -392,7 +392,7 @@ export default function WidgetPreview({
                             return (
                               <div
                                 key={qa.id}
-                                className="border border-pp-border rounded-lg overflow-hidden bg-[var(--bg-card)]"
+                                className="border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden bg-[var(--bg-card)]"
                               >
                                 <button
                                   className="w-full text-left p-3 hover:bg-[var(--bg-main)] transition-colors flex items-start gap-2.5"
