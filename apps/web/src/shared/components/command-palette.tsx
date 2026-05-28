@@ -147,7 +147,7 @@ function buildCommands(
       ['balance', 'due', 'outstanding', 'patient']),
     nav('Custom Bill', '/billing/custom', <Receipt size={16} />, BILLING,
       ['custom', 'bill', 'invoice']),
-    nav('Additional Charges', '/billing/additional-charges', <Plus size={16} />, BILLING_ADMIN,
+    nav('Additional Charges', '/billing/additional-charges', <Plus size={16} />, ADMIN_CLINIC,
       ['additional', 'charges', 'extra']),
     nav('Assigned Charges', '/billing/assigned-charges', <Plus size={16} />, BILLING_ADMIN,
       ['assigned', 'charges', 'patient', 'allocation']),
@@ -181,7 +181,7 @@ function buildCommands(
     nav('SMS Reports', '/communications/reports', <FileBarChart size={16} />, ADMIN_CLINIC,
       ['sms', 'report', 'reports']),
     */
-    nav('WhatsApp', '/communications/whatsapp', <MessageCircle size={16} />, ADMIN_CLINIC,
+    nav('WhatsApp', '/communications/whatsapp', <MessageCircle size={16} />, ALL,
       ['whatsapp', 'message', 'chat']),
 
     // ── Staff & Platform ─────────────────────────────────────────────────────

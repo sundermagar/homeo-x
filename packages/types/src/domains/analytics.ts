@@ -161,6 +161,7 @@ export interface IntelligenceInsight {
 
 export interface RecentTransaction {
   id: number;
+  regid: number;
   patientName: string;
   invoiceNo: string;
   amount: number;
