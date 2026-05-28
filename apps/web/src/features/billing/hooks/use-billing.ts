@@ -19,10 +19,11 @@ export interface PatientBalance {
 
 interface RecordPaymentInput {
   regid: number;
-  billId: number;
-  amount: number;
+  billId?: number;
+  amount?: number;
   paymentMode: string;
   receivedDate?: string;
+  splitPayments?: { billId: number; amount: number; paymentMode: string }[];
 }
 
 // Extended collection data with targets

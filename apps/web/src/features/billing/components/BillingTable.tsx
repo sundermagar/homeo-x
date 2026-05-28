@@ -460,7 +460,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
           <table className="pp-table">
             <thead>
               <tr>
-                <th>Bill #</th>
+                <th>Reg ID</th>
                 <th>Date</th>
                 <th>Patient</th>
                 <th>Mode</th>
@@ -477,9 +477,8 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                 return (
                   <Fragment key={`group-${group.regid}`}>
                     <tr onClick={() => setSelectedGroup(group)} style={{ cursor: 'pointer', background: isExpanded ? 'var(--bg-surface-2)' : undefined }}>
-                      <td data-label="Bill #">
-                        <span className="appt-cell-id">{group.bills.length}</span>
-                        <div className="appt-cell-phone">Item{group.bills.length !== 1 ? 's' : ''}</div>
+                      <td data-label="Reg ID">
+                        <span className="appt-cell-id">#{group.regid}</span>
                       </td>
                       <td data-label="Date">
                         <div className="appt-cell-name">{group.billDate ? format(new Date(group.billDate), 'dd-MM-yyyy') : '—'}</div>
@@ -523,14 +522,6 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                             title="View Details"
                           >
                             <Eye size={15} />
-                          </button>
-                          <button
-                            className="appt-kebab-btn"
-                            style={{ color: 'var(--pp-danger-fg)' }}
-                            onClick={() => handleDeleteGroup(group.bills)}
-                            title="Delete Group"
-                          >
-                            <Trash2 size={15} />
                           </button>
                         </div>
                       </td>
