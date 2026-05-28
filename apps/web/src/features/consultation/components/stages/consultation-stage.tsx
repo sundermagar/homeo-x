@@ -611,19 +611,12 @@ export function ConsultationStage({
     onSymptomsExtracted({ mental: [], physical: [], particular: [] });
   }, [onSymptomsExtracted, segments]);
 
-  // Progress percentage (50% for consultation stage)
-  const progressPercent = 50;
+
 
   return (
     <div className="space-y-6 pp-fade-in relative">
 
-      {/* 1. Progress bar at top */}
-      <div className="w-full h-1.5 bg-[#E3E2DF] rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full bg-[#2563EB]"
-          style={{ width: `${progressPercent}%` }}
-        />
-      </div>
+
 
       {/* 2. Header row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">

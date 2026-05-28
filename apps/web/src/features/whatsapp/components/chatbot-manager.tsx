@@ -119,6 +119,9 @@ export const ChatbotManager = () => {
     if (newProvider === 'gemini') {
       defaultEndpoint = 'https://generativelanguage.googleapis.com/v1beta/openai/';
       defaultModel = 'gemini-1.5-flash';
+    } else if (newProvider === 'groq') {
+      defaultEndpoint = 'https://api.groq.com/openai/v1';
+      defaultModel = 'llama-3.3-70b-versatile';
     } else if (newProvider === 'custom') {
       defaultEndpoint = 'https://api.openai.com/v1';
       defaultModel = 'claude-3-5-sonnet';
@@ -566,7 +569,8 @@ export const ChatbotManager = () => {
                 >
                   <option value="openai">OpenAI (Default)</option>
                   <option value="gemini">Google Gemini</option>
-                  <option value="custom">Custom (Claude, Groq, Ollama, etc.)</option>
+                  <option value="groq">Groq</option>
+                  <option value="custom">Custom (Claude, Ollama, etc.)</option>
                 </select>
               </div>
 
@@ -598,7 +602,7 @@ export const ChatbotManager = () => {
                 <p className="text-[10px] text-slate-400">
                   {settingsForm.provider === 'openai' 
                     ? 'Default OpenAI API URL is used' 
-                    : (settingsForm.provider === 'gemini' ? 'Google Gemini OpenAI-compatible gateway' : 'Specify custom gateway URL')}
+                    : (settingsForm.provider === 'gemini' ? 'Google Gemini OpenAI-compatible gateway' : (settingsForm.provider === 'groq' ? 'Groq OpenAI-compatible gateway' : 'Specify custom gateway URL'))}
                 </p>
               </div>
 
@@ -624,6 +628,17 @@ export const ChatbotManager = () => {
                     <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                     <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
                     <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+                  </select>
+                )}
+                {settingsForm.provider === 'groq' && (
+                  <select 
+                    className="pp-select"
+                    value={settingsForm.model}
+                    onChange={e => updateConfig("model", e.target.value)}
+                  >
+                    <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+                    <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+                    <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
                   </select>
                 )}
                 {settingsForm.provider === 'custom' && (
@@ -1004,7 +1019,7 @@ export const ChatbotManager = () => {
         <div className="appt-card p-4 sm:p-6 bg-[var(--bg-card)] shadow-sm border border-pp-border">
           <div className="mb-4">
             <h3 className="text-base font-bold text-main flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-pp-blue" />
+              <Sparkles className="h-4 w-4 text-blue-600" />
               Test AI Chat
             </h3>
             <p className="text-xs text-secondary mt-1">Test how your AI responds using current training data and settings</p>
@@ -1014,7 +1029,7 @@ export const ChatbotManager = () => {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {testMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-secondary">
-                  <Sparkles className="h-8 w-8 mb-2 opacity-50 text-pp-blue" />
+                  <Sparkles className="h-8 w-8 mb-2 opacity-50 text-blue-600" />
                   <p className="text-sm font-bold text-main">Send a message to test the AI</p>
                   <p className="text-xs">Uses your actual training data and system prompt</p>
                 </div>
@@ -1022,7 +1037,7 @@ export const ChatbotManager = () => {
                 testMessages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[85%] rounded-2xl px-4 py-2 ${
-                      msg.role === "user" ? "bg-pp-blue text-white" : "bg-white border border-pp-border shadow-sm text-main"
+                      msg.role === "user" ? "bg-blue-600 text-white" : "bg-white border border-pp-border shadow-sm text-main"
                     }`}>
                       <p className="text-sm">{msg.text}</p>
                       {msg.context && (
@@ -1037,7 +1052,7 @@ export const ChatbotManager = () => {
               {isTesting && (
                 <div className="flex justify-start">
                   <div className="bg-white border border-pp-border shadow-sm rounded-2xl px-4 py-3">
-                    <Loader2 className="h-4 w-4 animate-spin text-pp-blue" />
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                   </div>
                 </div>
               )}
@@ -1075,7 +1090,7 @@ export const ChatbotManager = () => {
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-bold text-main flex items-center gap-2">
-                <Eye className="h-4 w-4 text-pp-blue" />
+                <Eye className="h-4 w-4 text-blue-600" />
                 Data Preview
               </h3>
               <p className="text-xs text-secondary mt-1">Explore all chunks and data the AI currently uses to answer questions</p>
@@ -1094,7 +1109,7 @@ export const ChatbotManager = () => {
           
           {loadingPreview ? (
             <div className="text-center py-12 text-secondary bg-[var(--bg-main)] rounded-xl border border-dashed border-pp-border">
-              <Loader2 className="h-8 w-8 mx-auto mb-2 text-pp-blue animate-spin" />
+              <Loader2 className="h-8 w-8 mx-auto mb-2 text-blue-600 animate-spin" />
               <p className="text-sm font-bold text-main">Loading Preview Data...</p>
             </div>
           ) : (
