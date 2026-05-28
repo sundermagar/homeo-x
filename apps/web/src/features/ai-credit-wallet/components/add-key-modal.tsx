@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Key } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useAddApiKey } from '../hooks/use-api-keys-data';
 import '../styles/ai-models.css';
 
 interface AddKeyModalProps {
@@ -14,19 +15,32 @@ export function AddKeyModal({ onClose }: AddKeyModalProps) {
   const [keyValue, setKeyValue] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
+  const addKeyMutation = useAddApiKey();
+
+  const handleSave = async () => {
     if (!keyName || !keyValue) return;
     
     setIsSaving(true);
-    // Simulate API call to save encrypted key
-    setTimeout(() => {
-      setIsSaving(false);
+    try {
+      await addKeyMutation.mutateAsync({
+        provider: provider.toLowerCase(),
+        label: keyName,
+        key: keyValue,
+      });
       toast({
         title: 'Key Added Successfully',
         description: `The ${provider} key has been encrypted and securely stored.`,
       });
       onClose();
-    }, 1200);
+    } catch (error) {
+      toast({
+        title: 'Error Saving Key',
+        description: 'An error occurred while saving the API key.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return createPortal(

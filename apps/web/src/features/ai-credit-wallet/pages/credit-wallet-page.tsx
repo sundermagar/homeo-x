@@ -9,9 +9,16 @@ import { BurnRateForecast } from '../components/burn-rate-forecast';
 import { AddCreditsModal } from '../components/add-credits-modal';
 import '../styles/credit-wallet.css';
 import '../../platform/styles/platform.css';
+import { useCreditSummary } from '../hooks/use-credit-data';
+import { DashboardSkeleton } from '../components/skeletons';
 
 export default function CreditWalletPage() {
   const [showAddCredits, setShowAddCredits] = useState(false);
+  const { loading } = useCreditSummary();
+
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div className="cw-dashboard-grid animate-fade-in" style={{ minHeight: '100vh' }}>

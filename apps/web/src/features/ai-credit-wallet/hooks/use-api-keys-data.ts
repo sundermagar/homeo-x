@@ -1,3 +1,5 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/infrastructure/api-client';
 import { useMemo } from 'react';
 
 export type KeyStatus = 'Valid' | 'Expiring soon' | 'Expired' | 'Revoked';
@@ -23,49 +25,44 @@ export interface AuditLog {
   ipAddress: string;
 }
 
-export function useApiKeys(): ApiKey[] {
-  return useMemo(() => [
-    {
-      id: 'k_1',
-      provider: 'OpenAI',
-      keyName: 'Production Org Key (Default)',
-      maskedPreview: 'sk-proj-••••••Kd9x',
-      status: 'Valid',
-      expiresAt: null,
-      createdAt: '2025-11-10T10:00:00Z',
-      lastRotatedAt: '2026-03-15T14:30:00Z',
-      createdBy: 'admin_sys_01'
+export function useApiKeys() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['aiOpsApiKeys'],
+    queryFn: async () => {
+      const res = await apiClient.get('/ai-ops/keys');
+      const dbKeys = res.data.data;
+      return dbKeys.map((k: any) => ({
+        id: k.id.toString(),
+        provider: k.provider.charAt(0).toUpperCase() + k.provider.slice(1),
+        keyName: k.label,
+        maskedPreview: k.maskedKey,
+        status: k.status === 'active' ? 'Valid' : 'Revoked',
+        expiresAt: null,
+        createdAt: k.createdAt,
+        lastRotatedAt: k.lastRotated,
+        createdBy: 'admin',
+      })) as ApiKey[];
     },
-    {
-      id: 'k_2',
-      provider: 'Anthropic',
-      keyName: 'Claude Sonnet Primary',
-      maskedPreview: 'sk-ant-••••••f1pA',
-      status: 'Expiring soon',
-      expiresAt: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(), // 8 days from now
-      createdAt: '2026-01-05T09:15:00Z',
-      lastRotatedAt: '2026-01-05T09:15:00Z',
-      createdBy: 'admin_sys_01'
+    staleTime: 120_000, // Keys rarely change — 2 min stale
+    gcTime: 600_000,
+  });
+
+  return { data: data || [], loading: isLoading };
+}
+
+export function useAddApiKey() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { provider: string; label: string; key: string }) => {
+      const res = await apiClient.post('/ai-ops/keys', params);
+      return res.data.data;
     },
-    {
-      id: 'k_3',
-      provider: 'Google AI',
-      keyName: 'Gemini General Key',
-      maskedPreview: 'AIzaSy••••••_j8H',
-      status: 'Expired',
-      expiresAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-      createdAt: '2025-12-20T11:45:00Z',
-      lastRotatedAt: null,
-      createdBy: 'admin_sys_02'
-    }
-  ], []);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aiOpsApiKeys'] });
+    },
+  });
 }
 
 export function useKeyAuditLogs(): AuditLog[] {
-  return useMemo(() => [
-    { id: 'log_1', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), action: 'VIEWED_MASKED', provider: 'OpenAI', adminId: 'admin_sys_01', ipAddress: '192.168.1.45' },
-    { id: 'log_2', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), action: 'KEY_ROTATED', provider: 'OpenAI', adminId: 'admin_sys_01', ipAddress: '192.168.1.45' },
-    { id: 'log_3', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(), action: 'KEY_REVOKED', provider: 'Google AI', adminId: 'admin_sys_02', ipAddress: '10.0.0.8' },
-    { id: 'log_4', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 45).toISOString(), action: 'KEY_ADDED', provider: 'Anthropic', adminId: 'admin_sys_01', ipAddress: '192.168.1.45' },
-  ], []);
+  return useMemo(() => [], []);
 }

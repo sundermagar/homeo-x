@@ -11,6 +11,10 @@ export interface AiCompletionRequest {
   responseFormat?: 'json' | 'text';
   useCache?: boolean;
   preferredProvider?: string;
+  tenantId?: string;
+  userId?: string;
+  userName?: string;
+  feature?: string;
 }
 
 export interface AiCompletionResponse {

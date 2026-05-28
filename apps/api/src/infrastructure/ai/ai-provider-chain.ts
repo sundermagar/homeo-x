@@ -13,6 +13,7 @@ import type {
   AiCompletionRequest,
   AiCompletionResponse,
 } from '../../domains/consultation/ports/ai-provider.port.js';
+import { logAiRequest } from './ai-request-logger.js';
 
 const logger = createLogger('ai-provider-chain');
 
@@ -72,6 +73,9 @@ export class AiProviderChain {
       activeProviders = this.providers.filter(p => p.name.toLowerCase() === request.preferredProvider?.toLowerCase());
     }
 
+    const startTime = Date.now();
+    let isFallback = false;
+
     // ── Failover chain ──
     for (const provider of activeProviders) {
       const available = await provider.isAvailable();
@@ -94,8 +98,7 @@ export class AiProviderChain {
 
         // Cache successful response (1 hour TTL)
         if (request.useCache !== false) {
-          const docHash = request.documents ? JSON.stringify(request.documents.map(d => d.base64.substring(0, 100))) : '';
-          const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt, d: docHash }));
+          const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt }));
           responseCache.set(cacheKey, { response, expiresAt: Date.now() + 3600_000 });
           // Evict oldest if over limit
           if (responseCache.size > MAX_CACHE_SIZE) {
@@ -104,10 +107,28 @@ export class AiProviderChain {
           }
         }
 
+        // Auto-log to DB (fire-and-forget, don't block the response)
+        logAiRequest({
+          tenantId: request.tenantId || 'demo',
+          userId: request.userId || 'system',
+          userName: request.userName || 'System',
+          feature: request.feature || 'unknown',
+          modelId: provider.model,
+          providerId: provider.name,
+          isFallback,
+          inputTokens: response.inputTokens || 0,
+          outputTokens: response.outputTokens || 0,
+          promptText: request.userPrompt,
+          responseText: response.content,
+          latencyMs: Date.now() - startTime,
+          status: 'SUCCESS',
+        });
+
         return response;
       } catch (error: any) {
         logger.error({ err: error, errMsg: error.message }, `Provider ${provider.name}/${provider.model} failed`);
         errors.push(`${provider.name}/${provider.model}: ${error.message}`);
+        isFallback = true;
         continue;
       }
     }

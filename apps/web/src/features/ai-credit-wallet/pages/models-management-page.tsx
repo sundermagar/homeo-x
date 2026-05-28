@@ -11,12 +11,20 @@ import '../styles/credit-wallet.css';
 import '../styles/ai-models.css';
 import '../../platform/styles/platform.css';
 
+import { StubSkeleton } from '../components/skeletons';
+
 export default function ModelsManagementPage() {
-  const models = useAIModels();
+  const { data: models, loading } = useAIModels();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
-  const [localModels, setLocalModels] = useState<AIModel[]>(models);
+  const [localModels, setLocalModels] = useState<AIModel[]>(models || []);
   const [activeTab, setActiveTab] = useState<'directory' | 'allocations'>('directory');
+
+  React.useEffect(() => {
+    if (models && models.length > 0) {
+      setLocalModels(models);
+    }
+  }, [models]);
 
   const {
     currentPage,
@@ -26,6 +34,10 @@ export default function ModelsManagementPage() {
     paginatedData,
     totalItems
   } = usePagination(localModels);
+
+  if (loading) {
+    return <StubSkeleton />;
+  }
 
   const activeModelsCount = localModels.filter(m => m.status === 'Active').length;
 
@@ -54,12 +66,12 @@ export default function ModelsManagementPage() {
       return (
         <div className="cw-model-pricing-grid">
           <div className="cw-model-pricing-item">
-            <span>Input / 1K</span>
-            <strong>₹{model.inputTokenCost?.toFixed(3)}</strong>
+            <span>Input / 1M</span>
+            <strong>₹{((model.inputTokenCost || 0) * 1000).toFixed(2)}</strong>
           </div>
           <div className="cw-model-pricing-item">
-            <span>Output / 1K</span>
-            <strong>₹{model.outputTokenCost?.toFixed(3)}</strong>
+            <span>Output / 1M</span>
+            <strong>₹{((model.outputTokenCost || 0) * 1000).toFixed(2)}</strong>
           </div>
         </div>
       );
@@ -196,9 +208,14 @@ export default function ModelsManagementPage() {
                   <div className="cw-model-provider">{model.provider}</div>
                 </div>
               </div>
-              <div className={`cw-model-status ${model.status.toLowerCase()}`}>
-                <div className="cw-model-status-dot" />
-                {model.status}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div className={`cw-model-status ${model.modelType === 'Self-hosted' ? 'inactive' : 'active'}`} style={{ background: model.modelType === 'Self-hosted' ? '#FEF3C7' : '#E0E7FF', color: model.modelType === 'Self-hosted' ? '#D97706' : '#4338CA' }}>
+                  {model.modelType}
+                </div>
+                <div className={`cw-model-status ${model.status.toLowerCase()}`}>
+                  <div className="cw-model-status-dot" />
+                  {model.status}
+                </div>
               </div>
             </div>
 
@@ -211,16 +228,22 @@ export default function ModelsManagementPage() {
                 <div className="cw-model-metric-label">Credits used</div>
                 <div className="cw-model-metric-val">{model.monthlyCredits.toLocaleString()}</div>
               </div>
-              <div>
-                <div className="cw-model-metric-label">Cost (mo)</div>
-                <div className="cw-model-metric-val">₹{model.monthlyCost.toFixed(2)}</div>
-              </div>
             </div>
 
             <div className="cw-model-pricing">
               <div className="cw-model-pricing-title">{model.pricingBasis}</div>
               {renderPricing(model)}
             </div>
+
+            {model.featuresUsed && model.featuresUsed.length > 0 && (
+              <div style={{ padding: '0 24px 16px 24px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {model.featuresUsed.map((feature, idx) => (
+                  <span key={idx} style={{ background: '#F3F4F6', color: '#4B5563', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600 }}>
+                    {feature}
+                  </span>
+                ))}
+              </div>
+            )}
 
             <div className="cw-model-actions">
               <button 

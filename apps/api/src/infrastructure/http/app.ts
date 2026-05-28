@@ -51,6 +51,7 @@ import { createSettingsRouter } from './routes/settings.router.js';
 import { exportRouter } from './routes/export.router.js';
 import { consultationsRouter } from './routes/consultations.router.js';
 import { aiRouter } from './routes/ai.router.js';
+import { createAiOpsRouter } from './routes/ai-operations.router.js';
 import { scribingRouter } from './routes/scribing.router.js';
 import { visitsRouter } from './routes/visits.router.js';
 import { videoCallRouter } from './routes/video-call.router.js';
@@ -182,6 +183,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/consultations', authMiddleware, consultationsRouter);
   app.use('/api/scribing', authMiddleware, scribingRouter);
   app.use('/api/ai', authMiddleware, aiRouter);
+  app.use('/api/ai-ops', authMiddleware, createAiOpsRouter());
   app.use('/api/visits', authMiddleware, visitsRouter);
   app.use('/api/specialties', authMiddleware, specialtiesRouter);
 

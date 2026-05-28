@@ -1,3 +1,5 @@
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/infrastructure/api-client';
 import { useMemo } from 'react';
 
 export type PricingType = 'Input + Output tokens' | 'Per minute of audio' | 'Configurable';
@@ -7,6 +9,7 @@ export interface AIModel {
   name: string;
   provider: string;
   status: 'Active' | 'Inactive';
+  modelType: 'Paid API' | 'Self-hosted' | 'Free';
   pricingBasis: PricingType;
   inputTokenCost?: number; // ₹ per 1K
   outputTokenCost?: number; // ₹ per 1K
@@ -15,105 +18,63 @@ export interface AIModel {
   monthlyRequests: number;
   monthlyCredits: number;
   monthlyCost: number;
+  featuresUsed: string[];
 }
 
-export function useAIModels(): AIModel[] {
-  return useMemo(() => [
-    {
-      id: 'gpt-4o',
-      name: 'GPT-4o',
-      provider: 'OpenAI',
-      status: 'Active',
-      pricingBasis: 'Input + Output tokens',
-      inputTokenCost: 0.41,
-      outputTokenCost: 1.25,
-      monthlyRequests: 14500,
-      monthlyCredits: 12000,
-      monthlyCost: 12.00,
+export function useAIModels() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['aiOpsModels'],
+    queryFn: async () => {
+      const [modelsRes, breakdownRes] = await Promise.all([
+        apiClient.get('/ai-ops/models'),
+        apiClient.get('/ai-ops/breakdown/models')
+      ]);
+      const dbModels = modelsRes.data.data || [];
+      const breakdown = breakdownRes.data.data || [];
+      
+      const usageMap = new Map(breakdown.map((b: any) => [b.modelId, b.credits]));
+
+      const uniqueModels = new Map();
+      dbModels.forEach((m: any) => {
+        if (!uniqueModels.has(m.id)) {
+          uniqueModels.set(m.id, m);
+        }
+      });
+      const deduplicatedModels = Array.from(uniqueModels.values());
+
+      return deduplicatedModels.map((m: any) => {
+        const p = m.provider?.toLowerCase() || '';
+        let modelType: 'Paid API' | 'Self-hosted' | 'Free' = 'Paid API';
+        if (p === 'ollama' || m.capabilities?.local) modelType = 'Self-hosted';
+
+        let featuresUsed: string[] = [];
+        if (m.id.includes('scout')) featuresUsed = ['Consultation Analysis', 'General QA'];
+        else if (m.id.includes('versatile')) featuresUsed = ['Symptom Checker', 'Prescription Gen'];
+        else if (m.id.includes('qwen')) featuresUsed = ['Draft Responses'];
+        else if (m.id.includes('flash')) featuresUsed = ['Audio Transcription'];
+        else if (m.id.includes('haiku')) featuresUsed = ['Fallback Engine'];
+
+        return {
+          id: m.id,
+          name: m.displayName,
+          provider: m.provider.charAt(0).toUpperCase() + m.provider.slice(1),
+          status: m.status?.toLowerCase() === 'active' ? 'Active' : 'Inactive',
+          modelType,
+          pricingBasis: 'Input + Output tokens',
+          inputTokenCost: m.costPerInputToken || 0,
+          outputTokenCost: m.costPerOutputToken || 0,
+          monthlyRequests: 0,
+          monthlyCredits: usageMap.get(m.id) || 0,
+          monthlyCost: 0,
+          featuresUsed
+        };
+      }) as AIModel[];
     },
-    {
-      id: 'gpt-4o-mini',
-      name: 'GPT-4o Mini',
-      provider: 'OpenAI',
-      status: 'Active',
-      pricingBasis: 'Input + Output tokens',
-      inputTokenCost: 0.012,
-      outputTokenCost: 0.05,
-      monthlyRequests: 8200,
-      monthlyCredits: 2100,
-      monthlyCost: 2.10,
-    },
-    {
-      id: 'claude-sonnet-3.5',
-      name: 'Claude Sonnet 3.5',
-      provider: 'Anthropic',
-      status: 'Active',
-      pricingBasis: 'Input + Output tokens',
-      inputTokenCost: 0.25,
-      outputTokenCost: 1.25,
-      monthlyRequests: 5400,
-      monthlyCredits: 4800,
-      monthlyCost: 4.80,
-    },
-    {
-      id: 'claude-haiku',
-      name: 'Claude Haiku 3.5',
-      provider: 'Anthropic',
-      status: 'Inactive',
-      pricingBasis: 'Input + Output tokens',
-      inputTokenCost: 0.02,
-      outputTokenCost: 0.10,
-      monthlyRequests: 0,
-      monthlyCredits: 0,
-      monthlyCost: 0,
-    },
-    {
-      id: 'gemini-1.5-pro',
-      name: 'Gemini 1.5 Pro',
-      provider: 'Google',
-      status: 'Active',
-      pricingBasis: 'Input + Output tokens',
-      inputTokenCost: 0.29,
-      outputTokenCost: 0.87,
-      monthlyRequests: 3200,
-      monthlyCredits: 2800,
-      monthlyCost: 2.80,
-    },
-    {
-      id: 'gemini-1.5-flash',
-      name: 'Gemini 1.5 Flash',
-      provider: 'Google',
-      status: 'Inactive',
-      pricingBasis: 'Input + Output tokens',
-      inputTokenCost: 0.01,
-      outputTokenCost: 0.03,
-      monthlyRequests: 120,
-      monthlyCredits: 40,
-      monthlyCost: 0.04,
-    },
-    {
-      id: 'whisper-v3',
-      name: 'Whisper v3',
-      provider: 'OpenAI',
-      status: 'Active',
-      pricingBasis: 'Per minute of audio',
-      perMinuteCost: 0.50,
-      monthlyRequests: 7540,
-      monthlyCredits: 10500,
-      monthlyCost: 10.50,
-    },
-    {
-      id: 'llama-3',
-      name: 'Custom / Self-hosted',
-      provider: 'Local',
-      status: 'Active',
-      pricingBasis: 'Configurable',
-      flatCost: 0,
-      monthlyRequests: 1100,
-      monthlyCredits: 0,
-      monthlyCost: 0,
-    },
-  ], []);
+    staleTime: 120_000,
+    gcTime: 600_000,
+  });
+
+  return { data: data || [], loading: isLoading };
 }
 
 export function useModelDetails(modelId: string | null) {
@@ -142,9 +103,9 @@ export function useModelDetails(modelId: string | null) {
         { name: 'Summarisation', percentage: 25 },
         { name: 'Prescription AI', percentage: 10 },
       ],
-      errorRate: 0.4, // 0.4%
-      latencyP50: 840, // ms
-      latencyP95: 2100, // ms
+      errorRate: 0.4,
+      latencyP50: 840,
+      latencyP95: 2100,
     };
   }, [modelId]);
 }

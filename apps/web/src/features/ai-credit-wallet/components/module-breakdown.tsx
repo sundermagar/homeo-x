@@ -1,12 +1,13 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Loader2 } from 'lucide-react';
 import { useModuleBreakdown } from '../hooks/use-credit-data';
 
 export function ModuleBreakdown() {
-  const data = useModuleBreakdown();
+  const { data, loading } = useModuleBreakdown();
   
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-  const totalFormatted = (total / 1000).toFixed(1) + 'K';
+  const total = data.reduce((sum: number, item: any) => sum + item.value, 0);
+  const totalFormatted = total > 1000 ? (total / 1000).toFixed(1) + 'K' : total.toString();
 
   const CustomPieTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -39,9 +40,31 @@ export function ModuleBreakdown() {
     return null;
   };
 
+  if (loading) {
+    return (
+      <div className="cw-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <h3 className="cw-card-title" style={{ marginBottom: '24px' }}>Credit split by model</h3>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: '#9CA3AF' }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="cw-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <h3 className="cw-card-title" style={{ marginBottom: '24px' }}>Credit split by model</h3>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280', fontSize: '13px' }}>
+          No model usage data available
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="cw-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <h3 className="cw-card-title" style={{ marginBottom: '24px' }}>Credit split by module</h3>
+      <h3 className="cw-card-title" style={{ marginBottom: '24px' }}>Credit split by model</h3>
       
       <div style={{ position: 'relative', height: '220px', marginBottom: '24px' }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -56,7 +79,7 @@ export function ModuleBreakdown() {
               dataKey="value"
               stroke="none"
             >
-              {data.map((entry, index) => (
+              {data.map((entry: any, index: number) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
@@ -78,10 +101,12 @@ export function ModuleBreakdown() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: 'auto' }}>
-        {data.map((item, i) => (
+        {data.map((item: any, i: number) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: item.color }} />
-            <div style={{ fontSize: '12px', color: '#374151', fontWeight: 600, flex: 1 }}>{item.name === 'Email' ? 'Email/SMS' : item.name.replace(' AI', '').replace(' (Voice)', '')}</div>
+            <div style={{ fontSize: '12px', color: '#374151', fontWeight: 600, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {item.name}
+            </div>
             <div style={{ fontSize: '12px', color: '#111827', fontWeight: 700 }}>{item.percent}%</div>
           </div>
         ))}

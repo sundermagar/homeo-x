@@ -25,6 +25,16 @@ import { saveInvestigationSchema } from '@mmc/validation';
 const router = Router();
 router.use(authMiddleware);
 
+function getTenant(req: any): string {
+  return req.tenantSlug || req.tenantId || 'default';
+}
+function getUserId(req: any): string {
+  return req.user?.id || req.userId || 'system';
+}
+function getUserName(req: any): string {
+  return req.user?.name || req.userName || 'System';
+}
+
 import { uploadFileToR2 } from '../../storage/r2-storage.js';
 
 import { streamToSSE } from '../../../shared/sse.js';
@@ -59,7 +69,11 @@ Determine the primary medical condition or patient issue that this medicine is p
 Respond with ONLY the short name of the condition (e.g. 'Diabetes', 'Hypertension', 'Acid Reflux', 'Fever', 'Anxiety', etc.) in 1-4 words.
 Do not write a full sentence, do not add punctuation, do not explain. Just the exact short name of the condition.`,
       userPrompt: medicine,
-      temperature: 0.1
+      temperature: 0.1,
+      tenantId: getTenant(req),
+      userId: getUserId(req),
+      userName: getUserName(req),
+      feature: 'Medicine Issue Detection'
     });
 
     let issue = response.content.trim();
@@ -100,7 +114,11 @@ Respond ONLY with a valid JSON object matching this schema:
       documents: [{ base64: imageBase64, mimeType }],
       temperature: 0.1,
       responseFormat: 'json',
-      useCache: false
+      useCache: false,
+      tenantId: getTenant(req),
+      userId: getUserId(req),
+      userName: getUserName(req),
+      feature: 'Scan Investigation'
     });
 
     const parsed = JSON.parse(response.content.trim());
@@ -416,7 +434,11 @@ Respond ONLY with a valid JSON object matching this schema:
       documents: docs,
       temperature: 0.1,
       responseFormat: 'json',
-      useCache: false
+      useCache: false,
+      tenantId: getTenant(req),
+      userId: getUserId(req),
+      userName: getUserName(req),
+      feature: 'Scan Investigation Upload'
     });
 
     const parsed = JSON.parse(response.content.trim());

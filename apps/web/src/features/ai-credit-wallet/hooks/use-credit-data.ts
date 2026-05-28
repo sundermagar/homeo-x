@@ -1,92 +1,146 @@
-import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/infrastructure/api-client';
+import { getAiModuleColor } from '../constants/aiModuleColors';
+
+// ─── Shared stale time constants ───
+// Summary rarely changes (wallet balance). 60s stale = 1 API call per minute max.
+const SUMMARY_STALE_MS = 60_000;
+// Timeline data is historical aggregates. 2 min stale is plenty.
+const TIMELINE_STALE_MS = 120_000;
+// Transactions change more often, but 30s is enough.
+const TRANSACTIONS_STALE_MS = 30_000;
 
 export function useCreditSummary() {
-  return useMemo(() => ({
-    totalAllocated: 50000,
-    consumed: 35920,
-    remaining: 14080,
-    percentageUsed: 71.8,
-    dailyBurnRate: 1997,
-    burnRateTrend: 12, // 12% increase
-    resetDate: '2026-06-01',
-  }), []);
+  const { data, isLoading } = useQuery({
+    queryKey: ['aiOpsSummary'],
+    queryFn: async () => {
+      const res = await apiClient.get('/ai-ops/summary');
+      return res.data.data;
+    },
+    staleTime: SUMMARY_STALE_MS,
+    gcTime: SUMMARY_STALE_MS * 5,
+  });
+
+  return {
+    ...(data || {
+      totalAllocated: 0,
+      consumed: 0,
+      remaining: 0,
+      percentageUsed: '0',
+      dailyBurnRate: 0,
+      burnRateTrend: 0,
+      resetDate: new Date().toISOString(),
+    }),
+    loading: isLoading,
+  };
 }
 
-export function useCreditTimeline(days: 7 | 14 | 30 = 7, endDateStr: string = '2026-05-27') {
-  return useMemo(() => {
-    if (days === 7 && endDateStr === '2026-05-27') {
-      return [
-        { date: 'May 21', Consultation: 1800, STT: 900, Summarisation: 700, Prescription: 400, WhatsApp: 350, EmailSMS: 200 },
-        { date: 'May 22', Consultation: 1950, STT: 1100, Summarisation: 750, Prescription: 420, WhatsApp: 380, EmailSMS: 180 },
-        { date: 'May 23', Consultation: 2100, STT: 980, Summarisation: 900, Prescription: 350, WhatsApp: 410, EmailSMS: 220 },
-        { date: 'May 24', Consultation: 1750, STT: 1050, Summarisation: 650, Prescription: 320, WhatsApp: 290, EmailSMS: 170 },
-        { date: 'May 25', Consultation: 2200, STT: 1200, Summarisation: 800, Prescription: 500, WhatsApp: 450, EmailSMS: 210 },
-        { date: 'May 26', Consultation: 2050, STT: 1000, Summarisation: 820, Prescription: 400, WhatsApp: 500, EmailSMS: 240 },
-        { date: 'May 27', Consultation: 1800, STT: 850, Summarisation: 700, Prescription: 350, WhatsApp: 520, EmailSMS: 200 },
-      ];
-    }
-    
-    const data = [];
-    const endDate = new Date(endDateStr);
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(endDate);
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      
-      const seed = d.getTime() / 100000000;
-      const base = 1000 + (Math.sin(seed * 0.5) * 200) + (Math.cos(seed * 0.2) * 100);
-      data.push({
-        date: dateStr,
-        Consultation: Math.floor(base * 1.8),
-        STT: Math.floor(base * 0.9),
-        Summarisation: Math.floor(base * 0.7),
-        Prescription: Math.floor(base * 0.4),
-        WhatsApp: Math.floor(base * 0.45),
-        EmailSMS: Math.floor(base * 0.2),
-      });
-    }
-    return data;
-  }, [days, endDateStr]);
+export function useCreditTimeline(days: number = 7, endDateStr?: string) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['aiOpsTimeline', days, endDateStr],
+    queryFn: async () => {
+      let url = `/ai-ops/timeline?days=${days}`;
+      if (endDateStr) url += `&endDate=${endDateStr}`;
+      const res = await apiClient.get(url);
+      return res.data.data;
+    },
+    staleTime: TIMELINE_STALE_MS,
+    gcTime: TIMELINE_STALE_MS * 5,
+  });
+
+  return { data: data || [], loading: isLoading };
 }
 
 export function useModuleBreakdown() {
-  return useMemo(() => {
-    return [
-      { name: 'Consultation AI', value: 13650, percent: 38, color: '#10b981', trend: 8 },
-      { name: 'STT (Voice)', value: 7540, percent: 21, color: '#2563eb', trend: 23 },
-      { name: 'Summarisation', value: 6106, percent: 17, color: '#ea580c', trend: -4 },
-      { name: 'Prescription AI', value: 3951, percent: 11, color: '#b45309', trend: 2 },
-      { name: 'WhatsApp msgs', value: 2874, percent: 8, color: '#8b5cf6', trend: 41 },
-      { name: 'Email', value: 1120, percent: 3, color: '#9ca3af', trend: -1 },
-      { name: 'SMS', value: 679, percent: 2, color: '#d1d5db', trend: 0 },
-    ];
-  }, []);
+  const { data, isLoading } = useQuery({
+    queryKey: ['aiOpsModelBreakdown'],
+    queryFn: async () => {
+      const res = await apiClient.get('/ai-ops/breakdown/features');
+      const rawData = res.data.data || [];
+      
+      const totalCredits = rawData.reduce((sum: number, item: any) => sum + (item.credits || 0), 0);
+      
+      if (totalCredits === 0) return [];
+      
+      return rawData
+        .filter((item: any) => item.credits > 0)
+        .sort((a: any, b: any) => b.credits - a.credits)
+        .map((item: any) => {
+          const featureName = item.feature || 'Unknown';
+          const pct = Math.round((item.credits / totalCredits) * 100);
+          return {
+            name: featureName,
+            value: item.credits,
+            percent: pct,
+            color: getAiModuleColor(featureName),
+          };
+        });
+    },
+    staleTime: SUMMARY_STALE_MS,
+    gcTime: SUMMARY_STALE_MS * 5,
+  });
+
+  return { data: data || [], loading: isLoading };
 }
 
 export function useRecentTransactions() {
-  return useMemo(() => {
-    return [
-      { id: '1', type: 'add', title: 'Credits added — Starter Pack', time: 'Today, 10:42 AM', amount: 10000 },
-      { id: '2', type: 'stt', title: 'STT — Dr. Mehta session', time: 'Today, 09:17 AM', amount: -340 },
-      { id: '3', type: 'whatsapp', title: 'WhatsApp — 23 appt reminders', time: 'Today, 08:00 AM', amount: -115 },
-      { id: '4', type: 'summary', title: 'Summarisation — 8 records', time: 'Yesterday, 06:50 PM', amount: -480 },
-      { id: '5', type: 'prescription', title: 'Prescription — 12 generated', time: 'Yesterday, 05:30 PM', amount: -204 },
-    ];
-  }, []);
+  const { data, isLoading } = useQuery({
+    queryKey: ['aiOpsTransactions'],
+    queryFn: async () => {
+      const res = await apiClient.get('/ai-ops/transactions/recent');
+      const rawData = res.data.data || [];
+      return rawData.map((tx: any) => ({
+        ...tx,
+        title: tx.description || (tx.type === 'DEPOSIT' ? 'Credit Top-up' : 'AI Request'),
+        time: tx.createdAt ? new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+        // Map DEDUCTION/DEPOSIT to specific UI types for icons
+        type: tx.type === 'DEPOSIT' ? 'add' : (tx.description?.toLowerCase().includes('prescription') ? 'prescription' : 
+              tx.description?.toLowerCase().includes('summary') ? 'summary' : 
+              tx.description?.toLowerCase().includes('transcription') ? 'stt' : 'consultation'),
+      }));
+    },
+    staleTime: TRANSACTIONS_STALE_MS,
+    gcTime: TRANSACTIONS_STALE_MS * 5,
+  });
+
+  return { data: data || [], loading: isLoading };
 }
 
 export function useBurnForecast() {
+  // This hook derives everything from useCreditSummary — no extra API call.
+  // Because useCreditSummary has staleTime, this won't trigger a refetch.
   const summary = useCreditSummary();
-  return useMemo(() => {
-    const daysRemainingCredits = Math.floor(summary.remaining / summary.dailyBurnRate);
-    
-    // Hardcoding to match screenshot exact text and data
+  
+  if (summary.loading || summary.totalAllocated === 0) {
     return {
-      daysRemainingCredits: 7,
-      daysUntilReset: 5,
-      projectedShortfall: 6000,
-      exhaustionDate: 'Jun 1, 2026',
+      daysRemainingCredits: 0,
+      daysUntilReset: 0,
+      projectedShortfall: 0,
+      exhaustionDate: '',
     };
-  }, [summary]);
+  }
+
+  const daysRemainingCredits = summary.dailyBurnRate > 0 
+    ? Math.floor(summary.remaining / summary.dailyBurnRate) 
+    : 999;
+  
+  const resetDate = new Date(summary.resetDate);
+  const today = new Date();
+  const diffTime = Math.max(0, resetDate.getTime() - today.getTime());
+  const daysUntilReset = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  let projectedShortfall = 0;
+  if (daysRemainingCredits < daysUntilReset && summary.dailyBurnRate > 0) {
+    projectedShortfall = (daysUntilReset - daysRemainingCredits) * summary.dailyBurnRate;
+  }
+  
+  const exhaustionDateObj = new Date();
+  exhaustionDateObj.setDate(exhaustionDateObj.getDate() + daysRemainingCredits);
+  
+  return {
+    daysRemainingCredits,
+    daysUntilReset,
+    projectedShortfall,
+    exhaustionDate: exhaustionDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  };
 }

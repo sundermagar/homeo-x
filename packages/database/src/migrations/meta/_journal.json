@@ -171,10 +171,6 @@
       "breakpoints": true
     },
     {
-      "idx": 24,
-      "version": "7",
-      "when": 1747320000000,
-      "tag": "0024_add_automation_flow_data",
       "idx": 17,
       "version": "7",
       "when": 1778675525621,
@@ -233,10 +229,15 @@
     {
       "idx": 28,
       "version": "7",
-      "when": 1747360000000,
-      "tag": "0028_add_whatsapp_widgets",
       "when": 1778710000000,
       "tag": "0025_fix_public_id_sequences",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1779946697116,
+      "tag": "0029_chief_cerise",
       "breakpoints": true
     }
   ]

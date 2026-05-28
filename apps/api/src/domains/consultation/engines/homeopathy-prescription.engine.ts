@@ -154,6 +154,9 @@ Task:
 
     try {
       const response = await this.providerChain.complete({
+        tenantId,
+        userId,
+        feature: 'Prescription',
         systemPrompt,
         userPrompt,
         temperature: 0.2,

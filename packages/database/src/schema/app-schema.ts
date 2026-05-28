@@ -15,3 +15,4 @@ export * from './settings.js';
 export * from './notifications.js';
 export * from './crm.js';
 export * from './records.js';
+export * from './ai-operations.js';

@@ -6,7 +6,7 @@ import { Pagination } from '@/components/shared/pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 
 export function KeyVaultList() {
-  const keys = useApiKeys();
+  const { data: keys } = useApiKeys();
   const [rotatingKey, setRotatingKey] = useState<ApiKey | null>(null);
 
   const {

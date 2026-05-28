@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { RequestLog } from '../hooks/use-logs-data';
-import { X, Lock, Calculator, Clock, Server, FileText } from 'lucide-react';
+import { X, Lock, Calculator, Clock, Server, FileText, Eye, EyeOff } from 'lucide-react';
 import '../styles/ai-models.css';
 
 interface LogDetailsDrawerProps {
@@ -10,6 +10,7 @@ interface LogDetailsDrawerProps {
 }
 
 export function LogDetailsDrawer({ log, onClose }: LogDetailsDrawerProps) {
+  const [showRaw, setShowRaw] = useState(false);
   
   return createPortal(
     <>
@@ -30,9 +31,17 @@ export function LogDetailsDrawer({ log, onClose }: LogDetailsDrawerProps) {
         <div className="cw-slide-content" style={{ padding: '24px', overflowY: 'auto' }}>
           
           {/* Super Admin Notice */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F3F4F6', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', color: '#4B5563', marginBottom: '24px', border: '1px solid #E5E7EB' }}>
-            <Lock size={14} color="#6B7280" />
-            <strong>Super-Admin Access:</strong> You are viewing raw prompt and response payloads which may contain PHI.
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F3F4F6', padding: '12px 16px', borderRadius: '6px', marginBottom: '24px', border: '1px solid #E5E7EB' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#4B5563' }}>
+              <Lock size={14} color="#6B7280" />
+              <span><strong>Super-Admin Access:</strong> You are viewing raw prompt and response payloads which may contain PHI.</span>
+            </div>
+            <button 
+              onClick={() => setShowRaw(!showRaw)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              {showRaw ? <><EyeOff size={14} /> Hide Raw Data</> : <><Eye size={14} /> Reveal Raw Data</>}
+            </button>
           </div>
 
           {/* Grid Metadata */}
@@ -76,7 +85,7 @@ export function LogDetailsDrawer({ log, onClose }: LogDetailsDrawerProps) {
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#111827', margin: '0 0 8px 0' }}>Request Prompt</h4>
             <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px', fontSize: '13px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-              {log.prompt}
+              {showRaw ? (log.prompt || 'No prompt recorded.') : '•••••••••••••••••••••••••••••••••••• [MASKED]'}
             </div>
           </div>
 
@@ -88,7 +97,7 @@ export function LogDetailsDrawer({ log, onClose }: LogDetailsDrawerProps) {
               </div>
             ) : (
               <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px', fontSize: '13px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                {log.responseText || 'No response recorded.'}
+                {showRaw ? (log.responseText || 'No response recorded.') : '•••••••••••••••••••••••••••••••••••• [MASKED]'}
               </div>
             )}
           </div>

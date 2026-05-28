@@ -96,6 +96,9 @@ Extract all clinical data:`;
 
     try {
       const response = await this.providerChain.complete({
+        tenantId,
+        userId,
+        feature: 'Consultation',
         systemPrompt,
         userPrompt,
         temperature: 0.1,

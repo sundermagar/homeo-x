@@ -585,6 +585,9 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
 }`;
 
       const res = await this.providerChain.complete({
+        tenantId,
+        userId,
+        feature: 'Consultation',
         systemPrompt,
         userPrompt: `Patient Case for Deep Clinical Analysis:\n${symptomText}\n\nDetermine case type (ACUTE/CHRONIC), perform INDIVIDUAL analysis, and extract Mac Repertory Rubrics:`,
         responseFormat: 'json',
@@ -649,6 +652,9 @@ OUTPUT FORMAT:
 }`;
 
       const res = await this.providerChain.complete({
+        tenantId,
+        userId,
+        feature: 'Consultation',
         systemPrompt,
         userPrompt: `Disease/Condition: ${input.disease}\n\nGenerate the relevant Mac Repertory rubrics:`,
         responseFormat: 'json',
@@ -703,6 +709,9 @@ OUTPUT FORMAT:
 }`;
 
       const res = await this.providerChain.complete({
+        tenantId,
+        userId,
+        feature: 'Consultation',
         systemPrompt,
         userPrompt: `Analyze the attached lab reports and extract abnormal findings as Mac Repertory rubrics.`,
         documents: input.documents,
@@ -809,6 +818,9 @@ JSON Output Template:
 
 
     const res = await this.providerChain.complete({
+      tenantId,
+      userId,
+      feature: 'Consultation',
       systemPrompt,
       userPrompt,
       responseFormat: 'json',
@@ -1048,6 +1060,9 @@ JSON Output:
 
     try {
       const res = await this.providerChain.complete({
+        tenantId: 'demo',
+        userId: 'system',
+        feature: 'Consultation',
         systemPrompt,
         userPrompt: `Search Mac Repertory for: "${query}"`,
         responseFormat: 'json',

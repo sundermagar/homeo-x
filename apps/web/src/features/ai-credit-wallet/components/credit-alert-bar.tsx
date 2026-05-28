@@ -8,7 +8,11 @@ interface CreditAlertBarProps {
 
 export function CreditAlertBar({ onAddCredits }: CreditAlertBarProps) {
   const { remaining, totalAllocated } = useCreditSummary();
-  const percentageRemaining = ((remaining / totalAllocated) * 100).toFixed(0);
+  const pct = totalAllocated > 0 ? (remaining / totalAllocated) * 100 : 100;
+  
+  if (pct > 20 || totalAllocated === 0) return null;
+
+  const percentageRemaining = pct.toFixed(0);
 
   return (
     <div className="cw-alert-banner">

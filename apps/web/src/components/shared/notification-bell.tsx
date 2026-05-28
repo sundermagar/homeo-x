@@ -67,7 +67,7 @@ export function NotificationBell() {
 
   const unreadCount = unreadData?.unreadCount ?? 0;
   const notifications = notificationsData?.notifications ?? [];
-  console.log('[NotificationBell] data:', notificationsData, 'count:', notifications.length);
+  // console.log('[NotificationBell] data:', notificationsData, 'count:', notifications.length);
 
   const handleNotificationClick = async (id: string | number, isRead: boolean) => {
     if (!isRead) {

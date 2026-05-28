@@ -310,6 +310,9 @@ export class ConsultationUseCase {
     
     try {
       const response = await chain.complete({
+        tenantId,
+        userId,
+        feature: 'Consultation',
         systemPrompt: `You are an expert homeopathic doctor assisting a clinician. Based on the conversation transcript, suggest 3-4 short follow-up questions the doctor should ask the patient.
 Focus on:
 - Uncovered symptoms or modalities
@@ -536,6 +539,9 @@ Respond ONLY with a JSON array in this exact format, no other text:
       const chain = this.providerChain || getAiProviderChain();
       logger.info({ filename: input.filename, textPreview: extractedText.slice(0, 100) }, '[parseLabReport] Attempting AI normalization');
       const response = await chain.complete({
+        tenantId,
+        userId,
+        feature: 'Consultation',
         systemPrompt: `You are a lab-report normalizer. You will be given the RAW TEXT extracted from a lab PDF (possibly with broken layout, OCR artifacts, repeated headers).
 
 Your job: produce a clean markdown summary that preserves EVERY numerical value, unit, and reference range exactly as written. Group values by panel (CBC, LFT, RFT, Lipid, Thyroid, etc.) when possible.

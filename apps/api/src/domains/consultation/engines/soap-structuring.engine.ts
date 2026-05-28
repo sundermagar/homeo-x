@@ -80,6 +80,9 @@ Generate a complete, clinically appropriate SOAP note based strictly on the tran
 
     try {
       const response = await this.providerChain.complete({
+        tenantId,
+        userId,
+        feature: 'Consultation',
         systemPrompt,
         userPrompt,
         temperature: 0.3,

@@ -5,7 +5,7 @@ import { Pagination } from '@/components/shared/pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 
 export function ModelAllocationsTable() {
-  const models = useAIModels();
+  const { data: models } = useAIModels();
   const {
     currentPage,
     setCurrentPage,
@@ -40,20 +40,26 @@ export function ModelAllocationsTable() {
             const allocated = model.monthlyCredits > 0 ? Math.ceil((model.monthlyCredits * 1.5) / 10000) * 10000 : 0;
             const remaining = allocated > 0 ? allocated - model.monthlyCredits : 0;
             
+            const spentPercent = allocated > 0 ? (model.monthlyCredits / allocated) : 0;
+            
             let status = 'Normal';
             let statusColor = '#10B981';
             let statusBg = '#DCFCE7';
 
-            if (allocated === 0) {
+            if (model.status === 'Inactive') {
+              status = 'Suspended';
+              statusColor = '#7F1D1D';
+              statusBg = '#FEE2E2';
+            } else if (allocated === 0) {
               status = 'Unrestricted';
               statusColor = '#6B7280';
               statusBg = '#F3F4F6';
-            } else if (remaining <= 0) {
-              status = 'Exceeded';
-              statusColor = '#991B1B';
+            } else if (model.monthlyCredits >= allocated) {
+              status = 'At limit';
+              statusColor = '#DC2626';
               statusBg = '#FEE2E2';
-            } else if (remaining < allocated * 0.2) {
-              status = 'Near Limit';
+            } else if (spentPercent >= 0.8) {
+              status = 'Near limit';
               statusColor = '#D97706';
               statusBg = '#FEF3C7';
             }
@@ -80,7 +86,10 @@ export function ModelAllocationsTable() {
                       style={{ width: '120px', padding: '6px 10px', fontSize: '13px' }} 
                     />
                   ) : (
-                    <span style={{ fontSize: '13px', color: '#9CA3AF', fontStyle: 'italic' }}>No Cap Enforced</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '13px', color: '#9CA3AF', fontStyle: 'italic' }}>No Cap Enforced</span>
+                      <button style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Set cap &rarr;</button>
+                    </div>
                   )}
                 </td>
                 <td data-label="SPENT THIS MONTH" style={{ padding: '16px 24px', verticalAlign: 'middle', fontSize: '14px', fontWeight: 500, color: '#111827' }}>

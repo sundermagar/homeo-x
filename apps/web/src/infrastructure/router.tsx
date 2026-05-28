@@ -270,14 +270,14 @@ export function AppRouter() {
               <Route path="/settings/roles" element={<RoleGuard allowed={['SuperAdmin', 'Admin']}><RolesPermissionsPage /></RoleGuard>} />
               <Route path="/settings/vaccines" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><VaccinesPage /></RoleGuard>} />
               <Route path="/settings/call-statuses" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CallStatusesPage /></RoleGuard>} />
-            </Route>
 
-            {/* ─── AI Credits ─── */}
-            <Route path="/ai-credits" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CreditWalletPage /></RoleGuard>} />
-            <Route path="/ai-credits/models" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiModelsPage /></RoleGuard>} />
-            <Route path="/ai-credits/routing" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiModelRoutingPage /></RoleGuard>} />
-            <Route path="/ai-credits/keys" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiApiKeyVaultPage /></RoleGuard>} />
-            <Route path="/ai-credits/logs" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiRequestLogsPage /></RoleGuard>} />
+              {/* ─── AI Credits ─── */}
+              <Route path="/ai-credits" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CreditWalletPage /></RoleGuard>} />
+              <Route path="/ai-credits/models" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiModelsPage /></RoleGuard>} />
+              <Route path="/ai-credits/routing" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiModelRoutingPage /></RoleGuard>} />
+              <Route path="/ai-credits/keys" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiApiKeyVaultPage /></RoleGuard>} />
+              <Route path="/ai-credits/logs" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><AiRequestLogsPage /></RoleGuard>} />
+            </Route>
 
             {/* Full-screen (no layout shell) */}
             <Route path="/consultation/:visitId" element={<RoleGuard allowed={['Admin', 'Clinicadmin', 'Doctor']}><ConsultationPage /></RoleGuard>} />

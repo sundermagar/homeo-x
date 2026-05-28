@@ -1,9 +1,25 @@
 import React from 'react';
 import { useAlertRules } from '../hooks/use-routing-data';
-import { Bell, Mail, MessageSquare } from 'lucide-react';
+import { Bell, Mail, MessageSquare, Loader2 } from 'lucide-react';
 
 export function AlertConfigList() {
-  const rules = useAlertRules();
+  const { data: rules, loading, updateRule, isUpdating } = useAlertRules();
+
+  if (loading) {
+    return (
+      <div className="cw-card" style={{ padding: '40px', display: 'flex', justifyContent: 'center' }}>
+        <Loader2 className="animate-spin text-gray-400" size={32} />
+      </div>
+    );
+  }
+
+  const handleToggle = (id: string, field: 'inApp' | 'email' | 'sms', currentValue: boolean) => {
+    updateRule({ id, updates: { [field]: !currentValue } });
+  };
+
+  const handleThresholdChange = (id: string, value: number) => {
+    updateRule({ id, updates: { threshold: value } });
+  };
 
   return (
     <div className="cw-card" style={{ padding: '0', overflow: 'hidden' }}>
@@ -26,14 +42,26 @@ export function AlertConfigList() {
                     <span>Trigger when wallet drops below</span>
                     <div style={{ position: 'relative' }}>
                       <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#6B7280' }}>₹</span>
-                      <input type="number" className="cw-form-input" defaultValue={rule.threshold} style={{ width: '100px', padding: '4px 8px 4px 20px', fontSize: '13px' }} />
+                      <input 
+                        type="number" 
+                        className="cw-form-input" 
+                        defaultValue={rule.threshold || 0} 
+                        onBlur={(e) => handleThresholdChange(rule.id, parseInt(e.target.value, 10))}
+                        style={{ width: '100px', padding: '4px 8px 4px 20px', fontSize: '13px', border: '1px solid #D1D5DB', borderRadius: '4px', outline: 'none' }} 
+                      />
                     </div>
                   </>
                 )}
                 {rule.type === 'days' && (
                   <>
                     <span>Trigger when remaining time is under</span>
-                    <input type="number" className="cw-form-input" defaultValue={rule.threshold} style={{ width: '60px', padding: '4px 8px', fontSize: '13px' }} />
+                    <input 
+                      type="number" 
+                      className="cw-form-input" 
+                      defaultValue={rule.threshold || 0} 
+                      onBlur={(e) => handleThresholdChange(rule.id, parseInt(e.target.value, 10))}
+                      style={{ width: '60px', padding: '4px 8px', fontSize: '13px', border: '1px solid #D1D5DB', borderRadius: '4px', outline: 'none' }} 
+                    />
                     <span>days</span>
                   </>
                 )}
@@ -43,18 +71,33 @@ export function AlertConfigList() {
               </div>
             </div>
             
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px' }}><Bell size={12} /> In-app</span>
-                <input type="checkbox" defaultChecked={rule.inApp} style={{ width: '16px', height: '16px' }} />
+            <div style={{ display: 'flex', gap: '20px' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563', display: 'flex', alignItems: 'center', gap: '4px' }}><Bell size={12} /> In-app</span>
+                <input 
+                  type="checkbox" 
+                  checked={rule.inApp} 
+                  onChange={() => handleToggle(rule.id, 'inApp', rule.inApp)}
+                  className="cw-custom-checkbox"
+                />
               </label>
-              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px' }}><Mail size={12} /> Email</span>
-                <input type="checkbox" defaultChecked={rule.email} style={{ width: '16px', height: '16px' }} />
+              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563', display: 'flex', alignItems: 'center', gap: '4px' }}><Mail size={12} /> Email</span>
+                <input 
+                  type="checkbox" 
+                  checked={rule.email} 
+                  onChange={() => handleToggle(rule.id, 'email', rule.email)}
+                  className="cw-custom-checkbox"
+                />
               </label>
-              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px' }}><MessageSquare size={12} /> SMS</span>
-                <input type="checkbox" defaultChecked={rule.sms} style={{ width: '16px', height: '16px' }} />
+              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563', display: 'flex', alignItems: 'center', gap: '4px' }}><MessageSquare size={12} /> SMS</span>
+                <input 
+                  type="checkbox" 
+                  checked={rule.sms} 
+                  onChange={() => handleToggle(rule.id, 'sms', rule.sms)}
+                  className="cw-custom-checkbox"
+                />
               </label>
             </div>
           </div>

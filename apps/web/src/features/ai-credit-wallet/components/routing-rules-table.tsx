@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useRoutingRules } from '../hooks/use-routing-data';
+import { useRoutingRules, RoutingRule } from '../hooks/use-routing-data';
 import { Activity, ArrowRight, Plus, X } from 'lucide-react';
 import { useAIModels } from '../hooks/use-ai-models-data';
 import { toast } from '@/hooks/use-toast';
@@ -8,9 +8,10 @@ import { usePagination } from '@/shared/hooks/use-pagination';
 import { ModelSelectDropdown } from './model-select-dropdown';
 
 export function RoutingRulesTable() {
-  const initialRules = useRoutingRules();
-  const [rules, setRules] = useState(initialRules);
-  const activeModels = useAIModels().filter(m => m.status === 'Active');
+  const { data: initialRules } = useRoutingRules();
+  const [rules, setRules] = useState<RoutingRule[]>(initialRules);
+  const { data: aiModels } = useAIModels();
+  const activeModels = aiModels.filter(m => m.status === 'Active');
 
   const {
     currentPage,
@@ -40,7 +41,7 @@ export function RoutingRulesTable() {
       if (rule.id === ruleId) {
         return {
           ...rule,
-          fallbackModels: rule.fallbackModels.filter((_, idx) => idx !== idxToRemove)
+          fallbackModels: rule.fallbackModels.filter((_: string, idx: number) => idx !== idxToRemove)
         };
       }
       return rule;
@@ -121,7 +122,7 @@ export function RoutingRulesTable() {
                   {rule.fallbackModels.length === 0 ? (
                     <span style={{ fontSize: '13px', color: '#9CA3AF', fontStyle: 'italic' }}>None (Fail immediately)</span>
                   ) : (
-                    rule.fallbackModels.map((modelId, idx) => {
+                    rule.fallbackModels.map((modelId: string, idx: number) => {
                       const modelName = activeModels.find(m => m.id === modelId)?.name || modelId;
                       return (
                         <React.Fragment key={`${modelId}-${idx}`}>

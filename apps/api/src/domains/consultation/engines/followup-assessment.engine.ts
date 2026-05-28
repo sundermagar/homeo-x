@@ -131,6 +131,9 @@ Remember: Do NOT suggest a new remedy unless the previous one clearly failed (de
 
     try {
       const response = await this.providerChain.complete({
+        tenantId,
+        userId,
+        feature: 'Consultation',
         systemPrompt,
         userPrompt,
         temperature: 0.2,

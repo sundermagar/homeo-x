@@ -53,6 +53,9 @@ Generate a clinical case summary:`;
 
     try {
       const response = await this.providerChain.complete({
+        tenantId,
+        userId,
+        feature: 'Summarisation',
         systemPrompt,
         userPrompt,
         temperature: 0.3,

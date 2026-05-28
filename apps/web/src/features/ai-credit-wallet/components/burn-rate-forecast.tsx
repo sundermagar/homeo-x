@@ -10,11 +10,14 @@ export function BurnRateForecast({ onTopUp }: BurnRateForecastProps) {
   const forecast = useBurnForecast();
   const summary = useCreditSummary();
   
-  const widthPercent = (summary.consumed / summary.totalAllocated) * 100;
+  const widthPercent = summary.totalAllocated > 0 ? (summary.consumed / summary.totalAllocated) * 100 : 0;
 
   return (
     <div className="cw-card" style={{ height: '100%' }}>
-      <h3 className="cw-card-title" style={{ marginBottom: '20px' }}>Burn rate & forecast</h3>
+      <h3 className="cw-card-title" style={{ marginBottom: '8px' }}>Burn rate & forecast</h3>
+      <p style={{ fontSize: '12px', color: '#6B7280', marginBottom: '20px', lineHeight: '1.4' }}>
+        Your average daily burn is calculated using recent usage trends. We forecast when your credits will run out to help you avoid service interruptions.
+      </p>
       
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
@@ -42,11 +45,11 @@ export function BurnRateForecast({ onTopUp }: BurnRateForecastProps) {
         </div>
         <div className="cw-burn-item">
           <div className="cw-burn-label">Credits will last</div>
-          <div className="cw-burn-val danger">~{forecast.daysRemainingCredits} more days</div>
+          <div className="cw-burn-val danger">{forecast.daysRemainingCredits >= 999 ? '∞' : `~${forecast.daysRemainingCredits} more days`}</div>
         </div>
         <div className="cw-burn-item">
           <div className="cw-burn-label">Cycle resets</div>
-          <div className="cw-burn-val">{forecast.exhaustionDate}</div>
+          <div className="cw-burn-val">{new Date(summary.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
         </div>
         <div className="cw-burn-item">
           <div className="cw-burn-label">Projected shortfall</div>

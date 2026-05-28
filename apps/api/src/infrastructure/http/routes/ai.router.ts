@@ -36,12 +36,14 @@ aiRouter.post('/analyze-report', async (req: Request, res: Response, next: NextF
   } catch (err) { next(err); }
 });
 
-// Helper to extract tenant/user from request (set by middleware)
 function getTenant(req: Request): string {
   return (req as any).tenantSlug || (req as any).tenantId || 'default';
 }
 function getUserId(req: Request): string {
   return (req as any).user?.id || (req as any).userId || 'system';
+}
+function getUserName(req: Request): string {
+  return (req as any).user?.name || (req as any).userName || 'System';
 }
 
 // POST /api/ai/suggest/soap
@@ -366,6 +368,10 @@ Reply with ONLY the JSON object.`;
       maxTokens: 512,
       responseFormat: 'json',
       useCache: false, // each Q&A pair is a unique extraction call
+      tenantId: getTenant(req),
+      userId: getUserId(req),
+      userName: getUserName(req),
+      feature: 'Clinical Extraction',
     });
 
     const parsed = extractJson<{ 
@@ -513,6 +519,10 @@ Rules:
       userPrompt: `${ctxBits ? ctxBits + '\n\n' : ''}Transcript:\n"""\n${cleaned.slice(0, 12000)}\n"""\n\nWrite the follow-up bulleted summary now.`,
       temperature: 0.2,
       maxTokens: 600,
+      tenantId: getTenant(req),
+      userId: getUserId(req),
+      userName: getUserName(req),
+      feature: 'Followup Summary',
     });
 
     const summary = (response.content || '').trim();
@@ -758,6 +768,10 @@ Output the JSON now. ${ccTrim ? `Anchor your questions to "${ccTrim}" and any ne
       responseFormat: 'json',
       // Always fresh — no cache reuse across patients/visits.
       useCache: false,
+      tenantId: getTenant(req),
+      userId: getUserId(req),
+      userName: getUserName(req),
+      feature: 'Consultation',
     });
 
     const parsed = extractJson<any>(response.content);
@@ -998,6 +1012,10 @@ OUTPUT FORMAT:
       maxTokens: 1000,
       responseFormat: 'json',
       useCache: false,
+      tenantId: getTenant(req),
+      userId: getUserId(req),
+      userName: getUserName(req),
+      feature: 'Prescription Gen',
       preferredProvider: 'gemini'
     });
 

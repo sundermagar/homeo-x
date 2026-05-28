@@ -1,21 +1,24 @@
 import React from 'react';
 import { Bot, Mic, FileText, Link, MessageCircle, Mail, MessageSquare } from 'lucide-react';
 import { useModuleBreakdown } from '../hooks/use-credit-data';
+import { getAiModuleColor } from '../constants/aiModuleColors';
+import { Loader2 } from 'lucide-react';
 
 export function ModuleBreakdownList() {
-  const data = useModuleBreakdown();
+  const { data, loading } = useModuleBreakdown();
 
   const getIcon = (name: string) => {
-    if (name.includes('Consultation')) return <Bot size={16} color="#10b981" />;
-    if (name.includes('STT')) return <Mic size={16} color="#2563eb" />;
-    if (name.includes('Summarisation')) return <FileText size={16} color="#ea580c" />;
-    if (name.includes('Prescription')) return <Link size={16} color="#b45309" />;
-    if (name.includes('WhatsApp')) return <MessageCircle size={16} color="#8b5cf6" />;
-    if (name.includes('Email')) return <Mail size={16} color="#9ca3af" />;
-    return <MessageSquare size={16} color="#d1d5db" />;
+    const color = getAiModuleColor(name);
+    if (name.includes('Consultation')) return <Bot size={16} color={color} />;
+    if (name.includes('STT')) return <Mic size={16} color={color} />;
+    if (name.includes('Summarization')) return <FileText size={16} color={color} />;
+    if (name.includes('Prescription')) return <Link size={16} color={color} />;
+    if (name.includes('WhatsApp')) return <MessageCircle size={16} color={color} />;
+    if (name.includes('Email')) return <Mail size={16} color={color} />;
+    return <MessageSquare size={16} color={color} />;
   };
 
-  const maxVal = Math.max(...data.map(d => d.value));
+  const maxVal = Math.max(...data.map((d: any) => d.value));
 
   return (
     <div className="cw-card" style={{ height: '100%' }}>
@@ -24,8 +27,17 @@ export function ModuleBreakdownList() {
         <div className="cw-card-header-right">vs last cycle</div>
       </div>
       
+      {loading ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0' }}>
+          <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: '#9CA3AF' }} />
+        </div>
+      ) : data.length === 0 ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280', fontSize: '13px', padding: '40px 0' }}>
+          No usage data available
+        </div>
+      ) : (
       <div className="cw-module-list">
-        {data.map((item, i) => (
+        {data.map((item: any, i: number) => (
           <div key={i} className="cw-module-item">
             <div className="cw-module-icon">
               {getIcon(item.name)}
@@ -53,6 +65,7 @@ export function ModuleBreakdownList() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

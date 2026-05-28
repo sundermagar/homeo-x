@@ -5,9 +5,17 @@ import { KeyAuditTable } from '../components/key-audit-table';
 import { AddKeyModal } from '../components/add-key-modal';
 import '../styles/credit-wallet.css';
 
+import { useApiKeys } from '../hooks/use-api-keys-data';
+import { StubSkeleton } from '../components/skeletons';
+
 export default function ApiKeyVaultPage() {
   const [activeTab, setActiveTab] = useState<'vault' | 'audit'>('vault');
   const [showAddKey, setShowAddKey] = useState(false);
+  const { loading } = useApiKeys();
+
+  if (loading) {
+    return <StubSkeleton />;
+  }
 
   return (
     <div className="cw-dashboard-grid animate-fade-in" style={{ minHeight: '100vh' }}>

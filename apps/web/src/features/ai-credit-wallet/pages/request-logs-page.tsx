@@ -3,10 +3,17 @@ import { FileText, Download, Plus } from 'lucide-react';
 import { AuditLogsTable } from '../components/audit-logs-table';
 import { FailedRequestsDashboard } from '../components/failed-requests-dashboard';
 import { toast } from '@/hooks/use-toast';
+import { useRequestLogs } from '../hooks/use-logs-data';
+import { StubSkeleton } from '../components/skeletons';
 import '../styles/credit-wallet.css';
 
 export default function RequestLogsPage() {
   const [activeTab, setActiveTab] = useState<'audit' | 'analysis'>('audit');
+  const { loading } = useRequestLogs();
+
+  if (loading) {
+    return <StubSkeleton />;
+  }
 
   const handleExport = () => {
     toast({

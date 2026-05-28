@@ -7,8 +7,16 @@ import { AlertConfigList } from '../components/alert-config-list';
 import '../styles/credit-wallet.css';
 import '../../platform/styles/platform.css';
 
+import { useRoutingRules } from '../hooks/use-routing-data';
+import { StubSkeleton } from '../components/skeletons';
+
 export default function ModelRoutingPage() {
   const [activeTab, setActiveTab] = useState<'routing' | 'wallets' | 'alerts'>('routing');
+  const { loading } = useRoutingRules();
+
+  if (loading) {
+    return <StubSkeleton />;
+  }
 
   return (
     <div className="cw-dashboard-grid animate-fade-in" style={{ minHeight: '100vh' }}>

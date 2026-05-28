@@ -457,3 +457,37 @@
     margin-right: 16px;
   }
 }
+/* Custom Checkbox */
+.cw-custom-checkbox {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.cw-custom-checkbox:checked {
+  background-color: #2563EB;
+  border-color: #2563EB;
+}
+
+.cw-custom-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.cw-custom-checkbox:focus {
+  outline: 2px solid #93C5FD;
+  outline-offset: 1px;
+}

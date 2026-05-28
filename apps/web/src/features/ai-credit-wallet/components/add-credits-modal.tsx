@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Wallet, ArrowRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { apiClient } from '@/infrastructure/api-client';
+import { useQueryClient } from '@tanstack/react-query';
 import '../styles/ai-models.css';
 
 interface AddCreditsModalProps {
@@ -19,19 +21,38 @@ export function AddCreditsModal({ onClose }: AddCreditsModalProps) {
 
   const creditsGained = (typeof amount === 'number' ? amount : 0) * RATE_PER_INR;
 
-  const handleDeposit = () => {
+  const queryClient = useQueryClient();
+
+  const handleDeposit = async () => {
     if (!amount || amount <= 0) return;
     
     setIsProcessing(true);
-    // Mock processing delay
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      await apiClient.post('/ai-ops/wallet/deposit', {
+        amount_inr: amount,
+        reference,
+        notes
+      });
+      
       toast({
         title: 'Deposit Successful',
         description: `₹${amount.toLocaleString()} deposited. ${creditsGained.toLocaleString()} credits added to wallet.`,
       });
+      
+      // Invalidate dashboard queries to reflect new balance
+      queryClient.invalidateQueries({ queryKey: ['aiOpsSummary'] });
+      queryClient.invalidateQueries({ queryKey: ['aiOpsTransactions'] });
+      
       onClose();
-    }, 1200);
+    } catch (error: any) {
+      toast({
+        title: 'Deposit Failed',
+        description: error.response?.data?.error || 'Failed to process deposit.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return createPortal(

@@ -1,14 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useClinicWallets, ClinicWallet } from '../hooks/use-routing-data';
-import { Edit2 } from 'lucide-react';
+import { Edit2, Search, Filter, Loader2 } from 'lucide-react';
 import { EditClinicLimitModal } from './edit-clinic-limit-modal';
 import { Pagination } from '@/components/shared/pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
 
 export function ClinicWalletsTable() {
-  const initialWallets = useClinicWallets();
-  const [wallets, setWallets] = useState(initialWallets);
+  const { data: initialWallets, loading } = useClinicWallets();
+  const [wallets, setWallets] = useState<ClinicWallet[]>([]);
   const [editingWallet, setEditingWallet] = useState<ClinicWallet | null>(null);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  useEffect(() => {
+    if (initialWallets.length > 0) {
+      setWallets(initialWallets);
+    }
+  }, [initialWallets]);
+
+  const handleSaveLimit = (id: string, newLimit: number) => {
+    setWallets(prev => prev.map(w => w.id === id ? { ...w, monthlyLimit: newLimit } : w));
+  };
+
+  const filteredWallets = useMemo(() => {
+    return wallets.filter(w => {
+      const matchesSearch = w.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            w.id.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const percent = (w.spentThisMonth / w.monthlyLimit) * 100;
+      let status = 'Normal';
+      if (percent >= 100) status = 'Suspended';
+      else if (percent >= 80) status = 'Near Limit';
+      
+      const matchesStatus = statusFilter === 'All' || status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [wallets, searchQuery, statusFilter]);
 
   const {
     currentPage,
@@ -17,22 +46,66 @@ export function ClinicWalletsTable() {
     setItemsPerPage,
     paginatedData,
     totalItems
-  } = usePagination(wallets);
+  } = usePagination(filteredWallets);
 
-  useEffect(() => {
-    setWallets(initialWallets);
-  }, [initialWallets]);
-
-  const handleSaveLimit = (id: string, newLimit: number) => {
-    setWallets(prev => prev.map(w => w.id === id ? { ...w, monthlyLimit: newLimit } : w));
-  };
+  if (loading && wallets.length === 0) {
+    return (
+      <div className="cw-card" style={{ padding: '40px', display: 'flex', justifyContent: 'center' }}>
+        <Loader2 className="animate-spin text-gray-400" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="cw-card" style={{ padding: '0', overflow: 'hidden' }}>
-      <div className="cw-card-header" style={{ padding: '20px 24px', borderBottom: '1px solid #E5E7EB', marginBottom: 0 }}>
+      <div className="cw-card-header" style={{ padding: '20px 24px', borderBottom: '1px solid #E5E7EB', marginBottom: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h3 className="cw-card-title">Multi-Tenant Sub-Wallets</h3>
           <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>Monitor credit consumption and manage monthly limits per clinic.</p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+            <input 
+              type="text" 
+              placeholder="Search clinics..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ 
+                padding: '8px 12px 8px 36px', 
+                border: '1px solid #D1D5DB', 
+                borderRadius: '6px', 
+                fontSize: '13px',
+                width: '220px',
+                outline: 'none'
+              }} 
+            />
+          </div>
+          
+          <div style={{ position: 'relative' }}>
+            <Filter size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ 
+                padding: '8px 12px 8px 36px', 
+                border: '1px solid #D1D5DB', 
+                borderRadius: '6px', 
+                fontSize: '13px',
+                backgroundColor: 'white',
+                outline: 'none',
+                cursor: 'pointer',
+                appearance: 'none',
+                paddingRight: '32px'
+              }}
+            >
+              <option value="All">All Status</option>
+              <option value="Normal">Normal</option>
+              <option value="Near Limit">Near Limit</option>
+              <option value="Suspended">Suspended</option>
+            </select>
+          </div>
         </div>
       </div>
       

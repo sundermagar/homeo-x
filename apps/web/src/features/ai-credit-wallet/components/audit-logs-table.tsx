@@ -1,20 +1,30 @@
 import React, { useState } from 'react';
 import { useRequestLogs, RequestLog } from '../hooks/use-logs-data';
-import { Activity, ShieldAlert, CheckCircle, Search, Filter, AlertTriangle, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { Activity, ShieldAlert, CheckCircle, Search, Filter, AlertTriangle } from 'lucide-react';
 import { LogDetailsDrawer } from './log-details-drawer';
 import { Pagination } from '@/components/shared/pagination';
-import { usePagination } from '@/shared/hooks/use-pagination';
 
 export function AuditLogsTable() {
-  const logs = useRequestLogs();
   const [selectedLog, setSelectedLog] = useState<RequestLog | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+
+  const { data: paginatedData, total: totalItems, loading } = useRequestLogs(currentPage, itemsPerPage, searchQuery);
 
   const getFeatureColor = (feature: string) => {
     switch(feature) {
+      case 'Consultation':
       case 'Consultation AI': return '#10B981';
-      case 'Transcription': return '#3B82F6';
+      case 'Clinical Extraction': return '#8B5CF6';
+      case 'Followup Summary': return '#F59E0B';
+      case 'Prescription Gen': return '#F43F5E';
+      case 'Scan Investigation':
+      case 'Scan Investigation Upload': return '#3B82F6';
+      case 'Medicine Issue Detection': return '#EC4899';
+      case 'Summarisation':
       case 'Summarization': return '#F59E0B';
+      case 'Transcription': return '#3B82F6';
       case 'Follow-ups': return '#F59E0B';
       case 'Analysis': return '#93C5FD';
       case 'Prescription': return '#F43F5E';
@@ -33,26 +43,6 @@ export function AuditLogsTable() {
     return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
   };
 
-  const filteredLogs = logs.filter(log => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      log.feature.toLowerCase().includes(q) ||
-      log.type.toLowerCase().includes(q) ||
-      log.prompt.toLowerCase().includes(q) ||
-      (log.modelId && log.modelId.toLowerCase().includes(q))
-    );
-  });
-
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filteredLogs);
-
   return (
     <div className="cw-card" style={{ padding: '0', overflow: 'hidden' }}>
       <div className="cw-card-header" style={{ padding: '16px 24px', borderBottom: '1px solid #E5E7EB', marginBottom: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
@@ -63,7 +53,7 @@ export function AuditLogsTable() {
               type="text" 
               placeholder="Search Session or User..." 
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               style={{ border: 'none', background: 'transparent', outline: 'none', marginLeft: '8px', fontSize: '13px', width: '100%' }} 
             />
           </div>
@@ -88,7 +78,15 @@ export function AuditLogsTable() {
             </tr>
           </thead>
           <tbody>
-            {paginatedData.map((log) => {
+            {loading ? (
+              <tr>
+                <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#6B7280' }}>Loading logs...</td>
+              </tr>
+            ) : paginatedData.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#6B7280' }}>No logs found matching your criteria.</td>
+              </tr>
+            ) : paginatedData.map((log) => {
               const featColor = getFeatureColor(log.feature);
               
               let statusIcon = <CheckCircle size={14} />;
@@ -131,10 +129,14 @@ export function AuditLogsTable() {
                     {log.modelId}
                   </td>
                   <td data-label="USER" style={{ padding: '12px 16px', verticalAlign: 'middle', fontSize: '12px', color: '#4B5563', fontWeight: 500 }}>
-                    {log.userId || '-'}
+                    {log.userName || log.userId || '-'}
                   </td>
                   <td data-label="PROMPT" style={{ padding: '12px 16px', verticalAlign: 'middle', fontSize: '11px', color: '#6B7280', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {log.prompt || '-'}
+                    {log.prompt ? (
+                      <span style={{ cursor: 'pointer', color: '#6366F1', fontWeight: 500 }}>
+                        ••• [Click to reveal]
+                      </span>
+                    ) : '-'}
                   </td>
                   <td data-label="TOKENS" style={{ padding: '12px 16px', verticalAlign: 'middle', fontSize: '12px', color: '#4B5563', fontWeight: 500, whiteSpace: 'nowrap' }}>
                     {isDeposit ? '-' : ((log.inputTokens || 0) + (log.outputTokens || 0)).toLocaleString()}
