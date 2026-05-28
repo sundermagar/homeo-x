@@ -470,31 +470,7 @@ export function DoctorDashboard() {
             </div>
           )}
 
-          {/* Today's Birthdays */}
-          {dashData?.birthdays && dashData.birthdays.length > 0 && (
-            <div className="dash-sidebar-card" style={{ background: '#fdf4ff', border: '1px solid #fce7f3' }}>
-              <div className="dash-section-title" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#be185d' }}>
-                <Gift size={16} /> Today's Birthdays
-              </div>
-              <div className="dash-list">
-                {dashData.birthdays.map((b: BirthdayPatient) => (
-                  <div key={b.id} className="dash-list-item" style={{ borderBottomColor: '#fbcfe8', paddingBottom: 12 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#831843' }}>{b.first_name} {b.surname}</span>
-                      <span style={{ fontSize: 11, color: '#9d174d', marginTop: 2 }}>PT-{b.regid} · {b.mobile1}</span>
-                    </div>
-                    <button 
-                      className="dash-view-btn" 
-                      style={{ background: '#fbcfe8', color: '#831843', border: 'none', fontWeight: 700 }}
-                      onClick={() => navigate(`/communications/whatsapp?phone=${b.mobile1}`)}
-                    >
-                      Wish
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
 
           {/* Recent Billing */}
           <div className="dash-sidebar-card">
