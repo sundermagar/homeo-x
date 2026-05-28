@@ -8,6 +8,7 @@ import { ThemeProvider } from './shared/providers/theme-provider';
 import { ErrorBoundary } from './components/shared/error-boundary';
 import { Toaster } from './components/ui/toaster';
 import { toast } from './hooks/use-toast';
+import { useAuthStore } from './shared/stores/auth-store';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,6 +20,36 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function AppRouterWrapper() {
+  const user = useAuthStore((s) => s.user);
+  const userType = (user as any)?.type || (user as any)?.role || '';
+  const role = typeof userType === 'string' ? userType.toLowerCase().replace(/\s/g, '') : '';
+  
+  // Use role as basename if authenticated, otherwise use root '/'
+  const basename = role ? `/${role}` : '/';
+
+  let pathname = window.location.pathname;
+  let isValidPath = basename === '/' || pathname === basename || pathname.startsWith(`${basename}/`);
+
+  // If the URL doesn't match the required basename (e.g., after login or direct navigation),
+  // we synchronously correct the URL before React Router mounts to prevent it from rendering nothing.
+  if (!isValidPath) {
+    const targetPath = pathname === '/' ? '' : pathname;
+    const newPath = `${basename}${targetPath}${window.location.search}${window.location.hash}`;
+    window.history.replaceState(null, '', newPath);
+  }
+
+  return (
+    <BrowserRouter basename={basename} key={basename}>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppRouter />
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
+  );
+}
 
 export function App() {
   // ── Global error catchers ──
@@ -106,13 +137,7 @@ export function App() {
         }}
       >
         <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <ThemeProvider>
-              <AuthProvider>
-                <AppRouter />
-              </AuthProvider>
-            </ThemeProvider>
-          </BrowserRouter>
+          <AppRouterWrapper />
         </QueryClientProvider>
       </ErrorBoundary>
       <Toaster />

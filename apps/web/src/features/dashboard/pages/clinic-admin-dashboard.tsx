@@ -23,6 +23,7 @@ import {
 } from 'recharts';
 import { useClinicAdminDashboard } from '../hooks/use-clinic-admin-dashboard';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { PatientBillingDrawer } from '../../billing/components/PatientBillingDrawer';
 import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import './role-dashboards.css';
 import './clinic-admin-dashboard.css';
@@ -70,6 +71,7 @@ export function ClinicAdminDashboard() {
   const [period, setPeriod] = useState<Period>('year');
   const [revTab, setRevTab] = useState<RevenueTab>('Cash');
   const [sidebarTab, setSidebarTab] = useState<'Queue' | 'Analytics' | 'Billing'>('Queue');
+  const [billingDrawerRegid, setBillingDrawerRegid] = useState<{ regid: number; patientName: string } | null>(null);
   const navigate = useNavigate();
 
   const { data, isLoading } = useClinicAdminDashboard(period);
@@ -267,7 +269,7 @@ export function ClinicAdminDashboard() {
               <div className="cad-card-header">
                 <div>
                   <div className="cad-card-title">TOP BILLING — {periodLabel}</div>
-                  <div className="cad-card-subtitle">By invoice value</div>
+                  <div className="cad-card-subtitle">By patient total</div>
                 </div>
                 <a className="cad-report-link" href="/billing" onClick={e => { e.preventDefault(); window.location.href = '/billing'; }}>
                   Report <ChevronRight size={11} />
@@ -285,7 +287,7 @@ export function ClinicAdminDashboard() {
                     </thead>
                     <tbody>
                       {topBilling.map((b: { id: number; regid: number; patientName: string; total: number; status: string }) => (
-                        <tr key={b.id} onClick={() => navigate(`/patients/${b.regid}`)} style={{ cursor: 'pointer' }}>
+                        <tr key={b.id} onClick={() => b.regid && setBillingDrawerRegid({ regid: b.regid, patientName: b.patientName })} className="cad-clickable-row">
                           <td className="cad-patient-cell">
                             <div className="cad-patient-avatar">{b.patientName.charAt(0)}</div>
                             <span>{b.patientName}</span>
@@ -349,7 +351,16 @@ export function ClinicAdminDashboard() {
                       <div 
                         key={i} 
                         className="cad-activity-item" 
-                        onClick={() => a.regid && navigate(`/patients/${a.regid}`)}
+                        onClick={() => {
+                          if (a.regid) {
+                            if (a.type === 'payment') {
+                              const pName = a.title.split('-')[1]?.trim() || 'Patient';
+                              setBillingDrawerRegid({ regid: a.regid, patientName: pName });
+                            } else {
+                              navigate(`/patients/${a.regid}`);
+                            }
+                          }
+                        }}
                         style={{ cursor: a.regid ? 'pointer' : 'default' }}
                       >
                         <div className={`cad-activity-dot ${a.type === 'payment' ? 'dot-green' : 'dot-blue'}`} />
@@ -531,6 +542,15 @@ export function ClinicAdminDashboard() {
           </div>
         </aside>
       </div>
+
+      {billingDrawerRegid && (
+        <PatientBillingDrawer
+          regid={billingDrawerRegid.regid}
+          patientName={billingDrawerRegid.patientName}
+          isOpen={true}
+          onClose={() => setBillingDrawerRegid(null)}
+        />
+      )}
     </div>
   );
 }

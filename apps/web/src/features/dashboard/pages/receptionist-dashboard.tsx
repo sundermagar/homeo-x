@@ -276,25 +276,25 @@ export function ReceptionistDashboard() {
         toast({ description: 'Please assign a doctor to this appointment first.', variant: 'error' });
         return;
       }
-      
+
       const visitId = appt.visitId || appt.id;
       await issueToken.mutateAsync(visitId);
       if (appt.patientId || appt.regid) {
-        await addToWaitlist.mutateAsync({ 
-          patientId: appt.patientId || appt.regid, 
-          appointmentId: visitId, 
-          doctorId: appt.doctorId || undefined 
+        await addToWaitlist.mutateAsync({
+          patientId: appt.patientId || appt.regid,
+          appointmentId: visitId,
+          doctorId: appt.doctorId || undefined
         });
       } else if (appt.unregisteredId) {
-        await addToWaitlist.mutateAsync({ 
-          unregisteredPatientId: appt.unregisteredId, 
-          appointmentId: visitId, 
-          doctorId: appt.doctorId || undefined 
+        await addToWaitlist.mutateAsync({
+          unregisteredPatientId: appt.unregisteredId,
+          appointmentId: visitId,
+          doctorId: appt.doctorId || undefined
         });
       } else {
-        await addToWaitlist.mutateAsync({ 
-          appointmentId: visitId, 
-          doctorId: appt.doctorId || undefined 
+        await addToWaitlist.mutateAsync({
+          appointmentId: visitId,
+          doctorId: appt.doctorId || undefined
         });
       }
       toast({ description: 'Token issued successfully', variant: 'success' });
@@ -382,61 +382,108 @@ export function ReceptionistDashboard() {
         </div>
 
         {/* Today's Appointments */}
-        <div className="dash-sidebar-card">
-          <h3 className="dash-section-title">
-            <Calendar size={15} style={{ color: 'var(--pp-blue)' }} /> Today's Appointments
-          </h3>
-          <div className="dash-list db-scroll" style={{ maxHeight: '280px' }}>
-            {todayAppts.map((a: any, i: number) => (
-              <div key={i} className="dash-list-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-main)' }}>{a.patientName}</div>
-                    <div className="text-label" style={{ fontSize: 10 }}>{a.status} · {a.bookingTime || `Token ${a.tokenNo || 'N/A'}`}</div>
-                  </div>
-                  <div className="dash-status-dot" style={{ background: a.status === 'Consultation' ? 'var(--pp-success-fg)' : '#e2e8f0' }} />
-                  <div className="appt-kebab-wrap" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <button
-                      className="appt-kebab-btn"
-                      onClick={(e) => { e.stopPropagation(); toggleMenu(`today-appt-${a.id}`, e.currentTarget); }}
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                    {openMenuId === `today-appt-${a.id}` && menuPos && createPortal(
-                      <div
-                        ref={menuRef}
-                        className="appt-kebab-menu"
-                        style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999, width: 150 }}
-                      >
-                        {(a.status === 'Pending' || a.status === 'Scheduled') && (
-                          <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleConfirm(a); setOpenMenuId(null); setMenuPos(null); }} disabled={updateStatus.isPending}>
-                            <CheckCircle2 size={14} /> Confirm
-                          </button>
-                        )}
-                        {!a.tokenNo && a.status !== 'Completed' && (
-                          <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
-                            <Ticket size={14} /> Token
-                          </button>
-                        )}
+        <div className="rd-compact-card">
+          <div className="rd-compact-card-header">
+            <div className="rd-compact-card-title">
+              <Calendar size={14} style={{ color: 'var(--pp-blue)' }} /> Today's Appointments
+            </div>
+            <span className="dash-badge badge-primary">{todayAppts.length}</span>
+          </div>
+          <div className="rd-compact-card-body db-scroll" style={{ maxHeight: '280px', paddingRight: 4, paddingBottom: 12 }}>
+            {todayAppts.length === 0 ? (
+              <div className="rd-empty">No appointments today</div>
+            ) : (
+              todayAppts.map((a: any, i: number) => {
+                const statusColor =
+                  a.status === 'Completed' ? 'var(--pp-blue)' :
+                    a.status === 'Consultation' ? 'var(--pp-success-fg)' :
+                      a.status === 'Waitlist' ? '#d97706' :
+                        'var(--text-muted)';
 
-                        <div className="appt-kebab-divider" />
-                        <button className="appt-kebab-item" style={{ color: 'var(--pp-purple)' }} onClick={() => { setVitalsTarget({ visitId: a.visitId || a.id, regid: a.patientId || a.regid }); setOpenMenuId(null); setMenuPos(null); }}>
-                          <Activity size={14} /> Vitals
-                        </button>
-                        <button className="appt-kebab-item" style={{ color: '#25D366' }} onClick={() => { handleApptWhatsApp(a); setOpenMenuId(null); setMenuPos(null); }}>
-                          <MessageCircle size={14} /> WhatsApp
-                        </button>
-                      </div>,
-                      document.body
-                    )}
+                const statusBg =
+                  a.status === 'Completed' ? 'rgba(59, 130, 246, 0.1)' :
+                    a.status === 'Consultation' ? 'rgba(16, 185, 129, 0.1)' :
+                      a.status === 'Waitlist' ? 'rgba(217, 119, 6, 0.1)' :
+                        'var(--pp-warm-2)';
+
+                return (
+                  <div key={i} className="rd-list-item" style={{ position: 'relative', overflow: 'visible', alignItems: 'center' }}>
+                    <div className="rd-list-avatar" style={{ background: statusBg, color: statusColor, fontSize: 11, fontWeight: 800 }}>
+                      {a.tokenNo ? `T${a.tokenNo}` : (a.patientName?.charAt(0) || 'U')}
+                    </div>
+                    <div className="rd-list-info" style={{ flex: 1 }}>
+                      <div className="rd-list-name">
+                        {a.patientName || 'Unknown Patient'}
+                      </div>
+                      <div className="rd-list-sub" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
+                        <span style={{
+                          fontSize: 9,
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          background: statusBg,
+                          color: statusColor,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em'
+                        }}>
+                          {a.status}
+                        </span>
+                        <span style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: 10 }}>{a.bookingTime || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    <div className="appt-kebab-wrap" style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                      <button
+                        className="appt-kebab-btn"
+                        onClick={(e) => { e.stopPropagation(); toggleMenu(`today-appt-${a.id}`, e.currentTarget); }}
+                        style={{ padding: 6, background: 'var(--bg-surface-1)', border: '1px solid var(--pp-warm-1)', borderRadius: 6, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <MoreVertical size={16} style={{ color: 'var(--text-muted)' }} />
+                      </button>
+                      {openMenuId === `today-appt-${a.id}` && menuPos && createPortal(
+                        <div
+                          ref={menuRef}
+                          className="appt-kebab-menu"
+                          style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999, width: 150 }}
+                        >
+                          {(a.status === 'Pending' || a.status === 'Scheduled') && (
+                            <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleConfirm(a); setOpenMenuId(null); setMenuPos(null); }} disabled={updateStatus.isPending}>
+                              <CheckCircle2 size={14} /> Confirm
+                            </button>
+                          )}
+                          {!a.tokenNo && a.status !== 'Completed' && (
+                            <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
+                              <Ticket size={14} /> Token
+                            </button>
+                          )}
+
+                          <div className="appt-kebab-divider" />
+                          <button
+                            className="appt-kebab-item"
+                            style={{ color: (a.patientId || a.regid) ? 'var(--pp-purple)' : 'var(--text-muted)', cursor: (a.patientId || a.regid) ? 'pointer' : 'not-allowed' }}
+                            onClick={() => {
+                              if (a.patientId || a.regid) {
+                                setVitalsTarget({ visitId: a.visitId || a.id, regid: a.patientId || a.regid });
+                              } else {
+                                toast({ description: 'Vitals not supported for unregistered patients', variant: 'error' });
+                              }
+                              setOpenMenuId(null);
+                              setMenuPos(null);
+                            }}
+                            disabled={!(a.patientId || a.regid)}
+                          >
+                            <Activity size={14} /> Vitals
+                          </button>
+                          <button className="appt-kebab-item" style={{ color: '#25D366' }} onClick={() => { handleApptWhatsApp(a); setOpenMenuId(null); setMenuPos(null); }}>
+                            <MessageCircle size={14} /> WhatsApp
+                          </button>
+                        </div>,
+                        document.body
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-            {todayAppts.length === 0 && (
-              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
-                No appointments today.
-              </div>
+                );
+              })
             )}
           </div>
         </div>
@@ -471,13 +518,13 @@ export function ReceptionistDashboard() {
                     return (
                       <tr key={i} className="hover-row">
                         <td style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: 'var(--text-muted)' }}>
-                          #{f.patientId}
+                          #{f.patientId || f.unregisteredPatientId || '-'}
                         </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div className="dash-avatar">{f.patientName?.charAt(0)}</div>
+                            <div className="dash-avatar">{f.patientName?.charAt(0) || 'U'}</div>
                             <div>
-                              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{f.patientName}</div>
+                              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{f.patientName || 'Unknown Patient'}</div>
                               <div className="text-label" style={{ fontSize: 10 }}>{f.phone || 'No Contact'}</div>
                             </div>
                           </div>
@@ -498,27 +545,40 @@ export function ReceptionistDashboard() {
                             <button
                               className="dash-action-btn"
                               style={{ background: '#f0fdf4', color: 'var(--pp-success-fg)', borderColor: '#bbf7d0' }}
-                              onClick={(e) => { 
-                                e.stopPropagation(); 
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 const phone = f.phone?.replace(/\D/g, '');
                                 if (!phone) { toast({ description: "No mobile number", variant: "error" }); return; }
                                 const finalPhone = phone.length === 10 ? `91${phone}` : phone;
                                 sendText.mutate({ phone: finalPhone, message: `Dear ${f.patientName},\n\nThis is a friendly reminder for your upcoming follow-up appointment.\n\nPlease let us know if you need to reschedule.\n\nRegards,\nMMC HomeoTech` },
-                                { onSuccess: () => {
-                                  toast({ description: '✅ Reminder sent!', variant: 'success' });
-                                  apiClient.post('/appointments/followups/status', {
-                                    id: f.id,
-                                    visitType: f.visitType,
-                                    callStatus: 'WhatsApp Sent',
-                                    actionDate: new Date().toISOString().split('T')[0]
+                                  {
+                                    onSuccess: () => {
+                                      toast({ description: '✅ Reminder sent!', variant: 'success' });
+                                      apiClient.post('/appointments/followups/status', {
+                                        id: f.id,
+                                        visitType: f.visitType,
+                                        callStatus: 'WhatsApp Sent',
+                                        actionDate: new Date().toISOString().split('T')[0]
+                                      });
+                                    }
                                   });
-                                }});
                               }}
                               title="Send WhatsApp"
                             >
                               <MessageSquare size={13} />
                             </button>
-                            <button className="dash-view-btn" onClick={(e) => { e.stopPropagation(); navigate(`/medical-cases/${f.patientId}`); }}>View</button>
+                            <button
+                              className="dash-view-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (f.patientId) navigate(`/medical-cases/${f.patientId}`);
+                                else toast({ description: 'Cannot view unregistered patient', variant: 'error' });
+                              }}
+                              disabled={!f.patientId}
+                              style={{ opacity: !f.patientId ? 0.5 : 1, cursor: !f.patientId ? 'not-allowed' : 'pointer' }}
+                            >
+                              View
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -624,9 +684,9 @@ export function ReceptionistDashboard() {
                       </div>
                       <div className="rd-list-actions">
                         {phone && (
-                          <button 
-                            className="rd-action-pill green" 
-                            title="WhatsApp Greeting" 
+                          <button
+                            className="rd-action-pill green"
+                            title="WhatsApp Greeting"
                             onClick={() => handleBirthdayWhatsApp(phone, name)}
                             disabled={sendText.isPending}
                           >
