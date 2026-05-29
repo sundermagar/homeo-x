@@ -552,6 +552,17 @@ export default function MedicalCaseDetailPage() {
       // If it's a new diagnosis, switch view to exactly the saved date so it shows up immediately
       if (!editingDiagnosisRecord) {
         setSelectedDate(soapDate);
+        
+        if (diagForm.diagnosis && diagForm.diagnosis.trim()) {
+           const newSummary = `AI Follow Up Summary:\n${diagForm.diagnosis.trim()}`;
+           setFollowUpNote(prev => {
+             const separator = prev.trim() ? '\n\n' : '';
+             const updated = prev + separator + newSummary;
+             // Fire and forget save so it persists immediately
+             handleSaveNote(updated).catch(e => console.warn('Auto-save follow up note failed', e));
+             return updated;
+           });
+        }
       }
 
       setShowDiagnosisDrawer(false);

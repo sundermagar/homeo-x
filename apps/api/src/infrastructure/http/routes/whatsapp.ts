@@ -1439,7 +1439,7 @@ Keep responses highly concise (under 200 words), clean, polite, and friendly. Do
       model: aiSetting.model || 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
-        ...history.slice(-5).map((h: any) => ({ role: h.role, content: h.text })),
+        ...history.slice(-5).map((h: any) => ({ role: h.role === 'bot' ? 'assistant' : h.role, content: h.text })),
         { role: 'user', content: message },
       ],
       temperature: parseFloat(aiSetting.temperature || '0.7'),

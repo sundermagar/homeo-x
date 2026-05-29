@@ -184,9 +184,24 @@ export function RemedyChartSession({
 
   const handleRepeat = async () => {
     if (!history || history.length === 0) return alert('No previous prescription to repeat.');
-    const lastRx = history[0];
-    if (!lastRx) return;
-    await repeatRx(lastRx);
+    
+    // Find the last valid prescription that actually has a remedy
+    let lastValidRx = history.find(rx => {
+      const remedy = rx.remedy_name || (rx as any).remedyName;
+      return remedy && remedy.trim().length > 0;
+    });
+
+    if (!lastValidRx) {
+       // Fallback to the first one that is from a previous date
+       lastValidRx = history.find(rx => {
+         const dateVal = rx.created_at || (rx as any).createdAt || rx.dateval;
+         return dateVal && new Date(dateVal).toDateString() !== new Date().toDateString();
+       });
+    }
+
+    if (!lastValidRx) lastValidRx = history[0];
+
+    await repeatRx(lastValidRx);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

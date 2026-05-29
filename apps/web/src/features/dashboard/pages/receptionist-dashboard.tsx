@@ -235,7 +235,7 @@ export function ReceptionistDashboard() {
     refetchInterval: 10000,
   });
 
-  const todayAppts = dashData?.queue || [];
+  const todayAppts = dashData?.queue ? [...dashData.queue].sort((a: any, b: any) => (b.id || 0) - (a.id || 0)) : [];
   const birthdays = dashData?.birthdays || [];
   const kpis = dashData?.kpis;
 
