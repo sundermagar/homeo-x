@@ -597,11 +597,10 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
     if (activeStatusFilter === 'resolved' && conv.status !== 'resolved' && conv.status !== 'closed') return false;
 
     // Channel filter
-    // If channelType is not in WhatsAppConversation yet, we can add it or cast
     const c = conv as any;
-    if (activeChannelFilter === 'wa' && c.channelType !== 'whatsapp') return false;
-    if (activeChannelFilter === 'widget' && c.channelType !== 'widget') return false;
-    if (activeChannelFilter === 'unread' && conv.unreadCount === 0) return false;
+    if (activeChannelFilter === 'wa' && c.type !== 'whatsapp') return false;
+    if (activeChannelFilter === 'widget' && c.type !== 'widget') return false;
+    if (activeChannelFilter === 'assigned' && !c.assignedTo) return false;
 
     return true;
   })?.sort((a: any, b: any) => {
@@ -659,7 +658,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
 
           {/* Tier 1: Channel Filters (Pill Style) */}
           <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[var(--pp-warm-2)] rounded-xl border border-[var(--pp-warm-3)]/60">
-            {['all', 'wa', 'widget', 'assigned', 'unread'].map((f) => (
+            {['all', 'wa', 'widget', 'assigned'].map((f) => (
               <button
                 key={f}
                 onClick={() => setActiveChannelFilter(f)}

@@ -774,21 +774,22 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         const results = await this.db.execute(sql`
           WITH combined AS (
             SELECT 
-              b.id::text,
+              MAX(b.id)::text as id,
               b.regid,
-              COALESCE(b.bill_no::text, 'INV-' || b.id::text) AS invoice_no,
-              COALESCE(CAST(NULLIF(b.charges::text, '') AS numeric), 0)::int AS amount,
+              COALESCE(MAX(b.bill_no)::text, 'INV-' || MAX(b.id)::text) AS invoice_no,
+              SUM(COALESCE(CAST(NULLIF(b.charges::text, '') AS numeric), 0))::int AS amount,
               CASE
-                WHEN COALESCE(CAST(NULLIF(b.balance::text, '') AS numeric), 0) <= 0 THEN 'paid'
-                WHEN COALESCE(CAST(NULLIF(b.received::text, '') AS numeric), 0) > 0 THEN 'partial'
+                WHEN SUM(COALESCE(CAST(NULLIF(b.balance::text, '') AS numeric), 0)) <= 0 THEN 'paid'
+                WHEN SUM(COALESCE(CAST(NULLIF(b.received::text, '') AS numeric), 0)) > 0 THEN 'partial'
                 ELSE 'due'
               END AS status,
-              b.created_at
+              MAX(b.created_at) as created_at
             FROM bills b
             JOIN case_datas pb ON pb.regid = b.regid
             WHERE (b.deleted_at IS NULL OR b.deleted_at::text = '')
               AND (pb.deleted_at IS NULL OR pb.deleted_at::text = '')
               AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL OR b.clinic_id = 0 OR b.clinic_id = 1)
+            GROUP BY b.regid, COALESCE(b.bill_date, b.created_at::date)
             
             UNION ALL
             
@@ -798,7 +799,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               'RCT-' || r.id::text AS invoice_no,
               COALESCE(CAST(NULLIF(r.amount::text, '') AS numeric), 0)::int AS amount,
               'paid' AS status,
-              COALESCE(r.created_at, NOW()) as created_at
+              r.created_at
             FROM receipt r
             JOIN case_datas pr ON pr.regid = r.regid
             WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')

@@ -59,6 +59,7 @@ export function CourierQueuePage() {
   const [assignPcd, setAssignPcd] = useState('');
   const [assignCourier, setAssignCourier] = useState('');
   const [assignPickup, setAssignPickup] = useState(false);
+  const [assignSendWhatsapp, setAssignSendWhatsapp] = useState(true);
 
   const { data: queue = [], isLoading } = useQuery({
     queryKey: ['courier-queue', selectedDate],
@@ -83,7 +84,7 @@ export function CourierQueuePage() {
       queryClient.invalidateQueries({ queryKey: ['courier-queue'] });
       
       // Auto-send WhatsApp on assign
-      if (assignModal?.phone && (variables.pcd || variables.pickup)) {
+      if (assignSendWhatsapp && assignModal?.phone && (variables.pcd || variables.pickup)) {
         const phone = assignModal.phone.replace(/\D/g, '');
         const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
         
@@ -98,7 +99,8 @@ export function CourierQueuePage() {
           phone: finalPhone,
           message: textMessage,
         }, {
-          onError: (err) => console.error('Auto WhatsApp failed', err)
+          onSuccess: () => alert('✅ Dispatch details saved and WhatsApp message sent!'),
+          onError: (err: any) => alert('❌ Dispatch saved, but failed to send WhatsApp: ' + (err.response?.data?.message || err.message))
         });
       }
 
@@ -106,6 +108,7 @@ export function CourierQueuePage() {
       setAssignPcd('');
       setAssignCourier('');
       setAssignPickup(false);
+      setAssignSendWhatsapp(true);
     }
   });
 
@@ -312,12 +315,9 @@ export function CourierQueuePage() {
                                 Assign
                               </button>
                             ) : (
-                              <button
-                                className="action-btn action-message"
-                                onClick={() => handleOpenMessage(entry)}
-                              >
-                                <MessageCircle size={12} /> Message
-                              </button>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-success-fg)', display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: 'var(--pp-success-bg)', borderRadius: 6 }}>
+                                <CheckCircle2 size={12} /> Assigned
+                              </span>
                             )}
                             <button
                               className="action-btn action-history"
@@ -412,10 +412,21 @@ export function CourierQueuePage() {
                 </div>
               )}
               
-              <div style={{ marginTop: '32px', padding: '16px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.05)', border: '1px dashed rgba(59, 130, 246, 0.2)' }}>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                  <strong>Note:</strong> Once assigned, you can send a WhatsApp notification to the patient with these details.
-                </p>
+              <div style={{ marginTop: '32px', padding: '16px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', margin: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={assignSendWhatsapp}
+                    onChange={(e) => setAssignSendWhatsapp(e.target.checked)}
+                    style={{ marginTop: '3px', width: '16px', height: '16px', accentColor: '#22c55e' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>Send WhatsApp Notification</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      Automatically message {assignModal.phone || 'the patient'} with tracking details.
+                    </span>
+                  </div>
+                </label>
               </div>
             </div>
             <div className="courier-modal-footer">
