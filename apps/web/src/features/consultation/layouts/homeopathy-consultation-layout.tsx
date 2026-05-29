@@ -650,26 +650,33 @@ export function HomeopathyConsultationLayout({
       {/* ═══ SIDEBAR ═══ */}
       <aside className="w-full lg:w-[268px] lg:h-full bg-white border-b lg:border-b-0 lg:border-r border-[#E3E2DF] flex flex-col shrink-0 z-10">
         {/* Brand */}
-        <div className="px-5 py-3.5 border-b border-[#E3E2DF] flex items-center gap-2 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-[#2563EB] text-white flex items-center justify-center font-extrabold text-[13px]">H</div>
-          <div className="font-extrabold text-[15px] tracking-tight text-[#0F0F0E]">Homeo<span className="text-[#2563EB]">X</span></div>
+        <div className="px-5 py-3.5 border-b border-[#E3E2DF] flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[#2563EB] text-white flex items-center justify-center font-extrabold text-[13px]">H</div>
+            <div className="font-extrabold text-[15px] tracking-tight text-[#0F0F0E]">Homeo<span className="text-[#2563EB]">X</span></div>
+          </div>
+          <button onClick={handleNextPatient} className="lg:hidden text-[12px] font-bold text-[#4A4A47] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-1.5 rounded-md flex items-center gap-1 shadow-sm">
+            <ChevronLeft className="h-3.5 w-3.5" /> Queue
+          </button>
         </div>
 
         {/* Middle scrollable area */}
         <div className="flex-1 min-h-0 lg:overflow-y-auto flex flex-col">
           {/* Patient Card */}
-          <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] shrink-0">
-            <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center font-bold mb-2.5 border border-[#BFDBFE]">
+          <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] shrink-0 flex items-center lg:block gap-4">
+            <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center font-bold lg:mb-2.5 border border-[#BFDBFE] shrink-0">
               {patientInitials || '--'}
             </div>
-            <div className="text-[14px] font-extrabold text-[#0F0F0E] leading-tight truncate">{patientName}</div>
-            <div className="text-[12px] text-[#4A4A47] mt-0.5 truncate">
-              {patientAge ? `Age ${patientAge}` : 'Age —'} <span className="text-[#888786] px-1">·</span> {patientGender}
+            <div className="min-w-0">
+              <div className="text-[14px] font-extrabold text-[#0F0F0E] leading-tight truncate">{patientName}</div>
+              <div className="text-[12px] text-[#4A4A47] mt-0.5 truncate">
+                {patientAge ? `Age ${patientAge}` : 'Age —'} <span className="text-[#888786] px-1">·</span> {patientGender}
+              </div>
             </div>
           </div>
 
           {/* Modality / call type */}
-          <div className="hidden lg:block px-5 py-4 border-b border-[#E3E2DF] shrink-0">
+          <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-[#E3E2DF] shrink-0">
             <div className="text-[10px] font-bold text-[#888786] uppercase tracking-widest mb-2">Consultation</div>
             <div className="grid grid-cols-3 gap-1.5">
               {([['IN_PERSON', 'In-person'], ['AUDIO', 'Audio'], ['VIDEO', 'Video']] as const).map(([m, label]) => (
@@ -689,7 +696,7 @@ export function HomeopathyConsultationLayout({
           </div>
 
           {/* Workflow nav */}
-          <nav className="px-3 py-3 flex flex-row lg:flex-col gap-1 border-b border-[#E3E2DF] shrink-0">
+          <nav className="px-3 py-3 flex flex-row lg:flex-col gap-1 border-b border-[#E3E2DF] shrink-0 overflow-x-auto">
             <div className="hidden lg:block text-[10px] font-bold text-[#888786] uppercase tracking-widest px-2 mb-1">Workflow</div>
             {STEPS.map((step, i) => {
               const isActive = step.key === state.consultStage;
@@ -751,27 +758,27 @@ export function HomeopathyConsultationLayout({
 
         {/* Bottom bar */}
         <div className="shrink-0 border-t border-[#E3E2DF] bg-white px-4 lg:px-8 py-3">
-          <div className="w-full max-w-full flex items-center gap-3">
+          <div className="w-full max-w-full flex flex-wrap-reverse sm:flex-nowrap items-center justify-between gap-3">
             {state.consultStage !== 'CONVERSATION' && (
-              <button onClick={doBack} className="pp-btn-secondary h-10 px-4 text-[13px] inline-flex items-center gap-1">
+              <button onClick={doBack} className="pp-btn-secondary w-full sm:w-auto justify-center h-10 px-4 text-[13px] inline-flex items-center gap-1">
                 <ChevronLeft className="h-4 w-4" /> Previous
               </button>
             )}
 
-            <div className="ml-auto flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto sm:ml-auto">
               {state.consultStage === 'SUMMARY' && state.consultationMode !== 'followup' ? (
                 <>
                   <button
                     onClick={() => handleExtractSummaryRubrics('LAB_REPORTS')}
                     disabled={isBusy}
-                    className="pp-btn-secondary h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
+                    className="pp-btn-secondary w-full sm:w-auto justify-center h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
                   >
                     {isBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : 'Upload Lab Reports'}
                   </button>
                   <button
                     onClick={() => handleExtractSummaryRubrics('PRESCRIPTION')}
                     disabled={isBusy}
-                    className="pp-btn-primary h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
+                    className="pp-btn-primary w-full sm:w-auto justify-center h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
                   >
                     {isBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : 'Skip to Remedy →'}
                   </button>
@@ -780,7 +787,7 @@ export function HomeopathyConsultationLayout({
                 <button
                   onClick={doComplete}
                   disabled={isBusy}
-                  className="pp-btn-primary h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
+                  className="pp-btn-primary w-full sm:w-auto justify-center h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
                 >
                   {isBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : completeLabel}
                 </button>

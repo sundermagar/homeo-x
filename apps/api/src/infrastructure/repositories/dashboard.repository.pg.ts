@@ -80,7 +80,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   public static clearQueueCache(): void {
     for (const key of DashboardRepositoryPg.cache.keys()) {
-      if (key.startsWith('queue:')) {
+      if (
+        key.startsWith('queue:') ||
+        key.startsWith('kpis:') ||
+        key.startsWith('activity:') ||
+        key.startsWith('revSeries:') ||
+        key.startsWith('multiRevSeries:') ||
+        key.startsWith('recentTransactions:')
+      ) {
         DashboardRepositoryPg.cache.delete(key);
       }
     }
@@ -807,6 +814,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         `);
         return (results as any[]).map(r => ({
           id: r.id,
+          regid: r.regid,
           patientName: r.patient_name || 'Patient',
           invoiceNo: r.invoice_no,
           amount: Number(r.amount) || 0,
@@ -945,12 +953,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const { start, boundary } = this.getPeriodDates(period);
 
       const results = await this.db.execute(sql`
-        SELECT b.id, NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.surname, '')), '') as patient_name,
+        SELECT MIN(b.id) as id, 
+               NULLIF(TRIM(COALESCE(MAX(p.first_name), '') || ' ' || COALESCE(MAX(p.surname), '')), '') as patient_name,
                p.regid,
-               b.charges as total,
+               COALESCE(SUM(b.charges), 0) as total,
                CASE
-                 WHEN b.balance <= 0 THEN 'Paid'
-                 WHEN b.received > 0 THEN 'Partial'
+                 WHEN COALESCE(SUM(b.balance), 0) <= 0 THEN 'Paid'
+                 WHEN COALESCE(SUM(b.received), 0) > 0 THEN 'Partial'
                  ELSE 'Pending'
                END as status
         FROM bills b
@@ -958,7 +967,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         WHERE b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
           AND (p.clinic_id = ${contextId} OR p.clinic_id IS NULL)
-        ORDER BY b.charges DESC NULLS LAST
+        GROUP BY p.regid
+        ORDER BY COALESCE(SUM(b.charges), 0) DESC
         LIMIT ${limit}
       `) as any[];
 

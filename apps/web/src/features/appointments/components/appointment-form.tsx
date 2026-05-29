@@ -156,8 +156,8 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     if (!form.bookingDate) { setError('Booking date is required'); return; }
     if (!form.bookingTime) { setError('Please select a time slot'); return; }
 
-    if (!form.notes || !form.notes.trim()) {
-      setError('Chief Complaint is required — describe what brings the patient in today.');
+    if (form.visitType === VisitType.New && (!form.notes || !form.notes.trim())) {
+      setError('Chief Complaint is required for new cases — describe what brings the patient in today.');
       return;
     }
 
@@ -495,23 +495,25 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
         )}
       </div>
 
-      {/* Chief Complaint — required, shown to the doctor on the consultation page */}
-      <div className="appt-form-group">
-        <label className="appt-form-label">
-          Chief Complaint <span style={{ color: 'var(--pp-danger-fg)' }}>*</span>
-        </label>
-        <textarea
-          className="appt-form-input appt-form-textarea"
-          placeholder="What brings the patient in today? e.g. fever for 3 days, recurring headache, anxiety…"
-          value={form.notes}
-          onChange={e => set('notes', e.target.value)}
-          required
-          aria-required="true"
-        />
-        <p style={{ fontSize: 11, color: 'var(--pp-text-3)', margin: '4px 0 0' }}>
-          Required. This appears on the doctor's consultation screen as the chief complaint.
-        </p>
-      </div>
+      {/* Chief Complaint — required for New Case, hidden for Follow Up */}
+      {form.visitType === VisitType.New && (
+        <div className="appt-form-group">
+          <label className="appt-form-label">
+            Chief Complaint <span style={{ color: 'var(--pp-danger-fg)' }}>*</span>
+          </label>
+          <textarea
+            className="appt-form-input appt-form-textarea"
+            placeholder="What brings the patient in today? e.g. fever for 3 days, recurring headache, anxiety…"
+            value={form.notes}
+            onChange={e => set('notes', e.target.value)}
+            required
+            aria-required="true"
+          />
+          <p style={{ fontSize: 11, color: 'var(--pp-text-3)', margin: '4px 0 0' }}>
+            Required. This appears on the doctor's consultation screen as the chief complaint.
+          </p>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="appt-form-actions">

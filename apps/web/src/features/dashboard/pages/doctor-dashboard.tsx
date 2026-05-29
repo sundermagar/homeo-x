@@ -13,17 +13,20 @@ import {
   ChevronRight,
   ChevronDown,
   BrainCircuit,
-  MessageSquare
+  MessageSquare,
+  Bell,
+  Gift
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useDashboard, dashboardKeys } from '../hooks/use-dashboard';
+import { useDashboard, dashboardKeys, useMarkReminderDone } from '../hooks/use-dashboard';
 import { useQueueMgmt } from '../hooks/use-queue-mgmt';
 import { useUpdateStatus, apptKeys } from '../../appointments/hooks/use-appointments';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
-import type { QueueItem, IntelligenceInsight, RecentTransaction } from '@mmc/types';
+import { PatientBillingDrawer } from '../../billing/components/PatientBillingDrawer';
+import type { QueueItem, IntelligenceInsight, RecentTransaction, SimpleReminder, BirthdayPatient } from '@mmc/types';
 import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import './role-dashboards.css';
 
@@ -43,6 +46,7 @@ export function DoctorDashboard() {
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const { data: dashData, isLoading } = useDashboard('day');
+  const markReminderDone = useMarkReminderDone();
   const updateStatus = useUpdateStatus();
   const [queueFilter, setQueueFilter] = useState('ALL');
   const [consultDuration, setConsultDuration] = useState('00:00');
@@ -53,6 +57,7 @@ export function DoctorDashboard() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   // Tracks the appointment ID of the patient we most recently called into consultation
   const [activePatientId, setActivePatientId] = useState<number | null>(null);
+  const [billingDrawerRegid, setBillingDrawerRegid] = useState<{ regid: number; patientName: string } | null>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -429,9 +434,9 @@ export function DoctorDashboard() {
                     );
                   })
                 ) : (
-                  <div style={{ padding: '48px 0', textAlign: 'center', color: '#94a3b8' }}>
+                  <div style={{ padding: '48px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                     <Users size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
-                    <p className="text-small">{queueFilter === 'ALL' ? 'Queue view is empty today.' : `No patients in '${queueFilter.toLowerCase()}' status.`}</p>
+                    <p className="text-small" style={{ margin: 0 }}>{queueFilter === 'ALL' ? 'Queue view is empty today.' : `No patients in '${queueFilter.toLowerCase()}' status.`}</p>
                   </div>
                 )}
               </div>
@@ -465,6 +470,8 @@ export function DoctorDashboard() {
             </div>
           )}
 
+
+
           {/* Recent Billing */}
           <div className="dash-sidebar-card">
             <div className="dash-section-title">Recent transactions</div>
@@ -477,6 +484,13 @@ export function DoctorDashboard() {
                     id={tx.invoiceNo}
                     amount={tx.amount.toLocaleString()}
                     status={tx.status}
+                    onView={() => {
+                      if (tx.regid) {
+                        setBillingDrawerRegid({ regid: tx.regid, patientName: tx.patientName });
+                      } else {
+                        navigate('/billing');
+                      }
+                    }}
                   />
                 ))
               ) : (
@@ -499,6 +513,15 @@ export function DoctorDashboard() {
             qc.invalidateQueries({ queryKey: ['dashboard'] });
             qc.invalidateQueries({ queryKey: ['appointments'] });
           }}
+        />
+      )}
+
+      {billingDrawerRegid && (
+        <PatientBillingDrawer
+          regid={billingDrawerRegid.regid}
+          patientName={billingDrawerRegid.patientName}
+          isOpen={true}
+          onClose={() => setBillingDrawerRegid(null)}
         />
       )}
     </div>
@@ -538,16 +561,53 @@ const IntelligenceItem = memo(function IntelligenceItem({ color, text }: any) {
   );
 });
 
-const BillingItem = memo(function BillingItem({ patient, id, amount, status }: any) {
+const BillingItem = memo(function BillingItem({ patient, id, amount, status, onView }: any) {
   return (
-    <div className="dash-list-item">
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{patient}</span>
-        <span style={{ fontSize: 10, color: '#94a3b8' }}>{id}</span>
+    <div 
+      className="dash-list-item" 
+      style={{ 
+        alignItems: 'center', 
+        padding: '12px 14px', 
+        borderRadius: '12px',
+        backgroundColor: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        marginBottom: '10px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      }}
+      onClick={onView}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#f1f5f9';
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.03)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = '#f8fafc';
+        e.currentTarget.style.transform = 'none';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
+      <div style={{ 
+        width: 36, height: 36, borderRadius: '10px', 
+        background: '#e0f2fe', display: 'flex', alignItems: 'center', 
+        justifyContent: 'center', color: '#0284c7', fontWeight: 800, fontSize: 14, marginRight: 12 
+      }}>
+        {patient.charAt(0).toUpperCase()}
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{patient}</span>
+        <span style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>INV-{id}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 800 }}>₹{amount}</span>
-        <span className={`dash-tag tag-${status}`}>{status}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>₹{amount}</span>
+          <span className={`dash-tag tag-${status.toLowerCase()}`} style={{ padding: '2px 8px', fontSize: 10, borderRadius: '4px', letterSpacing: '0.02em' }}>
+            {status.toUpperCase()}
+          </span>
+        </div>
+        <div style={{ color: '#cbd5e1' }}>
+          <ChevronRight size={18} />
+        </div>
       </div>
     </div>
   );

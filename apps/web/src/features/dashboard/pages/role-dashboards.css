@@ -481,17 +481,19 @@
 /* 10. Intelligence Hub Specifics */
 .dash-intel-item {
   display: flex;
+  align-items: flex-start;
   gap: 12px;
-  padding: 12px;
+  padding: 14px 16px;
   background: var(--pp-warm-1);
   border-radius: 12px;
-  border: 1px solid transparent;
+  border: 1px solid var(--pp-warm-3);
   transition: all var(--transition-normal);
 }
 
 .dash-intel-item:hover {
   background: var(--bg-card);
-  border-color: var(--pp-warm-4);
+  border-color: var(--pp-blue-border);
+  transform: translateY(-1px);
   box-shadow: var(--pp-shadow-sm);
 }
 
@@ -500,6 +502,14 @@
   font-weight: 600;
   color: var(--pp-ink);
   line-height: 1.5;
+  flex: 1;
+}
+
+.dash-intel-item .dash-status-dot {
+  margin-top: 6px;
+  width: 8px;
+  height: 8px;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.03);
 }
 
 .pp-icon-btn {

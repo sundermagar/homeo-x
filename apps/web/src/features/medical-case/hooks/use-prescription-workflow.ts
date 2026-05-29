@@ -129,12 +129,27 @@ export function usePrescriptionWorkflow(
     onSelectDate?.(todayIso);
     
     try {
-      const res = await saveMutation.mutateAsync({
+      // Find if we already have an empty prescription for today to reuse
+      const todayRxs = (history || []).filter(r => {
+        const dateVal = r.created_at || r.dateval;
+        return dateVal && new Date(dateVal).toDateString() === new Date().toDateString();
+      });
+      const emptyTodayRx = todayRxs.find(r => !(r.remedy_name || (r as any).remedyName));
+      
+      const payload: any = {
         regid,
         visitId,
         deliveryMode: deliveryRef.current,
         ...rxForm
-      });
+      };
+      
+      if (emptyTodayRx) {
+        payload.id = emptyTodayRx.id;
+      } else {
+        setEditingId(null);
+      }
+      
+      const res = await saveMutation.mutateAsync(payload);
       if (res && typeof res === 'object' && 'id' in res) {
         setEditingId(Number(res.id));
         

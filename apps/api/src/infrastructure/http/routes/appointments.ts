@@ -209,6 +209,7 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
   const result = await bookAppt.execute({ ...req.body, clinicId });
 
   if (result.success) {
+    DashboardRepositoryPg.clearQueueCache();
     sendSuccess(res, result.data, undefined, 201);
   }
 }));
@@ -217,6 +218,7 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
 appointmentsRouter.put('/:id', asyncHandler(async (req, res) => {
   const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
   await manageAppt.update(Number(req.params.id), req.body);
+  DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, 'Appointment updated');
 }));
 
@@ -224,6 +226,7 @@ appointmentsRouter.put('/:id', asyncHandler(async (req, res) => {
 appointmentsRouter.delete('/:id', asyncHandler(async (req, res) => {
   const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
   await manageAppt.delete(Number(req.params.id));
+  DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, 'Appointment deleted');
 }));
 
@@ -243,6 +246,7 @@ appointmentsRouter.post('/:id/issue-token', asyncHandler(async (req, res) => {
   const result = await manageAppt.issueToken(Number(req.params.id));
   
   if (result.success) {
+    DashboardRepositoryPg.clearQueueCache();
     const io = (req as any).io;
     if (io && !result.data.alreadyIssued) {
       io.emit('tokenIssued', { appointmentId: req.params.id, token: result.data.token });
@@ -268,6 +272,7 @@ appointmentsRouter.post('/waiting', asyncHandler(async (req, res) => {
     clinicId
   });
   if (result.success) {
+    DashboardRepositoryPg.clearQueueCache();
     sendSuccess(res, result.data, undefined, 201);
   }
 }));
@@ -307,5 +312,6 @@ appointmentsRouter.post('/:id/reschedule', asyncHandler(async (req, res) => {
   const { date, time } = req.body;
   const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
   await manageAppt.reschedule(Number(req.params.id), date, time);
+  DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, 'Appointment rescheduled');
 }));
