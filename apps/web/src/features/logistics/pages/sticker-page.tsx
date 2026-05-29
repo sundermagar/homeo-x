@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { 
-  Printer, Search, Calendar, Package, User, Pill, MapPin, Truck 
+  Printer, Search, Package, User, Pill, MapPin, Truck 
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { printThermalStickers } from '@/shared/utils/print';
 import './sticker-page.css';
 
 interface Medicine {
@@ -35,9 +36,6 @@ export function StickerPage() {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // State for printing
-  const [printData, setPrintData] = useState<PendingSticker | null>(null);
 
   const { data: queue = [], isLoading } = useQuery({
     queryKey: ['stickers-queue', selectedDate],
@@ -49,26 +47,23 @@ export function StickerPage() {
 
   const printMutation = useMutation({
     mutationFn: async (randId: string) => {
-      await apiClient.post(`/logistics/stickers/print`, { randId });
+      const response = await apiClient.post(`/logistics/stickers/print`, { randId });
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stickers-queue'] });
-      // Triggers browser print dialog when state updates
-      setTimeout(() => window.print(), 100);
+    },
+    onError: (err: any) => {
+      console.error('Failed to mark sticker as printed:', err);
+      alert('Failed to mark sticker as printed. Please try again.');
     }
   });
 
-  // Handle when printing is finished or cancelled
-  useEffect(() => {
-    const handleAfterPrint = () => {
-      setPrintData(null);
-    };
-    window.addEventListener('afterprint', handleAfterPrint);
-    return () => window.removeEventListener('afterprint', handleAfterPrint);
-  }, []);
-
   const handleGenerateStickers = (sticker: PendingSticker) => {
-    setPrintData(sticker);
+    // 1. Open the print window using the shared utility
+    printThermalStickers(sticker, (user as any)?.clinicName || "Dr. Nanda's Homeoclinic");
+    
+    // 2. Fire the backend mutation to mark it as printed in the background
     printMutation.mutate(sticker.randId);
   };
 
@@ -83,60 +78,36 @@ export function StickerPage() {
   });
 
   return (
-    <div className="sticker-page">
-      {/* Print Only Container */}
-      {printData && (
-        <div className="print-only-container">
-          {printData.medicines.map((med, idx) => (
-            <div key={`${printData.randId}-${idx}`} className="thermal-label">
-              <div className="thermal-header">
-                {(user as any)?.clinicName || "Dr. Nanda's Homeoclinic"}
-              </div>
-              <div className="thermal-row">
-                <span className="thermal-patient-name">{printData.patientName}</span>
-                <span>ID: {printData.caseId}</span>
-              </div>
-              <div className="thermal-row" style={{ fontSize: '7px' }}>
-                <span>Date: {new Date(printData.dateval).toLocaleDateString('en-IN')}</span>
-              </div>
-              <div className="thermal-remedy">
-                {med.remedy} {med.potency}
-              </div>
-              <div className="thermal-footer">
-                <span>Freq: {med.frequency}</span>
-                <span>Days: {med.days}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
+    <div className="plat-page fade-in">
       {/* Screen Content */}
-      <div className="sticker-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="sticker-title">Stickers Workspace</h1>
-          <p className="sticker-subtitle">Generate labels and manage pending prescriptions for dispensing</p>
+          <h1 className="pp-page-hero-title">
+            <Package size={22} strokeWidth={1.6} />
+            Stickers Workspace
+          </h1>
+          <p className="pp-page-hero-sub">Generate labels and manage pending prescriptions for dispensing</p>
         </div>
       </div>
 
-      <div className="sticker-controls">
-        <div className="sticker-search">
-          <Search size={16} />
+      <div className="pp-filter-bar" style={{ marginBottom: 24, display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <div className="pp-filter-search-wrap" style={{ width: 300 }}>
+          <Search size={14} strokeWidth={1.6} />
           <input
             type="text"
+            className="pp-filter-search-input"
             placeholder="Search by patient, regid, or remedy..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="sticker-date-picker">
-          <Calendar size={16} />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
-        </div>
+        <input
+          type="date"
+          className="pp-input"
+          style={{ width: 'auto' }}
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+        />
       </div>
 
       {isLoading ? (
