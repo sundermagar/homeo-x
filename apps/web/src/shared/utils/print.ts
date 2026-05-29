@@ -622,3 +622,72 @@ export const printAppointmentSlip = (appointment: {
   }
 };
 
+export const printThermalStickers = (stickerData: any, clinicName: string) => {
+  const labelsHtml = stickerData.medicines.map((med: any) => `
+    <div class="thermal-label">
+      <div class="thermal-header">${clinicName}</div>
+      <div class="thermal-row">
+        <span class="thermal-patient-name">${stickerData.patientName}</span>
+        <span>ID: ${stickerData.caseId}</span>
+      </div>
+      <div class="thermal-row" style="font-size: 7px;">
+        <span>Date: ${new Date(stickerData.dateval).toLocaleDateString('en-IN')}</span>
+      </div>
+      <div class="thermal-remedy">${med.remedy} ${med.potency}</div>
+      <div class="thermal-footer">
+        <span>Freq: ${med.frequency}</span>
+        <span>Days: ${med.days}</span>
+      </div>
+    </div>
+  `).join('');
+
+  const html = `
+    <html>
+      <head>
+        <title>Print Stickers - ${stickerData.patientName}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+          * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
+          
+          /* Screen preview styles */
+          body { padding: 40px; background: #f1f5f9; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+          .thermal-label {
+            width: 50mm; height: 25mm; padding: 1mm 2mm; background: white;
+            display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden;
+          }
+          .thermal-header { font-size: 8px; font-weight: 800; text-align: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 1mm; margin-bottom: 0.5mm; text-transform: uppercase; }
+          .thermal-row { display: flex; justify-content: space-between; font-size: 8px; line-height: 1.2; }
+          .thermal-patient-name { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30mm; }
+          .thermal-remedy { font-weight: 800; font-size: 11px; text-align: center; padding: 1mm 0; }
+          .thermal-footer { display: flex; justify-content: space-between; font-size: 7px; font-weight: 700; border-top: 1px dashed #cbd5e1; padding-top: 0.5mm; }
+
+          @media print {
+            body { padding: 0; background: white; display: block; }
+            .no-print { display: none !important; }
+            @page { size: 50mm 25mm; margin: 0; }
+            .thermal-label {
+              width: 50mm; height: 25mm; box-shadow: none; border-radius: 0; margin: 0;
+              page-break-after: always;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 20px; text-align: center; width: 100%;">
+          <button onclick="window.print()" style="padding: 10px 20px; background: #0f172a; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 13px;">Print Labels</button>
+        </div>
+        ${labelsHtml}
+      </body>
+    </html>
+  `;
+
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  }
+};

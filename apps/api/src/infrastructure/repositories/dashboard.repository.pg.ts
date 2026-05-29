@@ -1161,11 +1161,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const userStats = await this.db.execute(sql`
         SELECT
           (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true) as user_count,
-          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true AND type = 'Clinicadmin') as admin_count
+          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true AND type = 'Clinicadmin') as admin_count,
+          (SELECT count(*)::int FROM public.organizations WHERE deleted_at IS NULL) as clinic_count
       `) as any[];
 
       const res = userStats[0] || {};
-      const clinicCount = schemas.length || 1;
+      const clinicCount = Number(res.clinic_count) || 1;
       const revDensity = Math.round(totalPlatformRev / clinicCount);
 
       return {

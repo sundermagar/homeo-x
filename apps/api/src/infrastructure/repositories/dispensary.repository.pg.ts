@@ -49,10 +49,10 @@ export class DispensaryRepositoryPg {
             'potency', cp.rxpotency,
             'frequency', cp.rxfrequency,
             'days', cp.rxdays,
-            'cost', COALESCE(NULLIF(cp.rxprescription, '')::numeric, 0)
+            'cost', COALESCE(NULLIF(REGEXP_REPLACE(cp.charges, '[^0-9.]', '', 'g'), '')::numeric, 0)
           )
         ) as medicines,
-        SUM(COALESCE(NULLIF(cp.rxprescription, '')::numeric, 0)) as total_medicine_cost
+        SUM(COALESCE(NULLIF(REGEXP_REPLACE(cp.charges, '[^0-9.]', '', 'g'), '')::numeric, 0)) as total_medicine_cost
       FROM case_potencies cp
       JOIN case_datas cd ON cd.regid = cp.regid
       LEFT JOIN courier_medicine cm ON cm.rand_id = cp.rand_id
