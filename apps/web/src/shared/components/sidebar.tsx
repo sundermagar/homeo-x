@@ -165,19 +165,7 @@ const NAV_STRUCTURE: NavItem[] = [
       ],
     },
   },
-  {
-    type: 'group',
-    group: {
-      id: 'memberships',
-      label: 'Memberships',
-      icon: Package,
-      roles: ADMIN_ROLES,
-      children: [
-        { path: '/packages', label: 'Package Plans', icon: Layers },
-        { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck },
-      ],
-    },
-  },
+
   {
     type: 'group',
     group: {

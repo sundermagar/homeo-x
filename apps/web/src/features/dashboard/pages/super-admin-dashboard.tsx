@@ -7,17 +7,7 @@ import {
   Trash2,
   UserCheck,
   Users,
-  Briefcase,
-  TrendingUp,
   Package,
-  CreditCard,
-  Globe,
-  Settings,
-  ShieldAlert,
-  Search,
-  ExternalLink,
-  ChevronRight,
-  UserCog,
   FileText,
 } from 'lucide-react';
 import { useDashboard } from '../hooks/use-dashboard';
@@ -50,12 +40,6 @@ export function SuperAdminDashboard() {
   return (
     <div className="sa-root">
       
-      {/* ── Page Header ── */}
-      <header className="sa-header">
-        <h1 className="sa-title">Platform Dashboard</h1>
-        <p className="sa-subtitle">Overview of all clinics and platform-wide usage metrics</p>
-      </header>
-
       {/* ── Section: Clinic Overview ── */}
       <section>
         <div className="sa-section-header">
@@ -126,21 +110,21 @@ export function SuperAdminDashboard() {
             iconColor="#8b5cf6" 
           />
           <UsageCard 
-            label="Total Clients" 
+            label="Total Patients" 
             value={patientCount} 
-            icon={<Briefcase size={20} />} 
+            icon={<UserCheck size={20} />} 
             iconBg="#eff6ff" 
             iconColor="#3b82f6" 
           />
           <UsageCard 
-            label="Total Projects" 
+            label="Total Cases" 
             value={consultationCount} 
-            icon={<TrendingUp size={20} />} 
+            icon={<FileText size={20} />} 
             iconBg="#fff7ed" 
             iconColor="#f97316" 
           />
           <UsageCard 
-            label="Total Assets" 
+            label="Total Prescriptions" 
             value={prescriptionCount} 
             icon={<Package size={20} />} 
             iconBg="#fdf2f8" 
@@ -148,92 +132,6 @@ export function SuperAdminDashboard() {
           />
         </div>
       </section>
-
-      {/* ── Bottom Split Row ── */}
-      <div className="sa-split-row">
-        
-        {/* Card: Subscriptions */}
-        <div className="sa-info-card">
-          <div className="sa-info-card-header">
-            <div className="sa-info-card-title">
-              <CreditCard size={18} />
-              Subscriptions
-            </div>
-            <a href="#" className="sa-manage-link">Manage Plans</a>
-          </div>
-
-          <div className="sa-sub-stats">
-            <div className="sa-sub-stat-box">
-              <div className="sa-sub-stat-value">3</div>
-              <div className="sa-sub-stat-label">Active Plans</div>
-            </div>
-            <div className="sa-sub-stat-box">
-              <div className="sa-sub-stat-value">{Math.max(clinicCount, 11)}</div>
-              <div className="sa-sub-stat-label">Total Subscribers</div>
-            </div>
-          </div>
-
-          <div className="sa-plan-breakdown">
-            <span className="sa-label-sm">Plans by Subscribes</span>
-            <PlanRow name="Starter" count={Math.floor(clinicCount * 0.45)} />
-            <PlanRow name="Professional" count={Math.floor(clinicCount * 0.35)} />
-            <PlanRow name="Business" count={Math.floor(clinicCount * 0.20)} />
-          </div>
-        </div>
-
-        {/* Card: White Label Usage */}
-        <div className="sa-info-card">
-          <div className="sa-info-card-header">
-            <div className="sa-info-card-title">
-              <Globe size={18} />
-              White-Label Usage
-            </div>
-          </div>
-
-          <div className="sa-sub-stats">
-            <div className="sa-sub-stat-box">
-              <div className="sa-sub-stat-value">{Math.round(clinicCount * 0.12)}</div>
-              <div className="sa-sub-stat-label">Total Configs</div>
-            </div>
-            <div className="sa-sub-stat-box">
-              <div className="sa-sub-stat-value">0</div>
-              <div className="sa-sub-stat-label">Verified Domains</div>
-            </div>
-          </div>
-
-          <div className="sa-plan-breakdown">
-            <WhiteLabelRow label="Custom Domains" value="0 verified / 0 pending" />
-            <WhiteLabelRow label="Custom Branding" value={`${Math.round(clinicCount * 0.08)} tenants`} />
-            <WhiteLabelRow label='Hide "Powered By"' value="0 tenants" />
-          </div>
-        </div>
-
-      </div>
-
-      {/* ── Footer Quick Actions ── */}
-      <div className="sa-actions-grid">
-        <ActionCard 
-          title="Manage Tenants" 
-          desc="View, suspend, and activate agency tenants" 
-          icon={<Building2 size={22} />}
-        />
-        <ActionCard 
-          title="Subscription Plans" 
-          desc="Create and manage subscription plans" 
-          icon={<CreditCard size={22} />}
-        />
-        <ActionCard 
-          title="All Users" 
-          desc="Search and view users across all tenants" 
-          icon={<Users size={22} />}
-        />
-        <ActionCard 
-          title="Audit Logs" 
-          desc="View all platform admin actions" 
-          icon={<FileText size={22} />}
-        />
-      </div>
-
     </div>
   );
 }
@@ -265,38 +163,5 @@ function UsageCard({ label, value, icon, iconBg, iconColor }: any) {
         <span className="sa-metric-value" style={{ fontSize: '24px' }}>{value}</span>
       </div>
     </div>
-  );
-}
-
-function PlanRow({ name, count }: any) {
-  return (
-    <div className="sa-plan-row">
-      <span className="sa-plan-name">{name}</span>
-      <span className="sa-plan-count">{count} subscribers</span>
-    </div>
-  );
-}
-
-function WhiteLabelRow({ label, value }: any) {
-  return (
-    <div className="sa-wl-row">
-      <div className="sa-wl-left">
-        <ChevronRight size={14} color="#9ca3af" />
-        <span>{label}</span>
-      </div>
-      <span className="sa-wl-value">{value}</span>
-    </div>
-  );
-}
-
-function ActionCard({ title, desc, icon }: any) {
-  return (
-    <button className="sa-action-card">
-      <div className="sa-action-icon">
-        {icon}
-      </div>
-      <h3 className="sa-action-title">{title}</h3>
-      <p className="sa-action-desc">{desc}</p>
-    </button>
   );
 }

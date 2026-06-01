@@ -8,7 +8,10 @@ import { ScrollToTop } from '../components/scroll-to-top';
 import { useMobile } from '../hooks/use-mobile';
 import { useCallback, useEffect } from 'react';
 
+import { useAuthStore } from '@/shared/stores/auth-store';
+
 export function AppLayout() {
+  const { user } = useAuthStore();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const isMobile = useMobile();
@@ -59,20 +62,10 @@ export function AppLayout() {
       />
 
       <main className="app-main">
-        <DashboardHeader onOpenPalette={() => setPaletteOpen(true)} />
+        {user?.type !== 'SuperAdmin' && <DashboardHeader onOpenPalette={() => setPaletteOpen(true)} />}
         <div className="page-content-area">
           <div className="page-content-row">
-            {location.pathname !== '/' && location.pathname !== '/login' && (
-              <div className="page-back-widget-area">
-                <button
-                  className="page-back-widget"
-                  onClick={() => navigate(-1)}
-                  aria-label="Go back"
-                >
-                  <ArrowLeft size={16} strokeWidth={2.5} />
-                </button>
-              </div>
-            )}
+
             <div className="page-content-main">
               <Outlet />
             </div>

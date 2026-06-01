@@ -1,7 +1,7 @@
 import { sql, desc, eq, and, gte, lte } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import { auditLogs } from '@mmc/database';
-import { AuditAction, AuditEntry, AuditRepository } from '../../../shared/audit/audit-logger';
+import { AuditAction, AuditEntry, AuditRepository } from '../../shared/audit/audit-logger.js';
 
 export class AuditRepositoryPg implements AuditRepository {
   constructor(private readonly db: DbClient) {}

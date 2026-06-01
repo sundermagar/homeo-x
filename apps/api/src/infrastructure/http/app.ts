@@ -44,8 +44,8 @@ import { staffRouter } from './routes/staff.router';
 import { createSettingsRouter } from './routes/settings.router';
 import { exportRouter } from './routes/export.router';
 import { createAuditRouter } from './routes/audit.router';
-import { AuditRepositoryPg } from '../repositories/audit.repository.pg';
-import { AuditLogger } from '../../../shared/audit/audit-logger';
+import { AuditRepositoryPg } from '../repositories/audit.repository.pg.js';
+import { AuditLogger } from '../../shared/audit/audit-logger.js';
 
 const logger = createLogger('http');
 

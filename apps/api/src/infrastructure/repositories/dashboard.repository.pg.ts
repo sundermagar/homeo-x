@@ -675,6 +675,15 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const newClinics = orgs?.latest || 0;
     const staffCount = users?.count || 0;
 
+    const [stats] = await (this.db as any).execute(sql`
+      SELECT 
+        COALESCE(SUM(n_live_tup) FILTER (WHERE relname = 'case_datas'), 0)::int as total_patients,
+        COALESCE(SUM(n_live_tup) FILTER (WHERE relname = 'medicalcases'), 0)::int as total_cases,
+        COALESCE(SUM(n_live_tup) FILTER (WHERE relname = 'case_potencies'), 0)::int as total_prescriptions
+      FROM pg_stat_user_tables
+      WHERE schemaname LIKE 'tenant_%' OR schemaname = 'public'
+    `) as any[];
+
     return {
       totalClinics,
       activeClinics,
@@ -683,9 +692,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       trialClinics: 0,     // Logic to be defined
       newClinicsLast30Days: newClinics,
       totalStaff: staffCount,
-      totalPatients: activeClinics * 154, // Global aggregation to be implemented
-      totalConsultations: activeClinics * 89, // Global aggregation to be implemented
-      totalPrescriptions: activeClinics * 210, // Global aggregation to be implemented
+      totalPatients: stats?.total_patients || 0,
+      totalConsultations: stats?.total_cases || 0,
+      totalPrescriptions: stats?.total_prescriptions || 0,
       activePlans: 3,
       totalSubscribers: activeClinics,
     };

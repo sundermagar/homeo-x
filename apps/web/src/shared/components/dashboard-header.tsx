@@ -82,27 +82,31 @@ export function DashboardHeader({ onOpenPalette }: DashboardHeaderProps) {
           <span className="dh-date">{formattedDate}</span>
 
           {/* Command Palette Trigger */}
-          <button
-            className="dh-search-wrap cp-trigger"
-            onClick={onOpenPalette}
-            aria-label="Open command palette"
-          >
-            <Search size={13} className="dh-search-icon" />
-            <span className="dh-search-input" style={{ pointerEvents: 'none' }}>
-              Search or jump to...
-            </span>
-            <kbd className="dh-kbd">⌘K</kbd>
-          </button>
+          {user?.type !== 'SuperAdmin' && (
+            <>
+              <button
+                className="dh-search-wrap cp-trigger"
+                onClick={onOpenPalette}
+                aria-label="Open command palette"
+              >
+                <Search size={13} className="dh-search-icon" />
+                <span className="dh-search-input" style={{ pointerEvents: 'none' }}>
+                  Search or jump to...
+                </span>
+                <kbd className="dh-kbd">⌘K</kbd>
+              </button>
 
-          {/* Primary CTA */}
-          <button
-            className="dh-cta-btn"
-            onClick={() => navigate('/appointments')}
-            id="dh-new-appointment-btn"
-          >
-            <Plus size={14} strokeWidth={2.5} />
-            New appointment
-          </button>
+              {/* Primary CTA */}
+              <button
+                className="dh-cta-btn"
+                onClick={() => navigate('/appointments')}
+                id="dh-new-appointment-btn"
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                New appointment
+              </button>
+            </>
+          )}
         </div>
       </header>
     </>

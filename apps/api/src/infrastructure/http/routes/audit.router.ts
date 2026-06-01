@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
-import { asyncHandler } from '../middleware/async-handler';
-import { AuditRepositoryPg } from '../../repositories/audit.repository.pg';
-import { AuditAction } from '../../../shared/audit/audit-logger';
+import { asyncHandler } from '../middleware/async-handler.js';
+import { AuditRepositoryPg } from '../../repositories/audit.repository.pg.js';
+import { AuditAction } from '../../../shared/audit/audit-logger.js';
 
 export function createAuditRouter(repo: AuditRepositoryPg): Router {
   const router = Router();

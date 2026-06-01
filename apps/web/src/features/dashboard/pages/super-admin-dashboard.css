@@ -1,11 +1,13 @@
+/* Hide global app scroller when this dashboard is active */
+body:has(.sa-root) .app-main {
+  overflow-y: hidden !important;
+}
+
 .sa-root {
-  padding: 32px;
-  padding-bottom: var(--pp-space-12);
-  min-height: 100%;
-  background-color: #fcfcfc;
+  background-color: transparent;
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 32px;
   color: #1a1a1a;
   font-family: inherit;
 }
