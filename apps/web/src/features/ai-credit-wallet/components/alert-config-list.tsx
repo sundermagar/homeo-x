@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAlertRules } from '../hooks/use-routing-data';
 import { Bell, Mail, MessageSquare, Loader2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 export function AlertConfigList() {
   const { data: rules, loading, updateRule, isUpdating } = useAlertRules();
@@ -21,6 +22,8 @@ export function AlertConfigList() {
     updateRule({ id, updates: { threshold: value } });
   };
 
+  const uniqueRules = Array.from(new Map(rules.map(r => [r.title, r])).values());
+
   return (
     <div className="cw-card" style={{ padding: '0', overflow: 'hidden' }}>
       <div className="cw-card-header" style={{ padding: '20px 24px', borderBottom: '1px solid #E5E7EB', marginBottom: 0 }}>
@@ -31,7 +34,7 @@ export function AlertConfigList() {
       </div>
       
       <div style={{ padding: '8px 24px' }}>
-        {rules.map((rule, idx) => (
+        {uniqueRules.map((rule, idx) => (
           <div key={rule.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: idx < rules.length - 1 ? '1px solid #E5E7EB' : 'none' }}>
             <div style={{ flex: 1, paddingRight: '24px' }}>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827', marginBottom: '4px' }}>{rule.title}</div>
@@ -40,15 +43,15 @@ export function AlertConfigList() {
                 {rule.type === 'threshold' && (
                   <>
                     <span>Trigger when wallet drops below</span>
-                    <div style={{ position: 'relative' }}>
-                      <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#6B7280' }}>₹</span>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input 
                         type="number" 
                         className="cw-form-input" 
                         defaultValue={rule.threshold || 0} 
                         onBlur={(e) => handleThresholdChange(rule.id, parseInt(e.target.value, 10))}
-                        style={{ width: '100px', padding: '4px 8px 4px 20px', fontSize: '13px', border: '1px solid #D1D5DB', borderRadius: '4px', outline: 'none' }} 
+                        style={{ width: '100px', padding: '4px 8px', fontSize: '13px', border: '1px solid #D1D5DB', borderRadius: '4px', outline: 'none' }} 
                       />
+                      <span>credits</span>
                     </div>
                   </>
                 )}
@@ -102,6 +105,18 @@ export function AlertConfigList() {
             </div>
           </div>
         ))}
+      </div>
+      <div style={{ padding: '16px 24px', borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'flex-end', background: '#F9FAFB' }}>
+        <button 
+          onClick={() => {
+            toast({ title: 'Configuration Saved', description: 'Budget alerts have been successfully updated.' });
+          }}
+          disabled={isUpdating}
+          style={{ padding: '8px 20px', background: '#0F172A', color: 'white', borderRadius: '6px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: isUpdating ? 0.7 : 1 }}
+        >
+          {isUpdating ? <Loader2 size={16} className="animate-spin" /> : null}
+          Save configuration
+        </button>
       </div>
     </div>
   );

@@ -156,7 +156,7 @@ Task:
       const response = await this.providerChain.complete({
         tenantId,
         userId,
-        feature: 'Prescription',
+        feature: 'Remedy',
         systemPrompt,
         userPrompt,
         temperature: 0.2,
@@ -216,7 +216,8 @@ Task:
       return parsed;
 
     } catch (error: any) {
-      logger.error({ error: error.message }, 'Homeopathy prescription drafting failed');
+      if (error?.name === 'AppError') throw error;
+      logger.error({ error: error.message }, 'Prescription generation failed');
       return {
         consultationSummary: input.clinicalData?.clinical_summary || 'Symptoms analysis failed.',
         diagnosis: input.diagnosisData?.primaryDiagnosis?.name || 'Pending assessment',

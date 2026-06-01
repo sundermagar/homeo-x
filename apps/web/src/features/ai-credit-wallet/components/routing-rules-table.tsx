@@ -8,7 +8,7 @@ import { usePagination } from '@/shared/hooks/use-pagination';
 import { ModelSelectDropdown } from './model-select-dropdown';
 
 export function RoutingRulesTable() {
-  const { data: initialRules } = useRoutingRules();
+  const { data: initialRules, updateRule } = useRoutingRules();
   const [rules, setRules] = useState<RoutingRule[]>(initialRules);
   const { data: aiModels } = useAIModels();
   const activeModels = aiModels.filter(m => m.status === 'Active');
@@ -33,50 +33,54 @@ export function RoutingRulesTable() {
       }
       return rule;
     }));
+    if (updateRule) {
+      updateRule({ id: ruleId, updates: { primaryModel: newModelId } });
+    }
     toast({ title: 'Primary Model Updated', description: 'The routing rule has been saved.' });
   };
 
   const handleRemoveFallback = (ruleId: string, idxToRemove: number) => {
-    setRules(prev => prev.map(rule => {
-      if (rule.id === ruleId) {
-        return {
-          ...rule,
-          fallbackModels: rule.fallbackModels.filter((_: string, idx: number) => idx !== idxToRemove)
-        };
-      }
-      return rule;
-    }));
+    const rule = rules.find(r => r.id === ruleId);
+    if (!rule) return;
+    const updatedFallbacks = rule.fallbackModels.filter((_: string, idx: number) => idx !== idxToRemove);
+    
+    setRules(prev => prev.map(r => r.id === ruleId ? { ...r, fallbackModels: updatedFallbacks } : r));
+    if (updateRule) {
+      updateRule({ id: ruleId, updates: { fallbackModels: updatedFallbacks } });
+    }
     toast({ title: 'Fallback removed', description: 'The fallback chain has been updated.' });
   };
 
   const handleUpdateFallback = (ruleId: string, idxToUpdate: number, newModelId: string) => {
-    setRules(prev => prev.map(rule => {
-      if (rule.id === ruleId) {
-        const newFallbacks = [...rule.fallbackModels];
-        newFallbacks[idxToUpdate] = newModelId;
-        return { ...rule, fallbackModels: newFallbacks };
-      }
-      return rule;
-    }));
+    const rule = rules.find(r => r.id === ruleId);
+    if (!rule) return;
+    const updatedFallbacks = [...rule.fallbackModels];
+    updatedFallbacks[idxToUpdate] = newModelId;
+    
+    setRules(prev => prev.map(r => r.id === ruleId ? { ...r, fallbackModels: updatedFallbacks } : r));
+    if (updateRule) {
+      updateRule({ id: ruleId, updates: { fallbackModels: updatedFallbacks } });
+    }
+    toast({ title: 'Fallback updated', description: 'The fallback chain has been saved.' });
   };
 
   const handleAddFallback = (ruleId: string) => {
-    setRules(prev => prev.map(rule => {
-      if (rule.id === ruleId) {
-        // Just add a random active model for demo purposes that isn't already primary or in chain
-        const available = activeModels.filter(m => m.id !== rule.primaryModel && !rule.fallbackModels.includes(m.id));
-        const modelToAdd = available[0];
-        if (modelToAdd) {
-          return {
-            ...rule,
-            fallbackModels: [...rule.fallbackModels, modelToAdd.id]
-          };
-        } else {
-          toast({ title: 'No models available', description: 'All active models are already in the chain.', variant: 'error' });
-        }
+    const rule = rules.find(r => r.id === ruleId);
+    if (!rule) return;
+    
+    const available = activeModels.filter(m => m.id !== rule.primaryModel && !rule.fallbackModels.includes(m.id));
+    const modelToAdd = available[0];
+    
+    if (modelToAdd) {
+      const updatedFallbacks = [...rule.fallbackModels, modelToAdd.id];
+      setRules(prev => prev.map(r => r.id === ruleId ? { ...r, fallbackModels: updatedFallbacks } : r));
+      if (updateRule) {
+        updateRule({ id: ruleId, updates: { fallbackModels: updatedFallbacks } });
+        toast({ title: 'Fallback added', description: 'The fallback chain has been updated.' });
       }
-      return rule;
-    }));
+    } else {
+      toast({ title: 'No models available', description: 'All active models are already in the chain.', variant: 'error' });
+    }
   };
 
   return (
@@ -94,7 +98,8 @@ export function RoutingRulesTable() {
             <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>FEATURE</th>
             <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>PRIMARY MODEL</th>
             <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>FALLBACK CHAIN</th>
-            <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>DAILY BUDGET (₹)</th>
+            <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>DAILY BUDGET (cr)</th>
+            <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>MAX TOKENS</th>
             <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 600, color: '#6B7280', textAlign: 'right' }}>STATUS</th>
           </tr>
         </thead>
@@ -110,12 +115,17 @@ export function RoutingRulesTable() {
                 </div>
               </td>
               <td data-label="PRIMARY MODEL" style={{ padding: '16px 24px', verticalAlign: 'middle' }}>
-                <ModelSelectDropdown 
-                  value={rule.primaryModel} 
-                  options={activeModels} 
-                  onChange={(val) => handleUpdatePrimaryModel(rule.id, val)}
-                  variant="primary"
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ModelSelectDropdown 
+                    value={rule.primaryModel} 
+                    options={activeModels.filter(m => !rule.fallbackModels.includes(m.id) || m.id === rule.primaryModel)} 
+                    onChange={(val) => handleUpdatePrimaryModel(rule.id, val)}
+                    variant="primary"
+                  />
+                  {!rule.primaryModel && (
+                    <div title="Warning: No primary model set. AI calls will fail." style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#FEE2E2', color: '#EF4444', fontSize: '12px', fontWeight: 800 }}>!</div>
+                  )}
+                </div>
               </td>
               <td data-label="FALLBACK CHAIN" style={{ padding: '16px 24px', verticalAlign: 'middle' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
@@ -123,13 +133,13 @@ export function RoutingRulesTable() {
                     <span style={{ fontSize: '13px', color: '#9CA3AF', fontStyle: 'italic' }}>None (Fail immediately)</span>
                   ) : (
                     rule.fallbackModels.map((modelId: string, idx: number) => {
-                      const modelName = activeModels.find(m => m.id === modelId)?.name || modelId;
+                      const availableForThisFallback = activeModels.filter(m => m.id !== rule.primaryModel && (!rule.fallbackModels.includes(m.id) || m.id === modelId));
                       return (
                         <React.Fragment key={`${modelId}-${idx}`}>
                           <div style={{ display: 'flex', alignItems: 'center', background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: '4px', padding: '2px 6px', fontSize: '12px', color: '#4B5563' }}>
                             <ModelSelectDropdown 
                               value={modelId}
-                              options={activeModels}
+                              options={availableForThisFallback}
                               onChange={(val) => handleUpdateFallback(rule.id, idx, val)}
                               variant="fallback"
                             />
@@ -159,14 +169,61 @@ export function RoutingRulesTable() {
                 <input 
                   type="number" 
                   className="cw-form-input" 
-                  defaultValue={rule.dailyBudget} 
+                  value={rule.dailyBudget} 
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setRules(prev => prev.map(r => r.id === rule.id ? { ...r, dailyBudget: val } : r));
+                  }}
+                  onBlur={(e) => {
+                    const val = Number(e.target.value);
+                    if (updateRule) {
+                      updateRule({ id: rule.id, updates: { dailyBudget: val } });
+                    }
+                  }}
+                  style={{ width: '100px', padding: '6px 10px', fontSize: '13px' }} 
+                />
+              </td>
+              <td data-label="MAX TOKENS" style={{ padding: '16px 24px', verticalAlign: 'middle' }}>
+                <input 
+                  type="number" 
+                  className="cw-form-input" 
+                  value={rule.maxTokensPerCall || ''} 
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? 0 : Number(e.target.value);
+                    setRules(prev => prev.map(r => r.id === rule.id ? { ...r, maxTokensPerCall: val } : r));
+                  }}
+                  onBlur={(e) => {
+                    const val = e.target.value === '' ? 0 : Number(e.target.value);
+                    if (updateRule) {
+                      updateRule({ id: rule.id, updates: { maxTokensPerCall: val } });
+                    }
+                  }}
+                  placeholder="No limit"
                   style={{ width: '100px', padding: '6px 10px', fontSize: '13px' }} 
                 />
               </td>
               <td data-label="STATUS" style={{ padding: '16px 24px', verticalAlign: 'middle', textAlign: 'right' }}>
-                <label className="plat-toggle" style={{ display: 'inline-block' }}>
-                  <input type="checkbox" defaultChecked={rule.isEnabled} />
-                  <span className="plat-slider"></span>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: rule.isEnabled ? '#10B981' : '#6B7280' }}>
+                    {rule.isEnabled ? '● Enabled' : '○ Disabled'}
+                  </span>
+                  <div className="plat-toggle" style={{ position: 'relative', display: 'inline-block', width: '36px', height: '20px' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={rule.isEnabled} 
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setRules(prev => prev.map(r => r.id === rule.id ? { ...r, isEnabled: checked } : r));
+                        if (updateRule) {
+                          updateRule({ id: rule.id, updates: { isEnabled: checked } });
+                        }
+                        toast({ title: checked ? 'Feature Enabled' : 'Feature Disabled', description: `AI routing for ${rule.feature} is now ${checked ? 'enabled' : 'disabled'}.` });
+                      }}
+                      style={{ opacity: 0, width: 0, height: 0 }} 
+                    />
+                    <span className="plat-slider" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: rule.isEnabled ? '#10B981' : '#D1D5DB', borderRadius: '20px', transition: '0.4s' }}></span>
+                    <span style={{ position: 'absolute', left: rule.isEnabled ? '18px' : '2px', top: '2px', width: '16px', height: '16px', background: 'white', borderRadius: '50%', transition: '0.4s' }}></span>
+                  </div>
                 </label>
               </td>
             </tr>

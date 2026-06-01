@@ -32,7 +32,7 @@ export function useApiKeys() {
       const res = await apiClient.get('/ai-ops/keys');
       const dbKeys = res.data.data;
       return dbKeys.map((k: any) => ({
-        id: k.id.toString(),
+        id: k.id,
         provider: k.provider.charAt(0).toUpperCase() + k.provider.slice(1),
         keyName: k.label,
         maskedPreview: k.maskedKey,

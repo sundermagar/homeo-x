@@ -82,7 +82,7 @@ Generate a complete, clinically appropriate SOAP note based strictly on the tran
       const response = await this.providerChain.complete({
         tenantId,
         userId,
-        feature: 'Consultation',
+        feature: 'Extraction',
         systemPrompt,
         userPrompt,
         temperature: 0.3,
@@ -116,7 +116,8 @@ Generate a complete, clinically appropriate SOAP note based strictly on the tran
         confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
       };
     } catch (error: any) {
-      logger.error({ error: error.message }, 'SOAP generation failed');
+      if (error?.name === 'AppError') throw error;
+      logger.error({ error: error.message }, 'SOAP structuring failed');
       return {
         subjective: '',
         objective: '',

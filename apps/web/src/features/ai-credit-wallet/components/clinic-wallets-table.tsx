@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useClinicWallets, ClinicWallet } from '../hooks/use-routing-data';
-import { Edit2, Search, Filter, Loader2 } from 'lucide-react';
+import { Edit2, Search, Filter, Loader2, Plus } from 'lucide-react';
 import { EditClinicLimitModal } from './edit-clinic-limit-modal';
 import { Pagination } from '@/components/shared/pagination';
 import { usePagination } from '@/shared/hooks/use-pagination';
@@ -28,10 +28,12 @@ export function ClinicWalletsTable() {
       const matchesSearch = w.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             w.id.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const percent = (w.spentThisMonth / w.monthlyLimit) * 100;
+      const percent = w.monthlyLimit > 0 ? (w.spentThisMonth / w.monthlyLimit) * 100 : 0;
       let status = 'Normal';
-      if (percent >= 100) status = 'Suspended';
-      else if (percent >= 80) status = 'Near Limit';
+      if (w.monthlyLimit === 0) status = 'Unrestricted';
+      else if ((w as any).isSuspended) status = 'Suspended';
+      else if (percent >= 100) status = 'At limit';
+      else if (percent >= 80) status = 'Near limit';
       
       const matchesStatus = statusFilter === 'All' || status === statusFilter;
       
@@ -64,47 +66,57 @@ export function ClinicWalletsTable() {
           <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>Monitor credit consumption and manage monthly limits per clinic.</p>
         </div>
         
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-            <input 
-              type="text" 
-              placeholder="Search clinics..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ 
-                padding: '8px 12px 8px 36px', 
-                border: '1px solid #D1D5DB', 
-                borderRadius: '6px', 
-                fontSize: '13px',
-                width: '220px',
-                outline: 'none'
-              }} 
-            />
-          </div>
-          
-          <div style={{ position: 'relative' }}>
-            <Filter size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-            <select 
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ 
-                padding: '8px 12px 8px 36px', 
-                border: '1px solid #D1D5DB', 
-                borderRadius: '6px', 
-                fontSize: '13px',
-                backgroundColor: 'white',
-                outline: 'none',
-                cursor: 'pointer',
-                appearance: 'none',
-                paddingRight: '32px'
-              }}
-            >
-              <option value="All">All Status</option>
-              <option value="Normal">Normal</option>
-              <option value="Near Limit">Near Limit</option>
-              <option value="Suspended">Suspended</option>
-            </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button 
+            onClick={() => setEditingWallet({ id: 'NEW', name: 'New Clinic', monthlyLimit: 0, spentThisMonth: 0 })}
+            style={{ padding: '8px 16px', background: '#0F172A', color: 'white', borderRadius: '6px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Plus size={16} /> Set limit
+          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+              <input 
+                type="text" 
+                placeholder="Search clinics..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ 
+                  padding: '8px 12px 8px 36px', 
+                  border: '1px solid #D1D5DB', 
+                  borderRadius: '6px', 
+                  fontSize: '13px',
+                  width: '220px',
+                  outline: 'none'
+                }} 
+              />
+            </div>
+            
+            <div style={{ position: 'relative' }}>
+              <Filter size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{ 
+                  padding: '8px 12px 8px 36px', 
+                  border: '1px solid #D1D5DB', 
+                  borderRadius: '6px', 
+                  fontSize: '13px',
+                  backgroundColor: 'white',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  paddingRight: '32px'
+                }}
+              >
+                <option value="All">All Status</option>
+                <option value="Normal">Normal</option>
+                <option value="Near limit">Near limit</option>
+                <option value="At limit">At limit</option>
+                <option value="Suspended">Suspended</option>
+                <option value="Unrestricted">Unrestricted</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -121,17 +133,25 @@ export function ClinicWalletsTable() {
         </thead>
         <tbody>
           {paginatedData.map((wallet) => {
-            const percent = (wallet.spentThisMonth / wallet.monthlyLimit) * 100;
+            const percent = wallet.monthlyLimit > 0 ? (wallet.spentThisMonth / wallet.monthlyLimit) * 100 : 0;
             let status = 'Normal';
             let statusColor = '#10B981';
             let statusBg = '#DCFCE7';
             
-            if (percent >= 100) {
+            if (wallet.monthlyLimit === 0) {
+              status = 'Unrestricted';
+              statusColor = '#6B7280';
+              statusBg = '#F3F4F6';
+            } else if ((wallet as any).isSuspended) {
               status = 'Suspended';
-              statusColor = '#991B1B';
+              statusColor = '#7F1D1D';
+              statusBg = '#FEE2E2';
+            } else if (percent >= 100) {
+              status = 'At limit';
+              statusColor = '#EF4444';
               statusBg = '#FEE2E2';
             } else if (percent >= 80) {
-              status = 'Near Limit';
+              status = 'Near limit';
               statusColor = '#D97706';
               statusBg = '#FEF3C7';
             }
@@ -147,8 +167,8 @@ export function ClinicWalletsTable() {
                 </td>
                 <td data-label="CONSUMPTION" style={{ padding: '16px 24px', verticalAlign: 'middle' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-                    <span style={{ fontWeight: 600 }}>₹{wallet.spentThisMonth.toLocaleString()}</span>
-                    <span style={{ color: '#6B7280' }}>{percent.toFixed(1)}%</span>
+                    <span style={{ fontWeight: 600 }}>{wallet.spentThisMonth.toLocaleString()} cr</span>
+                    <span style={{ color: '#6B7280' }}>{wallet.monthlyLimit > 0 ? `${percent.toFixed(1)}%` : 'N/A'}</span>
                   </div>
                   <div style={{ height: '6px', background: '#E5E7EB', borderRadius: '3px', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${Math.min(percent, 100)}%`, background: statusColor, borderRadius: '3px' }} />

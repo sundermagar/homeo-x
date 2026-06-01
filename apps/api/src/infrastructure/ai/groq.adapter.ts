@@ -31,19 +31,30 @@ export class GroqAdapter implements AiProviderPort {
     return 'groq';
   }
 
+  private dynamicClients = new Map<string, any>(); // cache dynamic clients
+
   async isAvailable(): Promise<boolean> {
-    return this.clients.length > 0;
+    return true; // Dynamic availability based on runtime keys
   }
 
   async complete(request: AiCompletionRequest): Promise<AiCompletionResponse> {
-    if (this.clients.length === 0) throw new Error('Groq API keys not configured');
+    let clientsToUse = this.clients;
+
+    if (request.runtimeApiKey) {
+      if (!this.dynamicClients.has(request.runtimeApiKey)) {
+        this.dynamicClients.set(request.runtimeApiKey, new Groq({ apiKey: request.runtimeApiKey }));
+      }
+      clientsToUse = [this.dynamicClients.get(request.runtimeApiKey)];
+    }
+
+    if (clientsToUse.length === 0) throw new Error('Groq API keys not configured');
 
     let lastError: Error | null = null;
-    const startIdx = Math.floor(Date.now() / 1000) % this.clients.length;
+    const startIdx = Math.floor(Date.now() / 1000) % clientsToUse.length;
 
-    for (let i = 0; i < this.clients.length; i++) {
-      const currentIdx = (startIdx + i) % this.clients.length;
-      const client = this.clients[currentIdx];
+    for (let i = 0; i < clientsToUse.length; i++) {
+      const currentIdx = (startIdx + i) % clientsToUse.length;
+      const client = clientsToUse[currentIdx];
 
       try {
         let userContent: any = request.userPrompt;

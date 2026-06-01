@@ -98,7 +98,7 @@ Extract all clinical data:`;
       const response = await this.providerChain.complete({
         tenantId,
         userId,
-        feature: 'Consultation',
+        feature: 'Extraction',
         systemPrompt,
         userPrompt,
         temperature: 0.1,
@@ -137,6 +137,7 @@ Extract all clinical data:`;
         confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
       };
     } catch (error: any) {
+      if (error?.name === 'AppError') throw error;
       logger.error({ error: error.message }, 'Clinical extraction failed');
       return {
         observations: [], clinicalFindings: [], mentalState: [],

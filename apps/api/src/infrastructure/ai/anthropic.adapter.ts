@@ -19,6 +19,7 @@ export class AnthropicAdapter implements AiProviderPort {
   private lastResetTime: number = Date.now();
   private client: Anthropic | null = null;
   private hasKey: boolean = false;
+  private dynamicClients = new Map<string, Anthropic>();
 
   constructor(modelName: string, quota: number) {
     this.model = modelName;
@@ -42,20 +43,21 @@ export class AnthropicAdapter implements AiProviderPort {
   }
 
   async isAvailable(): Promise<boolean> {
-    if (!this.hasKey || !this.client) return false;
-
-    // Reset quota counter every minute
-    const now = Date.now();
-    if (now - this.lastResetTime > 60_000) {
-      this.reqCount = 0;
-      this.lastResetTime = now;
-    }
-
-    return this.reqCount < this.quotaCallsPerMinute;
+    // Dynamic availability: if a runtime key is passed later, it's available.
+    return true;
   }
 
   async complete(request: AiCompletionRequest): Promise<AiCompletionResponse> {
-    if (!this.client || !this.hasKey) {
+    let activeClient = this.client;
+
+    if (request.runtimeApiKey) {
+      if (!this.dynamicClients.has(request.runtimeApiKey)) {
+        this.dynamicClients.set(request.runtimeApiKey, new Anthropic({ apiKey: request.runtimeApiKey }));
+      }
+      activeClient = this.dynamicClients.get(request.runtimeApiKey)!;
+    }
+
+    if (!activeClient) {
       throw new Error('Anthropic provider is not properly initialized or missing API key');
     }
 
@@ -99,7 +101,7 @@ export class AnthropicAdapter implements AiProviderPort {
       }
       userContent.push({ type: 'text', text: request.userPrompt });
 
-      const response = await this.client.messages.create({
+      const response = await activeClient.messages.create({
         model: this.model,
         max_tokens: request.maxTokens || 4000,
         temperature: request.temperature ?? 0.7,

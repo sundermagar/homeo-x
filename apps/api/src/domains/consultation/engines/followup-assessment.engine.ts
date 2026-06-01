@@ -164,6 +164,7 @@ Remember: Do NOT suggest a new remedy unless the previous one clearly failed (de
 
       return parsed;
     } catch (error: any) {
+      if (error?.name === 'AppError') throw error;
       logger.error({ error: error.message }, 'Follow-up assessment failed');
       return {
         decision: 'REPEAT',

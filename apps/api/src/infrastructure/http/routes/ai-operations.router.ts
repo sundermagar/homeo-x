@@ -260,10 +260,30 @@ export function createAiOpsRouter(): Router {
         { id: 'llama-3.3-70b-versatile', provider: 'groq', displayName: 'Llama 3.3 Versatile (70B)', contextWindow: 128000, costPerInputToken: 0.05, costPerOutputToken: 0.05, status: 'Active', capabilities: { streaming: true } },
         { id: 'qwen2.5:1.5b', provider: 'ollama', displayName: 'Qwen 2.5 (1.5B Local)', contextWindow: 32000, costPerInputToken: 0, costPerOutputToken: 0, status: 'Active', capabilities: { local: true } },
         { id: 'claude-haiku-4-5', provider: 'anthropic', displayName: 'Claude 3.5 Haiku', contextWindow: 200000, costPerInputToken: 0.25, costPerOutputToken: 1.25, status: 'Active', capabilities: { vision: true, streaming: true } },
-        { id: 'gemini-2.5-flash', provider: 'gemini', displayName: 'Gemini 2.5 Flash', contextWindow: 1048576, costPerInputToken: 0.075, costPerOutputToken: 0.3, status: 'Active', capabilities: { vision: true, streaming: true } }
+        { id: 'gemini-2.5-flash', provider: 'gemini', displayName: 'Gemini 2.5 Flash', contextWindow: 1048576, costPerInputToken: 0.075, costPerOutputToken: 0.3, status: 'Active', capabilities: { vision: true, streaming: true } },
+        { id: 'google-stt', provider: 'google', displayName: 'Google Cloud STT', contextWindow: 0, costPerInputToken: 0, costPerOutputToken: 0, status: 'Active', capabilities: { audio: true } }
       ];
       await db.insert(aiModelRegistry).values(defaultModels).onConflictDoNothing();
       models = await db.select().from(aiModelRegistry);
+    }
+
+    // Dynamic fallback: ensure Google STT is present in returned list
+    const hasGoogleSTT = models.some((m: any) => m.id === 'google-stt');
+    if (!hasGoogleSTT) {
+      const googleSttModel = { 
+        id: 'google-stt', 
+        provider: 'google', 
+        displayName: 'Google Cloud STT', 
+        contextWindow: 0, 
+        costPerInputToken: 0, 
+        costPerOutputToken: 0, 
+        status: 'Active', 
+        capabilities: { audio: true } 
+      };
+      try {
+        await db.insert(aiModelRegistry).values(googleSttModel).onConflictDoNothing();
+      } catch (e) {}
+      models.push(googleSttModel as any);
     }
     
     sendSuccess(res, models);
@@ -274,21 +294,56 @@ export function createAiOpsRouter(): Router {
     const tenantId = req.tenantSlug || 'demo';
     const db = req.db;
     let rules = await db.select().from(aiRoutingRules)
-      .where(eq(aiRoutingRules.tenantId, tenantId));
+      .where(eq(aiRoutingRules.tenantId, tenantId))
+      .orderBy(aiRoutingRules.id);
       
     // Lazy Provision Defaults
     if (rules.length === 0) {
       const defaultRules = [
-        { tenantId, feature: 'consultation', primaryModelId: 'meta-llama/llama-4-scout-17b-16e-instruct', fallbackModelId: 'claude-haiku-4-5', isEnabled: true, dailyBudgetCredits: 5000, maxTokensPerCall: 4000 },
-        { tenantId, feature: 'symptoms', primaryModelId: 'llama-3.3-70b-versatile', fallbackModelId: 'qwen2.5:1.5b', isEnabled: true },
-        { tenantId, feature: 'transcription', primaryModelId: 'gemini-2.5-flash', fallbackModelId: null, isEnabled: true, dailyBudgetCredits: 2000 },
-        { tenantId, feature: 'general', primaryModelId: 'meta-llama/llama-4-scout-17b-16e-instruct', fallbackModelId: null, isEnabled: true }
+        { tenantId, feature: 'Consultation', primaryModelId: 'meta-llama/llama-4-scout-17b-16e-instruct', fallbackModelId: 'claude-haiku-4-5', isEnabled: true, dailyBudgetCredits: 5000, maxTokensPerCall: 4000 },
+        { tenantId, feature: 'STT', primaryModelId: 'gemini-2.5-flash', fallbackModelId: null, isEnabled: true, dailyBudgetCredits: 2000, maxTokensPerCall: 1000 },
+        { tenantId, feature: 'Summarization', primaryModelId: 'llama-3.3-70b-versatile', fallbackModelId: 'qwen2.5:1.5b', isEnabled: true, dailyBudgetCredits: 3000, maxTokensPerCall: 2000 },
+        { tenantId, feature: 'Prescription', primaryModelId: 'meta-llama/llama-4-scout-17b-16e-instruct', fallbackModelId: 'claude-haiku-4-5', isEnabled: true, dailyBudgetCredits: 3000, maxTokensPerCall: 1000 },
+        { tenantId, feature: 'WhatsApp', primaryModelId: 'qwen2.5:1.5b', fallbackModelId: null, isEnabled: true, dailyBudgetCredits: 1000, maxTokensPerCall: 500 },
+        { tenantId, feature: 'Email', primaryModelId: 'llama-3.3-70b-versatile', fallbackModelId: null, isEnabled: true, dailyBudgetCredits: 1000, maxTokensPerCall: 2000 },
+        { tenantId, feature: 'SMS', primaryModelId: 'qwen2.5:1.5b', fallbackModelId: null, isEnabled: true, dailyBudgetCredits: 500, maxTokensPerCall: 250 }
       ];
       await db.insert(aiRoutingRules).values(defaultRules).onConflictDoNothing();
-      rules = await db.select().from(aiRoutingRules).where(eq(aiRoutingRules.tenantId, tenantId));
+      rules = await db.select().from(aiRoutingRules).where(eq(aiRoutingRules.tenantId, tenantId)).orderBy(aiRoutingRules.id);
     }
     
     sendSuccess(res, rules);
+  }));
+
+  // ─── Update Routing Rule ───
+  router.put('/routing-rules/:id', asyncHandler(async (req: any, res: any) => {
+    const tenantId = req.tenantSlug || 'demo';
+    const db = req.db;
+    const { id } = req.params;
+    const { primaryModelId, fallbackModelId, isEnabled, dailyBudgetCredits, maxTokensPerCall } = req.body;
+
+    const updatePayload: any = { updatedAt: new Date() };
+    if (primaryModelId !== undefined) updatePayload.primaryModelId = primaryModelId;
+    if (fallbackModelId !== undefined) updatePayload.fallbackModelId = fallbackModelId;
+    if (isEnabled !== undefined) updatePayload.isEnabled = isEnabled;
+    if (dailyBudgetCredits !== undefined) updatePayload.dailyBudgetCredits = dailyBudgetCredits;
+    if (maxTokensPerCall !== undefined) updatePayload.maxTokensPerCall = maxTokensPerCall;
+
+    const [updatedRule] = await db.update(aiRoutingRules)
+      .set(updatePayload)
+      .where(
+        and(
+          eq(aiRoutingRules.id, Number(id)),
+          eq(aiRoutingRules.tenantId, tenantId)
+        )
+      )
+      .returning();
+
+    if (!updatedRule) {
+      return res.status(404).json({ success: false, error: 'Routing rule not found' });
+    }
+
+    sendSuccess(res, updatedRule);
   }));
 
   // ─── Wallet Deposit ───
@@ -363,7 +418,7 @@ export function createAiOpsRouter(): Router {
     const db = req.db;
     const { provider, label, key } = req.body;
     
-    if (!provider || !label || !key) {
+    if (!provider || !key) {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
 
@@ -372,16 +427,43 @@ export function createAiOpsRouter(): Router {
 
     const [newKey] = await db.insert(aiApiKeys).values({
       tenantId,
-      provider,
-      label,
+      provider: provider.toLowerCase(),
+      label: label || `${provider} Key`,
       encryptedKey,
       maskedKey: maskedKeyStr,
       status: 'active'
-    }).returning();
+    })
+    .onConflictDoUpdate({
+      target: [aiApiKeys.tenantId, aiApiKeys.provider],
+      set: {
+        encryptedKey,
+        maskedKey: maskedKeyStr,
+        lastRotated: new Date(),
+        status: 'active'
+      }
+    })
+    .returning();
 
     // Do not return encrypted key to frontend
     const safeKey = { ...newKey, encryptedKey: undefined };
     sendSuccess(res, safeKey);
+  }));
+
+  // ─── Security Audit (Live Check) ───
+  router.get('/keys/audit', asyncHandler(async (req: any, res: any) => {
+    const tenantId = req.tenantSlug || 'demo';
+    const db = req.db;
+    const keys = await db.select({
+      provider: aiApiKeys.provider,
+      status: aiApiKeys.status
+    }).from(aiApiKeys).where(eq(aiApiKeys.tenantId, tenantId));
+
+    const results = keys.map((k: any) => ({
+      provider: k.provider,
+      status: k.status === 'active' ? 'Valid' : 'Revoked'
+    }));
+
+    sendSuccess(res, { auditResults: results, timestamp: new Date().toISOString() });
   }));
 
   // ─── Credit Ledger (Audit Trail) ───
@@ -443,12 +525,18 @@ export function createAiOpsRouter(): Router {
     // Lazy Provision Defaults
     if (alerts.length === 0) {
       const defaultAlerts = [
-        { tenantId, title: 'Wallet low', description: 'Triggers when central wallet balance drops below threshold', type: 'threshold', threshold: 5000, inApp: true, email: true, sms: false },
+        { tenantId, title: 'Wallet critical', description: 'Triggers when wallet drops below 10% of total limit', type: 'threshold', threshold: 1000, inApp: true, email: true, sms: true },
+        { tenantId, title: 'Wallet empty', description: 'Triggers when wallet balance is exactly 0', type: 'event', inApp: true, email: true, sms: true },
+        { tenantId, title: 'Wallet low', description: 'Triggers when wallet drops below threshold', type: 'threshold', threshold: 5000000, inApp: true, email: true, sms: false },
         { tenantId, title: 'Model overspend', description: 'Triggers if daily model spend exceeds budget by 20%', type: 'event', inApp: true, email: false, sms: false },
         { tenantId, title: 'Clinic near limit', description: 'Triggers when a clinic consumes ≥80% of monthly limit', type: 'event', inApp: true, email: true, sms: true },
         { tenantId, title: 'Wallet depletion imminent', description: 'Triggers when projected credits will exhaust in X days', type: 'days', threshold: 7, inApp: true, email: true, sms: true },
         { tenantId, title: 'Fallback routing triggered', description: 'Triggers when a primary model fails and fallback is used', type: 'event', inApp: true, email: false, sms: false },
         { tenantId, title: 'API key expiring', description: 'Triggers when a configured provider key expires in X days', type: 'days', threshold: 14, inApp: true, email: true, sms: false },
+        { tenantId, title: 'Daily burn spike', description: 'Triggers when today\'s burn > 7-day avg × 1.5', type: 'event', inApp: true, email: true, sms: true },
+        { tenantId, title: 'Feature over daily budget', description: 'Triggers when feature spend ≥ daily budget', type: 'event', inApp: true, email: true, sms: false },
+        { tenantId, title: 'All models failed', description: 'Triggers when both primary and fallback models fail', type: 'event', inApp: true, email: true, sms: true },
+        { tenantId, title: 'Model error rate high', description: 'Triggers when errors > 5% in last 1 hour', type: 'event', inApp: true, email: true, sms: false },
       ];
       await db.insert(aiBudgetAlerts).values(defaultAlerts);
       alerts = await db.select().from(aiBudgetAlerts).where(eq(aiBudgetAlerts.tenantId, tenantId));

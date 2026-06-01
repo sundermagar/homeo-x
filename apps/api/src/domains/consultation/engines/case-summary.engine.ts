@@ -55,7 +55,7 @@ Generate a clinical case summary:`;
       const response = await this.providerChain.complete({
         tenantId,
         userId,
-        feature: 'Summarisation',
+        feature: 'Summary',
         systemPrompt,
         userPrompt,
         temperature: 0.3,
@@ -70,6 +70,7 @@ Generate a clinical case summary:`;
       }
       return parsed;
     } catch (error: any) {
+      if (error?.name === 'AppError') throw error;
       logger.error({ error: error.message }, 'Case summary generation failed');
       return {
         title: 'Consultation Summary',

@@ -37,7 +37,7 @@ aiRouter.post('/analyze-report', async (req: Request, res: Response, next: NextF
 });
 
 function getTenant(req: Request): string {
-  return (req as any).tenantSlug || (req as any).tenantId || 'default';
+  return (req as any).tenantSlug || (req as any).tenantId || 'demo';
 }
 function getUserId(req: Request): string {
   return (req as any).user?.id || (req as any).userId || 'system';
@@ -371,7 +371,7 @@ Reply with ONLY the JSON object.`;
       tenantId: getTenant(req),
       userId: getUserId(req),
       userName: getUserName(req),
-      feature: 'Clinical Extraction',
+      feature: 'Extraction',
     });
 
     const parsed = extractJson<{ 
@@ -522,7 +522,7 @@ Rules:
       tenantId: getTenant(req),
       userId: getUserId(req),
       userName: getUserName(req),
-      feature: 'Followup Summary',
+      feature: 'Summary',
     });
 
     const summary = (response.content || '').trim();
@@ -771,7 +771,7 @@ Output the JSON now. ${ccTrim ? `Anchor your questions to "${ccTrim}" and any ne
       tenantId: getTenant(req),
       userId: getUserId(req),
       userName: getUserName(req),
-      feature: 'Consultation',
+      feature: 'Extraction',
     });
 
     const parsed = extractJson<any>(response.content);
@@ -1015,7 +1015,7 @@ OUTPUT FORMAT:
       tenantId: getTenant(req),
       userId: getUserId(req),
       userName: getUserName(req),
-      feature: 'Prescription Gen',
+      feature: 'Remedy',
       preferredProvider: 'gemini'
     });
 

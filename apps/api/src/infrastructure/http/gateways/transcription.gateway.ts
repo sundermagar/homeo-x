@@ -6,6 +6,9 @@
 import type { Server, Socket } from 'socket.io';
 import { createLogger } from '../../../shared/logger.js';
 import { TranslatorEngine } from '../../../domains/consultation/engines/translator.engine.js';
+import { createDbClient } from '@mmc/database';
+import { aiRoutingRules } from '@mmc/database/schema';
+import { eq, and, sql } from 'drizzle-orm';
 
 const logger = createLogger('transcription-gateway');
 
@@ -45,7 +48,7 @@ export function setupTranscriptionGateway(io: Server, translator: TranslatorEngi
     logger.info(`Transcription socket connected: ${client.id}`);
 
     // ─── stream:start ───
-    client.on('stream:start', (payload: {
+    client.on('stream:start', async (payload: {
       visitId: string;
       engine: 'DEEPGRAM' | 'GOOGLE';
       languageCode?: string;
@@ -57,6 +60,31 @@ export function setupTranscriptionGateway(io: Server, translator: TranslatorEngi
       killSession(client.id);
 
       const { visitId, engine, languageCode, role = 'DOCTOR' } = payload;
+      const tenantId = (client.handshake.query.tenantId as string) || 'demo';
+
+      // ── Enforce AI Routing Rules for STT ──
+      try {
+        const db = createDbClient(process.env.DATABASE_URL!);
+        const [rule] = await db.select()
+          .from(aiRoutingRules)
+          .where(
+            and(
+              eq(aiRoutingRules.tenantId, tenantId),
+              sql`lower(${aiRoutingRules.feature}) IN ('stt', 'transcription')`
+            )
+          )
+          .limit(1);
+
+        if (rule && !rule.isEnabled) {
+          logger.warn(`STT feature is disabled for tenant ${tenantId}. Rejecting stream:start.`);
+          client.emit('transcription:error', { 
+            message: "AI Feature 'Transcription (STT)' is currently disabled by your clinic administrator."
+          });
+          return;
+        }
+      } catch (err: any) {
+        logger.error({ err: err.message }, 'Failed to check STT routing rules');
+      }
 
       if (engine === 'GOOGLE' && !SpeechClientV2) {
         client.emit('transcription:error', { message: 'Google STT v2 not available. Use Web Speech API.' });

@@ -28,19 +28,30 @@ export class GeminiAdapter implements AiProviderPort {
     return 'gemini';
   }
 
+  private dynamicGenAIs = new Map<string, GoogleGenerativeAI>();
+
   async isAvailable(): Promise<boolean> {
-    return this.genAIs.length > 0;
+    return true; // Dynamic availability
   }
 
   async complete(request: AiCompletionRequest): Promise<AiCompletionResponse> {
-    if (this.genAIs.length === 0) throw new Error('Gemini API keys not configured');
+    let genAIsToUse = this.genAIs;
+
+    if (request.runtimeApiKey) {
+      if (!this.dynamicGenAIs.has(request.runtimeApiKey)) {
+        this.dynamicGenAIs.set(request.runtimeApiKey, new GoogleGenerativeAI(request.runtimeApiKey));
+      }
+      genAIsToUse = [this.dynamicGenAIs.get(request.runtimeApiKey)!];
+    }
+
+    if (genAIsToUse.length === 0) throw new Error('Gemini API keys not configured');
 
     let lastError: Error | null = null;
-    const startIdx = Math.floor(Date.now() / 1000) % this.genAIs.length;
+    const startIdx = Math.floor(Date.now() / 1000) % genAIsToUse.length;
 
-    for (let i = 0; i < this.genAIs.length; i++) {
-      const currentIdx = (startIdx + i) % this.genAIs.length;
-      const genAI = this.genAIs[currentIdx]!;
+    for (let i = 0; i < genAIsToUse.length; i++) {
+      const currentIdx = (startIdx + i) % genAIsToUse.length;
+      const genAI = genAIsToUse[currentIdx]!;
 
       try {
         const start = Date.now();

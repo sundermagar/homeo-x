@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface ModelOption {
@@ -14,94 +14,71 @@ interface ModelSelectDropdownProps {
 }
 
 export function ModelSelectDropdown({ value, options, onChange, variant = 'primary' }: ModelSelectDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
+  const isFallback = variant === 'fallback';
   const selectedOption = options.find(o => o.id === value);
   const displayLabel = selectedOption ? selectedOption.name : value;
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const isFallback = variant === 'fallback';
-
   return (
-    <div ref={containerRef} style={{ position: 'relative', display: 'inline-block', width: isFallback ? 'auto' : '160px' }}>
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          padding: isFallback ? '0' : '6px 10px',
-          background: isFallback ? 'transparent' : 'white',
+    <div style={{ position: 'relative', display: 'inline-block', width: isFallback ? 'auto' : '170px' }}>
+      <select
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: '100%',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          padding: isFallback ? '2px 20px 2px 6px' : '6px 28px 6px 10px',
+          background: isFallback ? 'transparent' : '#FFFFFF',
           border: isFallback ? 'none' : '1px solid #D1D5DB',
-          borderRadius: '4px',
+          borderRadius: isFallback ? '4px' : '6px',
           fontSize: isFallback ? '12px' : '13px',
           fontWeight: 600,
-          color: '#111827',
-          gap: '8px',
-          userSelect: 'none'
+          color: '#374151',
+          cursor: 'pointer',
+          outline: 'none',
+          fontFamily: 'inherit',
+          transition: 'all 0.15s ease',
+          boxShadow: isFallback ? 'none' : '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        }}
+        onFocus={(e) => {
+          if (!isFallback) {
+            e.target.style.borderColor = '#2563EB';
+            e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.15)';
+          }
+        }}
+        onBlur={(e) => {
+          if (!isFallback) {
+            e.target.style.borderColor = '#D1D5DB';
+            e.target.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
+          }
         }}
       >
-        <span>{displayLabel}</span>
-        <ChevronDown size={14} style={{ color: '#6B7280', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none' }} />
+        {!value && <option value="" style={{ color: '#9CA3AF' }}>Select model...</option>}
+        {value && !selectedOption && (
+          <option value={value} style={{ color: '#111827', background: 'white', fontWeight: 500 }}>
+            {value} (Not active)
+          </option>
+        )}
+        {options.map(opt => (
+          <option key={opt.id} value={opt.id} style={{ color: '#111827', background: 'white', fontWeight: 500 }}>
+            {opt.name}
+          </option>
+        ))}
+      </select>
+      <div 
+        style={{ 
+          position: 'absolute', 
+          right: isFallback ? '2px' : '8px', 
+          top: '50%', 
+          transform: 'translateY(-50%)', 
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          color: '#6B7280'
+        }}
+      >
+        <ChevronDown size={isFallback ? 11 : 13} />
       </div>
-
-      {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          marginTop: '6px',
-          background: 'white',
-          border: '1px solid #E5E7EB',
-          borderRadius: '6px',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-          zIndex: 50,
-          minWidth: '160px',
-          width: 'max-content',
-          maxHeight: '250px',
-          overflowY: 'auto',
-          animation: 'fadeIn 0.15s ease-out'
-        }}>
-          {options.map(opt => (
-            <div 
-              key={opt.id}
-              onClick={() => { onChange(opt.id); setIsOpen(false); }}
-              style={{
-                padding: '8px 12px',
-                fontSize: '13px',
-                cursor: 'pointer',
-                background: value === opt.id ? '#2563EB' : 'transparent',
-                color: value === opt.id ? 'white' : '#374151',
-                fontWeight: value === opt.id ? 600 : 400,
-                transition: 'background 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                if (value !== opt.id) {
-                  e.currentTarget.style.background = '#F3F4F6';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (value !== opt.id) {
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
-            >
-              {opt.name}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

@@ -587,7 +587,7 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
       const res = await this.providerChain.complete({
         tenantId,
         userId,
-        feature: 'Consultation',
+        feature: 'Rubrics',
         systemPrompt,
         userPrompt: `Patient Case for Deep Clinical Analysis:\n${symptomText}\n\nDetermine case type (ACUTE/CHRONIC), perform INDIVIDUAL analysis, and extract Mac Repertory Rubrics:`,
         responseFormat: 'json',
@@ -622,6 +622,7 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
         suggestedInvestigations: Array.isArray(parsed.suggestedInvestigations) ? parsed.suggestedInvestigations : [],
       };
     } catch (error: any) {
+      if (error?.name === 'AppError') throw error;
       logger.error({ error: error.message }, 'Rubric extraction failed');
       return this.emptyExtractionResult();
     }
@@ -654,7 +655,7 @@ OUTPUT FORMAT:
       const res = await this.providerChain.complete({
         tenantId,
         userId,
-        feature: 'Consultation',
+        feature: 'Rubrics',
         systemPrompt,
         userPrompt: `Disease/Condition: ${input.disease}\n\nGenerate the relevant Mac Repertory rubrics:`,
         responseFormat: 'json',
@@ -677,7 +678,8 @@ OUTPUT FORMAT:
 
       return { suggestedRubrics };
     } catch (error: any) {
-      logger.error({ error: error.message }, 'Disease rubric extraction failed');
+      if (error?.name === 'AppError') throw error;
+      logger.error({ error: error.message }, 'Disease Rubric extraction failed');
       return { suggestedRubrics: [] };
     }
   }
@@ -711,7 +713,7 @@ OUTPUT FORMAT:
       const res = await this.providerChain.complete({
         tenantId,
         userId,
-        feature: 'Consultation',
+        feature: 'Lab Reports',
         systemPrompt,
         userPrompt: `Analyze the attached lab reports and extract abnormal findings as Mac Repertory rubrics.`,
         documents: input.documents,
@@ -735,7 +737,8 @@ OUTPUT FORMAT:
 
       return { reportSummary: parsed.reportSummary, rubrics };
     } catch (error: any) {
-      logger.error({ error: error.message }, 'Lab report rubric extraction failed');
+      if (error?.name === 'AppError') throw error;
+      logger.error({ error: error.message }, 'Report Rubric extraction failed');
       return { rubrics: [] };
     }
   }
@@ -820,7 +823,7 @@ JSON Output Template:
     const res = await this.providerChain.complete({
       tenantId,
       userId,
-      feature: 'Consultation',
+      feature: 'Rubrics',
       systemPrompt,
       userPrompt,
       responseFormat: 'json',
@@ -1062,7 +1065,7 @@ JSON Output:
       const res = await this.providerChain.complete({
         tenantId: 'demo',
         userId: 'system',
-        feature: 'Consultation',
+        feature: 'Rubrics',
         systemPrompt,
         userPrompt: `Search Mac Repertory for: "${query}"`,
         responseFormat: 'json',
@@ -1086,7 +1089,8 @@ JSON Output:
         remedyCount: r.remedyCount || 50,
       }));
     } catch (error: any) {
-      logger.error({ error: error.message }, 'Mac Repertory rubric search failed');
+      if (error?.name === 'AppError') throw error;
+      logger.error({ error: error.message }, 'Kent Rubric search failed');
       return [];
     }
   }

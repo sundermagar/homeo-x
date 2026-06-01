@@ -73,7 +73,7 @@ Do not write a full sentence, do not add punctuation, do not explain. Just the e
       tenantId: getTenant(req),
       userId: getUserId(req),
       userName: getUserName(req),
-      feature: 'Medicine Issue Detection'
+      feature: 'AI Analysis'
     });
 
     let issue = response.content.trim();
@@ -118,7 +118,7 @@ Respond ONLY with a valid JSON object matching this schema:
       tenantId: getTenant(req),
       userId: getUserId(req),
       userName: getUserName(req),
-      feature: 'Scan Investigation'
+      feature: 'Lab Reports'
     });
 
     const parsed = JSON.parse(response.content.trim());
@@ -438,7 +438,7 @@ Respond ONLY with a valid JSON object matching this schema:
       tenantId: getTenant(req),
       userId: getUserId(req),
       userName: getUserName(req),
-      feature: 'Scan Investigation Upload'
+      feature: 'Lab Reports'
     });
 
     const parsed = JSON.parse(response.content.trim());

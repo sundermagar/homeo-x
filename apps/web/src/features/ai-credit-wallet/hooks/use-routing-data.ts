@@ -11,6 +11,7 @@ export interface RoutingRule {
   primaryModel: string;
   fallbackModels: string[];
   dailyBudget: number;
+  maxTokensPerCall?: number;
   isEnabled: boolean;
 }
 
@@ -35,15 +36,20 @@ export interface AlertRule {
 // Map strings back to colors based on features roughly, or assign dynamically
 function getColorForFeature(feature: string): FeatureColor {
   const map: Record<string, FeatureColor> = {
-    'consultation': '#10B981',
-    'transcription': '#3B82F6',
-    'symptoms': '#F59E0B',
-    'prescription': '#F43F5E'
+    'Consultation': '#10B981',
+    'STT': '#3B82F6',
+    'Summarization': '#F59E0B',
+    'Prescription': '#F43F5E',
+    'WhatsApp': '#10B981',
+    'Email': '#3B82F6',
+    'SMS': '#F59E0B'
   };
   return map[feature] || '#93C5FD';
 }
 
 export function useRoutingRules() {
+  const queryClient = useQueryClient();
+
   const { data, isLoading } = useQuery({
     queryKey: ['aiOpsRoutingRules'],
     queryFn: async () => {
@@ -53,17 +59,42 @@ export function useRoutingRules() {
         id: r.id.toString(),
         feature: r.feature,
         color: getColorForFeature(r.feature),
-        primaryModel: r.primaryModel,
-        fallbackModels: r.fallbackModels || [],
-        dailyBudget: 0,
-        isEnabled: r.isActive,
+        primaryModel: r.primaryModelId || r.primaryModel || '',
+        fallbackModels: r.fallbackModelId ? r.fallbackModelId.split(',') : [],
+        dailyBudget: r.dailyBudgetCredits || 0,
+        maxTokensPerCall: r.maxTokensPerCall || 0,
+        isEnabled: r.isEnabled !== undefined ? r.isEnabled : r.isActive,
       })) as RoutingRule[];
     },
     staleTime: 60_000, // 1 min stale
     gcTime: 300_000,
   });
 
-  return { data: data || [], loading: isLoading };
+  const updateRuleMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<RoutingRule> }) => {
+      const dbUpdates: any = {};
+      if (updates.primaryModel !== undefined) dbUpdates.primaryModelId = updates.primaryModel;
+      if (updates.fallbackModels !== undefined) {
+        dbUpdates.fallbackModelId = updates.fallbackModels.length > 0 ? updates.fallbackModels.join(',') : null;
+      }
+      if (updates.isEnabled !== undefined) dbUpdates.isEnabled = updates.isEnabled;
+      if (updates.dailyBudget !== undefined) dbUpdates.dailyBudgetCredits = updates.dailyBudget;
+      if (updates.maxTokensPerCall !== undefined) dbUpdates.maxTokensPerCall = updates.maxTokensPerCall;
+
+      const res = await apiClient.put(`/ai-ops/routing-rules/${id}`, dbUpdates);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aiOpsRoutingRules'] });
+    },
+  });
+
+  return { 
+    data: data || [], 
+    loading: isLoading,
+    updateRule: updateRuleMutation.mutate,
+    isUpdating: updateRuleMutation.isPending
+  };
 }
 
 export function useClinicWallets() {

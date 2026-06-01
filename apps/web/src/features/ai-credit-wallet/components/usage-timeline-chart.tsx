@@ -4,9 +4,9 @@ import { useCreditTimeline } from '../hooks/use-credit-data';
 import { getAiModuleColor } from '../constants/aiModuleColors';
 
 export function UsageTimelineChart() {
-  const [days, setDays] = useState<0 | 7 | 14 | 30>(0);
+  const [days, setDays] = useState<0 | 7 | 14 | 30>(7);
   const [endDateStr, setEndDateStr] = useState<string>(new Date().toISOString().split('T')[0] || '');
-  const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
+  const [chartType, setChartType] = useState<'bar' | 'line'>('line');
   const { data } = useCreditTimeline(days, endDateStr);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
