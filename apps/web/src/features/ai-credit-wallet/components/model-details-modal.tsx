@@ -10,19 +10,9 @@ interface ModelDetailsModalProps {
 }
 
 export function ModelDetailsModal({ model, onClose }: ModelDetailsModalProps) {
-  const { data: details, loading } = useModelDetails(model.id);
+  const details = useModelDetails(model.id);
 
-  if (loading || !details) {
-    return createPortal(
-      <>
-        <div className="cw-slide-overlay" onClick={onClose} />
-        <div className="cw-slide-panel" style={{ maxWidth: '600px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: '#6B7280', fontSize: '14px', fontWeight: 500 }}>Loading usage statistics...</div>
-        </div>
-      </>,
-      document.body
-    );
-  }
+  if (!details) return null;
 
   return createPortal(
     <>
