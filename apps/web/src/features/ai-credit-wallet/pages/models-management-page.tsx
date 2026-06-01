@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Database, Plus, Search, PowerOff, ArchiveRestore } from 'lucide-react';
+import { Database, Plus, Search, PowerOff, ArchiveRestore, Info, CheckCircle2 } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { useAIModels, AIModel } from '../hooks/use-ai-models-data';
 import { AddModelModal } from '../components/add-model-modal';
 import { ModelDetailsModal } from '../components/model-details-modal';
@@ -93,6 +94,7 @@ export default function ModelsManagementPage() {
   };
 
   return (
+    <TooltipProvider>
     <div className="cw-dashboard-grid animate-fade-in" style={{ minHeight: '100vh' }}>
       <div className="cw-header">
         <div>
@@ -221,7 +223,17 @@ export default function ModelsManagementPage() {
 
             <div className="cw-model-metrics">
               <div>
-                <div className="cw-model-metric-label">Requests (mo)</div>
+                <div className="cw-model-metric-label">
+                  Requests (mo)
+                  <Tooltip>
+                    <TooltipTrigger className="inline-flex cursor-pointer ml-1 align-middle text-gray-500">
+                      <Info size={14} />
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={5}>
+                      Number of requests made by this model in the last month.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <div className="cw-model-metric-val">{model.monthlyRequests.toLocaleString()}</div>
               </div>
               <div>
@@ -230,10 +242,25 @@ export default function ModelsManagementPage() {
               </div>
             </div>
 
-            <div className="cw-model-pricing">
-              <div className="cw-model-pricing-title">{model.pricingBasis}</div>
-              {renderPricing(model)}
-            </div>
+            {model.modelType === 'Free' ? (
+              <div className="cw-model-pricing" style={{ padding: '12px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', color: '#166534', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                  <CheckCircle2 size={16} /> Free tier · No charge
+                </div>
+                <div style={{ color: '#15803D', fontSize: '12px' }}>
+                  {model.provider === 'Groq' 
+                    ? 'Groq free limit: 14,400 requests/day' 
+                    : model.provider === 'Google' 
+                      ? 'Google free tier: 1,500 requests/day (15 RPM)' 
+                      : 'Standard free tier limits apply'}
+                </div>
+              </div>
+            ) : (
+              <div className="cw-model-pricing">
+                <div className="cw-model-pricing-title">{model.pricingBasis}</div>
+                {renderPricing(model)}
+              </div>
+            )}
 
             {model.featuresUsed && model.featuresUsed.length > 0 && (
               <div style={{ padding: '0 24px 16px 24px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -287,5 +314,6 @@ export default function ModelsManagementPage() {
       {showAddModal && <AddModelModal onClose={() => setShowAddModal(false)} />}
       {selectedModel && <ModelDetailsModal model={selectedModel} onClose={() => setSelectedModel(null)} />}
     </div>
+    </TooltipProvider>
   );
 }

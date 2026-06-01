@@ -145,7 +145,8 @@ export function createAiOpsRouter(): Router {
     const db = req.db;
     const stats = await db.select({
       modelId: aiRequestLogs.modelId,
-      credits: sql`SUM(${aiRequestLogs.creditsDeducted})`.mapWith(Number)
+      credits: sql`SUM(${aiRequestLogs.creditsDeducted})`.mapWith(Number),
+      requests: sql`COUNT(*)`.mapWith(Number)
     })
     .from(aiRequestLogs)
     .where(eq(aiRequestLogs.tenantId, tenantId))
@@ -289,6 +290,115 @@ export function createAiOpsRouter(): Router {
     sendSuccess(res, models);
   }));
 
+  router.get('/models/:id/stats', asyncHandler(async (req: any, res: any) => {
+    const db = req.db;
+    const modelId = req.params.id;
+    const tenantId = req.tenantSlug || 'demo';
+
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 30);
+    startDate.setHours(0, 0, 0, 0);
+
+    const dailyLogs = await db.select({
+      date: sql`DATE(${aiRequestLogs.createdAt})`.as('date'),
+      requests: sql<number>`COUNT(*)`.mapWith(Number)
+    })
+    .from(aiRequestLogs)
+    .where(and(
+      eq(aiRequestLogs.tenantId, tenantId),
+      eq(aiRequestLogs.modelId, modelId),
+      gte(aiRequestLogs.createdAt, startDate),
+      lte(aiRequestLogs.createdAt, endDate)
+    ))
+    .groupBy(sql`DATE(${aiRequestLogs.createdAt})`)
+    .orderBy(sql`DATE(${aiRequestLogs.createdAt})`);
+
+    const featureLogs = await db.select({
+      name: aiRequestLogs.feature,
+      count: sql<number>`COUNT(*)`.mapWith(Number)
+    })
+    .from(aiRequestLogs)
+    .where(and(
+      eq(aiRequestLogs.tenantId, tenantId),
+      eq(aiRequestLogs.modelId, modelId),
+      gte(aiRequestLogs.createdAt, startDate)
+    ))
+    .groupBy(aiRequestLogs.feature);
+
+    const totalRequests = featureLogs.reduce((acc: number, f: any) => acc + f.count, 0) || 1;
+    const topFeatures = featureLogs.map((f: any) => ({
+      name: f.name || 'General',
+      percentage: Math.round((f.count / totalRequests) * 100)
+    })).sort((a: any, b: any) => b.percentage - a.percentage);
+
+    const tokensLog = await db.select({
+      input: sql<number>`COALESCE(SUM(${aiRequestLogs.inputTokens}), 0)`.mapWith(Number),
+      output: sql<number>`COALESCE(SUM(${aiRequestLogs.outputTokens}), 0)`.mapWith(Number)
+    })
+    .from(aiRequestLogs)
+    .where(and(
+      eq(aiRequestLogs.tenantId, tenantId),
+      eq(aiRequestLogs.modelId, modelId),
+      gte(aiRequestLogs.createdAt, startDate)
+    ));
+
+    const errorLog = await db.select({
+      status: aiRequestLogs.status,
+      count: sql<number>`COUNT(*)`.mapWith(Number)
+    })
+    .from(aiRequestLogs)
+    .where(and(
+      eq(aiRequestLogs.tenantId, tenantId),
+      eq(aiRequestLogs.modelId, modelId),
+      gte(aiRequestLogs.createdAt, startDate)
+    ))
+    .groupBy(aiRequestLogs.status);
+
+    const successCount = errorLog.find((e: any) => e.status === 'SUCCESS')?.count || 0;
+    const failCount = errorLog.find((e: any) => e.status !== 'SUCCESS')?.count || 0;
+    const totalErrorRequests = successCount + failCount;
+    const errorRate = totalErrorRequests > 0 ? Number(((failCount / totalErrorRequests) * 100).toFixed(1)) : 0;
+
+    const latencyLog = await db.select({
+      avgLatency: sql<number>`COALESCE(AVG(${aiRequestLogs.latencyMs}), 0)`.mapWith(Number),
+      maxLatency: sql<number>`COALESCE(MAX(${aiRequestLogs.latencyMs}), 0)`.mapWith(Number)
+    })
+    .from(aiRequestLogs)
+    .where(and(
+      eq(aiRequestLogs.tenantId, tenantId),
+      eq(aiRequestLogs.modelId, modelId),
+      gte(aiRequestLogs.createdAt, startDate),
+      eq(aiRequestLogs.status, 'SUCCESS')
+    ));
+
+    const today = new Date();
+    const dailyRequests = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const match = dailyLogs.find((l: any) => l.date === dateStr);
+      dailyRequests.push({
+        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        requests: match ? match.requests : 0
+      });
+    }
+
+    sendSuccess(res, {
+      dailyRequests,
+      tokens: [
+        { name: 'Input Tokens', value: tokensLog[0]?.input || 0, fill: '#10b981' },
+        { name: 'Output Tokens', value: tokensLog[0]?.output || 0, fill: '#3b82f6' },
+      ],
+      topFeatures: topFeatures.length ? topFeatures : [{ name: 'None', percentage: 0 }],
+      errorRate,
+      latencyP50: Math.round(latencyLog[0]?.avgLatency || 0),
+      latencyP95: Math.round(latencyLog[0]?.maxLatency || 0)
+    });
+  }));
+
   // ─── Routing Rules ───
   router.get('/routing-rules', asyncHandler(async (req: any, res: any) => {
     const tenantId = req.tenantSlug || 'demo';
@@ -301,7 +411,7 @@ export function createAiOpsRouter(): Router {
     if (rules.length === 0) {
       const defaultRules = [
         { tenantId, feature: 'Consultation', primaryModelId: 'meta-llama/llama-4-scout-17b-16e-instruct', fallbackModelId: 'claude-haiku-4-5', isEnabled: true, dailyBudgetCredits: 5000, maxTokensPerCall: 4000 },
-        { tenantId, feature: 'STT', primaryModelId: 'gemini-2.5-flash', fallbackModelId: null, isEnabled: true, dailyBudgetCredits: 2000, maxTokensPerCall: 1000 },
+        { tenantId, feature: 'STT', primaryModelId: 'google-stt', fallbackModelId: null, isEnabled: true, dailyBudgetCredits: 2000, maxTokensPerCall: 1000 },
         { tenantId, feature: 'Summarization', primaryModelId: 'llama-3.3-70b-versatile', fallbackModelId: 'qwen2.5:1.5b', isEnabled: true, dailyBudgetCredits: 3000, maxTokensPerCall: 2000 },
         { tenantId, feature: 'Prescription', primaryModelId: 'meta-llama/llama-4-scout-17b-16e-instruct', fallbackModelId: 'claude-haiku-4-5', isEnabled: true, dailyBudgetCredits: 3000, maxTokensPerCall: 1000 },
         { tenantId, feature: 'WhatsApp', primaryModelId: 'qwen2.5:1.5b', fallbackModelId: null, isEnabled: true, dailyBudgetCredits: 1000, maxTokensPerCall: 500 },

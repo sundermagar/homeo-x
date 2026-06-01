@@ -21,6 +21,8 @@ export interface AIModel {
   featuresUsed: string[];
 }
 
+const USD_TO_INR = 84;
+
 export function useAIModels() {
   const { data, isLoading } = useQuery({
     queryKey: ['aiOpsModels'],
@@ -31,8 +33,10 @@ export function useAIModels() {
       ]);
       const dbModels = modelsRes.data.data || [];
       const breakdown = breakdownRes.data.data || [];
-      
-      const usageMap = new Map(breakdown.map((b: any) => [b.modelId, b.credits]));
+
+      // Build lookup maps for requests and credits per model
+      const requestsMap = new Map(breakdown.map((b: any) => [b.modelId, b.requests]));
+      const creditsMap = new Map(breakdown.map((b: any) => [b.modelId, b.credits]));
 
       const uniqueModels = new Map();
       dbModels.forEach((m: any) => {
@@ -44,8 +48,16 @@ export function useAIModels() {
 
       return deduplicatedModels.map((m: any) => {
         const p = m.provider?.toLowerCase() || '';
-        let modelType: 'Paid API' | 'Self-hosted' | 'Free' = 'Paid API';
-        if (p === 'ollama' || m.capabilities?.local) modelType = 'Self-hosted';
+        let modelType: 'Paid API' | 'Self-hosted' | 'Free' = 'Free';
+        if ((m.costPerInputToken && m.costPerInputToken > 0) || (m.costPerOutputToken && m.costPerOutputToken > 0)) {
+          modelType = 'Paid API';
+        }
+        if (p === 'ollama' || m.capabilities?.local) {
+          modelType = 'Self-hosted';
+        }
+        if (m.id.includes('flash')) {
+          modelType = 'Free';
+        }
 
         let featuresUsed: string[] = [];
         if (m.id.includes('scout')) featuresUsed = ['Consultation Analysis', 'General QA'];
@@ -53,6 +65,7 @@ export function useAIModels() {
         else if (m.id.includes('qwen')) featuresUsed = ['Draft Responses'];
         else if (m.id.includes('flash')) featuresUsed = ['Audio Transcription'];
         else if (m.id.includes('haiku')) featuresUsed = ['Fallback Engine'];
+        else if (m.id.includes('stt') || m.id.includes('google-stt')) featuresUsed = ['Transcription'];
 
         return {
           id: m.id,
@@ -61,10 +74,10 @@ export function useAIModels() {
           status: m.status?.toLowerCase() === 'active' ? 'Active' : 'Inactive',
           modelType,
           pricingBasis: 'Input + Output tokens',
-          inputTokenCost: m.costPerInputToken || 0,
-          outputTokenCost: m.costPerOutputToken || 0,
-          monthlyRequests: 0,
-          monthlyCredits: usageMap.get(m.id) || 0,
+          inputTokenCost: (m.costPerInputToken || 0) * USD_TO_INR,
+          outputTokenCost: (m.costPerOutputToken || 0) * USD_TO_INR,
+          monthlyRequests: requestsMap.get(m.id) || 0,
+          monthlyCredits: creditsMap.get(m.id) || 0,
           monthlyCost: 0,
           featuresUsed
         };
@@ -78,34 +91,16 @@ export function useAIModels() {
 }
 
 export function useModelDetails(modelId: string | null) {
-  return useMemo(() => {
-    if (!modelId) return null;
-    
-    // Generate daily requests
-    const dailyRequests = [];
-    for (let i = 30; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      dailyRequests.push({
-        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        requests: Math.floor(Math.random() * 500) + 100,
-      });
-    }
+  const { data, isLoading } = useQuery({
+    queryKey: ['aiOpsModelDetails', modelId],
+    queryFn: async () => {
+      if (!modelId) return null;
+      const res = await apiClient.get(`/ai-ops/models/${modelId}/stats`);
+      return res.data.data;
+    },
+    enabled: !!modelId,
+    staleTime: 60_000,
+  });
 
-    return {
-      dailyRequests,
-      tokens: [
-        { name: 'Input Tokens', value: 8500000, fill: '#10b981' },
-        { name: 'Output Tokens', value: 3200000, fill: '#3b82f6' },
-      ],
-      topFeatures: [
-        { name: 'Consultation AI', percentage: 65 },
-        { name: 'Summarisation', percentage: 25 },
-        { name: 'Prescription AI', percentage: 10 },
-      ],
-      errorRate: 0.4,
-      latencyP50: 840,
-      latencyP95: 2100,
-    };
-  }, [modelId]);
+  return { data, loading: isLoading };
 }
