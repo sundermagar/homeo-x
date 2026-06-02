@@ -53,7 +53,7 @@ export function createOrganizationRouter(): Router {
       // We do NOT await this. It runs in the background so the user gets an instant response.
       (async () => {
         try {
-          const { provisionTenant, migrateTenant, TenantRegistry, createDbClient } = await import('@mmc/database');
+          const { provisionTenant, migrateTenant, TenantRegistry, createDbClient, seedRbac } = await import('@mmc/database');
 
           let shouldProvision = true;
           const allTenants = TenantRegistry.getAll();
@@ -69,6 +69,10 @@ export function createOrganizationRouter(): Router {
             // Create admin in tenant schema
             try {
               const tenantDb = createDbClient(dbUrl, schemaName);
+              
+              // Ensure permissions exist before adding users/staff
+              await seedRbac(tenantDb);
+
               const staffRepo = new StaffRepositoryPg(tenantDb);
               await staffRepo.create({
                 category: 'clinicadmin' as any,

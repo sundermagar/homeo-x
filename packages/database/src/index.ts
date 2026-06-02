@@ -3,3 +3,4 @@ export { TenantRegistry, type TenantConfig } from './tenant-registry.js';
 export { provisionTenant } from './provision-tenant.js';
 export * from './migrate-tenant.js';
 export * from './schema/index.js';
+export { seedRbac } from './seeds/rbac-seed.js';
