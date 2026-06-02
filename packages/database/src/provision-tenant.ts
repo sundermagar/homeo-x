@@ -472,7 +472,7 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "consultation_fee" text,
   "token_no" integer,
   "duration_minutes" integer,
-  "cancellation_reason" text
+  
 )`,
   },
   {
@@ -709,7 +709,7 @@ END $$`,
   "refered_sms" text,
   "status" text,
   "blood_group" text,
-  "assitant_doctor" text,
+  "assistant_doctor" text,
   "consultation_fee" integer,
   "reference_type_id" integer,
   "notes" text
@@ -727,12 +727,12 @@ BEGIN
 END $$`,
   },
   {
-    name: 'idx_case_datas_assitant_doctor',
+    name: 'idx_case_datas_assistant_doctor',
     ddl: `DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'case_datas' AND column_name = 'assitant_doctor' AND table_schema = '{{SCHEMA}}') THEN
-    IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = 'idx_case_datas_assitant_doctor' AND n.nspname = '{{SCHEMA}}') THEN
-      CREATE INDEX "idx_case_datas_assitant_doctor" ON "{{SCHEMA}}"."case_datas" ("assitant_doctor");
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'case_datas' AND column_name = 'assistant_doctor' AND table_schema = '{{SCHEMA}}') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = 'idx_case_datas_assistant_doctor' AND n.nspname = '{{SCHEMA}}') THEN
+      CREATE INDEX "idx_case_datas_assistant_doctor" ON "{{SCHEMA}}"."case_datas" ("assistant_doctor");
     END IF;
   END IF;
 END $$`,
@@ -3439,9 +3439,9 @@ END $$`,
 export async function provisionTenant(dbUrl: string, schemaName: string): Promise<void> {
   log.info(`🏗️  Provisioning tenant database schema: [${schemaName}]`);
 
-  const sql = postgres(dbUrl, { 
+  const sql = postgres(dbUrl, {
     max: 1,
-    onnotice: () => {} // Silence notice logs so Railway doesn't rate-limit us
+    onnotice: () => { } // Silence notice logs so Railway doesn't rate-limit us
   });
 
   try {
