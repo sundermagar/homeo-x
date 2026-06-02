@@ -169,7 +169,7 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
               const r = row as unknown as Record<string, unknown>;
               const cashInHand = Number(r['cash_in_hand'] ?? 0);
               const productCharges = Number(r['product_charges'] ?? 0);
-              
+
               // We need the raw year/month key, which is usually displaydate if formatted as "Mon YYYY"
               // However, since it might be "Jan 2026", we convert it back to "2026-01" for the API
               // Assuming displaydate comes as "Jan 2026" or similar, we can map it to YYYY-MM
@@ -211,8 +211,8 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                       {productCharges.toLocaleString('en-IN')}
                       {productCharges > 0 && (
-                        <button 
-                          className="plat-btn-ghost plat-btn-icon" 
+                        <button
+                          className="plat-btn-ghost plat-btn-icon"
                           style={{ width: '20px', height: '20px', color: 'var(--pp-blue)' }}
                           onClick={() => setSelectedProductMonth(monthKey)}
                           title="View Product Details"
@@ -284,7 +284,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   const columns = [
-    'Month', 'Total Dues', 'Informed', 'Cured', 'Left Uncured', 
+    'Month', 'Total Dues', 'Informed', 'Cured', 'Left Uncured',
     'Reg only', 'Discontinued', 'Pickup', 'Courier', 'Reserve Medicine'
   ];
   const fields = [
@@ -667,15 +667,15 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
   const { data: allReferrals } = useReferrals();
   const [search, setSearch] = useState('');
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
-  
+
   const { data: detailsData, isLoading: isDetailsLoading } = useReferenceDetails(selectedRef ?? undefined, appliedFrom, appliedTo);
 
   const mergedData = useMemo(() => {
     const apiData = data || [];
     const settingsRefs = allReferrals || [];
-    
+
     const dataMap = new Map();
-    
+
     // 1. Add API data (which has patient counts and revenue)
     apiData.forEach((row: any) => {
       dataMap.set(String(row.reference ?? 'Direct').toLowerCase(), {
@@ -684,7 +684,7 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
         totalcollection: row.totalcollection || 0
       });
     });
-    
+
     // 2. Add active settings referrals that aren't in the API data yet (0 patients)
     settingsRefs.forEach((r: any) => {
       if (r.isActive && r.name) {
@@ -698,12 +698,12 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
         }
       }
     });
-    
+
     // 3. Ensure 'Direct' always exists as it's a default
     if (!dataMap.has('direct')) {
-       dataMap.set('direct', { reference: 'Direct', count: 0, totalcollection: 0 });
+      dataMap.set('direct', { reference: 'Direct', count: 0, totalcollection: 0 });
     }
-    
+
     // 4. Convert back to array and sort (count DESC, then revenue DESC)
     return Array.from(dataMap.values()).sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
@@ -713,7 +713,7 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
 
   if (isLoading) return <TableSkeleton rows={10} columns={3} />;
 
-  const filteredData = mergedData.filter((row: any) => 
+  const filteredData = mergedData.filter((row: any) =>
     String(row.reference ?? 'Direct').toLowerCase().includes(search.toLowerCase())
   );
   const paginatedData = filteredData.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -731,37 +731,37 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
           />
         </div>
         <div className="pp-filter-controls">
-          <input 
-            type="date" 
-            className="pp-input" 
-            style={{ width: 'auto' }} 
-            value={fromDate} 
-            onChange={e => setFromDate(e.target.value)} 
+          <input
+            type="date"
+            className="pp-input"
+            style={{ width: 'auto' }}
+            value={fromDate}
+            onChange={e => setFromDate(e.target.value)}
             title="From Date"
           />
-          <input 
-            type="date" 
-            className="pp-input" 
-            style={{ width: 'auto' }} 
-            value={toDate} 
-            onChange={e => setToDate(e.target.value)} 
+          <input
+            type="date"
+            className="pp-input"
+            style={{ width: 'auto' }}
+            value={toDate}
+            onChange={e => setToDate(e.target.value)}
             title="To Date"
           />
-          <button 
-            className="btn-primary" 
+          <button
+            className="btn-primary"
             onClick={handleSubmit}
           >
             Submit
           </button>
-          <button 
-            className="btn-secondary" 
+          <button
+            className="btn-secondary"
             onClick={handleClear}
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <Filter size={13} strokeWidth={1.6} /> Clear
           </button>
-          <button 
-            className="btn-secondary" 
+          <button
+            className="btn-secondary"
             onClick={() => onExport('Referrals', ['reference', 'count', 'totalcollection'], data ?? [])}
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
@@ -771,145 +771,145 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
       </div>
 
       <div className="plat-card animate-fade-in" style={{ padding: 0, overflow: 'hidden' }}>
-      <div className="pp-table-scroll" style={{ margin: 0, borderRadius: 0, border: 'none' }}>
-        <table className="pp-table">
-          <thead>
-            <tr>
-              <th style={{ paddingLeft: 24 }}>Source / Referral</th>
-              <th style={{ textAlign: 'center' }}>Patients Brought</th>
-              <th style={{ textAlign: 'right', paddingRight: 24 }}>Revenue Generated</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedData.map((row: any, i: number) => (
-              <tr key={i} onClick={() => setSelectedRef(String(row.reference ?? 'Direct'))} style={{ cursor: 'pointer' }}>
-                <td data-label="SOURCE" style={{ fontWeight: 700, color: 'var(--pp-ink)', paddingLeft: 24 }}>
-                  <div>{String(row.reference ?? '—')}</div>
-                </td>
-                <td data-label="PATIENTS" style={{ textAlign: 'center' }}>
-                  <div className="plat-cell-val" style={{ justifyContent: 'center' }}>
-                    <span style={{
-                      background: 'var(--pp-warm-1)',
-                      padding: '4px 12px',
-                      borderRadius: '100px',
-                      fontWeight: 700,
-                      fontSize: '0.85rem'
-                    }}>
-                      {String(row.count ?? 0)}
-                    </span>
-                  </div>
-                </td>
-                <td data-label="REVENUE" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-success-fg)', paddingRight: 24 }}>
-                  <div className="plat-cell-val" style={{ justifyContent: 'flex-end' }}>
-                    ₹{Number(row.totalcollection ?? 0).toLocaleString()}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {(!mergedData || mergedData.length === 0) && (
+        <div className="pp-table-scroll" style={{ margin: 0, borderRadius: 0, border: 'none' }}>
+          <table className="pp-table">
+            <thead>
               <tr>
-                <td colSpan={3}>
-                  <EmptyState
-                    icon={Users}
-                    title="No references found"
-                    description="No patient acquisitions or referral sources have been recorded in the current dataset."
-                    variant="card"
-                    className="my-8"
-                  />
-                </td>
+                <th style={{ paddingLeft: 24 }}>Source / Referral</th>
+                <th style={{ textAlign: 'center' }}>Patients Brought</th>
+                <th style={{ textAlign: 'right', paddingRight: 24 }}>Revenue Generated</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      {mergedData.length > itemsPerPage && (
-        <Pagination
-          currentPage={page}
-          totalPages={Math.ceil(mergedData.length / itemsPerPage)}
-          pageSize={itemsPerPage}
-          totalItems={mergedData.length}
-          onPageChange={setPage}
-          onPageSizeChange={() => { }}
-        />
-      )}
-
-      <Drawer
-        isOpen={!!selectedRef}
-        onClose={() => setSelectedRef(null)}
-        maxWidth="750px"
-        title={
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b' }}>Payment Details</span>
-            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>
-              Referral Source: <strong style={{ color: '#3b82f6' }}>{selectedRef}</strong>
-            </span>
-          </div>
-        }
-      >
-        <div style={{ overflowY: 'auto', flex: 1, padding: '24px', background: 'white' }}>
-          {isDetailsLoading ? (
-            <TableSkeleton rows={5} columns={5} />
-          ) : (
-            <div className="plat-table-container" style={{ margin: 0, borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <table className="plat-table">
-                <thead>
-                  <tr>
-                    <th style={{ background: '#f8fafc' }}>RegID</th>
-                    <th style={{ background: '#f8fafc' }}>Date</th>
-                    <th style={{ background: '#f8fafc' }}>Patient Name</th>
-                    <th style={{ background: '#f8fafc' }}>Payment Method</th>
-                    <th style={{ background: '#f8fafc', textAlign: 'right' }}>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detailsData && detailsData.length > 0 ? detailsData.map((d: any, idx: number) => (
-                    <tr key={idx} className="plat-table-row">
-                      <td data-label="RegID" style={{ fontWeight: 700, color: '#475569' }}>#{d.regid}</td>
-                      <td data-label="Date" style={{ color: '#64748b', fontWeight: 600 }}>
-                        {d.date ? format(new Date(d.date), 'dd MMM yyyy') : '—'}
-                      </td>
-                      <td data-label="Name" style={{ fontWeight: 600, color: '#1e293b' }}>
-                        {d.first_name} {d.surname}
-                      </td>
-                      <td data-label="Payment Method">
-                        {d.payment_method ? (
-                          <span style={{
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            background: d.payment_method.toLowerCase() === 'cash' ? '#dcfce7' : '#e0e7ff',
-                            color: d.payment_method.toLowerCase() === 'cash' ? '#166534' : '#3730a3',
-                            border: `1px solid ${d.payment_method.toLowerCase() === 'cash' ? '#bbf7d0' : '#c7d2fe'}`
-                          }}>
-                            {d.payment_method}
-                          </span>
-                        ) : (
-                          <span style={{ color: '#94a3b8' }}>—</span>
-                        )}
-                      </td>
-                      <td data-label="Amount" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-success-fg)' }}>
-                        ₹{Number(d.amount ?? 0).toLocaleString()}
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan={5} style={{ padding: '40px 20px' }}>
-                        <EmptyState
-                          icon={Users}
-                          title="No payments recorded"
-                          description={`No payment history found for patients referred via ${selectedRef}.`}
-                          variant="default"
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+            </thead>
+            <tbody>
+              {paginatedData.map((row: any, i: number) => (
+                <tr key={i} onClick={() => setSelectedRef(String(row.reference ?? 'Direct'))} style={{ cursor: 'pointer' }}>
+                  <td data-label="SOURCE" style={{ fontWeight: 700, color: 'var(--pp-ink)', paddingLeft: 24 }}>
+                    <div>{String(row.reference ?? '—')}</div>
+                  </td>
+                  <td data-label="PATIENTS" style={{ textAlign: 'center' }}>
+                    <div className="plat-cell-val" style={{ justifyContent: 'center' }}>
+                      <span style={{
+                        background: 'var(--pp-warm-1)',
+                        padding: '4px 12px',
+                        borderRadius: '100px',
+                        fontWeight: 700,
+                        fontSize: '0.85rem'
+                      }}>
+                        {String(row.count ?? 0)}
+                      </span>
+                    </div>
+                  </td>
+                  <td data-label="REVENUE" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-success-fg)', paddingRight: 24 }}>
+                    <div className="plat-cell-val" style={{ justifyContent: 'flex-end' }}>
+                      ₹{Number(row.totalcollection ?? 0).toLocaleString()}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {(!mergedData || mergedData.length === 0) && (
+                <tr>
+                  <td colSpan={3}>
+                    <EmptyState
+                      icon={Users}
+                      title="No references found"
+                      description="No patient acquisitions or referral sources have been recorded in the current dataset."
+                      variant="card"
+                      className="my-8"
+                    />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </Drawer>
+        {mergedData.length > itemsPerPage && (
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil(mergedData.length / itemsPerPage)}
+            pageSize={itemsPerPage}
+            totalItems={mergedData.length}
+            onPageChange={setPage}
+            onPageSizeChange={() => { }}
+          />
+        )}
+
+        <Drawer
+          isOpen={!!selectedRef}
+          onClose={() => setSelectedRef(null)}
+          maxWidth="750px"
+          title={
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b' }}>Payment Details</span>
+              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>
+                Referral Source: <strong style={{ color: '#3b82f6' }}>{selectedRef}</strong>
+              </span>
+            </div>
+          }
+        >
+          <div style={{ overflowY: 'auto', flex: 1, padding: '24px', background: 'white' }}>
+            {isDetailsLoading ? (
+              <TableSkeleton rows={5} columns={5} />
+            ) : (
+              <div className="plat-table-container" style={{ margin: 0, borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <table className="plat-table">
+                  <thead>
+                    <tr>
+                      <th style={{ background: '#f8fafc' }}>RegID</th>
+                      <th style={{ background: '#f8fafc' }}>Date</th>
+                      <th style={{ background: '#f8fafc' }}>Patient Name</th>
+                      <th style={{ background: '#f8fafc' }}>Payment Method</th>
+                      <th style={{ background: '#f8fafc', textAlign: 'right' }}>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detailsData && detailsData.length > 0 ? detailsData.map((d: any, idx: number) => (
+                      <tr key={idx} className="plat-table-row">
+                        <td data-label="RegID" style={{ fontWeight: 700, color: '#475569' }}>#{d.regid}</td>
+                        <td data-label="Date" style={{ color: '#64748b', fontWeight: 600 }}>
+                          {d.date ? format(new Date(d.date), 'dd MMM yyyy') : '—'}
+                        </td>
+                        <td data-label="Name" style={{ fontWeight: 600, color: '#1e293b' }}>
+                          {d.first_name} {d.surname}
+                        </td>
+                        <td data-label="Payment Method">
+                          {d.payment_method ? (
+                            <span style={{
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              background: d.payment_method.toLowerCase() === 'cash' ? '#dcfce7' : '#e0e7ff',
+                              color: d.payment_method.toLowerCase() === 'cash' ? '#166534' : '#3730a3',
+                              border: `1px solid ${d.payment_method.toLowerCase() === 'cash' ? '#bbf7d0' : '#c7d2fe'}`
+                            }}>
+                              {d.payment_method}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>—</span>
+                          )}
+                        </td>
+                        <td data-label="Amount" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-success-fg)' }}>
+                          ₹{Number(d.amount ?? 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={5} style={{ padding: '40px 20px' }}>
+                          <EmptyState
+                            icon={Users}
+                            title="No payments recorded"
+                            description={`No payment history found for patients referred via ${selectedRef}.`}
+                            variant="default"
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </Drawer>
       </div>
     </>
   );
