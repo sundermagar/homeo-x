@@ -255,7 +255,7 @@ export function AppRouter() {
               <Route path="/settings/frequencies" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><FrequenciesPage /></RoleGuard>} />
               <Route path="/settings/couriers" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CouriersPage /></RoleGuard>} />
               <Route path="/settings/faqs" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><FaqsPage /></RoleGuard>} />
-              <Route path="/settings/staff" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StaffManagementPage /></RoleGuard>} />
+              <Route path="/settings/staff" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><UnifiedStaffManagementPage /></RoleGuard>} />
               <Route path="/settings/roles" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><RolesPermissionsPage /></RoleGuard>} />
               <Route path="/settings/vaccines" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><VaccinesPage /></RoleGuard>} />
               <Route path="/settings/call-statuses" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CallStatusesPage /></RoleGuard>} />

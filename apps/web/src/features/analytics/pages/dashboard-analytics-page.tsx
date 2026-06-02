@@ -58,7 +58,7 @@ export function DashboardAnalyticsPage() {
         {/* Revenue Trend */}
         <div className="pp-table-container-enhanced" style={{ overflow: 'visible' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--pp-warm-4)' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}><IndianRupee size={14} /> Revenue Trends (Last 6 Months)</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}><IndianRupee size={14} /> Monthly Revenue Trends (Last 6 Months)</h3>
           </div>
           <div style={{ padding: '24px 12px', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -109,7 +109,7 @@ export function DashboardAnalyticsPage() {
         {/* New Patients Bar Chart */}
         <div className="pp-table-container-enhanced" style={{ overflow: 'visible' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--pp-warm-4)' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}><Users size={14} /> New Patients (Last 6 Months)</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}><Users size={14} /> Monthly New Patients (Last 6 Months)</h3>
           </div>
           <div style={{ padding: '24px 12px', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">

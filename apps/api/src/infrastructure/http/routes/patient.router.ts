@@ -38,6 +38,12 @@ patientRouter.get('/', authMiddleware, requirePermission('PATIENT_VIEW'), async 
       effectiveClinicId = Number(clinicId);
     }
 
+    // Doctor role: auto-scope to only their assigned/appointment patients
+    let effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
+    if (req.user?.type === Role.Doctor && req.user?.id) {
+      effectiveDoctorId = req.user.id;
+    }
+
     const repo = getRepo(req);
     const uc = new ListPatientsUseCase(repo);
     const result = await uc.execute({
@@ -46,7 +52,7 @@ patientRouter.get('/', authMiddleware, requirePermission('PATIENT_VIEW'), async 
       search: search as string,
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc',
-      doctorId: doctor_id ? Number(doctor_id) : undefined,
+      doctorId: effectiveDoctorId,
       clinicId: effectiveClinicId,
     });
     if (result.success) {
@@ -75,7 +81,10 @@ patientRouter.get('/lookup', authMiddleware, requirePermission('PATIENT_VIEW'), 
       clinicId = Number(req.query.clinicId);
     }
 
-    const data = await repo.lookup(query as string, 20, clinicId);
+    // Doctor role: scope lookup to only their patients
+    const lookupDoctorId = req.user?.type === Role.Doctor ? req.user?.id : undefined;
+
+    const data = await repo.lookup(query as string, 20, clinicId, lookupDoctorId);
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

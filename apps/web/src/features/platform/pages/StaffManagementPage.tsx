@@ -22,6 +22,7 @@ export default function StaffManagementPage() {
   const [actionTrigger, setActionTrigger] = useState(0);
 
   const handleTabChange = (tab: Tab) => {
+    setActionTrigger(0);
     setSearchParams({ tab });
   };
 

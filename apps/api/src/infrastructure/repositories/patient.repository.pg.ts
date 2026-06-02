@@ -93,12 +93,15 @@ export class PatientRepositoryPg implements PatientRepository {
 
     if (doctorId) {
       conditions.push(
-        sql`EXISTS (
-          SELECT 1 FROM ${appointments} 
-          WHERE ${appointments.patientId} = ${patients.id} 
-            AND ${appointments.doctorId} = ${doctorId}
-            AND (${appointments.deletedAt} IS NULL OR ${appointments.deletedAt}::text = '')
-        )`
+        or(
+          sql`TRIM(${patients.assistantDoctor}) = ${String(doctorId)}`,
+          sql`EXISTS (
+            SELECT 1 FROM ${appointments} 
+            WHERE ${appointments.patientId} = ${patients.id} 
+              AND ${appointments.doctorId} = ${doctorId}
+              AND (${appointments.deletedAt} IS NULL OR ${appointments.deletedAt}::text = '')
+          )`
+        )!
       );
     }
 
@@ -361,7 +364,7 @@ export class PatientRepositoryPg implements PatientRepository {
     return !!row;
   }
 
-  async lookup(query: string, limit = 20, clinicId?: number): Promise<PatientSummary[]> {
+  async lookup(query: string, limit = 20, clinicId?: number, doctorId?: number): Promise<PatientSummary[]> {
     const s = `%${query}%`;
     const conditions = [
       sql`(${patients.deletedAt} IS NULL OR ${patients.deletedAt}::text = '')`,
@@ -381,6 +384,20 @@ export class PatientRepositoryPg implements PatientRepository {
           isNull(patients.clinicId),
           eq(patients.clinicId, 0),
           eq(patients.clinicId, 1)
+        )!
+      );
+    }
+
+    if (doctorId) {
+      conditions.push(
+        or(
+          sql`TRIM(${patients.assistantDoctor}) = ${String(doctorId)}`,
+          sql`EXISTS (
+            SELECT 1 FROM ${appointments} 
+            WHERE ${appointments.patientId} = ${patients.id} 
+              AND ${appointments.doctorId} = ${doctorId}
+              AND (${appointments.deletedAt} IS NULL OR ${appointments.deletedAt}::text = '')
+          )`
         )!
       );
     }

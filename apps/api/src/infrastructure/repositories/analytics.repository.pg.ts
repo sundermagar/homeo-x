@@ -116,7 +116,31 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
       topDiagnoses = []; 
     }
 
-    return { newPatients, revenueByMonth, topDiagnoses };
+    // Post-process to ensure continuous months timeline
+    const end = to || new Date();
+    const start = from || new Date(end.getFullYear(), end.getMonth() - 5, 1);
+    
+    const monthLabels: string[] = [];
+    let curr = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    while (curr <= endMonth) {
+      monthLabels.push(`${monthNames[curr.getMonth()]} ${curr.getFullYear()}`);
+      curr.setMonth(curr.getMonth() + 1);
+    }
+
+    const filledNewPatients = monthLabels.map(label => {
+      const found = newPatients.find(p => p.month === label);
+      return { month: label, count: found ? Number(found.count) : 0 };
+    });
+
+    const filledRevenue = monthLabels.map(label => {
+      const found = revenueByMonth.find(r => r.month === label);
+      return { month: label, total: found ? Number(found.total) : 0 };
+    });
+
+    return { newPatients: filledNewPatients, revenueByMonth: filledRevenue, topDiagnoses };
   }
 
   async getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string): Promise<MonthWiseResult[]> {

@@ -365,7 +365,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/settings/cms', label: 'Content (CMS)', icon: Globe },
           { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
           { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
-          { path: '/settings/staff', label: 'Staff Management', icon: UserCircle },
           { path: '/settings/vaccines', label: 'Vaccines', icon: Shield },
           { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
         ],
@@ -612,47 +611,51 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             background: '#f8fafc',
             borderTop: '1px solid #e2e8f0' 
           }}>
-          <div className="user-profile" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="user-profile" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             <div className="user-avatar" style={{ 
-              width: '36px', height: '36px', borderRadius: '8px', 
-              background: 'var(--primary)', color: 'white', display: 'flex', 
-              alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' 
+              width: '36px', height: '36px', borderRadius: '10px', 
+              background: '#2563eb', color: 'white', display: 'flex', 
+              alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem', flexShrink: 0 
             }}>
               {user?.name?.substring(0, 2).toUpperCase() || 'UX'}
             </div>
             {!effectiveCollapsed && (
-              <div className="user-info" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                <div className="user-name" style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a' }}>
+              <div className="user-info" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                <div className="user-name" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {user?.name || 'Aman Verma'}
                 </div>
-                <div className="user-role" style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  {getRoleLabel(userRole) || (user as any)?.type || 'Agency Member'}
+                <div className="user-role" style={{ fontSize: '0.7rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '1px' }}>
+                  <span>{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</span>
                 </div>
               </div>
             )}
           </div>
           
           {!effectiveCollapsed && (
-            <div style={{ display: 'flex', gap: '4px' }}>
+            <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
               <button 
-                className="settings-btn" 
+                className="sidebar-action-btn" 
                 onClick={toggleDarkMode} 
                 title="Toggle Theme"
                 style={{
-                  background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
                 }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.background = '#e2e8f0' }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent' }}
               >
-                {darkMode ? <Sun size={18} strokeWidth={2} /> : <Moon size={18} strokeWidth={2} />}
+                {darkMode ? <Sun size={16} strokeWidth={1.5} /> : <Moon size={16} strokeWidth={1.5} />}
               </button>
               <button 
-                className="settings-btn" 
+                className="sidebar-action-btn" 
                 onClick={logout} 
                 title="Sign Out"
                 style={{
-                  background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
                 }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = '#fee2e2' }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent' }}
               >
-                <LogOut size={18} strokeWidth={2} />
+                <LogOut size={16} strokeWidth={1.5} />
               </button>
             </div>
           )}
