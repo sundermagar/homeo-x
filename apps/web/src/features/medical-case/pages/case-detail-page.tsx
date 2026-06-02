@@ -51,15 +51,11 @@ import { usePatientBills } from '../../billing/hooks/use-billing';
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { BillingUpdateModal } from '../components/billing-update-modal';
 import { PaymentReceiptModal } from '../../billing/components/payment-receipt-modal';
-<<<<<<< HEAD
 import { InvestigationComparisonView } from '../components/investigation-comparison-view';
 import { InvestigationPreviewModal } from '../components/investigation-preview-modal';
-=======
 import { useAbhaStatus, useAbhaUnlink } from '../../patients/hooks/use-abha';
 import { AbhaLinkingModal } from '../../patients/components/abha-linking-modal';
 import { toast } from '@/hooks/use-toast';
-
->>>>>>> aabha-implementation
 import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Pagination } from '@/components/shared/pagination';
@@ -1146,14 +1142,10 @@ export default function MedicalCaseDetailPage() {
               title="Assign or view package"
             >
               {activePackage?.status === 'Active' ? <Award size={12} /> : <Clock size={12} />}
-<<<<<<< HEAD
               {activePackage?.packageName 
                 ? `${activePackage.packageName} (${activePackage.status})${activePackage.expiryDate ? ` • Expires ${new Date(activePackage.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : ''}`
                 : 'No active plan'}
             </button>
-=======
-              {activePackage?.packageName ? `${activePackage.packageName} (${activePackage.status})` : 'No active plan'}
-            </div>
 
             {/* ABHA Health ID Chip */}
             {abhaStatus?.isLinked ? (
@@ -1226,7 +1218,6 @@ export default function MedicalCaseDetailPage() {
                 <span>Link ABHA</span>
               </button>
             )}
->>>>>>> aabha-implementation
           </div>
 
           <div className="profile-actions">
@@ -2197,7 +2188,6 @@ function MedicalCasePageSkeleton() {
             <div className="skeleton-box" style={{ width: '100px', height: '36px', borderRadius: '8px' }} />
           </div>
         </div>
-<<<<<<< HEAD
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
@@ -2210,52 +2200,10 @@ function MedicalCasePageSkeleton() {
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div className="skeleton-box" style={{ width: '60px', height: '10px', opacity: 0.2, borderRadius: '4px' }} />
               <div className="skeleton-box" style={{ width: '100px', height: '14px', opacity: 0.4, borderRadius: '4px' }} />
-=======
-        <div className="profile-bottom-grid">
-          <div className="profile-info-cell">
-            <label>GENDER</label>
-            <div className="skeleton-box" style={{ width: '60px', height: '15px', marginTop: '4px' }} />
-          </div>
-          <div className="profile-info-cell">
-            <label>AGE</label>
-            <div className="skeleton-box" style={{ width: '80px', height: '15px', marginTop: '4px' }} />
-          </div>
-          <div className="profile-info-cell">
-            <label>PHONE</label>
-            <div className="info-with-icon">
-              <Phone size={14} style={{ opacity: 0.3 }} />
-              <div className="skeleton-box" style={{ width: '100px', height: '15px' }} />
->>>>>>> aabha-implementation
             </div>
-          </div>
-          <div className="profile-info-cell">
-            <label>DOCTOR</label>
-            <div className="info-with-icon">
-              <Stethoscope size={14} style={{ opacity: 0.3 }} />
-              <div className="skeleton-box" style={{ width: '120px', height: '15px' }} />
-            </div>
-          </div>
-          <div className="profile-info-cell">
-            <label>REGISTERED</label>
-            <div className="skeleton-box" style={{ width: '90px', height: '15px', marginTop: '4px' }} />
-          </div>
-          <div className="profile-info-cell">
-            <label>EXPIRES</label>
-            <div className="info-with-icon">
-              <Clock size={14} style={{ opacity: 0.3 }} />
-              <div className="skeleton-box" style={{ width: '85px', height: '15px' }} />
-            </div>
-          </div>
-          <div className="profile-info-cell">
-            <label>ADDRESS</label>
-            <div className="skeleton-box" style={{ width: '140px', height: '15px', marginTop: '4px' }} />
-          </div>
-          <div className="profile-info-cell">
-            <label>CONDITION</label>
-            <div className="skeleton-box" style={{ width: '100px', height: '15px', marginTop: '4px' }} />
+          ))}
           </div>
         </div>
-      </div>
 
       <div className="mc-body-grid" style={{ marginTop: '32px' }}>
         <div className="mc-body-main">

@@ -3,13 +3,9 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord } from '../hooks/use-patients';
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
-<<<<<<< HEAD
-import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle, Zap, ShieldCheck, Clock } from 'lucide-react';
-import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
-=======
 import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle, Zap, ShieldCheck, Clock, Unlink } from 'lucide-react';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { useSendWhatsApp } from '../../communications/hooks/use-communications';
->>>>>>> aabha-implementation
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 import { PageSkeleton } from '@/components/shared/page-skeleton';
