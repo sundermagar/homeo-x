@@ -185,7 +185,7 @@ export default function PatientListPage() {
     if (!confirm(`Delete patient "${name}"? This cannot be undone.`)) return;
     setDeletingId(regid);
     try { await deleteMutation.mutateAsync(regid); refetch(); }
-    catch { alert('Failed to delete patient.'); }
+    catch { /* Global API interceptor handles the toast notification */ }
     finally { setDeletingId(null); }
   };
 

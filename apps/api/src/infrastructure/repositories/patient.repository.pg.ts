@@ -136,9 +136,9 @@ export class PatientRepositoryPg implements PatientRepository {
         .select({
           patient: patients,
           doctorName: sql<string>`COALESCE(
-            (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-            (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-            case_datas.assitant_doctor
+            (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+            (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+            ${patients.assistantDoctor}
           )`,
           lastVisit: sql<Date>`(
             SELECT MAX(d) FROM (
@@ -375,16 +375,23 @@ export class PatientRepositoryPg implements PatientRepository {
     ];
 
     if (clinicId) {
-      conditions.push(eq(patients.clinicId, clinicId));
+      conditions.push(
+        or(
+          eq(patients.clinicId, clinicId),
+          isNull(patients.clinicId),
+          eq(patients.clinicId, 0),
+          eq(patients.clinicId, 1)
+        )!
+      );
     }
 
     const rows = await this.db
       .select({
         patient: patients,
         doctorName: sql<string>`COALESCE(
-          (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-          (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-          case_datas.assitant_doctor
+          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          ${patients.assistantDoctor}
         )`
       })
       .from(patients)
@@ -407,9 +414,9 @@ export class PatientRepositoryPg implements PatientRepository {
       .select({
         patient: patients,
         doctorName: sql<string>`COALESCE(
-          (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-          (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-          case_datas.assitant_doctor
+          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          ${patients.assistantDoctor}
         )`
       })
       .from(patients)
@@ -438,9 +445,9 @@ export class PatientRepositoryPg implements PatientRepository {
       .select({
         patient: patients,
         doctorName: sql<string>`COALESCE(
-          (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-          (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-          case_datas.assitant_doctor
+          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          ${patients.assistantDoctor}
         )`
       })
       .from(patients)

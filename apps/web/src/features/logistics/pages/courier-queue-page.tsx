@@ -39,6 +39,12 @@ export function CourierQueuePage() {
   const sendText = useSendText();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,9 +68,12 @@ export function CourierQueuePage() {
   const [assignSendWhatsapp, setAssignSendWhatsapp] = useState(true);
 
   const { data: queue = [], isLoading } = useQuery({
-    queryKey: ['courier-queue', selectedDate],
+    queryKey: ['courier-queue', selectedDate, debouncedSearch],
     queryFn: async () => {
-      const { data } = await apiClient.get(`/courier/queue?date=${selectedDate}`);
+      const url = debouncedSearch
+        ? `/courier/queue?search=${encodeURIComponent(debouncedSearch)}`
+        : `/courier/queue?date=${selectedDate}`;
+      const { data } = await apiClient.get(url);
       return data.data as CourierEntry[];
     }
   });

@@ -346,46 +346,34 @@ export default function FollowupsPage() {
         </div>
       </header>
 
-      {/* Hero / Insights Card */}
-      <section className="fu-hero-card pp-card-premium mb-8">
-        <div className="fu-hero-content">
-          <div className="fu-hero-icon-blob">
-            <CalendarClock size={24} strokeWidth={1.5} />
-          </div>
-          <div className="fu-hero-text">
-            <h2 className="fu-h2">Clinical Insights</h2>
-            <p className="fu-p">Unified dashboard for missed appointments and scheduled next visits.</p>
+      {/* KPI Stats */}
+      <section className="pp-stat-grid mb-8" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px' }}>
+        <div className="fu-insight-item">
+          <div className="fu-insight-icon total"><Bell size={18} /></div>
+          <div>
+            <span className="fu-insight-label">Total Pending</span>
+            <span className="fu-insight-value">{followups.length}</span>
           </div>
         </div>
-
-        <div className="fu-insights-grid">
-          <div className="fu-insight-item">
-            <div className="fu-insight-icon total"><Bell size={18} /></div>
-            <div>
-              <span className="fu-insight-label">Total Pending</span>
-              <span className="fu-insight-value">{followups.length}</span>
-            </div>
+        <div className="fu-insight-item">
+          <div className="fu-insight-icon missed"><AlertCircle size={18} /></div>
+          <div>
+            <span className="fu-insight-label">Missed Visits</span>
+            <span className="fu-insight-value">{missedCount}</span>
           </div>
-          <div className="fu-insight-item">
-            <div className="fu-insight-icon missed"><AlertCircle size={18} /></div>
-            <div>
-              <span className="fu-insight-label">Missed Visits</span>
-              <span className="fu-insight-value">{missedCount}</span>
-            </div>
+        </div>
+        <div className="fu-insight-item">
+          <div className="fu-insight-icon next"><CheckCircle2 size={18} /></div>
+          <div>
+            <span className="fu-insight-label">Upcoming</span>
+            <span className="fu-insight-value">{nextVisitCount}</span>
           </div>
-          <div className="fu-insight-item">
-            <div className="fu-insight-icon next"><CheckCircle2 size={18} /></div>
-            <div>
-              <span className="fu-insight-label">Upcoming</span>
-              <span className="fu-insight-value">{nextVisitCount}</span>
-            </div>
-          </div>
-          <div className="fu-insight-item">
-            <div className="fu-insight-icon" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary)' }}><Phone size={18} /></div>
-            <div>
-              <span className="fu-insight-label">Action Taken</span>
-              <span className="fu-insight-value">{actionTakenCount}</span>
-            </div>
+        </div>
+        <div className="fu-insight-item">
+          <div className="fu-insight-icon" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary)' }}><Phone size={18} /></div>
+          <div>
+            <span className="fu-insight-label">Action Taken</span>
+            <span className="fu-insight-value">{actionTakenCount}</span>
           </div>
         </div>
       </section>

@@ -11,6 +11,7 @@ import {
   UpdatePatientUseCase,
   DeletePatientUseCase,
 } from '../../../domains/patient/index.js';
+import { requirePermission } from '../middleware/rbac.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { Role } from '@mmc/types';
 import { sql } from 'drizzle-orm';
@@ -25,7 +26,7 @@ function getRepo(req: Request) {
 }
 
 // GET /api/patients?search=&page=&limit=&sortBy=&sortOrder=
-patientRouter.get('/', authMiddleware, async (req: Request, res: Response) => {
+patientRouter.get('/', authMiddleware, requirePermission('PATIENT_VIEW'), async (req: Request, res: Response) => {
   try {
     const { search, page = '1', limit = '30', sortBy, sortOrder, doctor_id, clinicId } = req.query;
     
@@ -59,7 +60,7 @@ patientRouter.get('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // GET /api/patients/lookup?query=
-patientRouter.get('/lookup', authMiddleware, async (req: Request, res: Response) => {
+patientRouter.get('/lookup', authMiddleware, requirePermission('PATIENT_VIEW'), async (req: Request, res: Response) => {
   try {
     const { query } = req.query;
     if (!query || (query as string).length < 2) {
@@ -166,7 +167,7 @@ patientRouter.get('/family-groups', authMiddleware, async (req: Request, res: Re
 });
 
 // GET /api/patients/:regid
-patientRouter.get('/:regid', async (req: Request, res: Response) => {
+patientRouter.get('/:regid', authMiddleware, requirePermission('PATIENT_VIEW'), async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
     if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
@@ -184,7 +185,7 @@ patientRouter.get('/:regid', async (req: Request, res: Response) => {
 });
 
 // POST /api/patients
-patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
+patientRouter.post('/', authMiddleware, requirePermission('PATIENT_WRITE'), async (req: Request, res: Response) => {
   try {
     const parsed = createPatientSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -262,7 +263,7 @@ patientRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // PUT /api/patients/:regid
-patientRouter.put('/:regid', async (req: Request, res: Response) => {
+patientRouter.put('/:regid', authMiddleware, requirePermission('PATIENT_WRITE'), async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
     if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
@@ -286,7 +287,7 @@ patientRouter.put('/:regid', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/patients/:regid
-patientRouter.delete('/:regid', async (req: Request, res: Response) => {
+patientRouter.delete('/:regid', authMiddleware, requirePermission('DELETE_PATIENTS'), async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
     if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
@@ -333,7 +334,7 @@ patientRouter.post('/:regid/family', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/patients/:regid/family/:id
-patientRouter.delete('/:regid/family/:id', async (req: Request, res: Response) => {
+patientRouter.delete('/:regid/family/:id', authMiddleware, requirePermission('DELETE_PATIENTS'), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const repo = getRepo(req);

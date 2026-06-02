@@ -545,7 +545,10 @@ function StaffModal({
           </div>
           {/* Section 4: Statutory & Documents */}
           <div className="plat-form-section">
-            <h4 className="plat-form-section-title">Statutory & Documents</h4>
+            <h4 className="plat-form-section-title">
+              Statutory & Documents
+              <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--pp-text-3)', marginLeft: '8px' }}>(Optional)</span>
+            </h4>
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Aadhar Number</label>
@@ -618,7 +621,7 @@ function StaffModal({
     </Drawer>
   );
 }
-export default function DoctorsPage() {
+export default function DoctorsPage({ actionTrigger }: { actionTrigger?: number }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -641,6 +644,13 @@ export default function DoctorsPage() {
   const staff = staffArray;
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
   const activeCount = data?.activeCount ?? 0;
+  
+  useEffect(() => {
+    if (actionTrigger && actionTrigger > 0) {
+      openCreate();
+    }
+  }, [actionTrigger]);
+
   const openCreate = () => {
     setModalMode('create');
     setEditingId(null);
@@ -661,23 +671,8 @@ export default function DoctorsPage() {
     if (!confirm('Are you sure you want to remove this practitioner?')) return;
     await deleteMutation.mutateAsync({ category: CATEGORY, id });
   };
-  // return (
   return (
-    <div className="plat-page">
-      <div className="pp-page-hero">
-        <div>
-          <h1 className="pp-page-hero-title">
-            <Stethoscope size={22} style={{ color: 'var(--pp-blue)' }} />
-            {META.label}
-          </h1>
-          <p className="pp-page-hero-sub">{META.description}</p>
-        </div>
-        <div className="pp-page-hero-actions">
-          <button className="btn-primary" onClick={openCreate}>
-            <Plus size={16} strokeWidth={1.8} /> Register Doctor
-          </button>
-        </div>
-      </div>
+    <div className="plat-tab-content">
       <div className="pp-stat-grid">
         <div className="pp-stat-card-enhanced">
           <div className="pp-stat-label">Total Practitioners</div>

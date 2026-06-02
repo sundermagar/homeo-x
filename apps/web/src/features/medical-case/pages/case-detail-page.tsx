@@ -1234,7 +1234,7 @@ export default function MedicalCaseDetailPage() {
             )}
 
             {/* ─── Billing Summary (Positioned below Prescription Table) ─── */}
-            {activeTab === 'summary' && (
+            {activeTab === 'summary' && user?.permissions?.canViewBilling && (
               <div style={{
                 marginTop: '32px',
                 padding: '24px',

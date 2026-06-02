@@ -80,37 +80,4 @@ permissionsRouter.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
-/* ─────────── POST /api/roles/:id/permissions ─────────── */
-permissionsRouter.post('/roles/:id/permissions', async (req: Request, res: Response) => {
-  const { permissionId } = req.body;
-  if (!permissionId) return sendError(res, 'permissionId is required', 400);
 
-  try {
-    await req.tenantDb
-      .insert(schema.permissionRole)
-      .values({ roleId: Number(req.params.id), permissionId })
-      .onConflictDoNothing();
-
-    return sendSuccess(res, null, 'Permission assigned to role');
-  } catch (err: any) {
-    return sendError(res, err.message, 500);
-  }
-});
-
-/* ─────────── DELETE /api/roles/:id/permissions/:permId ─────────── */
-permissionsRouter.delete('/roles/:id/permissions/:permId', async (req: Request, res: Response) => {
-  try {
-    await req.tenantDb
-      .delete(schema.permissionRole)
-      .where(
-        and(
-          eq(schema.permissionRole.roleId, Number(req.params.id)),
-          eq(schema.permissionRole.permissionId, Number(req.params.permId)),
-        ),
-      );
-
-    return sendSuccess(res, null, 'Permission revoked from role');
-  } catch (err: any) {
-    return sendError(res, err.message, 500);
-  }
-});

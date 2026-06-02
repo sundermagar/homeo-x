@@ -420,9 +420,13 @@ function StaffModal({
               )}
             </div>
           </div>
+
           {/* Section 4: Statutory Documents */}
           <div className="plat-form-section">
-            <h4 className="plat-form-section-title">Statutory Documents</h4>
+            <h4 className="plat-form-section-title">
+              Statutory Documents 
+              <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--pp-text-3)', marginLeft: '8px' }}>(Optional)</span>
+            </h4>
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Aadhar Number</label>
@@ -435,6 +439,7 @@ function StaffModal({
                 />
               </div>
               <FileInputRow label="Aadhar Card" field="aadharCard" value={form.aadharCard} onChange={handleFileUpload} error={errors['aadharCard']} />
+              
               <div className="plat-form-group">
                 <label className="plat-form-label">PAN Number</label>
                 <input
@@ -448,6 +453,7 @@ function StaffModal({
               <FileInputRow label="PAN Card" field="panCard" value={form.panCard} onChange={handleFileUpload} error={errors['panCard']} />
             </div>
           </div>
+
           <div className="plat-modal-footer">
             <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>Discard Changes</button>
             <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending || isLoading}>
@@ -459,7 +465,7 @@ function StaffModal({
     </Drawer>
   );
 }
-export default function ClinicAdminsPage() {
+export default function ClinicAdminsPage({ actionTrigger }: { actionTrigger?: number }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -480,6 +486,14 @@ export default function ClinicAdminsPage() {
   const staff = data?.data || [];
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
   const activeCount = data?.activeCount ?? 0;
+
+  useEffect(() => {
+    if (actionTrigger && actionTrigger > 0) {
+      setEditingId(null);
+      setModalOpen(true);
+    }
+  }, [actionTrigger]);
+
   const handleEdit = (s: StaffSummary) => {
     setEditingId(s.id);
     setModalOpen(true);
@@ -495,22 +509,7 @@ export default function ClinicAdminsPage() {
     await deleteMutation.mutateAsync({ category: CATEGORY, id });
   };
   return (
-    <div className="plat-page">
-      <div className="plat-header">
-        <div>
-          <h1 className="plat-header-title">
-            <ShieldCheck size={16} className="color-primary" />
-            {META.label}
-          </h1>
-          <p className="plat-header-sub">{META.description}</p>
-        </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
-            <Plus size={14} />
-            Add Admin
-          </button>
-        </div>
-      </div>
+    <div className="plat-tab-content">
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
           <p className="plat-stat-label">Executive Block</p>

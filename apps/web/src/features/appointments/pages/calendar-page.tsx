@@ -80,7 +80,15 @@ export default function CalendarPage() {
           </h1>
           <p className="appt-header-sub">Manage practitioner schedules and availability</p>
         </div>
-        <div className="appt-header-actions">
+        <div className="appt-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div className="appt-segmented-toggle" style={{ display: 'flex', background: 'var(--bg-surface-2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-main)' }}>
+            <a href="/appointments" className="appt-segmented-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderRadius: '6px' }}>
+              <List size={16} strokeWidth={1.6} /> List
+            </a>
+            <button type="button" className="appt-segmented-btn" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, background: 'var(--bg-card)', color: 'var(--text-main)', borderRadius: '6px', border: 'none', cursor: 'default', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <Calendar size={16} strokeWidth={1.6} /> Calendar
+            </button>
+          </div>
           <button
             onClick={() => { setBookingDate(selectedDay ?? todayISO); setIsBookingOpen(true); }}
             className="appt-btn appt-btn-primary"

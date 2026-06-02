@@ -166,7 +166,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     {
       type: 'link',
       path: '/',
-      label: 'Dashboard',
+      label: 'Overview',
       icon: LayoutDashboard,
       roles: ALL,
     },
@@ -186,18 +186,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       },
     },
     {
-      type: 'group',
-      group: {
-        id: 'appointments',
-        label: 'Appointments',
-        icon: CalendarClock,
-        roles: ALL,
-        children: [
-          { path: '/appointments', label: 'List View', icon: CalendarClock },
-          { path: '/appointments/calendar', label: 'Calendar', icon: Calendar },
-          { path: '/appointments/queue', label: 'Token Queue', icon: Ticket },
-        ],
-      },
+      type: 'link',
+      path: '/appointments',
+      label: 'Appointments',
+      icon: CalendarClock,
+      roles: ALL,
     },
     {
       type: 'group',
@@ -251,7 +244,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         icon: MessageCircle,
         roles: ALL,
         children: [
-          { path: '/communications/whatsapp/overview', label: 'Dashboard', icon: LayoutDashboard, roles: ADMIN },
+          { path: '/communications/whatsapp/overview', label: 'Overview', icon: LayoutDashboard, roles: ADMIN },
           { path: '/communications/whatsapp/inbox', label: 'Team Inbox', icon: MessageSquare },
           { path: '/communications/whatsapp/contacts', label: 'Contacts', icon: Users },
           { path: '/communications/whatsapp/campaigns', label: 'Campaigns', icon: Send, roles: ADMIN },
@@ -273,7 +266,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         roles: CLINICAL,
         defaultPath: '/analytics',
         children: [
-          { path: '/analytics', label: 'Dashboard', icon: BarChart2 },
+          { path: '/analytics', label: 'Overview', icon: BarChart2 },
           {
             path: '/analytics/reports',
             label: 'Reports',
@@ -316,20 +309,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       },
     },
     {
-      type: 'group',
-      group: {
-        id: 'staff-management',
-        label: 'Staff Management',
-        icon: Users,
-        roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
-        children: [
-          { path: '/platform/doctors', label: 'Doctors', icon: Stethoscope },
-          { path: '/platform/employees', label: 'Employees', icon: User },
-          { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
-          { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
-          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck, roles: ['SuperAdmin', 'Admin'] },
-        ],
-      },
+      type: 'link',
+      path: '/platform/staff',
+      label: 'Staff Management',
+      icon: Users,
+      roles: ['SuperAdmin', 'Admin', 'Clinicadmin']
     },
     {
       type: 'group',
@@ -354,7 +338,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         children: [
           { path: '/dispensary', label: 'Stickers Workspace', icon: StickyNote, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Dispensary'] },
           { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck, roles: [...ALL, 'Dispensary'] },
-          { path: '/operations?tab=logistics', label: 'Logistics Tracking', icon: Layers, roles: ADMIN },
           { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users, roles: ADMIN },
           { path: '/operations?tab=knowledge', label: 'Knowledge Base', icon: BookOpen, roles: ADMIN },
         ],
@@ -384,6 +367,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
           { path: '/settings/staff', label: 'Staff Management', icon: UserCircle },
           { path: '/settings/vaccines', label: 'Vaccines', icon: Shield },
+          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
         ],
       },
     },
@@ -547,16 +531,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="sidebar-nav">
           {visibleNav.map((item) => {
             if (item.type === 'link') {
-              const Icon = item.icon;
               return (
                 <NavLink
                   key={item.path}
                   to={item.path}
                   end={item.path === '/'}
-                  className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
+                  className={({ isActive }) => `sidebar-top-link ${isActive ? 'active' : ''}`}
                   onClick={handleNavClick}
+                  style={{ 
+                    fontSize: '0.7rem', 
+                    fontWeight: 700, 
+                    letterSpacing: '0.08em', 
+                    textTransform: 'uppercase', 
+                    color: '#64748b', 
+                    padding: '8px 16px',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginTop: '16px',
+                    marginBottom: '8px',
+                    position: 'relative',
+                    outline: 'none'
+                  }}
                 >
-                  <Icon className="sidebar-item-icon" strokeWidth={1.8} />
                   {!effectiveCollapsed && <span>{item.label}</span>}
                   {effectiveCollapsed && <span className="sidebar-hover-label">{item.label}</span>}
                   {item.badge !== undefined && item.badge > 0 && !effectiveCollapsed && (
@@ -572,61 +569,93 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             const GroupIcon = group.icon;
 
             return (
-              <div key={group.id} className="sidebar-group">
-                <button
-                  className={`sidebar-group-trigger ${groupActive ? 'group-active' : ''}`}
-                  onClick={() => {
-                    toggleGroup(group.id);
-                    if (group.defaultPath) navigate(group.defaultPath);
-                  }}
-                >
-                  <div className="sidebar-group-trigger-left">
-                    <GroupIcon className="sidebar-item-icon" strokeWidth={1.8} />
-                    {!effectiveCollapsed && <span>{group.label}</span>}
-                    {effectiveCollapsed && <span className="sidebar-hover-label">{group.label}</span>}
-                  </div>
-                  {!effectiveCollapsed && (
-                    <span className={`sidebar-chevron ${isOpen_ ? 'open' : ''}`}>
-                      <ChevronDown size={14} strokeWidth={2} />
-                    </span>
-                  )}
-                </button>
-
-                <div className={`sidebar-group-children ${isOpen_ ? 'expanded' : ''}`}>
-                  <div className="sidebar-group-children-inner">
+              <div key={group.id} className="sidebar-group-flat" style={{ marginTop: '16px', marginBottom: '8px' }}>
+                {!effectiveCollapsed && (
+                  <button 
+                    className="sidebar-section-label" 
+                    onClick={() => toggleGroup(group.id)}
+                    style={{ 
+                      fontSize: '0.7rem', 
+                      fontWeight: 700, 
+                      letterSpacing: '0.08em', 
+                      textTransform: 'uppercase', 
+                      color: '#64748b', 
+                      padding: '8px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      width: '100%',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      outline: 'none'
+                  }}>
+                    {group.label}
+                    <ChevronDown size={14} style={{ opacity: 0.5, transform: isOpen_ ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }} />
+                  </button>
+                )}
+                {(isOpen_ || effectiveCollapsed) && (
+                  <div className="sidebar-group-children-flat">
                     {group.children.map(child => renderNavChild(child))}
                   </div>
-                </div>
+                )}
               </div>
             );
           })}
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="user-profile">
-            <div className="user-avatar">
-              <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>
-                {user?.name?.substring(0, 2).toUpperCase() || 'UX'}
-              </span>
-              {effectiveCollapsed && <span className="sidebar-hover-label">{user?.name || 'Practitioner'}</span>}
+        <div className="sidebar-footer" style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            padding: '16px', 
+            background: '#f8fafc',
+            borderTop: '1px solid #e2e8f0' 
+          }}>
+          <div className="user-profile" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="user-avatar" style={{ 
+              width: '36px', height: '36px', borderRadius: '8px', 
+              background: 'var(--primary)', color: 'white', display: 'flex', 
+              alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' 
+            }}>
+              {user?.name?.substring(0, 2).toUpperCase() || 'UX'}
             </div>
             {!effectiveCollapsed && (
-              <div className="user-info">
-                <div className="user-name">{user?.name || 'Practitioner'}</div>
-                <div className="user-role">{getRoleLabel(userRole) || (user as any)?.type || 'Doctor'}</div>
+              <div className="user-info" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <div className="user-name" style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a' }}>
+                  {user?.name || 'Aman Verma'}
+                </div>
+                <div className="user-role" style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  {getRoleLabel(userRole) || (user as any)?.type || 'Agency Member'}
+                </div>
               </div>
             )}
-
-            <button className="theme-toggle-btn" onClick={toggleDarkMode}>
-              {darkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
-              {effectiveCollapsed && <span className="sidebar-hover-label">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
-            </button>
-
-            <button className="logout-btn" onClick={logout}>
-              <LogOut size={16} strokeWidth={2} />
-              {effectiveCollapsed && <span className="sidebar-hover-label">Logout</span>}
-            </button>
           </div>
+          
+          {!effectiveCollapsed && (
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button 
+                className="settings-btn" 
+                onClick={toggleDarkMode} 
+                title="Toggle Theme"
+                style={{
+                  background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                {darkMode ? <Sun size={18} strokeWidth={2} /> : <Moon size={18} strokeWidth={2} />}
+              </button>
+              <button 
+                className="settings-btn" 
+                onClick={logout} 
+                title="Sign Out"
+                style={{
+                  background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                <LogOut size={18} strokeWidth={2} />
+              </button>
+            </div>
+          )}
         </div>
       </aside>
     </>

@@ -20,7 +20,7 @@ export class BookAppointmentUseCase {
     private readonly whatsapp?: SendWhatsAppTemplateUseCase,
   ) { }
 
-  async execute(dto: CreateAppointmentDto): Promise<Result<{ id: number }>> {
+  async execute(dto: CreateAppointmentDto): Promise<Result<{ id: number; tokenNo?: number }>> {
     if (!dto.bookingDate) return fail('Booking date is required', 'VALIDATION');
 
     let patientId = dto.patientId;
@@ -39,6 +39,25 @@ export class BookAppointmentUseCase {
     }
 
     const id = await this.repo.create({ ...dto, patientId, unregisteredPatientId });
+
+    let tokenNo: number | undefined;
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    if (dto.bookingDate === todayStr) {
+      try {
+        tokenNo = await this.repo.issueToken(id);
+        if (this.repo.addToWaitlist) {
+          await this.repo.addToWaitlist({
+            patientId: patientId || undefined,
+            appointmentId: id,
+            doctorId: dto.doctorId,
+            consultationFee: dto.consultationFee,
+            clinicId: dto.clinicId
+          });
+        }
+      } catch (err) {
+        logger.warn(`Failed to auto-issue token for appointment ${id}: ${err}`);
+      }
+    }
 
     // DECOMMISSIONED: SMS session moved to WhatsApp
     /*
@@ -86,6 +105,6 @@ export class BookAppointmentUseCase {
       }
     }
 
-    return ok({ id });
+    return ok({ id, tokenNo });
   }
 }

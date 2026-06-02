@@ -436,6 +436,12 @@
   border: 1px solid #BBF7D0;
 }
 
+.appt-alert-info {
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+  border: 1px solid var(--pp-blue-glow);
+}
+
 /* ─── Calendar Grid ─── */
 .appt-cal-wrap {
   display: flex;

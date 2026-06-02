@@ -203,7 +203,6 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
   const validate = () => {
     const errs: string[] = [];
     if (!form.firstName.trim()) errs.push('First Name is required');
-    if (!form.surname.trim()) errs.push('Surname is required');
     if (!form.phone.trim() && !form.mobile1.trim()) errs.push('At least one phone number is required');
     if (!form.dateOfBirth) errs.push('Date of Birth is required');
     
@@ -304,7 +303,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                 </select>
                 <input className="drawer-input" style={{ flex: 1 }} name="firstName" value={form.firstName} onChange={handleChange} placeholder="First Name" required />
                 <input className="drawer-input" style={{ flex: 1 }} name="middleName" value={form.middleName} onChange={handleChange} placeholder="Middle Name" />
-                <input className="drawer-input" style={{ flex: 1 }} name="surname" value={form.surname} onChange={handleChange} placeholder="Surname" required />
+                <input className="drawer-input" style={{ flex: 1 }} name="surname" value={form.surname} onChange={handleChange} placeholder="Surname" />
               </div>
             </div>
 

@@ -152,3 +152,28 @@ rolesRouter.get('/permissions/all', async (req: Request, res: Response) => {
     return sendError(res, err.message, 500);
   }
 });
+
+/* ─────────── POST /api/roles/:id/permissions ─────────── */
+rolesRouter.post('/:id/permissions', async (req: Request, res: Response) => {
+  const { permissionIds } = req.body;
+  if (!Array.isArray(permissionIds)) return sendError(res, 'permissionIds array is required', 400);
+
+  const roleId = Number(req.params.id);
+
+  try {
+    await req.tenantDb.execute(sql`DELETE FROM permission_role WHERE role_id = ${roleId}`);
+    
+    if (permissionIds.length > 0) {
+      for (const id of permissionIds) {
+        await req.tenantDb.execute(sql`
+          INSERT INTO permission_role (role_id, permission_id) VALUES (${roleId}, ${id}) ON CONFLICT DO NOTHING
+        `);
+      }
+    }
+
+    return sendSuccess(res, null, 'Permissions synced successfully');
+  } catch (err: any) {
+    return sendError(res, err.message, 500);
+  }
+});
+

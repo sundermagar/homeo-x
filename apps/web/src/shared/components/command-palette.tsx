@@ -123,8 +123,6 @@ function buildCommands(
       ['appointment', 'schedule', 'booking', 'visit']),
     nav('Calendar', '/appointments/calendar', <Calendar size={16} />, ALL,
       ['calendar', 'schedule', 'view']),
-    nav('Token Queue', '/appointments/queue', <ClipboardList size={16} />, CLINICAL,
-      ['token', 'queue', 'waitlist', 'running']),
 
     // ── Medical Cases ─────────────────────────────────────────────────────────
     nav('Vitals Check', '/vitals-check', <Activity size={16} />, CLINICAL,

@@ -170,6 +170,28 @@ export default function AppointmentListPage() {
     { s: AppointmentStatus.Cancelled, label: 'Cancel', color: 'var(--pp-danger-fg)' },
   ];
 
+  const getAvailableStatuses = (currentStatus: string) => {
+    const s = AppointmentStatus;
+    switch (currentStatus) {
+      case s.Pending:
+      case s.Scheduled:
+        return [s.Confirmed, s.Arrived, s.Cancelled, s.Absent];
+      case s.Confirmed:
+        return [s.Arrived, s.Consultation, s.Cancelled, s.Absent];
+      case s.Arrived:
+      case s.Waitlist:
+        return [s.Consultation, s.Done, s.Cancelled, s.Absent];
+      case s.Consultation:
+        return [s.Done, s.Cancelled];
+      case s.Done:
+      case s.Cancelled:
+      case s.Absent:
+        return []; // Terminal states
+      default:
+        return [s.Confirmed, s.Arrived, s.Consultation, s.Done, s.Absent, s.Cancelled].filter(x => x !== currentStatus);
+    }
+  };
+
   return (
     <div className="pp-page-container appt-page animate-fade-in">
       {/* Hero Header */}
@@ -189,6 +211,9 @@ export default function AppointmentListPage() {
             <button type="button" className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
               <Grid size={16} strokeWidth={1.6} /> Grid
             </button>
+            <Link to="/appointments/calendar" className="appt-segmented-btn" style={{ textDecoration: 'none' }}>
+              <Calendar size={16} strokeWidth={1.6} /> Calendar
+            </Link>
           </div>
           <button className="btn-primary" onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
             <Plus size={14} strokeWidth={1.6} /> New Booking
@@ -313,7 +338,7 @@ export default function AppointmentListPage() {
                           className="appt-kebab-menu"
                           style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}
                         >
-                          {quickStatuses.filter(q => q.s !== a.status).map(q => (
+                          {quickStatuses.filter(q => getAvailableStatuses(a.status).includes(q.s as AppointmentStatus)).map(q => (
                             <button
                               key={q.s}
                               className="appt-kebab-item"

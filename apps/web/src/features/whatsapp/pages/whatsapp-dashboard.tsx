@@ -130,7 +130,7 @@ export const WhatsAppDashboardPage = () => {
     switch (activeFeature) {
       case 'overview':
         return {
-          title: 'WhatsApp Dashboard',
+          title: 'WhatsApp Overview',
           sub: 'Analyze real-time delivery metrics and patient engagement status.',
           icon: <LayoutDashboard size={22} strokeWidth={1.8} />,
         };

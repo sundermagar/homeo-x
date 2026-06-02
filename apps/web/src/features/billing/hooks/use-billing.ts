@@ -7,6 +7,7 @@ import type {
   PatientBillSummary
 } from '@mmc/types';
 import type { CreateBillInput, ListBillsQuery, CreateCustomBillInput } from '@mmc/validation';
+import { useAuthStore } from '@/shared/stores/auth-store';
 
 export interface PatientBalance {
   regid: number;
@@ -57,6 +58,7 @@ export function useBills(query: ListBillsQuery) {
 }
 
 export function usePatientBills(regid: number) {
+  const canViewBilling = useAuthStore(s => s.user?.permissions?.canViewBilling ?? true);
   return useQuery({
     queryKey: ['bills', 'patient', regid],
     queryFn: async () => {
@@ -65,7 +67,7 @@ export function usePatientBills(regid: number) {
       );
       return data.data;
     },
-    enabled: !!regid && regid > 0,
+    enabled: !!regid && regid > 0 && canViewBilling,
   });
 }
 

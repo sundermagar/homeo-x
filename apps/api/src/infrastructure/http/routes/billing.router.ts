@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { sql } from 'drizzle-orm';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { requirePermission } from '../middleware/rbac.js';
 import { validate, validateQuery } from '../middleware/validate.js';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
 import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
@@ -29,6 +30,7 @@ export function createBillingRouter(): Router {
   // GET /api/billing/balances
   router.get(
     '/balances',
+    requirePermission('BILLING_VIEW'),
     asyncHandler(async (req: Request, res: Response) => {
       const clinicId = (req as any).user?.contextId;
       const useCase = new GetPatientBalancesUseCase(getRepo(req));
@@ -44,6 +46,7 @@ export function createBillingRouter(): Router {
   // POST /api/billing/balances/:regid/notes
   router.post(
     '/balances/:regid/notes',
+    requirePermission('BILLING_WRITE'),
     asyncHandler(async (req: Request, res: Response) => {
       const regid = parseInt(req.params.regid as string, 10);
       const { note } = req.body;
@@ -64,6 +67,7 @@ export function createBillingRouter(): Router {
   // GET /api/billing?regid=&date=&page=&limit=
   router.get(
     '/',
+    requirePermission('BILLING_VIEW'),
     validateQuery(listBillsQuerySchema),
     asyncHandler(async (req: Request, res: Response) => {
       const clinicId = (req as any).user?.contextId;
@@ -80,6 +84,7 @@ export function createBillingRouter(): Router {
   // GET /api/billing/daily?date=YYYY-MM-DD
   router.get(
     '/daily',
+    requirePermission('BILLING_VIEW'),
     asyncHandler(async (req: Request, res: Response) => {
       const clinicId = (req as any).user?.contextId;
       const useCase = new GetDailyCollectionUseCase(getRepo(req));
@@ -95,6 +100,7 @@ export function createBillingRouter(): Router {
   // GET /api/billing/patient/:regid
   router.get(
     '/patient/:regid',
+    requirePermission('BILLING_VIEW'),
     asyncHandler(async (req: Request, res: Response) => {
       const regid = parseInt(req.params.regid as string, 10);
       if (isNaN(regid)) {
@@ -115,6 +121,7 @@ export function createBillingRouter(): Router {
   // POST /api/billing
   router.post(
     '/',
+    requirePermission('BILLING_WRITE'),
     validate(createBillSchema),
     asyncHandler(async (req: Request, res: Response) => {
       const useCase = new CreateBillUseCase(getRepo(req));
@@ -140,6 +147,7 @@ export function createBillingRouter(): Router {
   // POST /api/billing/custom — create a custom/manual bill
   router.post(
     '/custom',
+    requirePermission('BILLING_WRITE'),
     validate(createCustomBillSchema),
     asyncHandler(async (req: Request, res: Response) => {
       const useCase = new CreateCustomBillUseCase(getRepo(req));
@@ -165,6 +173,7 @@ export function createBillingRouter(): Router {
   // GET /api/billing/pdf/:id
   router.get(
     '/pdf/:id',
+    requirePermission('BILLING_VIEW'),
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id as string, 10);
       if (isNaN(id)) {
@@ -205,6 +214,7 @@ export function createBillingRouter(): Router {
   // PATCH /api/billing/:id/charges
   router.patch(
     '/:id/charges',
+    requirePermission('BILLING_WRITE'),
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id as string, 10);
       const amount = Number(req.body.amount);
@@ -226,6 +236,7 @@ export function createBillingRouter(): Router {
   // DELETE /api/billing/:id
   router.delete(
     '/:id',
+    requirePermission('BILLING_WRITE'),
     asyncHandler(async (req: Request, res: Response) => {
       const id = parseInt(req.params.id as string, 10);
       if (isNaN(id)) {
@@ -250,6 +261,7 @@ export function createBillingRouter(): Router {
    */
   router.get(
     '/extended-summary',
+    requirePermission('BILLING_VIEW'),
     asyncHandler(async (req: Request, res: Response) => {
       const db = req.tenantDb;
       const dateParam = (req.query.date as string) || new Date().toISOString().split('T')[0];
@@ -365,6 +377,7 @@ export function createBillingRouter(): Router {
    */
   router.get(
     '/payment-drilldown',
+    requirePermission('BILLING_VIEW'),
     asyncHandler(async (req: Request, res: Response) => {
       const db = req.tenantDb;
       const dateParam = (req.query.date as string) || new Date().toISOString().split('T')[0];
@@ -444,6 +457,7 @@ export function createBillingRouter(): Router {
    */
   router.get(
     '/month-list',
+    requirePermission('BILLING_VIEW'),
     asyncHandler(async (req: Request, res: Response) => {
       const db = req.tenantDb;
       const endDate = (req.query.endDate as string) || new Date().toISOString().split('T')[0];
@@ -545,6 +559,7 @@ export function createBillingRouter(): Router {
    */
   router.get(
     '/collection-target',
+    requirePermission('BILLING_VIEW'),
     asyncHandler(async (req: Request, res: Response) => {
       const db = req.tenantDb;
       const monthParam = (req.query.month as string) || new Date().toISOString().slice(0, 7);
@@ -632,6 +647,7 @@ export function createBillingRouter(): Router {
    */
   router.post(
     '/set-target',
+    requirePermission('BILLING_WRITE'),
     asyncHandler(async (req: Request, res: Response) => {
       const db = req.tenantDb;
       const { amount } = req.body;
