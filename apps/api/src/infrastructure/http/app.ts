@@ -55,6 +55,7 @@ import { scribingRouter } from './routes/scribing.router.js';
 import { visitsRouter } from './routes/visits.router.js';
 import { videoCallRouter } from './routes/video-call.router.js';
 import { specialtiesRouter } from './routes/specialties.router.js';
+import { abhaRouter } from './routes/abha.router.js';
 import { setupTranscriptionGateway } from './gateways/transcription.gateway.js';
 import { setupVideoCallGateway } from './gateways/video-call.gateway.js';
 import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine.js';
@@ -184,6 +185,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/ai', authMiddleware, aiRouter);
   app.use('/api/visits', authMiddleware, visitsRouter);
   app.use('/api/specialties', authMiddleware, specialtiesRouter);
+
+  // ─── ABHA (Ayushman Bharat Health Account) ───
+  app.use('/api/abha', abhaRouter);
 
   // ─── Video Call (LiveKit token issuance) ───
   // Mounted without authMiddleware because the patient-join link must be

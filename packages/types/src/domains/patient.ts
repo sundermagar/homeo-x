@@ -41,6 +41,7 @@ export interface Patient {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  abhaId?: string | null;
 }
 
 export interface PatientSummary {
@@ -57,6 +58,7 @@ export interface PatientSummary {
   totalVisits: number;
   doctorName?: string | null;
   createdAt: Date;
+  abhaId?: string | null;
 }
 
 export interface FamilyMember {

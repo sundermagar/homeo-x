@@ -3,13 +3,20 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, useRemoveFamilyMember, usePatientLookup, usePatientClinicalRecord } from '../hooks/use-patients';
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
+<<<<<<< HEAD
 import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle, Zap, ShieldCheck, Clock } from 'lucide-react';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
+=======
+import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle, Zap, ShieldCheck, Clock, Unlink } from 'lucide-react';
+import { useSendWhatsApp } from '../../communications/hooks/use-communications';
+>>>>>>> aabha-implementation
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 import { PageSkeleton } from '@/components/shared/page-skeleton';
 import { PatientFormDrawer } from '../components/patient-form-drawer';
 import { EmptyState } from '@/components/shared/empty-state';
+import { useAbhaStatus, useAbhaUnlink } from '../hooks/use-abha';
+import { AbhaLinkingModal } from '../components/abha-linking-modal';
 import '../styles/patients.css';
 
 export default function PatientDetailPage() {
@@ -32,6 +39,10 @@ export default function PatientDetailPage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const { data: lookupResults = [] } = usePatientLookup(searchQuery);
   const { data: activePkg, isLoading: pkgLoading } = useActivePackage(numRegid);
+
+  const [showAbhaModal, setShowAbhaModal] = useState(false);
+  const { data: abhaStatus, isLoading: abhaLoading } = useAbhaStatus(numRegid);
+  const abhaUnlinkMutation = useAbhaUnlink(numRegid);
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this patient?')) return;
@@ -190,6 +201,47 @@ export default function PatientDetailPage() {
             </div>
           )}
         </div>
+
+        {/* ABHA Health ID */}
+        <div className="pp-card animate-fade-in">
+          <h3 className="pat-chart-title">
+            <ShieldCheck size={16} className="pat-chart-title-icon" style={{ color: 'var(--pp-blue)' }} /> ABHA Health ID
+          </h3>
+          {abhaLoading ? (
+            <div className="pp-skeleton" style={{ height: '60px', width: '100%' }} />
+          ) : abhaStatus?.isLinked ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <InfoRow label="ABHA Number" value={abhaStatus.abhaId} />
+              <InfoRow label="ABHA Address" value={abhaStatus.profile?.healthId || '—'} />
+              <button
+                onClick={async () => {
+                  if (!confirm('Remove ABHA link from this patient?')) return;
+                  try {
+                    await abhaUnlinkMutation.mutateAsync();
+                  } catch (err: any) {
+                    console.error('Failed to unlink ABHA', err);
+                  }
+                }}
+                disabled={abhaUnlinkMutation.isPending}
+                className="btn-secondary pat-btn-danger"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '8px' }}
+              >
+                <Unlink size={14} /> {abhaUnlinkMutation.isPending ? 'Unlinking...' : 'Unlink ABHA'}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 0', textAlign: 'center' }}>
+              <p style={{ color: 'var(--pp-text-3)', fontSize: '0.875rem', marginBottom: '16px' }}>No ABHA Health ID linked to this patient record.</p>
+              <button
+                onClick={() => setShowAbhaModal(true)}
+                className="btn-primary"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <ShieldCheck size={14} /> Link ABHA Card
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <ClinicalTrends regid={numRegid} />
@@ -324,6 +376,13 @@ export default function PatientDetailPage() {
         onClose={() => setShowAssignModal(false)}
         patientId={numRegid}
         patientName={`${patient.firstName} ${patient.surname}`}
+      />
+
+      <AbhaLinkingModal
+        isOpen={showAbhaModal}
+        onClose={() => setShowAbhaModal(false)}
+        regid={numRegid}
+        patientName={`${patient.firstName || ''} ${patient.surname || ''}`.trim()}
       />
     </div>
   );

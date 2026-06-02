@@ -18,7 +18,9 @@ import {
   Mail,
   ShieldCheck,
   Award,
-  Download
+  Download,
+  Unlink,
+  Link2
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useAutoSave } from '@/shared/hooks/use-auto-save';
@@ -49,8 +51,15 @@ import { usePatientBills } from '../../billing/hooks/use-billing';
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { BillingUpdateModal } from '../components/billing-update-modal';
 import { PaymentReceiptModal } from '../../billing/components/payment-receipt-modal';
+<<<<<<< HEAD
 import { InvestigationComparisonView } from '../components/investigation-comparison-view';
 import { InvestigationPreviewModal } from '../components/investigation-preview-modal';
+=======
+import { useAbhaStatus, useAbhaUnlink } from '../../patients/hooks/use-abha';
+import { AbhaLinkingModal } from '../../patients/components/abha-linking-modal';
+import { toast } from '@/hooks/use-toast';
+
+>>>>>>> aabha-implementation
 import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Pagination } from '@/components/shared/pagination';
@@ -214,6 +223,9 @@ export default function MedicalCaseDetailPage() {
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const { data: fullData, isLoading, error, refetch: refetchFull } = useFullMedicalCase(Number(regid));
+  const [showAbhaModal, setShowAbhaModal] = useState(false);
+  const { data: abhaStatus } = useAbhaStatus(Number(regid));
+  const abhaUnlinkMutation = useAbhaUnlink(Number(regid));
   const medicalCase = fullData?.medicalCase;
   const visitId = medicalCase?.id;
   const { data: dayCharges = [] } = useDayCharges();
@@ -1134,10 +1146,87 @@ export default function MedicalCaseDetailPage() {
               title="Assign or view package"
             >
               {activePackage?.status === 'Active' ? <Award size={12} /> : <Clock size={12} />}
+<<<<<<< HEAD
               {activePackage?.packageName 
                 ? `${activePackage.packageName} (${activePackage.status})${activePackage.expiryDate ? ` • Expires ${new Date(activePackage.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : ''}`
                 : 'No active plan'}
             </button>
+=======
+              {activePackage?.packageName ? `${activePackage.packageName} (${activePackage.status})` : 'No active plan'}
+            </div>
+
+            {/* ABHA Health ID Chip */}
+            {abhaStatus?.isLinked ? (
+              <div 
+                className="profile-status-chip active" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px',
+                  background: 'rgba(34, 197, 94, 0.15)',
+                  borderColor: 'rgba(34, 197, 94, 0.3)',
+                  color: '#4ade80',
+                  paddingRight: '6px'
+                }}
+              >
+                <ShieldCheck size={12} />
+                <span>ABHA: {abhaStatus.abhaId}</span>
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!confirm('Remove ABHA link from this patient?')) return;
+                    try {
+                      await abhaUnlinkMutation.mutateAsync();
+                      toast({ title: 'ABHA Unlinked', description: 'ABHA ID removed from patient profile', variant: 'success' });
+                    } catch (err: any) {
+                      toast({ title: 'Failed', description: err.message, variant: 'error' });
+                    }
+                  }}
+                  disabled={abhaUnlinkMutation.isPending}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#f87171',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s',
+                  }}
+                  title="Unlink ABHA ID"
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <Unlink size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowAbhaModal(true)}
+                className="profile-status-chip"
+                style={{
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  borderColor: 'rgba(59, 130, 246, 0.3)',
+                  color: '#60a5fa',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)';
+                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                }}
+              >
+                <Link2 size={12} />
+                <span>Link ABHA</span>
+              </button>
+            )}
+>>>>>>> aabha-implementation
           </div>
 
           <div className="profile-actions">
@@ -1169,6 +1258,7 @@ export default function MedicalCaseDetailPage() {
               <Phone size={14} /> {medicalCase.mobile || medicalCase.phone || '—'}
             </div>
           </div>
+
           <div className="profile-info-cell">
             <label>DOCTOR</label>
             <div className="info-with-icon">
@@ -2059,28 +2149,55 @@ export default function MedicalCaseDetailPage() {
           onClose={() => setShowBillingModal(false)}
         />
       )}
+      {showAbhaModal && (
+        <AbhaLinkingModal
+          isOpen={showAbhaModal}
+          onClose={() => setShowAbhaModal(false)}
+          regid={Number(regid)}
+          patientName={medicalCase.patientName || ''}
+        />
+      )}
     </div>
   );
 }
 
 function MedicalCasePageSkeleton() {
   return (
-    <div className="mc-detail-container animate-fade-in" style={{ padding: '24px' }}>
+    <div className="mc-detail-container animate-fade-in" style={{ padding: '12px' }}>
       {/* ─── Redesigned Header Card Skeleton ─── */}
-      <div className="patient-profile-card" style={{ minHeight: '160px', opacity: 0.7 }}>
+      <div className="patient-profile-card">
         <div className="profile-top-row">
           <div className="profile-identity">
-            <div className="skeleton-box skeleton-circle" style={{ width: '56px', height: '56px' }} />
+            <button 
+              disabled
+              style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                color: 'white', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                padding: '8px',
+                borderRadius: '8px',
+                marginRight: '8px',
+                opacity: 0.5
+              }}
+            >
+              <ArrowLeft size={24} />
+            </button>
             <div className="profile-name-id">
-              <div className="skeleton-box skeleton-text" style={{ width: '200px', height: '24px', marginBottom: '8px' }} />
-              <div className="skeleton-box skeleton-text" style={{ width: '100px', height: '14px' }} />
+              <div className="skeleton-box" style={{ width: '180px', height: '24px', marginBottom: '6px' }} />
+              <div className="skeleton-box" style={{ width: '90px', height: '14px' }} />
             </div>
+            <div className="skeleton-box" style={{ width: '130px', height: '24px', borderRadius: '100px' }} />
+            <div className="skeleton-box" style={{ width: '100px', height: '24px', borderRadius: '100px' }} />
           </div>
           <div className="profile-actions">
-            <div className="skeleton-box" style={{ width: '120px', height: '40px', borderRadius: '10px' }} />
-            <div className="skeleton-box" style={{ width: '100px', height: '40px', borderRadius: '10px' }} />
+            <div className="skeleton-box" style={{ width: '150px', height: '36px', borderRadius: '8px' }} />
+            <div className="skeleton-box" style={{ width: '100px', height: '36px', borderRadius: '8px' }} />
           </div>
         </div>
+<<<<<<< HEAD
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
@@ -2093,8 +2210,50 @@ function MedicalCasePageSkeleton() {
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div className="skeleton-box" style={{ width: '60px', height: '10px', opacity: 0.2, borderRadius: '4px' }} />
               <div className="skeleton-box" style={{ width: '100px', height: '14px', opacity: 0.4, borderRadius: '4px' }} />
+=======
+        <div className="profile-bottom-grid">
+          <div className="profile-info-cell">
+            <label>GENDER</label>
+            <div className="skeleton-box" style={{ width: '60px', height: '15px', marginTop: '4px' }} />
+          </div>
+          <div className="profile-info-cell">
+            <label>AGE</label>
+            <div className="skeleton-box" style={{ width: '80px', height: '15px', marginTop: '4px' }} />
+          </div>
+          <div className="profile-info-cell">
+            <label>PHONE</label>
+            <div className="info-with-icon">
+              <Phone size={14} style={{ opacity: 0.3 }} />
+              <div className="skeleton-box" style={{ width: '100px', height: '15px' }} />
+>>>>>>> aabha-implementation
             </div>
-          ))}
+          </div>
+          <div className="profile-info-cell">
+            <label>DOCTOR</label>
+            <div className="info-with-icon">
+              <Stethoscope size={14} style={{ opacity: 0.3 }} />
+              <div className="skeleton-box" style={{ width: '120px', height: '15px' }} />
+            </div>
+          </div>
+          <div className="profile-info-cell">
+            <label>REGISTERED</label>
+            <div className="skeleton-box" style={{ width: '90px', height: '15px', marginTop: '4px' }} />
+          </div>
+          <div className="profile-info-cell">
+            <label>EXPIRES</label>
+            <div className="info-with-icon">
+              <Clock size={14} style={{ opacity: 0.3 }} />
+              <div className="skeleton-box" style={{ width: '85px', height: '15px' }} />
+            </div>
+          </div>
+          <div className="profile-info-cell">
+            <label>ADDRESS</label>
+            <div className="skeleton-box" style={{ width: '140px', height: '15px', marginTop: '4px' }} />
+          </div>
+          <div className="profile-info-cell">
+            <label>CONDITION</label>
+            <div className="skeleton-box" style={{ width: '100px', height: '15px', marginTop: '4px' }} />
+          </div>
         </div>
       </div>
 
