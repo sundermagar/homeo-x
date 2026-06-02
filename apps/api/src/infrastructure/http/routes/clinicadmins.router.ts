@@ -61,5 +61,29 @@ export function createClinicAdminsRouter(): Router {
     }
   }));
 
+  // PUT /api/clinicadmins/:id — Update clinic admin
+  router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
+    const repo = new StaffRepositoryPg(req.publicDb);
+    const id = parseInt(req.params['id'] as string, 10);
+    const updated = await repo.update('clinicadmin', id, req.body);
+    if (!updated) {
+      res.status(404).json({ success: false, error: 'Clinic admin not found' });
+      return;
+    }
+    res.json({ success: true, data: updated });
+  }));
+
+  // DELETE /api/clinicadmins/:id — Soft delete clinic admin
+  router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
+    const repo = new StaffRepositoryPg(req.publicDb);
+    const id = parseInt(req.params['id'] as string, 10);
+    const deleted = await repo.delete('clinicadmin', id);
+    if (!deleted) {
+      res.status(404).json({ success: false, error: 'Clinic admin not found' });
+      return;
+    }
+    res.json({ success: true, message: 'Clinic admin deleted successfully' });
+  }));
+
   return router;
 }

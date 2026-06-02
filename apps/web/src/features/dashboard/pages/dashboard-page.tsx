@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Role } from '@mmc/types';
-
 // ── Lazy-loaded dashboard variants ──────────────────────────────────────────
 // Each dashboard is code-split into its own chunk so only the active role's
 // code is downloaded. This reduces the initial bundle by ~40-80 KB per
@@ -11,6 +10,9 @@ const DoctorDashboard = lazy(() =>
 );
 const AdminDashboard = lazy(() =>
   import('./admin-dashboard').then((m) => ({ default: m.AdminDashboard }))
+);
+const SuperAdminDashboard = lazy(() =>
+  import('./super-admin-dashboard').then((m) => ({ default: m.SuperAdminDashboard }))
 );
 const ClinicAdminDashboard = lazy(() =>
   import('./clinic-admin-dashboard').then((m) => ({ default: m.ClinicAdminDashboard }))
@@ -45,8 +47,10 @@ export default function DashboardPage() {
     case Role.Doctor:
       DashboardComponent = DoctorDashboard;
       break;
-    case Role.Admin:
     case Role.SuperAdmin:
+      DashboardComponent = SuperAdminDashboard;
+      break;
+    case Role.Admin:
       DashboardComponent = AdminDashboard;
       break;
     case Role.Clinicadmin:

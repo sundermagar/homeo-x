@@ -74,8 +74,10 @@ import '../styles/sidebar.css';
 type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist' | 'Dispensary';
 
 const ALL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
+const CLINIC_STAFF: UserRole[] = ['Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
 const ADMIN: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin'];
-const CLINICAL: UserRole[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'];
+const CLINICAL: UserRole[] = ['Admin', 'Clinicadmin', 'Doctor'];
+const PLATFORM_ADMINS: UserRole[] = ['SuperAdmin', 'Admin'];
 
 // ─── Navigation Structure ────────────────────────────────────────────────────
 
@@ -100,7 +102,200 @@ type NavItem =
   | { type: 'link'; path: string; label: string; icon: LucideIcon; roles?: UserRole[]; badge?: number }
   | { type: 'group'; group: NavGroup };
 
-// ... existing helper functions ...
+const NAV_STRUCTURE: NavItem[] = [
+  {
+    type: 'link',
+    path: '/',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    roles: ALL,
+  },
+  {
+    type: 'link',
+    path: '/platform/clinics',
+    label: 'Clinics',
+    icon: Building2,
+    roles: ['SuperAdmin', 'Admin'],
+  },
+  {
+    type: 'link',
+    path: '/platform/accounts',
+    label: 'Users',
+    icon: Users,
+    roles: ['SuperAdmin', 'Admin'],
+  },
+  {
+    type: 'link',
+    path: '/platform/audit',
+    label: 'Audit Logs',
+    icon: FileText,
+    roles: ['SuperAdmin'],
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'patients-group',
+      label: 'Patients',
+      icon: Users,
+      roles: CLINIC_STAFF,
+      children: [
+        { path: '/patients', label: 'Patient List', icon: Users },
+        { path: '/family-groups', label: 'Family Groups', icon: Layers },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'appointments',
+      label: 'Appointments',
+      icon: CalendarClock,
+      roles: CLINIC_STAFF,
+      children: [
+        { path: '/appointments', label: 'List View', icon: CalendarClock },
+        { path: '/appointments/calendar', label: 'Calendar', icon: Calendar },
+        { path: '/appointments/queue', label: 'Token Queue', icon: Ticket },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'clinical',
+      label: 'Clinical Hub',
+      icon: Stethoscope,
+      roles: CLINICAL,
+      children: [
+        { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
+        { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
+        { path: '/ai-consultant', label: 'AI Analysis', icon: BrainCircuit },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'communications',
+      label: 'Communications',
+      icon: MessageSquare,
+      roles: ['Admin', 'Clinicadmin'], // Removed SuperAdmin
+      children: [
+        { path: '/communications/sms', label: 'Send SMS', icon: Send },
+        { path: '/communications/templates', label: 'Templates', icon: MessageCircle },
+        { path: '/communications/reports', label: 'SMS Reports', icon: BarChart2 },
+        { path: '/communications/whatsapp', label: 'WhatsApp', icon: MessageSquare },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: PieChart,
+      roles: ['Admin', 'Clinicadmin'], // Removed SuperAdmin
+      defaultPath: '/analytics',
+      children: [
+        { path: '/analytics', label: 'Dashboard', icon: BarChart2 },
+        {
+          path: '/analytics/reports',
+          label: 'Reports',
+          icon: PieChart,
+          children: [
+            { path: '/analytics/reports/financial', label: 'Financial Grid', icon: Activity },
+            { path: '/analytics/reports/dues', label: 'Outstanding Dues', icon: CreditCard },
+            { path: '/analytics/reports/birthdays', label: 'Birthday List', icon: Gift },
+            { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
+          ]
+        },
+        { path: '/analytics/export', label: 'Export Data', icon: FileJson },
+        { path: '/analytics/stocks', label: 'Inventory Logs', icon: Database },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'finance',
+      label: 'Finance',
+      icon: Receipt,
+      roles: ['Admin', 'Clinicadmin', 'Receptionist'],
+      children: [
+        {
+          path: '/billing', label: 'Billing', icon: Receipt,
+          children: [
+            { path: '/billing', label: 'Bill List', icon: Receipt },
+            { path: '/billing/additional-charges', label: 'Additional Charges', icon: PlusCircle },
+            { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar },
+            { path: '/billing/deposits', label: 'Deposits', icon: Building },
+            { path: '/billing/expenses', label: 'Expenses', icon: DollarSign },
+          ]
+        },
+        { path: '/payments', label: 'Payment Ledger', icon: Banknote },
+        { path: '/settings/expenses', label: 'Expense Categories', icon: Wallet },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'platform',
+      label: 'PLATFORM',
+      icon: Building2,
+      roles: ['Admin', 'Clinicadmin'], // Removed SuperAdmin
+      children: [
+        { path: '/platform/plans', label: 'Plans', icon: CreditCard, roles: ['SuperAdmin'] },
+        { path: '/platform/promotions', label: 'Promotions', icon: Sparkles, roles: ['SuperAdmin'] },
+        { path: '/platform/accounts', label: 'Users', icon: Users, roles: ['SuperAdmin', 'Admin'] },
+        { path: '/platform/audit', label: 'Audit Logs', icon: FileText, roles: ['SuperAdmin'] },
+        { path: '/settings/roles', label: 'Roles & Access', icon: Shield, roles: ['SuperAdmin', 'Admin'] },
+        { path: '/platform/doctors', label: 'Doctors', icon: Stethoscope, roles: ['Admin', 'Clinicadmin'] },
+        { path: '/platform/employees', label: 'Employees', icon: User, roles: ['Admin', 'Clinicadmin'] },
+        { path: '/platform/receptionists', label: 'Receptionists', icon: Phone, roles: ['Admin', 'Clinicadmin'] },
+        { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield, roles: ['Admin', 'Clinicadmin'] },
+        { path: '/platform/account-managers', label: 'Account Mgrs', icon: Briefcase, roles: ['Admin', 'Clinicadmin'] },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'operations-hub',
+      label: 'Operations Hub',
+      icon: Settings,
+      roles: ['Admin', 'Clinicadmin', 'Doctor'], // Removed SuperAdmin
+      children: [
+        { path: '/operations?tab=logistics', label: 'Logistics & Couriers', icon: Layers },
+        { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users },
+        { path: '/operations?tab=knowledge', label: 'Medical Knowledge base', icon: BookOpen },
+        { path: '/operations?tab=tools', label: 'Global Data Tools', icon: Settings },
+      ],
+    },
+  },
+  {
+    type: 'group',
+    group: {
+      id: 'settings',
+      label: 'System Settings',
+      icon: Settings,
+      roles: ['Admin', 'Clinicadmin'], // Removed SuperAdmin
+      children: [
+        { path: '/settings/departments', label: 'Departments', icon: Layers },
+        { path: '/settings/medicines', label: 'Medicine Catalog', icon: Pill },
+        { path: '/settings/potencies', label: 'Potencies', icon: Sparkles },
+        { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
+        { path: '/settings/dispensaries', label: 'Dispensaries', icon: Hospital },
+        { path: '/settings/referrals', label: 'Referral Sources', icon: UserPlus },
+        { path: '/settings/stickers', label: 'Medicine Stickers', icon: StickyNote },
+        { path: '/settings/cms', label: 'Content (CMS)', icon: Globe },
+        { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
+        { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
+      ],
+    },
+  },
+];
+
+// ─── Role Normalizer ─────────────────────────────────────────────────────────
 
 function normalizeRole(raw: string | undefined | null): UserRole | null {
   if (!raw) return null;
@@ -161,216 +356,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     enabled: !!user
   });
   const unreadCount = unreadResponse?.count || 0;
-
-  const NAV_STRUCTURE: NavItem[] = [
-    {
-      type: 'link',
-      path: '/',
-      label: 'Overview',
-      icon: LayoutDashboard,
-      roles: ALL,
-    },
-
-    {
-      type: 'group',
-      group: {
-        id: 'patients-group',
-        label: 'Patients',
-        icon: Users,
-        roles: ALL,
-        children: [
-          { path: '/patients', label: 'Patient List', icon: Users },
-          { path: '/patients/queue', label: 'Patient Queue', icon: Clock },
-          { path: '/family-groups', label: 'Family Groups', icon: Layers },
-        ],
-      },
-    },
-    {
-      type: 'link',
-      path: '/appointments',
-      label: 'Appointments',
-      icon: CalendarClock,
-      roles: ALL,
-    },
-    {
-      type: 'group',
-      group: {
-        id: 'clinical',
-        label: 'Clinical Hub',
-        icon: Stethoscope,
-        roles: CLINICAL,
-        children: [
-          { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
-          { path: '/clinical/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
-          { path: '/medical-cases/followups', label: 'Follow-up Dues', icon: BellDot },
-        ],
-      },
-    },
-    {
-      type: 'group',
-      group: {
-        id: 'memberships',
-        label: 'Memberships',
-        icon: Package,
-        roles: [...ADMIN, 'Receptionist'],
-        children: [
-          { path: '/packages', label: 'Package Plans', icon: Layers, roles: ADMIN },
-          { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck, roles: [...ADMIN, 'Receptionist'] },
-        ],
-      },
-    },
-    /*
-    {
-      type: 'group',
-      group: {
-        id: 'communications',
-        label: 'Communications',
-        icon: MessageSquare,
-        roles: ADMIN,
-        children: [
-          { path: '/communications/sms', label: 'Send SMS', icon: Send },
-          { path: '/communications/templates', label: 'Templates', icon: MessageCircle },
-          { path: '/communications/reports', label: 'SMS Reports', icon: BarChart2 },
-          { path: '/communications/birthdays', label: 'Birthday Broadcast', icon: Gift },
-        ],
-      },
-    },
-    */
-    {
-      type: 'group',
-      group: {
-        id: 'whatsapp-module',
-        label: 'WhatsApp Pro',
-        icon: MessageCircle,
-        roles: ALL,
-        children: [
-          { path: '/communications/whatsapp/overview', label: 'Overview', icon: LayoutDashboard, roles: ADMIN },
-          { path: '/communications/whatsapp/inbox', label: 'Team Inbox', icon: MessageSquare },
-          { path: '/communications/whatsapp/contacts', label: 'Contacts', icon: Users },
-          { path: '/communications/whatsapp/campaigns', label: 'Campaigns', icon: Send, roles: ADMIN },
-          { path: '/communications/whatsapp/templates', label: 'Templates', icon: FileText, roles: ADMIN },
-          { path: '/communications/whatsapp/automations', label: 'Automations', icon: Zap, roles: ADMIN },
-          { path: '/communications/whatsapp/chatbots', label: 'AI Chatbot', icon: Bot, roles: ADMIN },
-          { path: '/communications/whatsapp/analytics', label: 'Analytics', icon: BarChart2, roles: ADMIN },
-          { path: '/communications/whatsapp/widget-builder', label: 'Widget Builder', icon: Bot, roles: ADMIN },
-          { path: '/communications/whatsapp/channels', label: 'WABA Channels', icon: Globe, roles: ADMIN },
-        ],
-      },
-    },
-    {
-      type: 'group',
-      group: {
-        id: 'analytics',
-        label: 'Analytics',
-        icon: PieChart,
-        roles: CLINICAL,
-        defaultPath: '/analytics',
-        children: [
-          { path: '/analytics', label: 'Overview', icon: BarChart2 },
-          {
-            path: '/analytics/reports',
-            label: 'Reports',
-            icon: PieChart,
-            children: [
-              { path: '/analytics/reports/monthly-report', label: 'Monthly Report', icon: Activity },
-              { path: '/analytics/reports/monthly-dues', label: 'Monthly Dues', icon: CreditCard },
-              { path: '/analytics/reports/birthdays', label: 'Birthday List', icon: Gift },
-              { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
-            ]
-          },
-          { path: '/analytics/export', label: 'Export Data', icon: FileJson },
-          { path: '/analytics/stocks', label: 'Inventory Logs', icon: Database },
-        ],
-      },
-    },
-    {
-      type: 'group',
-      group: {
-        id: 'finance',
-        label: 'Finance',
-        icon: Receipt,
-        roles: ALL,
-        children: [
-          {
-            path: '/billing', label: 'Billing', icon: Receipt, roles: ALL,
-            children: [
-              { path: '/billing', label: 'Bill List', icon: Receipt, roles: ALL },
-              { path: '/billing/collection', label: 'View Collection', icon: DollarSign, roles: ALL },
-              { path: '/billing/balance', label: 'View Balance', icon: Wallet, roles: ALL },
-              { path: '/billing/additional-charges', label: 'Additional Charges', icon: Receipt, roles: ADMIN },
-              { path: '/billing/day-charges', label: 'Day Charges', icon: Calendar, roles: ADMIN },
-              { path: '/billing/deposits', label: 'Deposits', icon: Building, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },
-              { path: '/billing/expenses', label: 'Expenses', icon: DollarSign, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'] },
-            ]
-          },
-          { path: '/payments', label: 'Payment Ledger', icon: Banknote, roles: ALL },
-          { path: '/settings/expenses', label: 'Expense Categories', icon: Wallet, roles: ADMIN },
-        ],
-      },
-    },
-    {
-      type: 'link',
-      path: '/platform/staff',
-      label: 'Staff Management',
-      icon: Users,
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin']
-    },
-    {
-      type: 'group',
-      group: {
-        id: 'platform-admin',
-        label: 'Platform Admin',
-        icon: Globe,
-        roles: ['SuperAdmin', 'Admin'],
-        children: [
-          { path: '/platform/clinics', label: 'Clinics', icon: Building2 },
-          { path: '/platform/accounts', label: 'Clinic Accounts', icon: UserCog },
-        ],
-      },
-    },
-    {
-      type: 'group',
-      group: {
-        id: 'operations-hub',
-        label: 'Operations Hub',
-        icon: Briefcase,
-        roles: [...ALL, 'Dispensary'],
-        children: [
-          { path: '/dispensary', label: 'Stickers Workspace', icon: StickyNote, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Dispensary'] },
-          { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck, roles: [...ALL, 'Dispensary'] },
-          { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users, roles: ADMIN },
-          { path: '/operations?tab=knowledge', label: 'Knowledge Base', icon: BookOpen, roles: ADMIN },
-        ],
-      },
-    },
-    {
-      type: 'group',
-      group: {
-        id: 'settings',
-        label: 'System Settings',
-        icon: Settings,
-        roles: ADMIN,
-        children: [
-          { path: '/settings/departments', label: 'Departments', icon: Layers },
-          { path: '/settings/medicines', label: 'Medicine Catalog', icon: Pill },
-          { path: '/settings/stocks', label: 'Stock Management', icon: Package },
-          { path: '/settings/stock-logs', label: 'Stock Logs', icon: Database },
-          { path: '/settings/potencies', label: 'Potencies', icon: Sparkles },
-          { path: '/settings/frequencies', label: 'Dosage Frequencies', icon: Clock },
-          { path: '/settings/periods', label: 'Package Periods', icon: Clock },
-          { path: '/settings/dispensaries', label: 'Dispensaries', icon: Hospital },
-          { path: '/settings/referrals', label: 'Referral Sources', icon: UserPlus },
-          { path: '/settings/stickers', label: 'Medicine Stickers', icon: StickyNote },
-          { path: '/settings/call-statuses', label: 'Call Statuses', icon: PhoneCall },
-          { path: '/settings/cms', label: 'Content (CMS)', icon: Globe },
-          { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
-          { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
-          { path: '/settings/vaccines', label: 'Vaccines', icon: Shield },
-          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
-        ],
-      },
-    },
-  ];
 
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 1024);
   React.useEffect(() => {
@@ -497,24 +482,36 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside className={`sidebar ${isOpen ? 'is-open' : ''} ${effectiveCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <div className="sidebar-logo-group">
-            <div
-              className="sidebar-logo"
-              style={{
-                background: 'transparent',
-                padding: '0',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}
-            >
-              <img src={mmcIconOrange} alt="MMC Icon" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.6)' }} />
+          {userRole === 'SuperAdmin' ? (
+            <div className="sidebar-logo-group">
+              <Shield size={22} className="sidebar-logo-shield" style={{ color: 'var(--primary)' }} />
+              {!effectiveCollapsed && (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span className="sidebar-brand" style={{ lineHeight: 1.2 }}>Platform Admin</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>Super Admin</span>
+                </div>
+              )}
             </div>
-            {!effectiveCollapsed && <span className="sidebar-brand">{user?.clinicName || 'MMC'}</span>}
-          </div>
+          ) : (
+            <div className="sidebar-logo-group">
+              <div
+                className="sidebar-logo"
+                style={{
+                  background: 'transparent',
+                  padding: '0',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                <img src={mmcIconOrange} alt="MMC Icon" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.6)' }} />
+              </div>
+              {!effectiveCollapsed && <span className="sidebar-brand">{user?.clinicName || 'MMC'}</span>}
+            </div>
+          )}
           <div className="sidebar-header-actions">
             {!isMobile && (
               <button className="collapse-toggle-btn" onClick={toggleSidebarCollapse}>

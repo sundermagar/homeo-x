@@ -1129,51 +1129,55 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   async getPlatformStats(): Promise<PlatformStats> {
     return this.getCached('platformStats', 30_000, async () => {
-      // 1. Get all tenant schemas directly from the database catalog
-      const schemas = await this.db.execute(sql`
-        SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'tenant_%'
+      const [orgs] = await (this.db as any).execute(sql`
+        SELECT 
+          count(*)::int as total,
+          count(*) FILTER (WHERE deleted_at IS NULL)::int as active,
+          count(*) FILTER (WHERE deleted_at IS NOT NULL)::int as deleted,
+          count(*) FILTER (WHERE created_at >= NOW() - interval '30 days')::int as latest
+        FROM public.organizations
       `) as any[];
 
-      let totalPlatformRev = 0;
-      let totalPlatformDues = 0;
-
-      // 2. Sum data across all discovered schemas concurrently
-      await Promise.all(schemas.map(async (s) => {
-        const schema = s.schema_name;
-        try {
-          const stats = await this.db.execute(sql`
-            SELECT 
-              COALESCE(sum(received), 0)::numeric as rev,
-              COALESCE(sum(charges - received), 0)::numeric as dues
-            FROM ${sql.identifier(schema)}.bills
-            WHERE (deleted_at IS NULL OR deleted_at::text = '')
-          `) as any[];
-
-          if (stats[0]) {
-            totalPlatformRev += Number(stats[0].rev) || 0;
-            totalPlatformDues += Number(stats[0].dues) || 0;
-          }
-        } catch (e) {
-          // Skip schemas that might not have the bills table or are inaccessible
-        }
-      }));
-
-      const userStats = await this.db.execute(sql`
-        SELECT
-          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true) as user_count,
-          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true AND type = 'Clinicadmin') as admin_count,
-          (SELECT count(*)::int FROM public.organizations WHERE deleted_at IS NULL) as clinic_count
+      const [users] = await (this.db as any).execute(sql`
+        SELECT 
+          count(*)::int as count,
+          count(*) FILTER (WHERE type = 'Clinicadmin')::int as admin_count
+        FROM public.users 
+        WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true
       `) as any[];
 
-      const res = userStats[0] || {};
-      const clinicCount = Number(res.clinic_count) || 1;
-      const revDensity = Math.round(totalPlatformRev / clinicCount);
+      const totalClinics = orgs?.total || 0;
+      const activeClinics = orgs?.active || 0;
+      const deletedClinics = orgs?.deleted || 0;
+      const newClinics = orgs?.latest || 0;
+      const staffCount = users?.count || 0;
+      const adminCount = users?.admin_count || 0;
+
+      const [stats] = await (this.db as any).execute(sql`
+        SELECT 
+          COALESCE(SUM(n_live_tup) FILTER (WHERE relname = 'case_datas'), 0)::int as total_patients,
+          COALESCE(SUM(n_live_tup) FILTER (WHERE relname = 'medicalcases'), 0)::int as total_cases,
+          COALESCE(SUM(n_live_tup) FILTER (WHERE relname = 'case_potencies'), 0)::int as total_prescriptions
+        FROM pg_stat_user_tables
+        WHERE schemaname LIKE 'tenant_%' OR schemaname = 'public'
+      `) as any[];
 
       return {
-        totalClinics: clinicCount,
-        totalStaff: Number(res.user_count) || 0,
-        totalClinicAdmins: Number(res.admin_count) || 0,
-        revenueDensity: revDensity,
+        totalClinics,
+        activeClinics,
+        deletedClinics,
+        suspendedClinics: 0, // Logic to be defined
+        trialClinics: 0,     // Logic to be defined
+        newClinicsLast30Days: newClinics,
+        totalStaff: staffCount,
+        totalClinicAdmins: adminCount,
+        totalPatients: stats?.total_patients || 0,
+        totalConsultations: stats?.total_cases || 0,
+        totalPrescriptions: stats?.total_prescriptions || 0,
+        activePlans: 3,
+        totalSubscribers: activeClinics,
+        revenueDensity: 0, // Deprecated in favor of faster queries
+        pendingDues: 0,
       };
     });
   }

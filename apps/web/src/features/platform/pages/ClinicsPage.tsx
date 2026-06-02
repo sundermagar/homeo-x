@@ -113,7 +113,7 @@ export default function ClinicsPage() {
         <div className="pp-page-hero-actions">
           <button className="btn-primary" onClick={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}>
             <Plus size={14} strokeWidth={1.6} />
-            Add Clinic
+            Create Clinic
           </button>
         </div>
       </div>

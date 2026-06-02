@@ -1,10 +1,7 @@
-import express from 'express';
+import express, { type Application, type Express } from 'express';
 import path from 'path';
-import { createServer } from 'http';
-import { Server as SocketServer } from 'socket.io';
-import type { Express } from 'express';
-import type { Server as HttpServer } from 'node:http';
-import type { Server as SocketIOServer } from 'socket.io';
+import { createServer, type Server as HttpServer } from 'http';
+import { Server as SocketIOServer, Server as SocketServer } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -14,7 +11,7 @@ import { requestLogger } from './middleware/request-logger.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { tenantMiddleware } from './middleware/tenant.js';
 import { authMiddleware } from './middleware/auth.js';
-import { auditMiddleware } from './middleware/audit.js';
+import { createAuditMiddleware } from './middleware/audit.js';
 import { appConfig } from '../../shared/config/app-config.js';
 import { aiConfig } from '../../shared/config/ai-config.js';
 import { createLogger } from '../../shared/logger.js';
@@ -66,6 +63,9 @@ import { whatsappRouter } from './routes/whatsapp.js';
 import { whatsappWidgetRouter } from './routes/whatsapp-widget.js';
 import { setupNotificationsGateway, setNotificationEmitters } from './gateways/notifications.gateway.js';
 import { setupWhatsAppGateway, setWhatsAppGateway } from './gateways/whatsapp.gateway.js';
+import { createAuditRouter } from './routes/audit.router.js';
+import { AuditRepositoryPg } from '../repositories/audit.repository.pg.js';
+import { AuditLogger } from '../../shared/audit/audit-logger.js';
 
 const logger = createLogger('http');
 
@@ -74,11 +74,12 @@ import { createDbClient, warmDbPools, TenantRegistry } from '@mmc/database';
 export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any; publicDb: any }> {
   const app: Express = express();
   const server: HttpServer = createServer(app);
+  const io: SocketIOServer = new SocketIOServer(server);
 
-  // Socket.io
-  const io: SocketIOServer = new SocketServer(server, {
-    cors: { origin: appConfig.cors.origins, credentials: true },
-  });
+  // Audit System initialization
+  const publicDb = createDbClient(process.env.DATABASE_URL!);
+  const auditRepo = new AuditRepositoryPg(publicDb);
+  const auditLogger = new AuditLogger(auditRepo);
 
   // ─── Security ───
   app.set('trust proxy', 1);
@@ -117,7 +118,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api', tenantMiddleware);
 
   // ─── Audit Trail ───
-  app.use(auditMiddleware);
+  app.use(createAuditMiddleware(auditLogger));
 
   // ─── Real-time Updates (Socket.io) ───
   app.use((req, res, next) => {
@@ -230,11 +231,14 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
     logger.error({ err: err?.message }, 'Failed to initialize whatsapp gateway');
   }
 
+  // Audit Logs
+  app.use('/api/audit', authMiddleware, createAuditRouter(auditRepo));
+
   // ─── Error Handling (must be last) ───
   app.use(errorHandler);
 
   // Initialize TenantRegistry from database to ensure persistence
-  const publicDb = createDbClient(process.env.DATABASE_URL!);
+  // (publicDb already created above)
 
   if (typeof (TenantRegistry as any).initialize === 'function') {
     logger.info('Initializing TenantRegistry from database...');

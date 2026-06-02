@@ -42,6 +42,10 @@ export enum AuditAction {
   SETTINGS_UPDATE = 'settings.update',
   SETTINGS_DELETE = 'settings.delete',
   ROLE_UPDATE = 'settings.role_update',
+
+  // Impersonation
+  IMPERSONATION_START = 'impersonation.start',
+  IMPERSONATION_END = 'impersonation.end',
 }
 
 export interface AuditEntry {

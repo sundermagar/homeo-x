@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { UserCog, Search } from 'lucide-react';
-import { useAccounts } from '../hooks/use-accounts';
+import { UserCog, Plus, Search, Edit2, Trash2, RefreshCw, UserCheck, Mail, ShieldCheck, Building, MoreVertical, Check, User as UserIcon } from 'lucide-react';
+import { useAccounts, useDeleteAccount } from '../hooks/use-accounts';
 import { useOrganizations } from '../hooks/use-organizations';
+import { AccountModal } from '../components/AccountModal';
+import type { StaffSummary } from '@mmc/types';
 import '../styles/platform.css';
 
 import { Pagination } from '@/shared/components/Pagination';
@@ -14,6 +16,9 @@ export default function AccountsPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [modalOpen, setModalOpen]       = useState(false);
+  const [editing, setEditing]           = useState<StaffSummary | undefined>();
+  const deleteAccount = useDeleteAccount();
 
   const { data: accounts = [], isLoading } = useAccounts(clinicFilter);
   const { data: orgs = [] }                = useOrganizations();
@@ -27,6 +32,15 @@ export default function AccountsPage() {
       setSearchTerm('');
     }
   }, [isOpen]);
+
+  const openCreate = () => { setEditing(undefined); setModalOpen(true); };
+  const openEdit   = (a: StaffSummary) => { setEditing(a); setModalOpen(true); };
+
+  const handleDelete = (id: number, name: string) => {
+    if (window.confirm(`Are you sure you want to delete ${name}?`)) {
+      deleteAccount.mutate(id);
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -50,6 +64,17 @@ export default function AccountsPage() {
   const getClinicName = (id: number | null) =>
     id ? orgs.find(o => o.id === id)?.name ?? `Clinic #${id}` : '—';
 
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
+
+  const renderRoleBadge = (designation?: string) => {
+    const d = (designation || '').toLowerCase();
+    if (d.includes('admin')) return <span className="role-badge role-badge-admin"><UserCheck size={10} /> AGENCY ADMIN</span>;
+    if (d.includes('client')) return <span className="role-badge role-badge-client"><UserIcon size={10} /> CLIENT</span>;
+    return <span className="role-badge role-badge-member"><UserIcon size={10} /> AGENCY MEMBER</span>;
+  };
+
   return (
     <div className="plat-page fade-in">
 
@@ -63,6 +88,12 @@ export default function AccountsPage() {
           <p className="plat-header-sub">
             Consolidated clinical directory. View all user accounts (Doctors, Clinic Admins, Receptionists, Employees, and Finance Managers) mapped to each clinic's system.
           </p>
+        </div>
+        <div className="plat-header-actions">
+          <button className="plat-btn plat-btn-primary" onClick={openCreate} style={{ background: '#0f172a', borderColor: '#0f172a' }}>
+            <Plus size={14} strokeWidth={2.4} />
+            Create Admin User
+          </button>
         </div>
       </div>
 
@@ -258,6 +289,7 @@ export default function AccountsPage() {
                     <th style={{ width: '130px' }}>Mobile</th>
                     <th style={{ width: '150px' }}>Designation / Role</th>
                     <th style={{ width: '80px' }}>Gender</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -302,6 +334,21 @@ export default function AccountsPage() {
                           </span>
                         </div>
                       </td>
+                      <td data-label="Actions" style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                          <button className="plat-btn plat-btn-icon plat-btn-ghost" title="Edit" onClick={() => openEdit(account)}>
+                            <Edit2 size={13} strokeWidth={1.6} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-icon plat-btn-ghost-danger"
+                            title="Delete"
+                            onClick={() => handleDelete(account.id, account.name)}
+                            disabled={deleteAccount.isPending}
+                          >
+                            <Trash2 size={13} strokeWidth={1.6} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -317,6 +364,7 @@ export default function AccountsPage() {
           </>
         )}
       </div>
+      {modalOpen && <AccountModal open={modalOpen} onClose={() => setModalOpen(false)} editing={editing} />}
     </div>
   );
 }

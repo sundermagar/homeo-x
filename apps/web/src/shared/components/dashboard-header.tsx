@@ -93,8 +93,12 @@ export function DashboardHeader({ onOpenPalette, onNewAppointment }: DashboardHe
 
           <div className="dh-breadcrumb">
             <span className="dh-page-title">{pageTitle}</span>
-            <ChevronRight size={12} className="dh-breadcrumb-sep" />
-            <span className="dh-clinic-name">{clinicName}</span>
+            {user?.type !== 'SuperAdmin' && (
+              <>
+                <ChevronRight size={12} className="dh-breadcrumb-sep" />
+                <span className="dh-clinic-name">{clinicName}</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -105,47 +109,51 @@ export function DashboardHeader({ onOpenPalette, onNewAppointment }: DashboardHe
           <NotificationBell />
 
           {/* Command Palette Trigger */}
-          <button
-            className="dh-search-wrap cp-trigger"
-            onClick={onOpenPalette}
-            aria-label="Open command palette"
-          >
-            <Search size={13} className="dh-search-icon" />
-            <span className="dh-search-input" style={{ pointerEvents: 'none' }}>
-              Search or jump to...
-            </span>
-            <kbd className="dh-kbd">⌘K</kbd>
-          </button>
+          {user?.type !== 'SuperAdmin' && (
+            <>
+              <button
+                className="dh-search-wrap cp-trigger"
+                onClick={onOpenPalette}
+                aria-label="Open command palette"
+              >
+                <Search size={13} className="dh-search-icon" />
+                <span className="dh-search-input" style={{ pointerEvents: 'none' }}>
+                  Search or jump to...
+                </span>
+                <kbd className="dh-kbd">⌘K</kbd>
+              </button>
 
-          {/* Primary CTA */}
-          {isDoctor ? (
-            <button
-              className="dh-cta-btn"
-              onClick={toggleDoctorStatus}
-              disabled={toggleLoading}
-              style={{
-                backgroundColor: isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
-                color: 'white',
-                border: 'none',
-                minWidth: '100px',
-                justifyContent: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-              }}
-            >
-              <Power size={14} strokeWidth={2.5} style={{ marginRight: '4px' }} />
-              <span className="hide-mobile">
-                {toggleLoading ? 'Updating…' : (isDoctorActive ? 'Go Inactive' : 'Go Active')}
-              </span>
-            </button>
-          ) : (
-            <button
-              className="dh-cta-btn"
-              onClick={onNewAppointment}
-              id="dh-new-appointment-btn"
-            >
-              <Plus size={14} strokeWidth={2.5} />
-              <span className="hide-mobile">New appointment</span>
-            </button>
+              {/* Primary CTA */}
+              {isDoctor ? (
+                <button
+                  className="dh-cta-btn"
+                  onClick={toggleDoctorStatus}
+                  disabled={toggleLoading}
+                  style={{
+                    backgroundColor: isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
+                    color: 'white',
+                    border: 'none',
+                    minWidth: '100px',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <Power size={14} strokeWidth={2.5} style={{ marginRight: '4px' }} />
+                  <span className="hide-mobile">
+                    {toggleLoading ? 'Updating…' : (isDoctorActive ? 'Go Inactive' : 'Go Active')}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  className="dh-cta-btn"
+                  onClick={onNewAppointment}
+                  id="dh-new-appointment-btn"
+                >
+                  <Plus size={14} strokeWidth={2.5} />
+                  <span className="hide-mobile">New appointment</span>
+                </button>
+              )}
+            </>
           )}
         </div>
       </header>

@@ -8,17 +8,17 @@ import { ScrollToTop } from '../components/scroll-to-top';
 import { RouteErrorBoundary } from '@/components/shared/error-boundary';
 import { useMobile } from '../hooks/use-mobile';
 import { useCallback, useEffect } from 'react';
-import { useAuthStore } from '../stores/auth-store';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import { AppointmentFormDrawer } from '@/features/appointments/components/appointment-form-drawer';
 
 export function AppLayout() {
+  const { user } = useAuthStore();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [appointmentDrawerOpen, setAppointmentDrawerOpen] = useState(false);
   const isMobile = useMobile();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
 
   // ── Global ⌘K / Ctrl+K shortcut ──
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -64,23 +64,14 @@ export function AppLayout() {
       />
 
       <main className="app-main">
-        <DashboardHeader
-          onOpenPalette={() => setPaletteOpen(true)}
-          onNewAppointment={() => setAppointmentDrawerOpen(true)}
-        />
+        {user?.type !== 'SuperAdmin' && (
+          <DashboardHeader
+            onOpenPalette={() => setPaletteOpen(true)}
+            onNewAppointment={() => setAppointmentDrawerOpen(true)}
+          />
+        )}
         <div className="page-content-area">
           <div className="page-content-row">
-            {/* {location.pathname !== '/' && location.pathname !== '/login' && (
-              <div className="page-back-widget-area">
-                <button
-                  className="page-back-widget"
-                  onClick={() => navigate(-1)}
-                  aria-label="Go back"
-                >
-                  <ArrowLeft size={16} strokeWidth={2.5} />
-                </button>
-              </div>
-            )} */}
             <div className="page-content-main">
               <RouteErrorBoundary>
                 <Outlet />
