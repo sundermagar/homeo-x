@@ -51,15 +51,12 @@ import { usePatientBills } from '../../billing/hooks/use-billing';
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { BillingUpdateModal } from '../components/billing-update-modal';
 import { PaymentReceiptModal } from '../../billing/components/payment-receipt-modal';
-<<<<<<< HEAD
 import { useAbhaStatus, useAbhaUnlink } from '../../patients/hooks/use-abha';
 import { AbhaLinkingModal } from '../../patients/components/abha-linking-modal';
+import { AbhaMedicalHistoryDrawer } from '../../patients/components/abha-medical-history-drawer';
 import { toast } from '@/hooks/use-toast';
-
-=======
 import { InvestigationComparisonView } from '../components/investigation-comparison-view';
 import { InvestigationPreviewModal } from '../components/investigation-preview-modal';
->>>>>>> test-aman
 import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Pagination } from '@/components/shared/pagination';
@@ -354,7 +351,7 @@ export default function MedicalCaseDetailPage() {
   const [scannedMedicationRows, setScannedMedicationRows] = useState<MedicationRow[]>([
     { medicine: '', frequency: 'Once', days: '', issue: '' }
   ]);
-  const [isScannedPrescription, setIsScannedPrescription] = useState(false);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   const [isSavingScannedPrescription, setIsSavingScannedPrescription] = useState(false);
   const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
 
@@ -1162,13 +1159,45 @@ export default function MedicalCaseDetailPage() {
                   background: 'rgba(34, 197, 94, 0.15)',
                   borderColor: 'rgba(34, 197, 94, 0.3)',
                   color: '#4ade80',
-                  paddingRight: '6px'
+                  paddingRight: '6px',
+                  position: 'relative',
+                  zIndex: 20,
+                  pointerEvents: 'auto'
                 }}
               >
                 <ShieldCheck size={12} />
                 <span>ABHA: {abhaStatus.abhaId}</span>
                 <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🟢 FETCH HISTORY CLICKED! isHistoryDrawerOpen will be set to true');
+                    setIsHistoryDrawerOpen(true);
+                    console.log('🟢 setIsHistoryDrawerOpen(true) called');
+                  }}
+                  title="Fetch External History"
+                  style={{
+                    background: 'rgba(99, 102, 241, 0.2)',
+                    border: 'none',
+                    color: '#818cf8',
+                    cursor: 'pointer',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    marginLeft: '4px',
+                    position: 'relative',
+                    zIndex: 50,
+                    pointerEvents: 'auto'
+                  }}
+                >
+                  Fetch History
+                </button>
+                <button
                   onClick={async (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     if (!confirm('Remove ABHA link from this patient?')) return;
                     try {
@@ -1190,6 +1219,9 @@ export default function MedicalCaseDetailPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     transition: 'all 0.2s',
+                    position: 'relative',
+                    zIndex: 50,
+                    pointerEvents: 'auto'
                   }}
                   title="Unlink ABHA ID"
                   onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.2)'}
@@ -2150,6 +2182,15 @@ export default function MedicalCaseDetailPage() {
           onClose={() => setShowAbhaModal(false)}
           regid={Number(regid)}
           patientName={medicalCase.patientName || ''}
+        />
+      )}
+      {/* ABHA Medical History Drawer */}
+      {abhaStatus?.isLinked && (
+        <AbhaMedicalHistoryDrawer
+          isOpen={isHistoryDrawerOpen}
+          onClose={() => setIsHistoryDrawerOpen(false)}
+          abhaId={abhaStatus.abhaId}
+          patientName={formatName(medicalCase?.patientName) || 'Unknown Patient'}
         />
       )}
     </div>

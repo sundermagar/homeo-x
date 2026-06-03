@@ -37,11 +37,11 @@ interface PatientFormDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   regid?: number | null; // null for create, number for edit
-  unregisteredPatient?: any | null; // Data from shadow patient to convert
+
   onSuccess?: () => void;
 }
 
-export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient, onSuccess }: PatientFormDrawerProps) {
+export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: PatientFormDrawerProps) {
   const isEdit = Boolean(regid);
   const { user } = useAuthStore();
   const clinicId = user?.contextId;
@@ -123,48 +123,13 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
           referredById: undefined,
           notes: '',
         });
-      } else if (unregisteredPatient) {
-        setRefSearch('');
-        const latestAppt = unregisteredPatient.latestAppointment;
-        const nameParts = (unregisteredPatient.name || '').trim().split(' ');
-        const firstName = nameParts[0] || '';
-        const surname = nameParts.slice(1).join(' ') || '';
-        
-        // Ensure date is in YYYY-MM-DD format
-        let bDate = new Date().toISOString().split('T')[0] ?? '';
-        if (latestAppt?.bookingDate) {
-          try {
-            const d = new Date(latestAppt.bookingDate);
-            if (!isNaN(d.getTime())) {
-              bDate = d.toISOString().split('T')[0] ?? '';
-            }
-          } catch (e) {
-            console.warn('Invalid booking date from unregistered patient:', latestAppt.bookingDate);
-          }
-        }
-
-        setForm({
-          ...INIT_FORM,
-          firstName,
-          surname,
-          phone: unregisteredPatient.phone || '',
-          gender: (unregisteredPatient.gender || 'M') as any,
-          email: unregisteredPatient.email || '',
-          // Pre-fill appointment info if available
-          assistantDoctor: latestAppt?.doctorId ? String(latestAppt.doctorId) : '',
-          bookingDate: bDate,
-          bookingTime: latestAppt?.bookingTime || '',
-          visitType: (latestAppt?.visitType || VisitType.New) as any,
-          consultationFee: latestAppt?.consultationFee ? Number(latestAppt.consultationFee) : (latestAppt?.doctorId ? (meta?.doctors?.find(d => String(d.id) === String(latestAppt.doctorId))?.consultationFee || 500) : 500),
-          notes: latestAppt?.notes || '',
-        });
       } else if (!isEdit) {
         setForm(INIT_FORM);
         setRefSearch('');
       }
       setErrors([]);
     }
-  }, [isOpen, isEdit, patient, unregisteredPatient, meta]);
+  }, [isOpen, isEdit, patient, meta]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -228,11 +193,11 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
         const patientResult = await createMutation.mutateAsync({
            ...form,
            referredById: refSearch || undefined,
-           unregisteredId: unregisteredPatient?.id
+           // no unregisteredId
         });
         
         // If a time slot is selected, book the appointment (Skip if we already have an unregistered patient as the backend links existing ones)
-        if (!unregisteredPatient && form.bookingTime && form.assistantDoctor && patientResult.regid) {
+        if (form.bookingTime && form.assistantDoctor && patientResult.regid) {
           await createApptMutation.mutateAsync({
             patientId: patientResult.regid,
             patientName: `${form.firstName} ${form.surname}`.trim(),
@@ -279,7 +244,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
       <div className="drawer-panel">
         <div className="drawer-header">
           <h2 className="drawer-title">
-            {isEdit ? 'Edit Patient' : unregisteredPatient ? 'Complete Registration' : 'Register New Patient'}
+            {isEdit ? 'Edit Patient' : 'Register New Patient'}
           </h2>
           <button className="drawer-close" onClick={onClose}><X size={20} /></button>
         </div>
@@ -560,7 +525,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
 
             <div className="form-group" style={{ marginTop: '24px' }}>
               <button className="drawer-submit-btn" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Patient' : unregisteredPatient ? 'Complete Registration' : 'Register Patient')}
+                {isSubmitting ? 'Saving...' : (isEdit ? 'Update Patient' : 'Register Patient')}
               </button>
             </div>
           </form>

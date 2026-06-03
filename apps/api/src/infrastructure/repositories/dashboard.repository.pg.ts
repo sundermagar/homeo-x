@@ -1174,7 +1174,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         totalStaff: Number(res.user_count) || 0,
         totalClinicAdmins: Number(res.admin_count) || 0,
         revenueDensity: revDensity,
-      };
+      } as unknown as PlatformStats;
     });
   }
 

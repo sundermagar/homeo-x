@@ -56,6 +56,8 @@ import { visitsRouter } from './routes/visits.router.js';
 import { videoCallRouter } from './routes/video-call.router.js';
 import { specialtiesRouter } from './routes/specialties.router.js';
 import { abhaRouter } from './routes/abha.router.js';
+import { hprRouter } from './routes/hpr.router.js';
+import { abhaWebhookRouter } from './routes/abha-webhook.router.js';
 import { setupTranscriptionGateway } from './gateways/transcription.gateway.js';
 import { setupVideoCallGateway } from './gateways/video-call.gateway.js';
 import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine.js';
@@ -172,6 +174,9 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/whatsapp', whatsappRouter);
   app.use('/api/widget', whatsappWidgetRouter);
 
+  // ABDM / ABHA Module
+  app.use('/api/abha', authMiddleware, abhaRouter);
+  app.use('/api/hpr', authMiddleware, hprRouter);
   // Roles & Permissions
   app.use('/api/roles', authMiddleware, rolesRouter);
   app.use('/api/permissions', authMiddleware, permissionsRouter);
@@ -188,6 +193,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // ─── ABHA (Ayushman Bharat Health Account) ───
   app.use('/api/abha', abhaRouter);
+  app.use('/api/abdm/callbacks', abhaWebhookRouter);
 
   // ─── Video Call (LiveKit token issuance) ───
   // Mounted without authMiddleware because the patient-join link must be

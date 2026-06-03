@@ -74,7 +74,7 @@ export class StaffRepositoryPg implements StaffRepository {
     const selectCols = ['id', 'name', 'email', 'mobile', 'gender', 'designation', 'city', 'created_at', 'deleted_at'];
     if (isDoctor) selectCols.push('consultation_fee');
 
-    const colFragment = sql.join(selectCols.map(c => sql.identifier(c)), sql`, `);
+    const colFragment = sql.join(selectCols.map(c => sql`s.${sql.identifier(c)}`), sql`, `);
 
     // Determine sort column and direction with whitelist/validation for safety
     const allowedSortCols = ['id', 'name', 'email', 'mobile', 'city', 'created_at', 'consultation_fee'];
@@ -83,11 +83,12 @@ export class StaffRepositoryPg implements StaffRepository {
 
     // We only select columns confirmed to exist in the legacy schema
     const rows = await this.db.execute(sql`
-      SELECT ${colFragment}
-      FROM ${sql.identifier(table)}
-      WHERE (deleted_at IS NULL OR deleted_at::text = '')
-      ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
-      ORDER BY ${sql.identifier(sortCol)} ${sql.raw(sortDir)}
+      SELECT ${colFragment}, u.hpr_id
+      FROM ${sql.identifier(table)} s
+      LEFT JOIN users u ON u.id = s.id
+      WHERE (s.deleted_at IS NULL OR s.deleted_at::text = '')
+      ${searchSafe ? sql`AND (s.name ILIKE ${searchSafe} OR s.email ILIKE ${searchSafe} OR s.mobile ILIKE ${searchSafe})` : sql``}
+      ORDER BY s.${sql.identifier(sortCol)} ${sql.raw(sortDir)}
       LIMIT ${limit} OFFSET ${offset}
     `);
 
@@ -130,7 +131,7 @@ export class StaffRepositoryPg implements StaffRepository {
 
     try {
       const rows = await this.db.execute(sql`
-          SELECT s.*, u.context_id as user_context_id
+          SELECT s.*, u.context_id as user_context_id, u.hpr_id
           FROM ${sql.identifier(table)} s
           LEFT JOIN users u ON u.id = s.id
           WHERE s.id = ${id} AND (s.deleted_at IS NULL OR s.deleted_at::text = '')
@@ -382,6 +383,8 @@ export class StaffRepositoryPg implements StaffRepository {
       title: row.title ?? null,
       qualification: row.qualification ?? null,
       consultationFee: row.consultation_fee ?? null,
+      clinicId: row.clinic_id ?? null,
+      hprId: row.hpr_id ?? null,
     };
   }
 
@@ -430,6 +433,7 @@ export class StaffRepositoryPg implements StaffRepository {
       col12Document: row['12_document'] ?? null,
       bhmsDocument: row.bhms_document ?? null,
       mdDocument: row.md_document ?? null,
+      hprId: row.hpr_id ?? null,
     };
   }
 }

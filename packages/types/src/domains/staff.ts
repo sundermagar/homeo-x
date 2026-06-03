@@ -49,6 +49,7 @@ export interface StaffMember {
   bhmsDocument: string | null;
   mdDocument: string | null;
   clinicId: number | null;
+  hprId: string | null;
 }
 
 export interface StaffSummary {
@@ -64,6 +65,9 @@ export interface StaffSummary {
   city: string | null;
   // Doctor extras
   title: string | null;
-  qualification: string | null;
-  consultationFee: number | null;
+  salary?: number;
+  qualification?: string | null;
+  consultationFee?: number | null;
+  clinicId?: number | null;
+  hprId?: string | null;
 }

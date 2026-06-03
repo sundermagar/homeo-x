@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Mail, Phone, MapPin, GraduationCap, Building2,
@@ -5,6 +6,8 @@ import {
   ExternalLink, CreditCard, ShieldCheck, Camera, Sparkles,
   Award, Globe, Landmark, Fingerprint, Files
 } from 'lucide-react';
+import { useAuthStore } from '@/shared/stores/auth-store';
+import { HprVerificationModal } from '../components/hpr-verification-modal';
 import { useStaffMember } from '@/features/staff/hooks/use-staff';
 import '../styles/platform.css';
 
@@ -16,6 +19,8 @@ export default function DoctorDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: staff, isLoading, error } = useStaffMember(CATEGORY, Number(id));
+
+  const [isHprModalOpen, setIsHprModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -70,6 +75,13 @@ export default function DoctorDetailPage() {
   return (
     <div className="plat-profile-page animate-fade-in">
       
+      <HprVerificationModal 
+        isOpen={isHprModalOpen} 
+        onClose={() => setIsHprModalOpen(false)} 
+        doctorId={Number(id)}
+        doctorName={staff.name || 'Doctor'}
+      />
+
       {/* ─── Premium Profile Header ─── */}
       <div className="plat-profile-header">
         <div className="plat-profile-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
@@ -82,10 +94,25 @@ export default function DoctorDetailPage() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: 'var(--pp-warm-2)', border: '1px solid var(--pp-warm-4)', borderRadius: 999 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: staff.isActive ? 'var(--pp-success-fg)' : 'var(--pp-text-4)', boxShadow: staff.isActive ? '0 0 8px var(--pp-success-fg)' : 'none' }} />
-              <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--pp-ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{staff.isActive ? 'Active' : 'Archived'}</span>
-            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: staff.isActive ? 'var(--pp-success-fg)' : 'var(--pp-text-4)', boxShadow: staff.isActive ? '0 0 8px var(--pp-success-fg)' : 'none' }} />
+                <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--pp-ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{staff.isActive ? 'Active' : 'Archived'}</span>
+                
+                {staff.hprId ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', padding: '4px 8px', borderRadius: 4 }}>
+                    <ShieldCheck size={12} />
+                    <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>ABDM Verified: {staff.hprId}</span>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => setIsHprModalOpen(true)}
+                    style={{ background: 'var(--pp-blue)', color: 'white', border: 'none', padding: '4px 12px', borderRadius: 4, fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <ShieldCheck size={12} />
+                    Verify ABDM Profile
+                  </button>
+                )}
+              </div>
           </div>
         </div>
       </div>
