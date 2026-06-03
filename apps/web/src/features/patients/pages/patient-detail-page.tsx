@@ -5,7 +5,6 @@ import { useActivePackage } from '../../packages/hooks/use-packages';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle, Zap, ShieldCheck, Clock, Unlink } from 'lucide-react';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
-import { useSendWhatsApp } from '../../communications/hooks/use-communications';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 import { PageSkeleton } from '@/components/shared/page-skeleton';

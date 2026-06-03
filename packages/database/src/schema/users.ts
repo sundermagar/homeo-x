@@ -45,6 +45,8 @@ export const users = pgTable('users', {
   salaryCur: real('salary_cur').default(0),
   aadharnumber: text('aadharnumber'),
   pannumber: text('pannumber'),
+  hprId: text('hpr_id'),
+  hprToken: text('hpr_token'),
 
   // Documents/File Paths
   profilepic: text('profilepic'),

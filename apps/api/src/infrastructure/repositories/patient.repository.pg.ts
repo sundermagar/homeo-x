@@ -707,69 +707,7 @@ export class PatientRepositoryPg implements PatientRepository {
     return { id: row!.id, name: row!.name };
   }
 
-  async findUnregistered(params: { clinicId?: number; search?: string; limit?: number; offset?: number }): Promise<any[]> {
-    const conditions = [
-      isNull(unregisteredPatients.deletedAt),
-      isNull(unregisteredPatients.registeredPatientId) // Only show those not yet converted
-    ];
-    if (params.clinicId) {
-      conditions.push(
-        or(
-          eq(unregisteredPatients.clinicId, params.clinicId),
-          isNull(unregisteredPatients.clinicId),
-          eq(unregisteredPatients.clinicId, 0),
-          eq(unregisteredPatients.clinicId, 1),
-        )!
-      );
-    }
-    if (params.search) {
-      conditions.push(like(unregisteredPatients.name, `%${params.search}%`));
-    }
 
-    const query = this.db
-      .select({
-        unregistered: unregisteredPatients,
-        appointment: {
-          doctorId: appointments.doctorId,
-          doctorName: sql<string>`COALESCE(
-            (SELECT name FROM users WHERE id = ${appointments.doctorId}),
-            (SELECT name FROM doctors WHERE id = ${appointments.doctorId}),
-            'Practitioner'
-          )`,
-          bookingDate: appointments.bookingDate,
-          bookingTime: appointments.bookingTime,
-          visitType: appointments.visitType,
-          consultationFee: appointments.consultationFee,
-          notes: appointments.notes,
-        }
-      })
-      .from(unregisteredPatients)
-      .leftJoin(appointments, eq(unregisteredPatients.id, appointments.unregisteredPatientId))
-      .where(and(...conditions))
-      .orderBy(sql`${unregisteredPatients.id} DESC, ${appointments.id} DESC`);
-
-    if (params.limit !== undefined) {
-      query.limit(params.limit);
-    }
-    if (params.offset !== undefined) {
-      query.offset(params.offset);
-    }
-
-    const results = await query;
-
-    // Deduplicate in memory
-    const uniqueMap = new Map();
-    results.forEach(r => {
-      if (!uniqueMap.has(r.unregistered.id)) {
-        uniqueMap.set(r.unregistered.id, {
-          ...r.unregistered,
-          latestAppointment: (r.appointment && r.appointment.doctorId) ? r.appointment : null
-        });
-      }
-    });
-
-    return Array.from(uniqueMap.values());
-  }
 
   async linkUnregisteredToFormal(unregisteredId: number, formalId: number): Promise<void> {
     await this.db.transaction(async (tx) => {

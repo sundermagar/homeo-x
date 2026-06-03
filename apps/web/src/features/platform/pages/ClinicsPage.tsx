@@ -11,6 +11,7 @@ import { usePagination } from '@/shared/hooks/use-pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
+import { HfrVerificationModal } from '../components/hfr-verification-modal';
 const EMPTY_FORM: any = {
   name: '', email: '', phone: '', city: '', website: '', description: '', connectSince: '',
   adminEmail: '', adminPassword: '', sendWelcomeEmail: false,
@@ -31,6 +32,7 @@ export default function ClinicsPage() {
   } = usePagination(orgs);
   const [isCreating, setIsCreating] = useState(false);
   const [editingOrg, setEditingOrg] = useState<any>(null);
+  const [selectedVerifyOrg, setSelectedVerifyOrg] = useState<any>(null);
   const [form, setForm] = useState<CreateOrganizationInput>(EMPTY_FORM);
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -155,6 +157,7 @@ export default function ClinicsPage() {
                     <th>City</th>
                     <th>Phone</th>
                     <th>Website</th>
+                    <th>ABDM HFR Status</th>
                     <th>Connected</th>
                     <th>Action</th>
                   </tr>
@@ -197,6 +200,33 @@ export default function ClinicsPage() {
                               </a>
                             ) : '—'}
                           </div>
+                        </div>
+                      </td>
+                      <td data-label="ABDM HFR Status">
+                        <div className="plat-cell-val">
+                          {org.hfrId ? (
+                            <div className="flex items-center gap-1.5" style={{ color: '#10b981', fontWeight: 600, fontSize: '0.8rem' }}>
+                              <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#10b981' }}></span>
+                              Verified: {org.hfrId}
+                            </div>
+                          ) : (
+                            <button
+                              className="plat-btn"
+                              style={{ 
+                                background: 'rgba(16, 185, 129, 0.1)', 
+                                color: '#10b981', 
+                                border: '1px solid rgba(16, 185, 129, 0.2)',
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                fontSize: '0.75rem',
+                                fontWeight: 500,
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => setSelectedVerifyOrg(org)}
+                            >
+                              Verify ABDM
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td data-label="Connected">
@@ -377,6 +407,14 @@ export default function ClinicsPage() {
             </form>
           </div>
         </Drawer>
+      )}
+      {selectedVerifyOrg && (
+        <HfrVerificationModal
+          isOpen={!!selectedVerifyOrg}
+          onClose={() => setSelectedVerifyOrg(null)}
+          clinicId={selectedVerifyOrg.id}
+          clinicName={selectedVerifyOrg.name}
+        />
       )}
     </div>
   );

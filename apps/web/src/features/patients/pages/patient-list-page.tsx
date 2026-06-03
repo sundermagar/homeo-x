@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { usePatients, useDeletePatient, usePatientFormMeta, useUnregisteredPatients } from '../hooks/use-patients';
+import { usePatients, useDeletePatient, usePatientFormMeta } from '../hooks/use-patients';
 import {
   Search, Plus, List as ListIcon, Grid, Edit2, MapPin, Calendar,
   MessageCircle, Printer, Download, MoreVertical, Trash2, Phone, User, Users, ClipboardList, Zap
@@ -111,8 +111,7 @@ export default function PatientListPage() {
   const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
   const [assignPkgPatient, setAssignPkgPatient] = useState<{ regid: number; name: string } | null>(null);
   const [interceptPatient, setInterceptPatient] = useState<{ regid: number; name: string } | null>(null);
-  const [selectedUnregistered, setSelectedUnregistered] = useState<any | null>(null);
-  const [patientFilter, setPatientFilter] = useState<'registered' | 'unregistered'>('registered');
+  // Removed unregistered filters
 
   const user = useAuthStore(s => s.user);
   const token = useAuthStore(s => s.token);
@@ -139,36 +138,15 @@ export default function PatientListPage() {
     sortBy, sortOrder: sortBy === 'oldest' ? 'asc' : 'desc',
   });
   const { data: meta } = usePatientFormMeta((user as any)?.contextId);
-  const { data: unregisteredPatients = [], isLoading: isLoadingUnreg, refetch: refetchUnreg } = useUnregisteredPatients({
-    search: debouncedSearch,
-    limit: pageSize,
-    offset: (page - 1) * pageSize,
-    clinicId: (user as any)?.contextId,
-  });
+
   const deleteMutation = useDeletePatient();
 
   const combinedPatients = useMemo(() => {
     const formatName = (name: string) => name ? name.replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown';
-    const unreg = unregisteredPatients.map((up: any) => ({
-      regid: 0,
-      fullName: formatName(up.name),
-      phone: up.phone,
-      gender: up.gender,
-      doctorName: up.latestAppointment?.doctorName || '—',
-      lastVisit: null,
-      isUnregistered: true,
-      original: up
-    }));
-    const reg = (data?.data || []).map((p: PatientSummary) => ({ ...p, fullName: formatName(p.fullName), isUnregistered: false }));
+    return (data?.data || []).map((p: PatientSummary) => ({ ...p, fullName: formatName(p.fullName), isUnregistered: false }));
+  }, [data?.data]);
 
-    if (patientFilter === 'registered') return reg;
-    if (patientFilter === 'unregistered') return unreg;
-    return [...unreg, ...reg];
-  }, [unregisteredPatients, data?.data, patientFilter]);
-
-  const totalEntries = patientFilter === 'registered' ? (data?.total || 0) :
-                       patientFilter === 'unregistered' ? unregisteredPatients.length :
-                       ((data?.total || 0) + unregisteredPatients.length);
+  const totalEntries = data?.total || 0;
 
   const handleSearchChange = (val: string) => {
     setSearch(val); setPage(1);
@@ -266,54 +244,7 @@ export default function PatientListPage() {
         </div>
         
         <div className="pp-filter-controls">
-          <div className="appt-segmented-toggle" style={{ gap: '4px', padding: '4px' }}>
-             <button 
-               className={`appt-segmented-btn ${patientFilter === 'registered' ? 'is-active' : ''}`} 
-               onClick={() => { setPatientFilter('registered'); setPage(1); }}
-             >
-               Registered
-               <span style={{ 
-                 marginLeft: '6px', 
-                 fontSize: '10px', 
-                 background: patientFilter === 'registered' ? 'white' : 'var(--pp-border)', 
-                 color: patientFilter === 'registered' ? 'var(--pp-blue)' : 'var(--pp-text-muted)', 
-                 padding: '2px 6px', 
-                 borderRadius: '10px', 
-                 fontWeight: 600 
-               }}>
-                 {data?.total || 0}
-               </span>
-             </button>
-             <button 
-               className={`appt-segmented-btn ${patientFilter === 'unregistered' ? 'is-active' : ''}`} 
-               onClick={() => { setPatientFilter('unregistered'); setPage(1); }}
-               style={{
-                 position: 'relative',
-                 ...(patientFilter === 'unregistered' ? { color: '#dc2626', background: '#fff1f2' } : {})
-               }}
-             >
-               {unregisteredPatients.length > 0 && patientFilter !== 'unregistered' && (
-                 <span className="pat-unreg-pulse-dot" />
-               )}
-               Unregistered
-               <span style={{ 
-                 marginLeft: '6px', 
-                 fontSize: '10px', 
-                 background: patientFilter === 'unregistered' ? '#fecaca' : (unregisteredPatients.length > 0 ? '#fee2e2' : 'var(--pp-border)'), 
-                 color: patientFilter === 'unregistered' ? '#b91c1c' : (unregisteredPatients.length > 0 ? '#dc2626' : 'var(--pp-text-muted)'), 
-                 padding: '2px 6px', 
-                 borderRadius: '10px', 
-                 fontWeight: 600 
-               }}>
-                 {unregisteredPatients.length}
-               </span>
-             </button>
-          </div>
-
           <div className="appt-segmented-toggle">
-             <button className={`appt-segmented-btn ${viewMode === 'list' ? 'is-active' : ''}`} onClick={() => setViewMode('list')} title="List View">
-               <ListIcon size={16} /> List
-             </button>
              <button className={`appt-segmented-btn ${viewMode === 'grid' ? 'is-active' : ''}`} onClick={() => setViewMode('grid')} title="Grid View">
                <Grid size={16} /> Grid
              </button>
@@ -336,7 +267,7 @@ export default function PatientListPage() {
       </div>
 
       {/* Table Content */}
-      {isLoading || isLoadingUnreg ? (
+      {isLoading ? (
         <TableSkeleton rows={10} cols={6} />
       ) : combinedPatients.length === 0 ? (
         <EmptyState 
@@ -366,8 +297,8 @@ export default function PatientListPage() {
               <tbody>
                 {combinedPatients.map((p: any, idx: number) => (
                   <tr 
-                    key={p.isUnregistered ? `unreg-${p.original.id}` : p.regid} 
-                    className={`pp-hover-row ${p.isUnregistered ? 'pp-row-unregistered' : ''}`}
+                    key={p.regid} 
+                    className="pp-hover-row"
                   >
                     <td data-label="#">
                       <div className="font-mono text-[11px] font-semibold color-muted opacity-60">
@@ -377,13 +308,9 @@ export default function PatientListPage() {
                     <td data-label="Patient">
                       <div className="pat-member-row">
                         <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                          {p.isUnregistered ? (
-                            <span className="appt-cell-name" style={{ color: 'var(--pp-unregistered-fg)', fontWeight: 700 }}>{p.fullName}</span>
-                          ) : (
-                            <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="appt-cell-name pp-clickable-name" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
-                              {p.fullName || 'Unknown'}
-                            </button>
-                          )}
+                          <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="appt-cell-name pp-clickable-name" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
+                            {p.fullName || 'Unknown'}
+                          </button>
                           <div className="appt-cell-phone">
                             {p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender || '—'}
                           </div>
@@ -391,13 +318,9 @@ export default function PatientListPage() {
                       </div>
                     </td>
                     <td data-label="RegID">
-                      {p.isUnregistered ? (
-                        <span className="pp-regid-pill" style={{ opacity: 0.5, background: 'var(--pp-bg-subtle)' }}>PENDING</span>
-                      ) : (
-                        <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="pp-regid-pill" style={{ cursor: 'pointer' }}>
-                          #{p.regid}
-                        </button>
-                      )}
+                      <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="pp-regid-pill" style={{ cursor: 'pointer' }}>
+                        #{p.regid}
+                      </button>
                     </td>
                     <td data-label="Contact">
                       <span className="appt-cell-name">{p.phone || '—'}</span>
@@ -406,35 +329,16 @@ export default function PatientListPage() {
                       <span className="appt-cell-muted">{doctorName(p)}</span>
                     </td>
                     <td data-label="Last Followup">
-                      {p.isUnregistered ? (
-                        <span className="appt-cell-muted">Shadow Record</span>
-                      ) : (
-                        <>
-                          <div className="appt-cell-name">{p.lastVisit ? formatDate(p.lastVisit) : "No Followup"}</div>
-                          <div className="appt-cell-phone">Visit History</div>
-                        </>
-                      )}
+                      <div className="appt-cell-name">{p.lastVisit ? formatDate(p.lastVisit) : "No Followup"}</div>
+                      <div className="appt-cell-phone">Visit History</div>
                     </td>
                     <td data-label="Actions" style={{ textAlign: 'right' }}>
-                      {p.isUnregistered ? (
-                        <button 
-                          className="btn-primary btn-sm" 
-                          onClick={() => {
-                            setSelectedUnregistered(p.original);
-                            setDrawerRegid(null);
-                            setIsDrawerOpen(true);
-                          }}
-                        >
-                          Add Patient
-                        </button>
-                      ) : (
-                        <button
-                          className="appt-kebab-btn"
-                          onClick={e => toggleMenu(p.regid, e.currentTarget)}
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-                      )}
+                      <button
+                        className="appt-kebab-btn"
+                        onClick={e => toggleMenu(p.regid, e.currentTarget)}
+                      >
+                        <MoreVertical size={16} />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -445,29 +349,19 @@ export default function PatientListPage() {
       ) : (
         <div className="appt-card-grid">
           {combinedPatients.map((p: any) => (
-            <div key={p.isUnregistered ? `unreg-${p.original.id}` : p.regid} className="appt-card appt-grid-card">
+            <div key={p.regid} className="appt-card appt-grid-card">
               <div className="appt-grid-card-header">
                 <div>
-                  {p.isUnregistered ? (
-                    <span className="appt-grid-card-patient">{p.fullName}</span>
-                  ) : (
-                    <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="appt-grid-card-patient clickable-link" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
-                      {p.fullName}
-                    </button>
-                  )}
+                  <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="appt-grid-card-patient clickable-link" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
+                    {p.fullName}
+                  </button>
                   <div className="appt-grid-card-phone">
-                    {p.isUnregistered ? (
-                      <span style={{ fontSize: '11px', color: 'var(--pp-text-muted)' }}>UNREGISTERED</span>
-                    ) : (
-                      <span>ID: {p.regid}</span>
-                    )} • {p.phone || 'No phone'}
+                    <span>ID: {p.regid}</span> • {p.phone || 'No phone'}
                   </div>
                 </div>
-                {!p.isUnregistered && (
-                  <button className="appt-kebab-btn" onClick={e => toggleMenu(p.regid, e.currentTarget)}>
-                    <MoreVertical size={16} />
-                  </button>
-                )}
+                <button className="appt-kebab-btn" onClick={e => toggleMenu(p.regid, e.currentTarget)}>
+                  <MoreVertical size={16} />
+                </button>
               </div>
               <div className="appt-grid-card-detail">
                 {doctorName(p) && (
@@ -476,19 +370,13 @@ export default function PatientListPage() {
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Calendar size={14} /> {p.isUnregistered ? 'Shadow Record' : `Followup: ${p.lastVisit ? formatDate(p.lastVisit) : "No Followup"}`}
+                  <Calendar size={14} /> Followup: {p.lastVisit ? formatDate(p.lastVisit) : "No Followup"}
                 </div>
               </div>
               <div className="appt-grid-card-actions-minimal">
-                {p.isUnregistered ? (
-                  <button className="btn-primary" style={{ flex: 1, height: '32px', fontSize: '12px' }} onClick={() => { setSelectedUnregistered(p.original); setIsDrawerOpen(true); }}>
-                    Add Patient
-                  </button>
-                ) : (
-                  <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName, p.regid)}>
-                    <MessageCircle size={14} /> WhatsApp
-                  </button>
-                )}
+                <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName, p.regid)}>
+                  <MessageCircle size={14} /> WhatsApp
+                </button>
               </div>
             </div>
           ))}
@@ -513,14 +401,11 @@ export default function PatientListPage() {
         isOpen={isDrawerOpen}
         onClose={() => {
           setIsDrawerOpen(false);
-          setSelectedUnregistered(null);
           setDrawerRegid(null);
         }}
         regid={drawerRegid}
-        unregisteredPatient={selectedUnregistered}
         onSuccess={() => {
           refetch();
-          refetchUnreg();
         }}
       />
 

@@ -19,6 +19,8 @@ export interface Organization {
   address2?:    string;
   registration?: string;
   timing?:      string;
+  hfrId?:       string | null;
+  hfrToken?:    string | null;
   adminEmail?:  string;
   adminPassword?: string;
   registrationFee?: number;
@@ -65,6 +67,8 @@ export interface CreateOrganizationInput {
   registration?: string;
   logo?:        string;
   timing?:      string;
+  hfrId?:       string;
+  hfrToken?:    string;
 }
 
 export type UpdateOrganizationInput = Partial<CreateOrganizationInput>;

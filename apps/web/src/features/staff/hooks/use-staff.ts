@@ -93,3 +93,12 @@ export function useDeleteStaff() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [STAFF_KEY] }),
   });
 }
+
+export function useVerifyHpr() {
+  return useMutation({
+    mutationFn: async (data: { doctorId: number; hpid: string }) => {
+      const res = await apiClient.post('/hpr/verify', data);
+      return res.data;
+    },
+  });
+}

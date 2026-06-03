@@ -11,11 +11,13 @@ export function createClinicAdminsRouter(): Router {
   // GET /api/clinicadmins — List all clinic admins from public schema
   router.get('/', asyncHandler(async (req: Request, res: Response) => {
     const repo = new StaffRepositoryPg(req.publicDb);
+    const clinicId = req.query.clinic_id ? parseInt(req.query.clinic_id as string, 10) : undefined;
     const result = await repo.findAll({
       category: 'clinicadmin',
       page: 1,
       limit: 100,
       search: req.query.search as string | undefined,
+      clinicId,
     });
     res.json({ success: true, data: result.data, total: result.total });
   }));

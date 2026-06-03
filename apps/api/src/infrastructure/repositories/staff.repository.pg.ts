@@ -63,8 +63,9 @@ export class StaffRepositoryPg implements StaffRepository {
     search?: string;
     sortBy?: string;
     sortOrder?: 'ASC' | 'DESC';
+    clinicId?: number;
   }): Promise<{ data: StaffSummary[]; total: number }> {
-    const { category, page, limit, search, sortBy, sortOrder } = params;
+    const { category, page, limit, search, sortBy, sortOrder, clinicId } = params;
     const offset = (page - 1) * limit;
     const table = this.getTableName(category);
 
@@ -74,7 +75,7 @@ export class StaffRepositoryPg implements StaffRepository {
     const selectCols = ['id', 'name', 'email', 'mobile', 'gender', 'designation', 'city', 'created_at', 'deleted_at'];
     if (isDoctor) selectCols.push('consultation_fee');
 
-    const colFragment = sql.join(selectCols.map(c => sql.identifier(c)), sql`, `);
+    const colFragment = sql.join(selectCols.map(c => sql`s.${sql.identifier(c)}`), sql`, `);
 
     // Determine sort column and direction with whitelist/validation for safety
     const allowedSortCols = ['id', 'name', 'email', 'mobile', 'city', 'created_at', 'consultation_fee'];
@@ -83,13 +84,15 @@ export class StaffRepositoryPg implements StaffRepository {
 
     // We only select columns confirmed to exist in the legacy schema
     const rows = await this.db.execute(sql`
-      SELECT ${colFragment},
+      SELECT ${colFragment}, u.hpr_id,
              (CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = ${table} AND column_name = 'clinic_id') 
-                   THEN clinic_id ELSE NULL END) as clinic_id
-      FROM ${sql.identifier(table)}
-      WHERE (deleted_at IS NULL OR deleted_at::text = '')
-      ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
-      ORDER BY ${sql.identifier(sortCol)} ${sql.raw(sortDir)}
+                   THEN s.clinic_id ELSE NULL END) as clinic_id
+      FROM ${sql.identifier(table)} s
+      LEFT JOIN users u ON u.id = s.id
+      WHERE (s.deleted_at IS NULL OR s.deleted_at::text = '')
+      ${searchSafe ? sql`AND (s.name ILIKE ${searchSafe} OR s.email ILIKE ${searchSafe} OR s.mobile ILIKE ${searchSafe})` : sql``}
+      ${clinicId ? sql`AND s.clinic_id = ${clinicId}` : sql``}
+      ORDER BY s.${sql.identifier(sortCol)} ${sql.raw(sortDir)}
       LIMIT ${limit} OFFSET ${offset}
     `);
 
@@ -97,6 +100,7 @@ export class StaffRepositoryPg implements StaffRepository {
       SELECT count(*)::int as count FROM ${sql.identifier(table)}
       WHERE (deleted_at IS NULL OR deleted_at::text = '')
       ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
+      ${clinicId ? sql`AND clinic_id = ${clinicId}` : sql``}
     `);
 
     return {
@@ -132,7 +136,7 @@ export class StaffRepositoryPg implements StaffRepository {
 
     try {
       const rows = await this.db.execute(sql`
-          SELECT s.*, u.context_id as user_context_id
+          SELECT s.*, u.context_id as user_context_id, u.hpr_id
           FROM ${sql.identifier(table)} s
           LEFT JOIN users u ON u.id = s.id
           WHERE s.id = ${id} AND (s.deleted_at IS NULL OR s.deleted_at::text = '')
@@ -210,7 +214,7 @@ export class StaffRepositoryPg implements StaffRepository {
     const staffVals: any[] = [
       nextId, name, data.email || '', data.mobile || '', data.mobile2 || '', data.gender || 'Male',
       data.designation || '', data.dept || 4, data.city || '', data.address || '', data.about || '',
-      data.dateBirth || null, data.dateLeft || null, data.salaryCur || 0, hashedPassword
+      data.dateBirth || '1990-01-01', data.dateLeft || '2099-12-31', data.salaryCur || 0, hashedPassword
     ];
 
     if (category === 'clinicadmin' && (data as any).clinicId) {
@@ -385,6 +389,7 @@ export class StaffRepositoryPg implements StaffRepository {
       title: row.title ?? null,
       qualification: row.qualification ?? null,
       consultationFee: row.consultation_fee ?? null,
+      hprId: row.hpr_id ?? null,
     };
   }
 
@@ -433,6 +438,7 @@ export class StaffRepositoryPg implements StaffRepository {
       col12Document: row['12_document'] ?? null,
       bhmsDocument: row.bhms_document ?? null,
       mdDocument: row.md_document ?? null,
+      hprId: row.hpr_id ?? null,
     };
   }
 }

@@ -62,3 +62,16 @@ export function useDeleteOrganization() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [QUERY_KEY] }),
   });
 }
+
+export function useVerifyHfr() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { clinicId: number; hfrId: string }) => {
+      const res = await apiClient.post('/hfr/verify', data);
+      return res.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUERY_KEY] });
+    },
+  });
+}

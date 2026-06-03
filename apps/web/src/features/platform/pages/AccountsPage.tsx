@@ -364,7 +364,7 @@ export default function AccountsPage() {
           </>
         )}
       </div>
-      {modalOpen && <AccountModal open={modalOpen} onClose={() => setModalOpen(false)} editing={editing} />}
+      {modalOpen && <AccountModal mode={editing ? 'edit' : 'create'} account={editing as any} organizations={orgs} onClose={() => setModalOpen(false)} />}
     </div>
   );
 }

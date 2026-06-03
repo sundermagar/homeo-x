@@ -53,6 +53,9 @@ import { visitsRouter } from './routes/visits.router.js';
 import { videoCallRouter } from './routes/video-call.router.js';
 import { specialtiesRouter } from './routes/specialties.router.js';
 import { abhaRouter } from './routes/abha.router.js';
+import { hprRouter } from './routes/hpr.router.js';
+import { hfrRouter } from './routes/hfr.router.js';
+import { abhaWebhookRouter } from './routes/abha-webhook.router.js';
 import { setupTranscriptionGateway } from './gateways/transcription.gateway.js';
 import { setupVideoCallGateway } from './gateways/video-call.gateway.js';
 import { TranslatorEngine } from '../../domains/consultation/engines/translator.engine.js';
@@ -173,6 +176,10 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/whatsapp', whatsappRouter);
   app.use('/api/widget', whatsappWidgetRouter);
 
+  // ABDM / ABHA Module
+  app.use('/api/abha', authMiddleware, abhaRouter);
+  app.use('/api/hpr', authMiddleware, hprRouter);
+  app.use('/api/hfr', authMiddleware, hfrRouter);
   // Roles & Permissions
   app.use('/api/roles', authMiddleware, rolesRouter);
   app.use('/api/permissions', authMiddleware, permissionsRouter);
@@ -189,6 +196,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
 
   // ─── ABHA (Ayushman Bharat Health Account) ───
   app.use('/api/abha', abhaRouter);
+  app.use('/api/abdm/callbacks', abhaWebhookRouter);
 
   // ─── Video Call (LiveKit token issuance) ───
   // Mounted without authMiddleware because the patient-join link must be
@@ -398,6 +406,77 @@ async function ensureIndexes(db: any): Promise<void> {
           ALTER TABLE soap_notes ADD COLUMN regid INTEGER;
         END IF;
       END $$;
+    `));
+
+    // Ensure hpr_id and hpr_token columns exist on users table (ABDM HPR integration)
+    await db.execute(sql.raw(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'hpr_id') THEN
+          ALTER TABLE users ADD COLUMN hpr_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'hpr_token') THEN
+          ALTER TABLE users ADD COLUMN hpr_token TEXT;
+        END IF;
+      END $$;
+    `));
+
+    // Ensure hfr_id and hfr_token columns exist on organizations table (ABDM HFR integration)
+    await db.execute(sql.raw(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'hfr_id') THEN
+          ALTER TABLE organizations ADD COLUMN hfr_id TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'organizations' AND column_name = 'hfr_token') THEN
+          ALTER TABLE organizations ADD COLUMN hfr_token TEXT;
+        END IF;
+      END $$;
+    `));
+
+    // Ensure audit_logs table exists (Platform audit trail)
+    await db.execute(sql.raw(`
+      CREATE TABLE IF NOT EXISTS "audit_logs" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "action" varchar(100) NOT NULL,
+        "tenant_id" varchar(50) NOT NULL,
+        "user_id" integer,
+        "correlation_id" varchar(50),
+        "resource_type" varchar(50) NOT NULL,
+        "resource_id" varchar(100),
+        "old_data" jsonb,
+        "new_data" jsonb,
+        "metadata" jsonb,
+        "ip" varchar(50),
+        "user_agent" text,
+        "created_at" timestamp DEFAULT now() NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS "idx_audit_action" ON "audit_logs" ("action");
+      CREATE INDEX IF NOT EXISTS "idx_audit_tenant" ON "audit_logs" ("tenant_id");
+      CREATE INDEX IF NOT EXISTS "idx_audit_resource" ON "audit_logs" ("resource_type", "resource_id");
+      CREATE INDEX IF NOT EXISTS "idx_audit_user" ON "audit_logs" ("user_id");
+      CREATE INDEX IF NOT EXISTS "idx_audit_created" ON "audit_logs" ("created_at");
+    `));
+
+    // Ensure ai_audit_logs table exists (AI model interaction audit)
+    await db.execute(sql.raw(`
+      CREATE TABLE IF NOT EXISTS "ai_audit_logs" (
+        "id" serial PRIMARY KEY NOT NULL,
+        "tenant_id" varchar(50) NOT NULL,
+        "user_id" integer,
+        "visit_id" varchar(50),
+        "action_type" varchar(100) NOT NULL,
+        "provider" varchar(30),
+        "model" varchar(50),
+        "input_tokens" integer,
+        "output_tokens" integer,
+        "latency_ms" integer,
+        "confidence" integer,
+        "input_hash" varchar(100),
+        "output_json" jsonb,
+        "error_message" text,
+        "created_at" timestamp DEFAULT now() NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS "idx_ai_audit_tenant" ON "ai_audit_logs" ("tenant_id");
+      CREATE INDEX IF NOT EXISTS "idx_ai_audit_visit" ON "ai_audit_logs" ("visit_id");
     `));
 
     // Ensure notifications table exists

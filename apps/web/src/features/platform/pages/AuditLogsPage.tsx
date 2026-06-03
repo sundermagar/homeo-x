@@ -130,7 +130,21 @@ export default function AuditLogsPage() {
       {/* ─── Logs List ─── */}
       <div className="plat-card" style={{ padding: 0 }}>
         {isLoading ? (
-          <div style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>Loading logs...</div>
+          <div className="audit-list sa-loading-skeleton" style={{ padding: '24px' }}>
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="audit-item" style={{ opacity: 0.7 }}>
+                <div className="skeleton-box skeleton-circle" style={{ width: '32px', height: '32px', flexShrink: 0 }} />
+                <div className="audit-content" style={{ flex: 1 }}>
+                  <div className="skeleton-box skeleton-text title" style={{ width: '150px', marginBottom: '8px', height: '20px' }} />
+                  <div className="audit-meta-row" style={{ gap: '16px' }}>
+                    <div className="skeleton-box skeleton-text" style={{ width: '120px', margin: 0 }} />
+                    <div className="skeleton-box skeleton-text" style={{ width: '100px', margin: 0 }} />
+                    <div className="skeleton-box skeleton-text" style={{ width: '140px', margin: 0 }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="audit-list">
             {(data?.data || []).map((log) => (

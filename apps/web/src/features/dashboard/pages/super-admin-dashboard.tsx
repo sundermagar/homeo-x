@@ -28,11 +28,52 @@ export function SuperAdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="sa-root" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <Building2 className="sa-pulse" size={48} color="#e5e7eb" />
-          <p style={{ color: '#9ca3af', fontWeight: 600, marginTop: '12px' }}>Loading Command Center...</p>
-        </div>
+      <div className="sa-root sa-loading-skeleton">
+        {/* Section: Clinic Overview Skeleton */}
+        <section>
+          <div className="sa-section-header">
+            <div className="skeleton-box skeleton-text title" style={{ width: '200px', marginBottom: '8px' }} />
+          </div>
+          
+          <div className="sa-metric-grid-5">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="sa-metric-card" style={{ height: '88px', opacity: 0.7 }}>
+                <div className="skeleton-box" style={{ width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton-box skeleton-text" style={{ width: '60%', marginBottom: '8px' }} />
+                  <div className="skeleton-box skeleton-text title" style={{ width: '40%', marginBottom: 0, height: '24px' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="sa-wide-card" style={{ opacity: 0.7 }}>
+            <div className="skeleton-box" style={{ width: '56px', height: '56px', borderRadius: '16px', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div className="skeleton-box skeleton-text" style={{ width: '150px', marginBottom: '12px' }} />
+              <div className="skeleton-box skeleton-text title" style={{ width: '80px', marginBottom: 0, height: '36px' }} />
+            </div>
+          </div>
+        </section>
+
+        {/* Section: Platform Usage Skeleton */}
+        <section>
+          <div className="sa-section-header">
+            <div className="skeleton-box skeleton-text title" style={{ width: '180px', marginBottom: '8px' }} />
+          </div>
+
+          <div className="sa-usage-grid">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="sa-usage-card" style={{ height: '96px', opacity: 0.7 }}>
+                <div className="skeleton-box" style={{ width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton-box skeleton-text" style={{ width: '60%', marginBottom: '10px' }} />
+                  <div className="skeleton-box skeleton-text title" style={{ width: '40%', marginBottom: 0, height: '28px' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     );
   }
