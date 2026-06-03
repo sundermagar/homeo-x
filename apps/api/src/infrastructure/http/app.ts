@@ -544,6 +544,10 @@ async function ensureIndexes(db: any): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_waitlist_status_date ON waitlist (status, date) WHERE deleted_at IS NULL`,
     `CREATE INDEX IF NOT EXISTS idx_doctors_email_lower ON doctors (LOWER(email)) WHERE deleted_at IS NULL`,
     `CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users (LOWER(email)) WHERE deleted_at IS NULL`,
+    
+    // ── Platform Admin Dashboard Optimization Indexes ──
+    `CREATE INDEX IF NOT EXISTS idx_orgs_deleted ON organizations (deleted_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_users_active_deleted ON users (is_active) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
   ];
 
   for (const idxSql of indexes) {

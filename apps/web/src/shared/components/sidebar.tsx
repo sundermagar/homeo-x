@@ -551,6 +551,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="sidebar-nav">
           {visibleNav.map((item) => {
             if (item.type === 'link') {
+              const TopIcon = item.icon;
               return (
                 <NavLink
                   key={item.path}
@@ -559,21 +560,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   className={({ isActive }) => `sidebar-top-link ${isActive ? 'active' : ''}`}
                   onClick={handleNavClick}
                   style={{ 
-                    fontSize: '0.7rem', 
-                    fontWeight: 700, 
-                    letterSpacing: '0.08em', 
-                    textTransform: 'uppercase', 
-                    color: '#64748b', 
-                    padding: '8px 16px',
+                    fontSize: effectiveCollapsed ? 'inherit' : '0.7rem', 
+                    fontWeight: effectiveCollapsed ? 'normal' : 700, 
+                    letterSpacing: effectiveCollapsed ? 'normal' : '0.08em', 
+                    textTransform: effectiveCollapsed ? 'none' : 'uppercase', 
+                    color: effectiveCollapsed ? 'inherit' : '#64748b', 
+                    padding: effectiveCollapsed ? '10px 16px' : '8px 16px',
                     textDecoration: 'none',
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: effectiveCollapsed ? 'center' : 'flex-start',
                     marginTop: '16px',
                     marginBottom: '8px',
                     position: 'relative',
                     outline: 'none'
                   }}
                 >
+                  {effectiveCollapsed && <TopIcon className="sidebar-child-icon" strokeWidth={1.8} style={{ margin: 0 }} />}
                   {!effectiveCollapsed && <span>{item.label}</span>}
                   {effectiveCollapsed && <span className="sidebar-hover-label">{item.label}</span>}
                   {item.badge !== undefined && item.badge > 0 && !effectiveCollapsed && (
