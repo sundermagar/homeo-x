@@ -4,7 +4,7 @@ import { api } from '@/lib/api-client';
 export function useRequestConsentMutation() {
   return useMutation({
     mutationFn: async (data: { abhaId: string; purpose: string }) => {
-      const response = await api.post('/api/abha/consents/request', data);
+      const response = await api.post('/api/abha/consents/request', data) as any;
       return response.data; // { consentId, status, message }
     },
   });
@@ -15,7 +15,7 @@ export function usePollConsentStatusQuery(consentId: string | null) {
     queryKey: ['abha-consent-status', consentId],
     queryFn: async () => {
       if (!consentId) return null;
-      const response = await api.get(`/api/abha/consents/${consentId}/status`);
+      const response = await api.get(`/api/abha/consents/${consentId}/status`) as any;
       return response.data; // { consentId, status, consentArtifactId }
     },
     enabled: !!consentId,
@@ -31,7 +31,7 @@ export function usePollConsentStatusQuery(consentId: string | null) {
 export function useFetchHealthInfoMutation() {
   return useMutation({
     mutationFn: async (data: { consentArtifactId: string }) => {
-      const response = await api.post('/api/abha/health-information/fetch', data);
+      const response = await api.post('/api/abha/health-information/fetch', data) as any;
       return response.data; // { transactionId }
     },
   });
@@ -54,7 +54,7 @@ export function useAbhaHistoryQuery(enabled: boolean) {
   return useQuery({
     queryKey: ['abha-history-records'],
     queryFn: async () => {
-      const response = await api.get('/api/abha/health-information/records');
+      const response = await api.get('/api/abha/health-information/records') as any;
       return response.data as ParsedMedicalRecord[];
     },
     enabled,

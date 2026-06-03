@@ -351,6 +351,7 @@ export default function MedicalCaseDetailPage() {
   const [scannedMedicationRows, setScannedMedicationRows] = useState<MedicationRow[]>([
     { medicine: '', frequency: 'Once', days: '', issue: '' }
   ]);
+  const [isScannedPrescription, setIsScannedPrescription] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
   const [isSavingScannedPrescription, setIsSavingScannedPrescription] = useState(false);
   const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
@@ -2189,7 +2190,7 @@ export default function MedicalCaseDetailPage() {
         <AbhaMedicalHistoryDrawer
           isOpen={isHistoryDrawerOpen}
           onClose={() => setIsHistoryDrawerOpen(false)}
-          abhaId={abhaStatus.abhaId}
+          abhaId={abhaStatus.abhaId || ''}
           patientName={formatName(medicalCase?.patientName) || 'Unknown Patient'}
         />
       )}
