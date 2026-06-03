@@ -630,12 +630,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         <div className="sidebar-footer" style={{ 
             display: 'flex', 
+            flexDirection: effectiveCollapsed ? 'column-reverse' : 'row',
             alignItems: 'center', 
-            padding: '16px', 
+            justifyContent: effectiveCollapsed ? 'center' : 'flex-start',
+            padding: effectiveCollapsed ? '16px 0' : '16px', 
             background: '#f8fafc',
-            borderTop: '1px solid #e2e8f0' 
+            borderTop: '1px solid #e2e8f0',
+            gap: effectiveCollapsed ? '12px' : '0'
           }}>
-          <div className="user-profile" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="user-profile" style={{ flex: effectiveCollapsed ? 'none' : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', minWidth: 0 }}>
             <div className="user-avatar" style={{ 
               width: '36px', height: '36px', borderRadius: '10px', 
               background: '#2563eb', color: 'white', display: 'flex', 
@@ -655,34 +658,32 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             )}
           </div>
           
-          {!effectiveCollapsed && (
-            <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
-              <button 
-                className="sidebar-action-btn" 
-                onClick={toggleDarkMode} 
-                title="Toggle Theme"
-                style={{
-                  background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.background = '#e2e8f0' }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent' }}
-              >
-                {darkMode ? <Sun size={16} strokeWidth={1.5} /> : <Moon size={16} strokeWidth={1.5} />}
-              </button>
-              <button 
-                className="sidebar-action-btn" 
-                onClick={logout} 
-                title="Sign Out"
-                style={{
-                  background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = '#fee2e2' }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent' }}
-              >
-                <LogOut size={16} strokeWidth={1.5} />
-              </button>
-            </div>
-          )}
+          <div style={{ display: 'flex', flexDirection: effectiveCollapsed ? 'column' : 'row', gap: effectiveCollapsed ? '8px' : '2px', flexShrink: 0 }}>
+            <button 
+              className="sidebar-action-btn" 
+              onClick={toggleDarkMode} 
+              title="Toggle Theme"
+              style={{
+                background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.background = '#e2e8f0' }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent' }}
+            >
+              {darkMode ? <Sun size={16} strokeWidth={1.5} /> : <Moon size={16} strokeWidth={1.5} />}
+            </button>
+            <button 
+              className="sidebar-action-btn" 
+              onClick={logout} 
+              title="Sign Out"
+              style={{
+                background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = '#fee2e2' }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent' }}
+            >
+              <LogOut size={16} strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
       </aside>
     </>

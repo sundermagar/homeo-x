@@ -77,18 +77,18 @@ export class LoginUseCase {
     return {
       canAccessDashboard: true,
       canAccessQuickAccess: true,
-      canViewPatientDetail: ['Admin', 'ClinicAdmin', 'Doctor'].includes(role) || p.has('PATIENT_VIEW'),
-      canCreatePatient: ['Admin', 'ClinicAdmin', 'Doctor', 'Receptionist'].includes(role) || p.has('PATIENT_CREATE'),
-      canEditPatient: ['Admin', 'ClinicAdmin', 'Doctor', 'Receptionist'].includes(role) || p.has('PATIENT_EDIT'),
-      canDeletePatient: ['Admin', 'ClinicAdmin'].includes(role) || p.has('PATIENT_DELETE'),
-      canViewBilling: ['Admin', 'ClinicAdmin', 'Account', 'Receptionist'].includes(role) || p.has('BILLING_VIEW'),
-      canViewExpenses: ['Admin', 'ClinicAdmin', 'Account'].includes(role) || p.has('EXPENSES_VIEW'),
-      canViewAnalytics: ['Admin', 'ClinicAdmin'].includes(role) || p.has('ANALYTICS_VIEW'),
-      canViewDoctors: ['Admin', 'ClinicAdmin'].includes(role) || p.has('DOCTOR_VIEW'),
+      canViewPatientDetail: ['Admin', 'Clinicadmin', 'Doctor'].includes(role) || p.has('PATIENT_VIEW'),
+      canCreatePatient: ['Admin', 'Clinicadmin', 'Doctor', 'Receptionist'].includes(role) || p.has('PATIENT_CREATE'),
+      canEditPatient: ['Admin', 'Clinicadmin', 'Doctor', 'Receptionist'].includes(role) || p.has('PATIENT_EDIT'),
+      canDeletePatient: ['Admin', 'Clinicadmin'].includes(role) || p.has('PATIENT_DELETE'),
+      canViewBilling: ['Admin', 'Clinicadmin', 'Account', 'Receptionist'].includes(role) || p.has('BILLING_VIEW'),
+      canViewExpenses: ['Admin', 'Clinicadmin', 'Account'].includes(role) || p.has('EXPENSES_VIEW'),
+      canViewAnalytics: ['Admin', 'Clinicadmin'].includes(role) || p.has('ANALYTICS_VIEW'),
+      canViewDoctors: ['Admin', 'Clinicadmin'].includes(role) || p.has('DOCTOR_VIEW'),
       canManageUsers: ['Admin'].includes(role) || p.has('USER_MANAGE'),
-      canManageSettings: ['Admin', 'ClinicAdmin'].includes(role) || p.has('SETTINGS_MANAGE'),
+      canManageSettings: ['Admin', 'Clinicadmin'].includes(role) || p.has('SETTINGS_MANAGE'),
       canViewPackageHistory: ['Admin', 'Doctor', 'Receptionist'].includes(role) || p.has('PACKAGE_HISTORY_VIEW'),
-      canNewPatientBtn: ['Admin', 'ClinicAdmin', 'Receptionist'].includes(role) || p.has('PATIENT_NEW_BTN'),
+      canNewPatientBtn: ['Admin', 'Clinicadmin', 'Receptionist'].includes(role) || p.has('PATIENT_NEW_BTN'),
     };
   }
 }

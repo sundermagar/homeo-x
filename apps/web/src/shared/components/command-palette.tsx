@@ -9,11 +9,12 @@ import {
   Stethoscope, PackageCheck, MessageCircle, PieChart,
   Building2, Users2, UserCheck, UserPlus, Contact,
   FileBarChart, Download, Boxes, HelpCircle,
-  BookOpen, Tags, Bike, LayoutList, Sticker, Cpu, Clock, PhoneCall
+  BookOpen, Tags, Bike, LayoutList, Sticker, Cpu, Clock, PhoneCall,
+  Send, Zap, Bot, Image, Hash, Layout
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
-type Role = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist';
+type Role = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionist' | 'Dispensary';
 
 function normalizeRole(): Role {
   const raw =
@@ -26,6 +27,7 @@ function normalizeRole(): Role {
   if (r === 'clinicadmin') return 'Clinicadmin';
   if (r === 'doctor' || r === 'hmis_doctor') return 'Doctor';
   if (r === 'receptionist') return 'Receptionist';
+  if (r === 'dispensary' || r === 'dispensarymanager') return 'Dispensary';
   return 'Receptionist';
 }
 
@@ -56,6 +58,7 @@ function buildCommands(
   const ADMIN_ONLY: Role[] = ['SuperAdmin', 'Admin'];
   const BILLING: Role[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'];
   const BILLING_ADMIN: Role[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'];
+  const LOGISTICS: Role[] = ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist', 'Dispensary'];
 
   const nav = (
     label: string,
@@ -129,6 +132,8 @@ function buildCommands(
       ['vital', 'bp', 'weight', 'pulse', 'checkup']),
     nav('AI Analysis', '/clinical/ai-analysis', <BrainCircuit size={16} />, CLINICAL,
       ['remedy', 'chart', 'tree', 'medicine', 'drug', 'ai', 'analysis']),
+    nav('Follow-up Dues', '/medical-cases/followups', <Bell size={16} />, ALL,
+      ['followup', 'due', 'patient', 'reminder']),
 
     // ── Packages ─────────────────────────────────────────────────────────────
     nav('Packages', '/packages', <Package size={16} />, ADMIN_CLINIC,
@@ -169,6 +174,10 @@ function buildCommands(
     // ── Operations & CRM ─────────────────────────────────────────────────────
     nav('Operations Hub', '/operations', <LayoutDashboard size={16} />, ADMIN_CLINIC,
       ['operation', 'crm', 'leads', 'task', 'logistics']),
+    nav('Courier Queue', '/courier-queue', <Truck size={16} />, LOGISTICS,
+      ['courier', 'delivery', 'dispatch', 'logistics']),
+    nav('Dispensary Workspace', '/dispensary', <Pill size={16} />, [...ADMIN_CLINIC, 'Dispensary'],
+      ['dispensary', 'pharmacy', 'medicine', 'stock']),
 
     // ── Communications (SMS decommissioned) ──────────────────────────────────
     /*
@@ -179,20 +188,32 @@ function buildCommands(
     nav('SMS Reports', '/communications/reports', <FileBarChart size={16} />, ADMIN_CLINIC,
       ['sms', 'report', 'reports']),
     */
-    nav('WhatsApp', '/communications/whatsapp', <MessageCircle size={16} />, ALL,
-      ['whatsapp', 'message', 'chat']),
+    nav('WhatsApp: Overview', '/communications/whatsapp/overview', <LayoutDashboard size={16} />, ALL,
+      ['whatsapp', 'overview', 'dashboard']),
+    nav('WhatsApp: Inbox', '/communications/whatsapp/inbox', <MessageSquare size={16} />, ALL,
+      ['whatsapp', 'inbox', 'message', 'chat']),
+    nav('WhatsApp: Campaigns', '/communications/whatsapp/campaigns', <Send size={16} />, ALL,
+      ['whatsapp', 'campaign', 'broadcast', 'send']),
+    nav('WhatsApp: Contacts', '/communications/whatsapp/contacts', <Users size={16} />, ALL,
+      ['whatsapp', 'contact', 'people']),
+    nav('WhatsApp: Automations', '/communications/whatsapp/automations', <Zap size={16} />, ALL,
+      ['whatsapp', 'automation', 'trigger', 'flow']),
+    nav('WhatsApp: Chatbots', '/communications/whatsapp/chatbots', <Bot size={16} />, ALL,
+      ['whatsapp', 'chatbot', 'bot', 'auto']),
+    nav('WhatsApp: Media', '/communications/whatsapp/media', <Image size={16} />, ALL,
+      ['whatsapp', 'media', 'image', 'video']),
+    nav('WhatsApp: Channels', '/communications/whatsapp/channels', <Hash size={16} />, ALL,
+      ['whatsapp', 'channel']),
+    nav('WhatsApp: Templates', '/communications/whatsapp/templates', <FileText size={16} />, ALL,
+      ['whatsapp', 'template', 'canned']),
+    nav('WhatsApp: Analytics', '/communications/whatsapp/analytics', <BarChart2 size={16} />, ALL,
+      ['whatsapp', 'analytics', 'stats', 'report']),
+    nav('WhatsApp: Widget Builder', '/communications/whatsapp/widget-builder', <Layout size={16} />, ALL,
+      ['whatsapp', 'widget', 'builder']),
 
     // ── Staff & Platform ─────────────────────────────────────────────────────
-    nav('Staff Base', '/staff', <UserCog size={16} />, ADMIN_ONLY,
-      ['staff', 'employee', 'user', 'team']),
-    nav('Doctors', '/platform/doctors', <UserCog size={16} />, ADMIN_CLINIC,
-      ['doctor', 'doctors', 'physician']),
-    nav('Employees', '/platform/employees', <Users2 size={16} />, ADMIN_CLINIC,
-      ['employee', 'employees', 'staff']),
-    nav('Receptionists', '/platform/receptionists', <UserCheck size={16} />, ADMIN_CLINIC,
-      ['receptionist', 'receptionists', 'front desk']),
-    nav('Clinic Admins', '/platform/clinicadmins', <Contact size={16} />, ADMIN_CLINIC,
-      ['clinic', 'admin', 'clinicadmin']),
+    nav('Staff Base', '/platform/staff', <UserCog size={16} />, ADMIN_CLINIC,
+      ['staff', 'employee', 'user', 'team', 'doctor', 'receptionist', 'clinicadmin']),
 
     nav('Clinics', '/platform/clinics', <Building2 size={16} />, ADMIN_ONLY,
       ['clinic', 'organisation', 'branch']),

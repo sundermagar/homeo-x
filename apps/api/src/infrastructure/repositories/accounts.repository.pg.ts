@@ -297,7 +297,8 @@ export class DayChargeRepositoryPg implements DayChargeRepository {
         .where(isNull(daychargesLegacy.deletedAt))
         .orderBy(daychargesLegacy.id);
       return rows.map(this.toDomain.bind(this));
-    } catch {
+    } catch (err) {
+      console.warn('[ACCOUNTS_REPO] daycharges query failed:', err);
       return [];
     }
   }
