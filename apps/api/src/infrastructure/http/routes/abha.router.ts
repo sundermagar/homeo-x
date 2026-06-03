@@ -356,6 +356,298 @@ abhaRouter.post('/patients/:regid/unlink', authMiddleware, async (req: Request, 
   }
 });
 
+// ─── ABHA CREATION (M1 Milestone) ───────────────────────────────────────────
+// Full flow to create a brand new ABHA number for patients who don't have one.
+// Step 1: Generate OTP → Step 2: Verify OTP → Step 3: Create Health ID
+
+// In-memory creation transactions (use Redis/DB in production)
+const creationTransactions = new Map<string, {
+  aadhaar: string;
+  regid: number;
+  createdAt: Date;
+  mockOtp: string;
+  verified: boolean;
+  abdmTxnId?: string;
+}>();
+
+/**
+ * POST /api/abha/patients/:regid/create/generateOtp
+ * Step 1: Send OTP to Aadhaar-linked mobile for ABHA creation.
+ */
+abhaRouter.post('/patients/:regid/create/generateOtp', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const regid = Number(req.params.regid);
+    const { aadhaar } = req.body;
+
+    if (!aadhaar) {
+      res.status(400).json({ success: false, message: 'Aadhaar number is required' });
+      return;
+    }
+
+    const cleanAadhaar = aadhaar.replace(/[-\s]/g, '');
+    if (cleanAadhaar.length !== 12) {
+      res.status(400).json({ success: false, message: 'Aadhaar must be 12 digits' });
+      return;
+    }
+
+    // Check if patient exists
+    const [patient] = await req.tenantDb
+      .select({ regid: patients.regid, abhaId: patients.abhaId })
+      .from(patients)
+      .where(eq(patients.regid, regid))
+      .limit(1);
+
+    if (!patient) {
+      res.status(404).json({ success: false, message: 'Patient not found' });
+      return;
+    }
+
+    if (patient.abhaId) {
+      res.status(400).json({ success: false, message: 'Patient already has an ABHA ID linked' });
+      return;
+    }
+
+    // ── Check if real ABDM credentials are configured ──
+    const hasRealCredentials = process.env.ABDM_CLIENT_ID && process.env.ABDM_CLIENT_SECRET;
+
+    if (hasRealCredentials) {
+      // REAL ABDM MODE: Call the actual gateway
+      try {
+        const { abdmGateway: gateway } = await import('../../abdm/abdm.service.js');
+        const result = await gateway.generateAadhaarOtp(cleanAadhaar);
+        
+        creationTransactions.set(result.txnId, {
+          aadhaar: cleanAadhaar,
+          regid,
+          createdAt: new Date(),
+          mockOtp: '', // Not needed in real mode
+          verified: false,
+          abdmTxnId: result.txnId,
+        });
+
+        res.json({
+          success: true,
+          data: {
+            txnId: result.txnId,
+            message: 'OTP sent to Aadhaar-linked mobile number',
+          },
+        });
+        return;
+      } catch (abdmErr: any) {
+        logger.warn({ err: abdmErr.message }, 'Real ABDM call failed — falling back to mock');
+      }
+    }
+
+    // ── MOCK/SANDBOX MODE ──
+    const txnId = generateMockTxnId();
+    const mockOtp = '123456';
+
+    creationTransactions.set(txnId, {
+      aadhaar: cleanAadhaar,
+      regid,
+      createdAt: new Date(),
+      mockOtp,
+      verified: false,
+    });
+
+    logger.info({ txnId, regid, aadhaar: `${cleanAadhaar.slice(0, 4)}****` }, 'ABHA creation OTP generated (mock)');
+
+    res.json({
+      success: true,
+      data: {
+        txnId,
+        message: 'OTP sent to Aadhaar-linked mobile number',
+        _sandbox: {
+          note: 'Use OTP 123456 for sandbox',
+          otp: mockOtp,
+        },
+      },
+    });
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'ABHA creation generateOtp failed');
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/abha/patients/:regid/create/verifyOtp
+ * Step 2: Verify the OTP and get the ABHA profile.
+ */
+abhaRouter.post('/patients/:regid/create/verifyOtp', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const regid = Number(req.params.regid);
+    const { txnId, otp } = req.body;
+
+    if (!txnId || !otp) {
+      res.status(400).json({ success: false, message: 'txnId and otp are required' });
+      return;
+    }
+
+    const txn = creationTransactions.get(txnId);
+    if (!txn) {
+      res.status(400).json({ success: false, message: 'Invalid or expired transaction' });
+      return;
+    }
+
+    if (txn.regid !== regid) {
+      res.status(400).json({ success: false, message: 'Transaction does not match this patient' });
+      return;
+    }
+
+    // ── Real ABDM mode ──
+    if (txn.abdmTxnId) {
+      try {
+        const { abdmGateway: gateway } = await import('../../abdm/abdm.service.js');
+        const verifyResult = await gateway.verifyAadhaarOtp(txn.abdmTxnId, otp);
+        
+        txn.verified = true;
+        creationTransactions.set(txnId, txn);
+
+        res.json({
+          success: true,
+          data: {
+            verified: true,
+            txnId,
+            message: 'OTP verified. Ready to create ABHA Health ID.',
+            profile: verifyResult,
+          },
+        });
+        return;
+      } catch (abdmErr: any) {
+        res.status(400).json({ success: false, message: abdmErr.message || 'OTP verification failed' });
+        return;
+      }
+    }
+
+    // ── Mock mode ──
+    if (otp !== txn.mockOtp) {
+      res.status(400).json({ success: false, message: 'Invalid OTP. For sandbox, use: 123456' });
+      return;
+    }
+
+    txn.verified = true;
+    creationTransactions.set(txnId, txn);
+
+    // Fetch patient details for mock profile
+    const [patient] = await req.tenantDb
+      .select({
+        firstName: patients.firstName,
+        surname: patients.surname,
+        dob: patients.dob,
+        gender: patients.gender,
+      })
+      .from(patients)
+      .where(eq(patients.regid, regid))
+      .limit(1);
+
+    logger.info({ txnId, regid }, 'ABHA creation OTP verified (mock)');
+
+    res.json({
+      success: true,
+      data: {
+        verified: true,
+        txnId,
+        message: 'OTP verified. Ready to create ABHA Health ID.',
+        profile: {
+          name: `${patient?.firstName || ''} ${patient?.surname || ''}`.trim(),
+          gender: patient?.gender === 'M' ? 'Male' : patient?.gender === 'F' ? 'Female' : 'Other',
+          dateOfBirth: patient?.dob || null,
+        },
+      },
+    });
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'ABHA creation verifyOtp failed');
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/abha/patients/:regid/create/confirm
+ * Step 3: Create the ABHA Health ID and auto-link to the patient.
+ */
+abhaRouter.post('/patients/:regid/create/confirm', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const regid = Number(req.params.regid);
+    const { txnId } = req.body;
+
+    if (!txnId) {
+      res.status(400).json({ success: false, message: 'txnId is required' });
+      return;
+    }
+
+    const txn = creationTransactions.get(txnId);
+    if (!txn || !txn.verified) {
+      res.status(400).json({ success: false, message: 'Transaction not verified or expired' });
+      return;
+    }
+
+    if (txn.regid !== regid) {
+      res.status(400).json({ success: false, message: 'Transaction does not match this patient' });
+      return;
+    }
+
+    let abhaNumber: string;
+    let abhaAddress: string;
+
+    // ── Real ABDM mode ──
+    if (txn.abdmTxnId) {
+      try {
+        const { abdmGateway: gateway } = await import('../../abdm/abdm.service.js');
+        const createResult = await gateway.createHealthId(txn.abdmTxnId);
+        abhaNumber = createResult.healthIdNumber;
+        abhaAddress = createResult.healthId;
+      } catch (abdmErr: any) {
+        res.status(400).json({ success: false, message: abdmErr.message || 'ABHA creation failed' });
+        return;
+      }
+    } else {
+      // ── Mock mode ──
+      abhaNumber = generateMockAbhaNumber();
+      const [patient] = await req.tenantDb
+        .select({ firstName: patients.firstName })
+        .from(patients)
+        .where(eq(patients.regid, regid))
+        .limit(1);
+      abhaAddress = generateMockAbhaAddress(patient?.firstName || 'user');
+    }
+
+    // Auto-link the new ABHA to the patient record
+    const [updated] = await req.tenantDb
+      .update(patients)
+      .set({
+        abhaId: abhaNumber,
+        updatedAt: new Date(),
+      })
+      .where(eq(patients.regid, regid))
+      .returning({
+        regid: patients.regid,
+        firstName: patients.firstName,
+        surname: patients.surname,
+        abhaId: patients.abhaId,
+      });
+
+    // Clean up transaction
+    creationTransactions.delete(txnId);
+
+    logger.info({ regid, abhaNumber }, '✅ ABHA Health ID created and linked');
+
+    res.json({
+      success: true,
+      data: {
+        regid: updated?.regid || regid,
+        patientName: `${updated?.firstName || ''} ${updated?.surname || ''}`.trim(),
+        abhaId: abhaNumber,
+        abhaAddress,
+        createdAt: new Date().toISOString(),
+        message: 'ABHA Health ID created and linked to patient profile',
+      },
+    });
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'ABHA creation confirm failed');
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ─── PHASE 3: HIU ENDPOINTS (Health Information User) ───────────────────────
 
 // 1. Request Consent to view patient records

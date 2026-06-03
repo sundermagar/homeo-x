@@ -273,6 +273,41 @@ router.post('/records/prescriptions', asyncHandler(async (req, res) => {
     });
   }
 
+  // ── M1: ABDM Care Context Auto-Push ──
+  // If the patient has an ABHA ID, notify the ABDM gateway about this new care context.
+  // Runs asynchronously so it doesn't block the response.
+  const regid = Number(req.body.regid);
+  if (regid) {
+    setImmediate(async () => {
+      try {
+        const { patients } = await import('@mmc/database/schema');
+        const { eq } = await import('drizzle-orm');
+        const [patient] = await req.tenantDb
+          .select({ abhaId: patients.abhaId, firstName: patients.firstName })
+          .from(patients)
+          .where(eq(patients.regid, regid))
+          .limit(1);
+
+        if (patient?.abhaId) {
+          const { abdmGateway } = await import('../../abdm/abdm.service.js');
+          const medicineName = req.body.remedyName || req.body.rxremedy || 'Prescription';
+          const visitDate = req.body.dateval || new Date().toISOString().split('T')[0] || new Date().toISOString();
+
+          await abdmGateway.addCareContext(patient.abhaId, [{
+            referenceNumber: `visit-${regid}-${Date.now()}`,
+            display: `Prescription: ${medicineName} — ${visitDate}`,
+          }]);
+
+          const { createLogger } = await import('../../../shared/logger.js');
+          createLogger('abdm-care-context').info({ regid, abhaId: patient.abhaId }, '✅ Care context pushed to ABDM');
+        }
+      } catch (err: any) {
+        // Non-blocking — log and move on
+        console.warn('[ABDM Care Context] Failed to push (non-blocking):', err.message);
+      }
+    });
+  }
+
   sendSuccess(res, null, 'Prescription added');
 }));
 
