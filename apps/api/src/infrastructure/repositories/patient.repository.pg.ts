@@ -93,12 +93,15 @@ export class PatientRepositoryPg implements PatientRepository {
 
     if (doctorId) {
       conditions.push(
-        sql`EXISTS (
-          SELECT 1 FROM ${appointments} 
-          WHERE ${appointments.patientId} = ${patients.id} 
-            AND ${appointments.doctorId} = ${doctorId}
-            AND (${appointments.deletedAt} IS NULL OR ${appointments.deletedAt}::text = '')
-        )`
+        or(
+          sql`TRIM(${patients.assistantDoctor}) = ${String(doctorId)}`,
+          sql`EXISTS (
+            SELECT 1 FROM ${appointments} 
+            WHERE ${appointments.patientId} = ${patients.id} 
+              AND ${appointments.doctorId} = ${doctorId}
+              AND (${appointments.deletedAt} IS NULL OR ${appointments.deletedAt}::text = '')
+          )`
+        )!
       );
     }
 
@@ -136,9 +139,9 @@ export class PatientRepositoryPg implements PatientRepository {
         .select({
           patient: patients,
           doctorName: sql<string>`COALESCE(
-            (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-            (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-            case_datas.assitant_doctor
+            (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+            (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+            ${patients.assistantDoctor}
           )`,
           lastVisit: sql<Date>`(
             SELECT MAX(d) FROM (
@@ -257,7 +260,19 @@ export class PatientRepositoryPg implements PatientRepository {
     if ((patients as any).assistantDoctor) patientData.assistantDoctor = (input as any).assistantDoctor || '';
     if ((patients as any).consultationFee) patientData.consultationFee = (input as any).consultationFee || 0;
     if ((patients as any).courierOutstation) patientData.courierOutstation = input.courierOutstation ? '1' : '0';
-    if ((patients as any).referedBy) patientData.referedBy = (input as any).referredBy || '';
+    if ((patients as any).referedBy) {
+      if ((input as any).referredById) {
+        patientData.referedBy = String((input as any).referredById);
+        if ((patients as any).referedName) {
+          patientData.referedName = input.referredBy || '';
+        }
+      } else {
+        patientData.referedBy = input.referredBy || '';
+        if ((patients as any).referedName) {
+          patientData.referedName = null;
+        }
+      }
+    }
     if ((patients as any).status) patientData.status = (input as any).maritalStatus || '';
 
     // Try inserting WITH clinic_id first; if the column doesn't exist in the actual
@@ -320,7 +335,15 @@ export class PatientRepositoryPg implements PatientRepository {
     }
     if (input.referenceType !== undefined) updateData.reference = input.referenceType;
     if ((input as any).maritalStatus !== undefined) updateData.status = (input as any).maritalStatus;
-    if ((input as any).referredBy !== undefined) updateData.referedBy = (input as any).referredBy;
+    if ((input as any).referredById !== undefined || (input as any).referredBy !== undefined) {
+      if ((input as any).referredById) {
+        updateData.referedBy = String((input as any).referredById);
+        updateData.referedName = (input as any).referredBy || '';
+      } else {
+        updateData.referedBy = (input as any).referredBy || '';
+        updateData.referedName = null;
+      }
+    }
     if ((input as any).assistantDoctor !== undefined) updateData.assistantDoctor = (input as any).assistantDoctor;
     if ((input as any).consultationFee !== undefined) updateData.consultationFee = (input as any).consultationFee;
 
@@ -341,7 +364,7 @@ export class PatientRepositoryPg implements PatientRepository {
     return !!row;
   }
 
-  async lookup(query: string, limit = 20, clinicId?: number): Promise<PatientSummary[]> {
+  async lookup(query: string, limit = 20, clinicId?: number, doctorId?: number): Promise<PatientSummary[]> {
     const s = `%${query}%`;
     const conditions = [
       sql`(${patients.deletedAt} IS NULL OR ${patients.deletedAt}::text = '')`,
@@ -355,16 +378,37 @@ export class PatientRepositoryPg implements PatientRepository {
     ];
 
     if (clinicId) {
-      conditions.push(eq(patients.clinicId, clinicId));
+      conditions.push(
+        or(
+          eq(patients.clinicId, clinicId),
+          isNull(patients.clinicId),
+          eq(patients.clinicId, 0),
+          eq(patients.clinicId, 1)
+        )!
+      );
+    }
+
+    if (doctorId) {
+      conditions.push(
+        or(
+          sql`TRIM(${patients.assistantDoctor}) = ${String(doctorId)}`,
+          sql`EXISTS (
+            SELECT 1 FROM ${appointments} 
+            WHERE ${appointments.patientId} = ${patients.id} 
+              AND ${appointments.doctorId} = ${doctorId}
+              AND (${appointments.deletedAt} IS NULL OR ${appointments.deletedAt}::text = '')
+          )`
+        )!
+      );
     }
 
     const rows = await this.db
       .select({
         patient: patients,
         doctorName: sql<string>`COALESCE(
-          (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-          (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-          case_datas.assitant_doctor
+          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          ${patients.assistantDoctor}
         )`
       })
       .from(patients)
@@ -387,13 +431,45 @@ export class PatientRepositoryPg implements PatientRepository {
       .select({
         patient: patients,
         doctorName: sql<string>`COALESCE(
-          (SELECT name FROM doctors WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-          (SELECT name FROM users WHERE id::text = TRIM(case_datas.assitant_doctor) LIMIT 1),
-          case_datas.assitant_doctor
+          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          ${patients.assistantDoctor}
         )`
       })
       .from(patients)
       .where(and(...conditions));
+    return rows.map(row => this.toSummary({ ...row.patient, doctorName: row.doctorName }));
+  }
+
+  async findTodayRegistrations(clinicId?: number): Promise<PatientSummary[]> {
+    const conditions = [
+      sql`(deleted_at IS NULL OR deleted_at::text = '')`,
+      sql`${patients.createdAt}::date = CURRENT_DATE`
+    ];
+
+    if (clinicId) {
+      conditions.push(
+        or(
+          eq(patients.clinicId, clinicId),
+          isNull(patients.clinicId),
+          eq(patients.clinicId, 0),
+          eq(patients.clinicId, 1),
+        )!
+      );
+    }
+
+    const rows = await this.db
+      .select({
+        patient: patients,
+        doctorName: sql<string>`COALESCE(
+          (SELECT name FROM doctors WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          (SELECT name FROM users WHERE id::text = TRIM(${patients.assistantDoctor}) LIMIT 1),
+          ${patients.assistantDoctor}
+        )`
+      })
+      .from(patients)
+      .where(and(...conditions))
+      .orderBy(sql`${patients.id} DESC`);
     return rows.map(row => this.toSummary({ ...row.patient, doctorName: row.doctorName }));
   }
 
@@ -778,6 +854,7 @@ export class PatientRepositoryPg implements PatientRepository {
       // 'reference' is the actual DB column; domain calls it 'referenceType'
       referenceType: row.reference || null,
       referredBy: row.referedBy || null,
+      referredByName: row.referedName || null,
       assistantDoctor: row.assistantDoctor || null,
       consultationFee: row.consultationFee ? Number(row.consultationFee) : null,
       courierOutstation: row.courierOutstation === '1',

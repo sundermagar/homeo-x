@@ -8,28 +8,28 @@ export async function seedUsers(db: DbClient) {
 
   const demoUsers = [
     {
-      email: 'admin@kreed.health',
+      email: 'admin@MMC',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'System Admin',
       type: Role.Admin,
       isActive: true,
     },
     {
-      email: 'clinicadmin@kreed.health',
+      email: 'clinicadmin@MMC',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'Clinic Manager',
       type: 'Clinicadmin' as Role,
       isActive: true,
     },
     {
-      email: 'doctor@kreed.health',
+      email: 'doctor@MMC',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'Dr. Demo',
       type: Role.Doctor,
       isActive: true,
     },
     {
-      email: 'reception@kreed.health',
+      email: 'reception@MMC',
       password: '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG', // password123
       name: 'Front Desk',
       type: 'Receptionist' as Role,
@@ -39,7 +39,7 @@ export async function seedUsers(db: DbClient) {
 
   for (const userData of demoUsers) {
     const existing = await db.select().from(users).where(eq(users.email, userData.email)).limit(1);
-    
+
     if (existing.length === 0) {
       await db.insert(users).values(userData);
       console.log(`[Seed] Created user: ${userData.email}`);

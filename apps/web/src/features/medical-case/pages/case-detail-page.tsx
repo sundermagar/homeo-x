@@ -29,8 +29,9 @@ import {
   useManageClinicalRecords,
   useMasterVaccines,
   useCommunicationLogs,
-  useSendSms
+  useSendWhatsApp
 } from '../hooks/use-medical-cases';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { usePatientPrescriptions, useRemedyLookups } from '../hooks/use-remedy-chart';
 import { usePrescriptionWorkflow } from '../hooks/use-prescription-workflow';
 import { useParsePrescription } from '../../../hooks/use-ai-suggest';
@@ -40,6 +41,7 @@ import { AssignPackageModal } from '../../packages/components/assign-package-mod
 import { VitalsFormModal } from '../components/vitals-form-modal';
 import { FinalizeConsultationModal } from '../components/finalize-consultation-modal';
 import { FollowupScheduler } from '../components/followup-scheduler';
+import { AiFollowupTranscriptPanel } from '../components/ai-followup-transcript-panel';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { RemedyChartSession } from '../components/remedy-chart-session';
@@ -49,10 +51,15 @@ import { usePatientBills } from '../../billing/hooks/use-billing';
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { BillingUpdateModal } from '../components/billing-update-modal';
 import { PaymentReceiptModal } from '../../billing/components/payment-receipt-modal';
+<<<<<<< HEAD
 import { useAbhaStatus, useAbhaUnlink } from '../../patients/hooks/use-abha';
 import { AbhaLinkingModal } from '../../patients/components/abha-linking-modal';
 import { toast } from '@/hooks/use-toast';
 
+=======
+import { InvestigationComparisonView } from '../components/investigation-comparison-view';
+import { InvestigationPreviewModal } from '../components/investigation-preview-modal';
+>>>>>>> test-aman
 import { useAppointments } from '../../appointments/hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Pagination } from '@/components/shared/pagination';
@@ -63,12 +70,65 @@ import { generatePrescriptionHtml } from '@/lib/print-templates';
 import type { PrescriptionPrintData } from '@/lib/print-templates';
 import { getClinicLetterhead, getDoctorLetterhead } from '@/lib/clinic-letterhead';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
-import { usePdfSettings, useMedicines } from '../../settings/hooks/use-settings';
+import { usePdfSettings } from '../../settings/hooks/use-settings';
 import '../styles/medical-case.css';
-import { useTableGrouping } from '../hooks/use-table-grouping';
-import { DateGroupCell } from '../components/date-group-cell';
-import { InvestigationPreviewModal } from '../components/investigation-preview-modal';
-import { InvestigationComparisonView } from '../components/investigation-comparison-view';
+export function useTableGrouping(data: any[], dateField: string = 'createdAt') {
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+  const toggleDate = (date: string) => {
+    setExpandedDates(prev => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
+
+  const groupedData = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    data.forEach(record => {
+      const dateVal = record[dateField] || record.createdAt || record.created_at || record.dateval || record.recordedAt || record.visitDate || record.reminderDate || 0;
+      const dateStr = new Date(dateVal).toDateString();
+      if (!groups[dateStr]) groups[dateStr] = [];
+      groups[dateStr].push(record);
+    });
+    return Object.entries(groups).map(([date, items]) => ({ date, items }));
+  }, [data, dateField]);
+
+  return { expandedDates, toggleDate, groupedData };
+}
+
+export function DateGroupCell({ dateVal, isFirst, isExpanded, itemsCount, onToggle }: any) {
+  if (isFirst) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
+          {new Date(dateVal).getDate()}
+        </span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>
+          {new Date(dateVal).toLocaleString('default', { month: 'short' })} {new Date(dateVal).getFullYear()}
+        </span>
+        {itemsCount > 1 && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+            style={{
+              background: 'var(--pp-blue-faded)', color: 'var(--pp-blue)', border: '1px solid var(--pp-blue-border)',
+              borderRadius: '12px', padding: '2px 8px', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer',
+              marginTop: '6px', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '2px', transition: 'all 0.2s'
+            }}
+          >
+            <Plus size={10} style={{ transform: isExpanded ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }} />
+            {isExpanded ? 'less' : `${itemsCount - 1} more`}
+          </button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.3 }}>
+      <div style={{ width: 2, height: 20, background: 'var(--pp-blue)', borderRadius: 2 }} />
+    </div>
+  );
+}
 
 // ─── Static tab config ─ defined outside component to avoid recreation on every render ───
 const TABS = [
@@ -82,19 +142,42 @@ const TABS = [
 ];
 
 export function AutoSaveNoteArea({ value, onChange, onSave, placeholder = '', minHeight = '120px' }: { value: string, onChange: (v: string) => void, onSave: (val: string) => Promise<void>, placeholder?: string, minHeight?: string }) {
+  // Local state to prevent parent re-renders on every keystroke
+  const [localValue, setLocalValue] = useState(value);
+  const lastPropValueRef = useRef(value);
+
+  // Sync with parent value when it changes from the outside
+  useEffect(() => {
+    if (value !== lastPropValueRef.current) {
+      setLocalValue(value);
+      lastPropValueRef.current = value;
+    }
+  }, [value]);
+
+  // Debounced auto-save handler that updates parent state and triggers DB save
+  const handleAutoSave = useCallback(async (val: string) => {
+    onChange(val);
+    lastPropValueRef.current = val;
+    await onSave(val);
+  }, [onChange, onSave]);
+
   const { status, forceSave } = useAutoSave({
-    value: value,
-    onSave: onSave,
+    value: localValue,
+    onSave: handleAutoSave,
     delay: 1500
   });
+
+  const handleBlur = () => {
+    forceSave();
+  };
 
   return (
     <div className="mc-followup-editor">
       <textarea
         placeholder={placeholder || "Record patient follow-up or status..."}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={forceSave}
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={handleBlur}
         style={{ minHeight }}
         className="mc-fu-textarea custom-scrollbar"
       />
@@ -146,7 +229,6 @@ export default function MedicalCaseDetailPage() {
   const medicalCase = fullData?.medicalCase;
   const visitId = medicalCase?.id;
   const { data: dayCharges = [] } = useDayCharges();
-  const { data: medicines = [] } = useMedicines();
 
   const formatName = useCallback((name?: string | null) => {
     if (!name) return '';
@@ -169,6 +251,8 @@ export default function MedicalCaseDetailPage() {
 
   const [followUpNote, setFollowUpNote] = useState('');
   const [pendingCharge, setPendingCharge] = useState(0);
+
+
   const [mobileDrawer, setMobileDrawer] = useState<'followup' | 'billing' | 'contact' | 'package' | null>(null);
   const [shortcutOpen, setShortcutOpen] = useState(false);
   const [fabY, setFabY] = useState(180);
@@ -251,19 +335,12 @@ export default function MedicalCaseDetailPage() {
 
   // Diagnosis State
   const [showDiagnosisDrawer, setShowDiagnosisDrawer] = useState(false);
+  const [isDirectEdit, setIsDirectEdit] = useState(false);
   const [editingDiagnosisRecord, setEditingDiagnosisRecord] = useState<any>(null);
   const [diagForm, setDiagForm] = useState({
     diagnosis: '',
     complaint: '',
-    medication: '',
-    medicationTaking: ''
   });
-
-  const [medicationRows, setMedicationRows] = useState<MedicationRow[]>([
-    { medicine: '', frequency: 'Once', days: '', issue: '' }
-  ]);
-  const [activeMedicineFocusIdx, setActiveMedicineFocusIdx] = useState<number | null>(null);
-  const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
 
   // AI Prescription Scanner State
   const parsePrescriptionMutation = useParsePrescription();
@@ -277,6 +354,10 @@ export default function MedicalCaseDetailPage() {
   const [scannedMedicationRows, setScannedMedicationRows] = useState<MedicationRow[]>([
     { medicine: '', frequency: 'Once', days: '', issue: '' }
   ]);
+  const [isScannedPrescription, setIsScannedPrescription] = useState(false);
+  const [isSavingScannedPrescription, setIsSavingScannedPrescription] = useState(false);
+  const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
+
 
   const handlePrescriptionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -293,13 +374,14 @@ export default function MedicalCaseDetailPage() {
         setScannedMedicationRows(
           result.medications && result.medications.length > 0
             ? result.medications.map((m: any) => ({
-                medicine: m.medicine || '',
-                frequency: m.frequency || 'Once',
-                days: '',
-                issue: m.issue || ''
-              }))
+              medicine: m.medicine || '',
+              frequency: m.frequency || 'Once',
+              days: '',
+              issue: m.issue || ''
+            }))
             : [{ medicine: '', frequency: 'Once', days: '', issue: '' }]
         );
+        setIsScannedPrescription(true);
         setShowPrescriptionPreview(true);
       }
     } catch (err) {
@@ -318,34 +400,61 @@ export default function MedicalCaseDetailPage() {
 
   const handleSaveScannedPrescription = async () => {
     if (!scannedPrescription) return;
+    setIsSavingScannedPrescription(true);
     try {
       if (scannedPrescription.diagnosis.trim()) {
         await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: scannedPrescription.diagnosis.trim() });
       }
-      const serializedMeds = JSON.stringify(scannedMedicationRows.filter(r => r.medicine.trim() !== ''));
-      const soapDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
+      const medications = scannedMedicationRows.filter(r => r.medicine.trim() !== '');
+      const noteDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
+      const payload = {
+        diagnosis: scannedPrescription.diagnosis,
+        complaint: scannedPrescription.complaint,
+        investigation: scannedPrescription.investigation,
+        medications
+      };
 
-      await saveSoap.mutateAsync({
-        id: currentVisitSoap?.id,
+      await saveNote.mutateAsync({
+        id: currentVisitHomeoDetail?.id,
         regid: Number(regid),
-        visitId: currentVisitId || visitId,
-        subjective: scannedPrescription.complaint,
-        objective: serializedMeds,
-        assessment: scannedPrescription.diagnosis,
-        plan: scannedPrescription.investigation,
-        dateval: soapDate,
-        createdAt: soapDate
+        notesType: 'HomeoDetails',
+        notes: JSON.stringify(payload),
+        dateval: noteDate.split('T')[0]
       });
 
-      if (!currentVisitSoap) {
-        setSelectedDate(soapDate);
+      if (!currentVisitHomeoDetail) {
+        setSelectedDate(noteDate);
       }
 
       setShowPrescriptionPreview(false);
       setScannedPrescription(null);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSavingScannedPrescription(false);
     }
+  };
+
+  const handleEditHomeoDetails = () => {
+    let payload = { diagnosis: '', complaint: '', investigation: '', medications: [] };
+    if (currentVisitHomeoDetail?.notes) {
+      try {
+         payload = JSON.parse(currentVisitHomeoDetail.notes);
+      } catch (e) {}
+    }
+    
+    setScannedPrescription({
+      diagnosis: payload.diagnosis || '',
+      complaint: payload.complaint || '',
+      investigation: payload.investigation || '',
+    });
+    setScannedMedicationRows(
+      payload.medications && payload.medications.length > 0 
+        ? payload.medications 
+        : [{ medicine: '', frequency: 'Once', days: '', issue: '' }]
+    );
+    setIsScannedPrescription(false);
+    setShowPrescriptionPreview(true);
   };
 
   const updateScannedMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
@@ -368,7 +477,26 @@ export default function MedicalCaseDetailPage() {
     });
   };
 
-  const handleOpenDiagnosis = (record?: any) => {
+  const detectScannedMedicineIssue = async (index: number, medicineName: string) => {
+    if (!medicineName.trim()) return;
+    setAiDetectingIdx(index);
+    try {
+      const res = await apiClient.post<{ success: boolean; data: { issue: string; provider?: string } }>(
+        '/medical-cases/ai-detect-medicine-issue',
+        { medicine: medicineName.trim() }
+      );
+      const detected = res.data?.data?.issue;
+      if (detected) {
+        updateScannedMedicationRow(index, 'issue', detected);
+      }
+    } catch (err) {
+      console.warn('AI medicine detection failed:', err);
+    } finally {
+      setAiDetectingIdx(null);
+    }
+  };
+
+  const handleOpenDiagnosis = (record?: any, forceDirectEdit?: boolean) => {
     // Priority: 1. Passed record (from table), 2. Current visit record (from sidebar context)
     const activeRecord = record || currentVisitSoap;
 
@@ -386,87 +514,49 @@ export default function MedicalCaseDetailPage() {
         initialMeds = [{ medicine: objectiveStr, frequency: 'Once', days: '', issue: '' }];
       }
     }
-    setMedicationRows(initialMeds);
+    setScannedMedicationRows(initialMeds);
 
     if (activeRecord) {
       setDiagForm({
-        diagnosis: activeRecord.assessment || '',
-        complaint: activeRecord.subjective || '',
-        medication: activeRecord.plan || '',
-        medicationTaking: activeRecord.objective || ''
+        diagnosis: record.assessment || '',
+        complaint: record.subjective || '',
       });
-      setEditingDiagnosisRecord(activeRecord);
+      setEditingDiagnosisRecord(record);
     } else {
-      // New record for today
-      setDiagForm({
-        diagnosis: '',
-        complaint: '',
-        medication: '',
-        medicationTaking: ''
-      });
+      setDiagForm({ diagnosis: '', complaint: '' });
       setEditingDiagnosisRecord(null);
     }
+
+    const direct = forceDirectEdit !== undefined 
+      ? forceDirectEdit 
+      : (record !== undefined && record !== null);
+
+    setIsDirectEdit(direct);
     setShowDiagnosisDrawer(true);
-  };
-
-  const updateMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
-    setMedicationRows(prev => prev.map((row, idx) => {
-      if (idx === index) {
-        return { ...row, [field]: value };
-      }
-      return row;
-    }));
-  };
-
-  const addMedicationRow = () => {
-    setMedicationRows(prev => [...prev, { medicine: '', frequency: 'Once', days: '', issue: '' }]);
-  };
-
-  const removeMedicationRow = (index: number) => {
-    setMedicationRows(prev => {
-      const updated = prev.filter((_, idx) => idx !== index);
-      return updated.length > 0 ? updated : [{ medicine: '', frequency: 'Once', days: '', issue: '' }];
-    });
-  };
-
-  const detectMedicineIssue = async (index: number, medicineName: string) => {
-    if (!medicineName.trim()) return;
-    setAiDetectingIdx(index);
-    try {
-      const res = await apiClient.post<{ success: boolean; data: { issue: string; provider?: string } }>(
-        '/medical-cases/ai-detect-medicine-issue',
-        { medicine: medicineName.trim() }
-      );
-      const detected = res.data?.data?.issue;
-      if (detected) {
-        updateMedicationRow(index, 'issue', detected);
-      }
-    } catch (err) {
-      console.warn('AI medicine detection failed:', err);
-    } finally {
-      setAiDetectingIdx(null);
-    }
   };
 
   const handleSaveDiagnosis = async () => {
     try {
       const finalRecordId = editingDiagnosisRecord?.id;
+      let effectiveVisitId = currentVisitId || visitId;
 
       if (diagForm.diagnosis.trim()) {
-        await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: diagForm.diagnosis.trim() });
+        const res = await updateDiagnosis.mutateAsync({ regid: Number(regid), condition: diagForm.diagnosis.trim() }) as any;
+        if (!effectiveVisitId && res?.data?.data?.id) {
+          effectiveVisitId = res.data.data.id;
+        }
       }
-      const serializedMeds = JSON.stringify(medicationRows.filter(r => r.medicine.trim() !== ''));
 
       const soapDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
 
       await saveSoap.mutateAsync({
         id: finalRecordId,
         regid: Number(regid),
-        visitId: currentVisitId || visitId,
+        visitId: effectiveVisitId,
         subjective: diagForm.complaint,
-        objective: serializedMeds,
+        objective: '',
         assessment: diagForm.diagnosis,
-        plan: diagForm.medication,
+        plan: '',
         dateval: soapDate,
         createdAt: soapDate
       });
@@ -474,6 +564,17 @@ export default function MedicalCaseDetailPage() {
       // If it's a new diagnosis, switch view to exactly the saved date so it shows up immediately
       if (!editingDiagnosisRecord) {
         setSelectedDate(soapDate);
+        
+        if (diagForm.diagnosis && diagForm.diagnosis.trim()) {
+           const newSummary = `AI Follow Up Summary:\n${diagForm.diagnosis.trim()}`;
+           setFollowUpNote(prev => {
+             const separator = prev.trim() ? '\n\n' : '';
+             const updated = prev + separator + newSummary;
+             // Fire and forget save so it persists immediately
+             handleSaveNote(updated).catch(e => console.warn('Auto-save follow up note failed', e));
+             return updated;
+           });
+        }
       }
 
       setShowDiagnosisDrawer(false);
@@ -548,6 +649,19 @@ export default function MedicalCaseDetailPage() {
 
   const displayDate = selectedDate ? new Date(selectedDate) : defaultEncounterDate;
 
+  // Persist manual medicine charge override in localStorage
+  React.useEffect(() => {
+    if (regid && displayDate) {
+      const key = `med_override_${regid}_${toClinicDateString(displayDate)}`;
+      const stored = localStorage.getItem(key);
+      if (stored !== null) {
+        setPendingCharge(Number(stored));
+      } else {
+        setPendingCharge(0);
+      }
+    }
+  }, [regid, displayDate, toClinicDateString]);
+
   const activeNote = React.useMemo(() => {
     if (!displayDate) return null;
     const displayStr = toClinicDateString(displayDate);
@@ -557,10 +671,63 @@ export default function MedicalCaseDetailPage() {
     }) || null;
   }, [followupNotes, displayDate, toClinicDateString]);
 
-  // Sync followUpNote with activeNote when activeNote changes
+  const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
+
+  const currentVisitSoaps = useMemo(() => {
+    const soap = fullData?.soap || [];
+    if (!displayDate || !soap.length) return [];
+    return filterByDate(soap, displayDate);
+  }, [displayDate, fullData?.soap, filterByDate]);
+
+  const currentVisitSoap = currentVisitSoaps[0] || null;
+
+  const homeoDetailNotes = useMemo(() => {
+    return (notes || []).filter((n: any) =>
+      n.notesType === 'HomeoDetails' || n.noteType === 'HomeoDetails' || n.notes_type === 'HomeoDetails'
+    ).sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime());
+  }, [notes]);
+
+  const currentVisitHomeoDetails = useMemo(() => {
+    if (!displayDate || !homeoDetailNotes.length) return [];
+    return filterByDate(homeoDetailNotes, displayDate);
+  }, [displayDate, homeoDetailNotes, filterByDate]);
+
+  const currentVisitHomeoDetail = currentVisitHomeoDetails[0] || null;
+
+  const currentVisitPrescriptions = useMemo(() => {
+    if (!displayDate) return [];
+    const fromHistory = prescriptionsHistory || [];
+    const fromFull = fullData?.prescriptions || [];
+    const all = [...fromHistory, ...fromFull];
+    return filterByDate(all, displayDate);
+  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, filterByDate]);
+
+  const currentVisitId = useMemo(() => {
+    // Attempt to extract visit ID from any clinical record on the currently viewed date
+    const rx = currentVisitPrescriptions?.[0];
+    const soap = currentVisitSoaps?.[0];
+
+    // Check various common field names for visit IDs
+    const idFromRx = rx ? (rx.visitId ?? rx.visit_id ?? rx.consultationId ?? rx.consultation_id) : null;
+    const idFromSoap = soap ? (soap.visitId ?? soap.visit_id) : null;
+
+    // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
+    return idFromRx ?? idFromSoap ?? medicalCase?.id;
+  }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
+
+  const lastEncounterDateRef = React.useRef<string | null>(null);
+  const lastSavedOrLoadedValueRef = React.useRef<string>('');
+
+  // Sync followUpNote with activeNote when activeNote changes, but only when switching encounter dates or when not dirty
   React.useEffect(() => {
-    setFollowUpNote(activeNote?.notes || '');
-  }, [activeNote]);
+    const dateStr = displayDate ? toClinicDateString(displayDate) : 'none';
+    const newNotes = activeNote?.notes || '';
+    if (lastEncounterDateRef.current !== dateStr || followUpNote === lastSavedOrLoadedValueRef.current) {
+      setFollowUpNote(newNotes);
+      lastSavedOrLoadedValueRef.current = newNotes;
+      lastEncounterDateRef.current = dateStr;
+    }
+  }, [activeNote, displayDate, toClinicDateString, followUpNote]);
 
 
   const appendNote = (text: string) => {
@@ -571,7 +738,7 @@ export default function MedicalCaseDetailPage() {
   };
 
   const handleSaveNote = React.useCallback(async (content: string) => {
-    if (!content.trim() || !currentVisitId) return;
+    if (!content.trim()) return;
     try {
       // Use displayDate for dateval so notes are linked to the viewed encounter
       const noteDate = displayDate ? displayDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
@@ -583,11 +750,12 @@ export default function MedicalCaseDetailPage() {
         notes: content.trim(),
         dateval: noteDate
       });
+      lastSavedOrLoadedValueRef.current = content;
     } catch (err) {
       console.error('Failed to save follow-up note', err);
       throw err;
     }
-  }, [regid, medicalCase?.id, activeNote?.id, saveNote, displayDate]);
+  }, [regid, activeNote?.id, saveNote, displayDate, currentVisitId]);
 
   const latestRx = useMemo(() => {
     const all = [...(prescriptionsHistory || []), ...(prescriptionsFromFull || [])];
@@ -605,15 +773,35 @@ export default function MedicalCaseDetailPage() {
   }, [displayDate, summary?.bills, toClinicDateString]);
 
   const billingValues = useMemo(() => {
+    const isCompleted = medicalCase?.status === 'Completed';
+
     // 1. Calculate additional charges for the selected displayDate
     const additional = (() => {
-      if (!displayDate || !fullData?.additionalCharges) return 0;
-      const displayStr = toClinicDateString(displayDate);
-      return fullData.additionalCharges
-        .filter((ac: any) => {
-          return toClinicDateString(ac.createdAt) === displayStr;
-        })
-        .reduce((sum: number, ac: any) => sum + (Number(ac.amount) || 0), 0);
+      let sumAssigned = 0;
+      if (displayDate && fullData?.additionalCharges) {
+        const displayStr = toClinicDateString(displayDate);
+        sumAssigned = fullData.additionalCharges
+          .filter((ac: any) => toClinicDateString(ac.createdAt) === displayStr)
+          .reduce((sum: number, ac: any) => sum + ((Number(ac.price ?? ac.additionalPrice ?? ac.amount) || 0) * (Number(ac.quantity ?? ac.additionalQuantity) || 1)), 0);
+      }
+
+      let sumManual = 0;
+      if (displayDate && summary?.bills) {
+        const displayStr = toClinicDateString(displayDate);
+        sumManual = summary.bills
+          .filter(b => {
+            const d = b.billDate || b.createdAt;
+            return toClinicDateString(d) === displayStr && (b.billType as string) === 'Additional';
+          })
+          .reduce((sum: number, b: any) => sum + (Number(b.charges) || 0), 0);
+      }
+
+      // If the case is completed or a manual bill was generated, the manual bill is the source of truth for invoices
+      if (isCompleted && sumManual > 0) {
+        return sumManual;
+      }
+      
+      return Math.max(sumAssigned, sumManual);
     })();
 
     // 2. Fetch all bills for the selected displayDate to sum received amount
@@ -631,20 +819,18 @@ export default function MedicalCaseDetailPage() {
 
     // Sum of all regular bills currently saved in the database for today (excluding custom, additional, and package bills)
     const savedRegularBillsSum = dayBills
-      .filter(b => 
-        b.billType !== 'Custom' && 
-        (b.billType as string) !== 'Additional' && 
+      .filter(b =>
+        b.billType !== 'Custom' &&
+        (b.billType as string) !== 'Additional' &&
         !b.treatment?.startsWith('Package:')
       )
       .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
-
-    const isCompleted = medicalCase?.status === 'Completed';
 
     // 3. Dynamic Medicine Days Charge (e.g. 600 for 3 days of medicine)
     const rawEffectiveDaysCharge = (() => {
       if (pendingCharge > 0) return pendingCharge;
       if (!displayDate) return 0;
-      
+
       const displayStr = toClinicDateString(displayDate);
       const allRx = [...(prescriptionsHistory || []), ...(prescriptionsFromFull || [])];
       const todayRx = allRx.filter((rx: any) => {
@@ -653,37 +839,81 @@ export default function MedicalCaseDetailPage() {
       });
 
       if (todayRx.length === 0) return 0;
-      
+
       const savedDays = Number(todayRx[0].days) || 0;
       if (savedDays <= 0) return 0;
 
       const match = dayCharges.find((dc: any) => Number(dc.days) === savedDays);
       return match ? Number(match.regularCharges) || 0 : 0;
     })();
-    
-    const hasActivePackage = !!fullData?.activePackage;
-    
+
+    const hasActivePackage = !!fullData?.activePackage || !!activePackage;
+
     // Waive medicine charges if covered by package and session isn't completed yet
-    const effectiveDaysCharge = (hasActivePackage && fullData?.activePackage?.coversMedicine && !isCompleted)
+    const effectiveDaysCharge = (hasActivePackage && (fullData?.activePackage?.coversMedicine ?? (activePackage as any)?.coversMedicine ?? true) && !isCompleted)
       ? 0
       : rawEffectiveDaysCharge;
 
+    // Sum of all explicit Registration bills
+    const registrationBillSum = dayBills
+      .filter(b => b.billType === 'Registration')
+      .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
+
     // 4. Registration Charge (shown as "Registration Charge" row in UI)
-    // It must strictly be the base consultation/registration fee without dynamic medicine day charges.
     const originalRegular = medicalCase?.consultationFee || 0;
+    
     const regular = (() => {
-      if (isCompleted) {
-        // If completed, the savedRegularBillsSum already includes the finalized day charge.
-        // We subtract it to show only the base consultation/registration fee in this row.
-        return Math.max(0, savedRegularBillsSum - effectiveDaysCharge);
+      // If the session is active, the registration charge IS the consultation fee.
+      // We must return this so it syncs correctly to the backend pending-bills.
+      if (!isCompleted) {
+        return originalRegular;
       }
-      // Otherwise (active session), it is the saved bills sum (like registration fee) + doctor fee.
-      const baseFee = originalRegular;
-      return savedRegularBillsSum + baseFee;
+      
+      // If completed, we show what was actually finalized.
+      // In the new system, we have explicit Registration bills.
+      if (registrationBillSum > 0) {
+        return registrationBillSum;
+      }
+      
+      // Legacy fallback: unified Consultation bill where we extract registration
+      return Math.max(0, savedRegularBillsSum - effectiveDaysCharge);
     })();
 
-    // 5. Total Bill Amount = Registration Charge (regular) + Medicine Days Charge + Additional Charges
-    const currentTotal = regular + effectiveDaysCharge + additional;
+    // Sum of all package bills currently saved in the database for today
+    const savedPackageBill = dayBills.find(b => b.treatment?.startsWith('Package:'));
+    const savedPackageBillsSum = savedPackageBill ? (Number(savedPackageBill.charges) || 0) : 0;
+    const savedPackageName = savedPackageBill?.treatment ? savedPackageBill.treatment.replace('Package: ', '') : '';
+
+    const isPurchaseDate = (() => {
+      if (!displayDate) return false;
+      const displayStr = toClinicDateString(displayDate);
+      if (!!savedPackageBill) return true;
+
+      const activePkg = fullData?.activePackage || activePackage;
+      if (activePkg?.startDate) {
+        return activePkg.startDate === displayStr;
+      }
+      return false;
+    })();
+
+    const originalPackagePrice = (() => {
+      if (isCompleted) {
+        return savedPackageBillsSum;
+      }
+      return hasActivePackage ? (Number(fullData?.activePackage?.packagePrice ?? activePackage?.packagePrice) || 0) : 0;
+    })();
+
+    const packagePrice = isPurchaseDate ? originalPackagePrice : 0;
+
+    const activePackageName = (() => {
+      if (isCompleted) {
+        return savedPackageName;
+      }
+      return fullData?.activePackage?.packageName ?? activePackage?.packageName;
+    })();
+
+    // 5. Total Bill Amount = Registration Charge (regular) + Medicine Days Charge + Additional Charges + Package Price
+    const currentTotal = regular + effectiveDaysCharge + additional + packagePrice;
     const currentBalance = currentTotal - currentPaid;
 
     return {
@@ -695,9 +925,12 @@ export default function MedicalCaseDetailPage() {
       balance: currentBalance,
       daysCharge: effectiveDaysCharge,
       originalDaysCharge: rawEffectiveDaysCharge,
-      hasActivePackage,
-      activePackageName: fullData?.activePackage?.packageName,
-      activePackageColor: fullData?.activePackage?.colorCode
+      hasActivePackage: hasActivePackage || !!savedPackageBill,
+      packagePrice,
+      originalPackagePrice,
+      isPurchaseDate,
+      activePackageName,
+      activePackageColor: fullData?.activePackage?.colorCode ?? activePackage?.colorCode ?? '#3b82f6'
     };
   }, [
     summary?.bills,
@@ -705,11 +938,74 @@ export default function MedicalCaseDetailPage() {
     pendingCharge,
     displayDate,
     fullData?.additionalCharges,
+    fullData?.activePackage,
+    activePackage,
     prescriptionsHistory,
     prescriptionsFromFull,
     dayCharges,
     toClinicDateString
   ]);
+
+  // Sync dynamic charges to database as official bills
+  const previousSyncRef = React.useRef({ regid: '', date: '', regular: -1, daysCharge: -1 });
+
+  React.useEffect(() => {
+    if (!regid || !displayDate || !billingValues) {
+      console.log('[SYNC] Skipping - missing:', { regid: !!regid, displayDate: !!displayDate, billingValues: !!billingValues });
+      return;
+    }
+    const dateStr = toClinicDateString(displayDate);
+    if (!dateStr) {
+      console.log('[SYNC] Skipping - no dateStr from displayDate:', displayDate);
+      return;
+    }
+
+    const currentSync = {
+      regid: regid,
+      date: dateStr,
+      regular: billingValues.regular,
+      daysCharge: billingValues.daysCharge
+    };
+
+    const prev = previousSyncRef.current;
+    const changed = (
+      prev.regid !== currentSync.regid ||
+      prev.date !== currentSync.date ||
+      prev.regular !== currentSync.regular ||
+      prev.daysCharge !== currentSync.daysCharge
+    );
+
+    console.log('[SYNC] Check:', { currentSync, prev, changed });
+
+    if (changed) {
+      previousSyncRef.current = currentSync;
+      
+      if (currentSync.regular >= 0 || currentSync.daysCharge >= 0) {
+        console.log('[SYNC] Sending POST /accounts/pending-bills:', {
+          regid: Number(regid),
+          dateval: dateStr,
+          regular: currentSync.regular,
+          daysCharge: currentSync.daysCharge
+        });
+        apiClient.post('/accounts/pending-bills', {
+          regid: Number(regid),
+          dateval: dateStr,
+          regular: currentSync.regular,
+          daysCharge: currentSync.daysCharge
+        }).then(res => {
+          console.log('[SYNC] SUCCESS:', res.data);
+        }).catch(err => {
+          console.error('[SYNC] FAILED:', err?.response?.data || err?.message || err);
+        });
+      }
+    }
+  }, [regid, displayDate, billingValues, toClinicDateString]);
+
+  useEffect(() => {
+    if (regid) {
+      apiClient.get('/accounts/cleanup-duplicates').catch(() => {});
+    }
+  }, [regid]);
 
   // ─── Derived from fullData (safe after query completes) ───
   const fullVitals = fullData?.vitals;
@@ -732,36 +1028,7 @@ export default function MedicalCaseDetailPage() {
     if (months > 0) return `${months} Month${months > 1 ? 's' : ''}`;
     return `${Math.max(days, 1)} Day${days > 1 ? 's' : ''}`;
   }, [medicalCase?.dateOfBirth, medicalCase?.dob]);
-  const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
 
-  const currentVisitSoaps = useMemo(() => {
-    const soap = fullData?.soap || [];
-    if (!displayDate || !soap.length) return [];
-    return filterByDate(soap, displayDate);
-  }, [displayDate, fullData?.soap, filterByDate]);
-
-  const currentVisitSoap = currentVisitSoaps[0] || null;
-
-  const currentVisitPrescriptions = useMemo(() => {
-    if (!displayDate) return [];
-    const fromHistory = prescriptionsHistory || [];
-    const fromFull = fullData?.prescriptions || [];
-    const all = [...fromHistory, ...fromFull];
-    return filterByDate(all, displayDate);
-  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, filterByDate]);
-
-  const currentVisitId = useMemo(() => {
-    // Attempt to extract visit ID from any clinical record on the currently viewed date
-    const rx = currentVisitPrescriptions?.[0];
-    const soap = currentVisitSoaps?.[0];
-    
-    // Check various common field names for visit IDs
-    const idFromRx = rx ? (rx.visitId ?? rx.visit_id ?? rx.consultationId ?? rx.consultation_id) : null;
-    const idFromSoap = soap ? (soap.visitId ?? soap.visit_id) : null;
-    
-    // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
-    return idFromRx ?? idFromSoap ?? medicalCase?.id;
-  }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
 
   // tabContent MUST be declared before any early returns (Rules of Hooks)
   const tabContent = useMemo(() => {
@@ -804,7 +1071,7 @@ export default function MedicalCaseDetailPage() {
         isDateFiltered={!!displayDate}
       /></div>;
       case 'media': return <div className="mc-tab-content-wrapper"><MediaView regid={Number(regid)} visitId={medicalCase.id} images={filteredImages} isDateFiltered={!!displayDate} /></div>;
-      case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} isDateFiltered={!!displayDate} /></div>;
+      case 'labs': return <div className="mc-tab-content-wrapper"><LabsView investigations={filteredInvestigations} regid={Number(regid)} visitId={medicalCase.id} onAppendNote={appendNote} isDateFiltered={!!displayDate} displayDate={displayDate} /></div>;
       case 'vitals': return <div className="mc-tab-content-wrapper"><VitalsView vitals={filteredVitals} onRecord={(data) => {
         setEditingVitals(data || null);
         setShowVitalsModal(true);
@@ -847,16 +1114,16 @@ export default function MedicalCaseDetailPage() {
       <div className="patient-profile-card">
         <div className="profile-top-row">
           <div className="profile-identity">
-            <button 
+            <button
               onClick={() => navigate('/patients')}
-              style={{ 
-                cursor: 'pointer', 
-                background: 'transparent', 
-                border: 'none', 
-                color: 'white', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
+              style={{
+                cursor: 'pointer',
+                background: 'transparent',
+                border: 'none',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 padding: '8px',
                 borderRadius: '8px',
                 transition: 'background 0.2s',
@@ -872,10 +1139,17 @@ export default function MedicalCaseDetailPage() {
               <h1 className="profile-name">{formatName(medicalCase.patientName)}</h1>
               <span className="profile-id">Patient #{regid}</span>
             </div>
-            <div className={`profile-status-chip ${activePackage?.status === 'Active' ? 'active' : ''}`}>
+            <button
+              className={`profile-status-chip ${activePackage?.status === 'Active' ? 'active' : ''}`}
+              onClick={() => setShowAssignModal(true)}
+              style={{ cursor: 'pointer', border: 'none', outline: 'none', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Assign or view package"
+            >
               {activePackage?.status === 'Active' ? <Award size={12} /> : <Clock size={12} />}
-              {activePackage?.packageName ? `${activePackage.packageName} (${activePackage.status})` : 'No active plan'}
-            </div>
+              {activePackage?.packageName 
+                ? `${activePackage.packageName} (${activePackage.status})${activePackage.expiryDate ? ` • Expires ${new Date(activePackage.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : ''}`
+                : 'No active plan'}
+            </button>
 
             {/* ABHA Health ID Chip */}
             {abhaStatus?.isLinked ? (
@@ -951,87 +1225,15 @@ export default function MedicalCaseDetailPage() {
           </div>
 
           <div className="profile-actions">
-              <button
-                className="profile-btn"
-                onClick={() => {
-                  const myOrg: any = orgs.find(o => o.id === user?.contextId) || orgs[0];
-                  const defaultTemplate = pdfSettings.find((s: any) => s.isDefault) || pdfSettings[0];
-                  const baseClinic = getClinicLetterhead();
-                  const clinic = {
-                    ...baseClinic,
-                    name: myOrg?.name || baseClinic.name,
-                    tagline: myOrg?.tagLine || baseClinic.tagline,
-                    logoUrl: myOrg?.logo || baseClinic.logoUrl,
-                    address: myOrg?.address || baseClinic.address,
-                    address2: myOrg?.address2 || baseClinic.address2,
-                    phone: myOrg?.phone || baseClinic.phone,
-                    timing: myOrg?.timing || baseClinic.timing,
-                    email: myOrg?.email || baseClinic.email,
-                    website: myOrg?.website || baseClinic.website,
-                    registrationNo: myOrg?.registration || baseClinic.registrationNo,
-                    headerHtml: (defaultTemplate as any)?.headerHtml,
-                    footerHtml: (defaultTemplate as any)?.footerHtml,
-                  };
-
-                  const doctor = getDoctorLetterhead();
-
-                  const medications = (prescriptionsHistory?.length ? prescriptionsHistory : prescriptionsFromFull || [])
-                    .filter((p: any) => p.remedy_name || p.remedyName || p.medicineName || p.medicine)
-                    .map((p: any) => ({
-                      name: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
-                      genericName: undefined,
-                      dosage: p.potency_name || p.potencyName || p.potency || '—',
-                      frequency: p.frequency_name || p.frequencyName || p.frequencyTitle || p.frequency || '—',
-                      duration: (p.days || p.rx_days || p.rxdays) ? `${p.days || p.rx_days || p.rxdays} days` : '—',
-                      route: undefined,
-                      instructions: p.prescription || p.rx_prescription || p.instructions || p.notes || undefined,
-                      quantity: undefined,
-                      date: p.created_at || p.createdAt || p.dateval,
-                    }));
-
-                  const followUpEntry = notes?.find((n: any) => n.notesType === 'Followup');
-                  const diagnosisNote = medicalCase.condition || soap?.find((s: any) => s.notesType === 'assessment')?.notes || '';
-
-                  const latestVitals = vitals?.[0];
-                  const vitalsData = latestVitals ? {
-                    heightCm: latestVitals.heightCm ?? undefined,
-                    weightKg: latestVitals.weightKg ?? undefined,
-                    bmi: latestVitals.bmi ?? undefined,
-                    temperatureF: latestVitals.temperatureF ?? undefined,
-                    pulseRate: latestVitals.pulseRate ?? undefined,
-                    systolicBp: latestVitals.systolicBp ?? undefined,
-                    diastolicBp: latestVitals.diastolicBp ?? undefined,
-                    oxygenSaturation: latestVitals.oxygenSaturation ?? undefined,
-                  } : undefined;
-
-                  const printData: PrescriptionPrintData = {
-                    clinic: clinic as any,
-                    doctor,
-                    patient: {
-                      name: formatName(medicalCase.patientName) || `Patient ${regid}`,
-                      age: ageString.replace(' Years', ''),
-                      gender: medicalCase.gender || undefined,
-                      mrn: String(regid),
-                      phone: medicalCase.phone || medicalCase.mobile || undefined,
-                    },
-                    visit: {
-                      visitNumber: String(regid),
-                      date: medicalCase.createdAt || new Date().toISOString(),
-                      chiefComplaint: medicalCase.condition || undefined,
-                    },
-                    diagnosis: diagnosisNote ? { assessment: diagnosisNote } : undefined,
-                    followUp: followUpEntry?.notes || undefined,
-                    medications,
-                    vitals: vitalsData,
-                  };
-
-                  const html = generatePrescriptionHtml(printData);
-                  printHtml(html, { title: `Prescription - ${printData.patient.name}` });
-                }}>
-              <Printer size={16} /> Print Prescription
-            </button>
-            <button className="profile-btn" onClick={() => setMobileDrawer('contact')}>
-              <MessageSquare size={16} /> Message
+            <button className="profile-btn" onClick={() => {
+              const phone = medicalCase.phone || medicalCase.mobile || '';
+              if (phone) {
+                navigate(`/communications/whatsapp/inbox?phone=${encodeURIComponent(phone)}`);
+              } else {
+                alert('No phone number available for this patient.');
+              }
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
             </button>
           </div>
         </div>
@@ -1039,7 +1241,7 @@ export default function MedicalCaseDetailPage() {
         <div className="profile-bottom-grid">
           <div className="profile-info-cell">
             <label>GENDER</label>
-            <span>{medicalCase.gender || 'Other'}</span>
+            <span>{medicalCase.gender || 'Not Defined'}</span>
           </div>
           <div className="profile-info-cell">
             <label>AGE</label>
@@ -1066,14 +1268,7 @@ export default function MedicalCaseDetailPage() {
               return new Date(regDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             })()}</span>
           </div>
-          {activePackage?.expiryDate && (
-            <div className="profile-info-cell">
-              <label>EXPIRES</label>
-              <div className="info-with-icon">
-                <Clock size={14} /> {new Date(activePackage.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-              </div>
-            </div>
-          )}
+
           <div className="profile-info-cell">
             <label>ADDRESS</label>
             <span title={medicalCase.address}>{medicalCase.address || 'Not provided'}</span>
@@ -1124,7 +1319,7 @@ export default function MedicalCaseDetailPage() {
             )}
 
             {/* ─── Billing Summary (Positioned below Prescription Table) ─── */}
-            {activeTab === 'summary' && (
+            {activeTab === 'summary' && user?.permissions?.canViewBilling && (
               <div style={{
                 marginTop: '32px',
                 padding: '24px',
@@ -1138,7 +1333,7 @@ export default function MedicalCaseDetailPage() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
-                    <div style={{ padding: '8px', background: '#eff6ff', borderRadius: '10px', color: '#3b82f6' }}>
+                    <div style={{ padding: '8px', background: '#f5f3ff', borderRadius: '10px', color: '#7c3aed' }}>
                       <CreditCard size={20} />
                     </div>
                     Billing Overview
@@ -1161,91 +1356,171 @@ export default function MedicalCaseDetailPage() {
                 )}
 
                 <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
-                  {[
-                    { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
-                    { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
-                    { label: 'Additional Charge', value: billingValues.additional, color: '#64748b', tab: 'custom' },
-                    { label: 'Total Bill Amount', value: billingValues.total, color: '#2563eb', bold: true, tab: 'regular' },
-                    { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
-                    { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true, noEdit: true },
-                  ].map((row, idx) => (
-                    <div key={idx} style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: '1fr 140px 40px', 
-                      padding: '10px 16px', 
-                      borderBottom: idx === 5 ? 'none' : '1px solid #f1f5f9',
-                      alignItems: 'center',
-                      background: idx % 2 === 0 ? 'transparent' : '#f8fafc'
-                    }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>{row.label}</span>
-                      <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>
-                        {row.isCovered ? (
-                          <>
-                            <del style={{ color: '#94a3b8', fontSize: '0.75rem', marginRight: '6px' }}>₹{row.originalValue}</del>
-                            <span style={{ color: '#059669', fontWeight: 800 }}>₹0</span>
-                          </>
-                        ) : (
-                          `₹${row.value}`
-                        )}
-                      </span>
-                      {row.noEdit || !isToday ? (
-                        <div style={{ width: '28px', height: '28px' }} />
-                      ) : (
-                        <button 
-                          onClick={() => {
-                            setActiveBillingTab(row.tab as any);
-                            setShowBillingModal(true);
-                          }}
-                          style={{ 
-                            width: '28px',
-                            height: '28px',
-                            padding: '0', 
-                            background: '#fff', 
-                            border: '1px solid #e2e8f0', 
-                            borderRadius: '6px', 
-                            cursor: 'pointer', 
-                            color: '#64748b',
-                            display: 'flex',
+                  {(() => {
+                    const rows = [
+                      { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
+                      { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
+                      ...(billingValues.hasActivePackage ? [{
+                        label: 'Package Plan',
+                        value: billingValues.packagePrice,
+                        color: '#1e293b',
+                        tab: 'regular',
+                        noEdit: true,
+                        isActivePlanRow: true,
+                        isPurchase: billingValues.isPurchaseDate,
+                        originalValue: billingValues.originalPackagePrice
+                      }] : []),
+                      { label: 'Additional Charge', value: billingValues.additional, color: '#64748b', tab: 'custom' },
+                      { label: 'Total Bill Amount', value: billingValues.total, color: '#7c3aed', bold: true, tab: 'regular' },
+                      { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
+                      { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true, noEdit: true },
+                    ];
+                    return rows.map((row: any, idx) => {
+                      const isActivePlanRow = !!row.isActivePlanRow;
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 140px 40px',
+                            padding: '10px 16px',
+                            borderBottom: idx === rows.length - 1 ? 'none' : '1px solid #f1f5f9',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#f1f5f9';
-                            e.currentTarget.style.color = '#3b82f6';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#fff';
-                            e.currentTarget.style.color = '#64748b';
+                            background: idx % 2 === 0 ? 'transparent' : '#f8fafc',
                           }}
                         >
-                          <Edit size={12} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              color: '#475569',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              {row.label}
+                            </span>
+                          </div>
+
+                          <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>
+                            {isActivePlanRow ? (
+                              row.isPurchase ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                  <span style={{ color: row.color || '#1e293b', fontWeight: 800 }}>₹{row.value}</span>
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    background: '#ecfdf5',
+                                    color: '#047857',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.01em'
+                                  }}>
+                                    today billed
+                                  </span>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 500, color: '#64748b' }}>Value:</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>₹{row.originalValue}</span>
+                                  </div>
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    background: `${row.color}15`,
+                                    color: row.color,
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.02em',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}>
+                                    <span className="mc-pulse-dot"></span>
+                                    already billed
+                                  </span>
+                                </div>
+                              )
+                            ) : row.isCovered ? (
+                              <>
+                                <del style={{ color: '#94a3b8', fontSize: '0.75rem', marginRight: '6px' }}>₹{row.originalValue}</del>
+                                <span style={{ color: '#059669', fontWeight: 800 }}>₹0</span>
+                              </>
+                            ) : (
+                              `₹${row.value}`
+                            )}
+                          </span>
+
+                          {row.noEdit || !isToday ? (
+                            <div style={{ width: '28px', height: '28px' }} />
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (row.action) {
+                                  row.action();
+                                } else {
+                                  setActiveBillingTab(row.tab as any);
+                                  setShowBillingModal(true);
+                                }
+                              }}
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                padding: '0',
+                                background: '#fff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                color: '#64748b',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#f5f3ff';
+                                e.currentTarget.style.color = '#7c3aed';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#fff';
+                                e.currentTarget.style.color = '#64748b';
+                              }}
+                            >
+                              <Edit size={12} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
-                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => setShowReceiptModal(true)}
-                    style={{ 
-                      padding: '10px 24px', 
-                      background: '#3b82f6', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '10px', 
-                      fontWeight: 700, 
-                      cursor: 'pointer', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)'
-                    }}
-                  >
-                    <Share2 size={16} /> Share Payment Receipt
-                  </button>
-                </div>
+                {billingValues.received > 0 && (
+                  <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => setShowReceiptModal(true)}
+                      style={{
+                        padding: '6px 14px',
+                        fontSize: '13px',
+                        background: '#2563EB',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 4px -1px rgba(37, 99, 235, 0.2)'
+                      }}
+                    >
+                      <Share2 size={14} /> Share Payment Receipt
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1277,83 +1552,15 @@ export default function MedicalCaseDetailPage() {
             </div>
 
             {/* ─── Homeo Details Snapshot ─── */}
-            <div className="mc-side-card" style={{ marginBottom: '16px' }}>
-              <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="file"
-                    ref={prescriptionFileInputRef}
-                    onChange={handlePrescriptionFileChange}
-                    style={{ display: 'none' }}
-                    accept="image/*"
-                  />
-                  <button
-                    onClick={triggerPrescriptionScan}
-                    disabled={parsePrescriptionMutation.isPending}
-                    style={{
-                      background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
-                      color: '#7c3aed',
-                      border: '1px solid #c4b5fd',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      cursor: parsePrescriptionMutation.isPending ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      boxShadow: '0 1px 2px rgba(124, 58, 237, 0.05)',
-                      transition: 'all 0.2s ease',
-                      opacity: parsePrescriptionMutation.isPending ? 0.7 : 1
-                    }}
-                    title="AI Scan Handwritten Prescription"
-                  >
-                    {parsePrescriptionMutation.isPending ? (
-                      <Loader2 size={12} className="animate-spin text-purple-600" />
-                    ) : (
-                      <BrainCircuit size={12} className="text-purple-600" />
-                    )}
-                    <span>AI Scan</span>
-                  </button>
-                  <div 
-                    onClick={() => handleOpenDiagnosis(currentVisitSoap)}
-                    style={{ color: '#3b82f6', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                    title="Edit Assessment"
-                  >
-                    <Edit size={14} />
-                  </div>
-                  {!isToday && currentVisitSoaps.length > 1 && (
-                    <div 
-                      onClick={() => setActiveTab('diagnosis')}
-                      style={{ color: '#3b82f6', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
-                    >
-                      See all ({currentVisitSoaps.length}) <ChevronRight size={14} />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '400px', overflowY: 'auto' }}>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.assessment || '—'}</div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.subjective || '—'}</div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-                    {renderMedicationTakingSnapshot(currentVisitSoap?.objective)}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
-                  <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>{currentVisitSoap?.plan || currentVisitSoap?.advice || '—'}</div>
-                </div>
-              </div>
-            </div>
+            <HomeoDetailsSnapshotWidget
+              currentHomeoDetail={currentVisitHomeoDetail}
+              isToday={!!isToday}
+              isPendingScan={parsePrescriptionMutation.isPending}
+              onTriggerScan={triggerPrescriptionScan}
+              onEditAssessment={handleEditHomeoDetails}
+              prescriptionFileInputRef={prescriptionFileInputRef}
+              handlePrescriptionFileChange={handlePrescriptionFileChange}
+            />
 
 
 
@@ -1362,10 +1569,10 @@ export default function MedicalCaseDetailPage() {
             {showDiagnosisDrawer && ReactDOM.createPortal(
               <>
                 <div className="mc-drawer-backdrop" onClick={() => setShowDiagnosisDrawer(false)} />
-                <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '520px' }}>
+                <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '680px', width: '100%' }}>
                   <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
                     <div className="mc-drawer-header-title">
-                      <Sparkles size={18} /> {editingDiagnosisRecord ? 'Edit AI Follow up' : 'New AI Follow up'}
+                      <Sparkles size={18} /> AI Follow up
                     </div>
                     <button className="mc-drawer-close" onClick={() => setShowDiagnosisDrawer(false)} style={{ color: 'white', opacity: 0.8 }}>
                       <X size={16} />
@@ -1380,198 +1587,34 @@ export default function MedicalCaseDetailPage() {
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosis</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={diagForm.diagnosis}
-                        onChange={e => setDiagForm({ ...diagForm, diagnosis: e.target.value })}
-                        placeholder="Final clinical assessment..."
-                        style={{ minHeight: '60px', fontSize: '1rem', fontWeight: 700 }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Complaint Intensity</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={diagForm.complaint}
-                        onChange={e => setDiagForm({ ...diagForm, complaint: e.target.value })}
-                        placeholder="Patient symptoms & intensity..."
-                        style={{ minHeight: '100px' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medication Taking</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {medicationRows.map((row, idx) => (
-                          <div 
-                            key={idx} 
-                            style={{ 
-                              border: '1px solid #e2e8f0', 
-                              borderRadius: '8px', 
-                              padding: '12px', 
-                              background: '#f8fafc',
-                              display: 'flex', 
-                              flexDirection: 'column', 
-                              gap: '10px',
-                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Medication #{idx + 1}
-                              </span>
-                              <button
-                                type="button"
-                                className="btn-ghost"
-                                style={{
-                                  color: '#ef4444',
-                                  padding: '6px',
-                                  border: '1px solid transparent',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  background: '#fef2f2',
-                                  transition: 'all 0.2s ease'
-                                }}
-                                onClick={() => removeMedicationRow(idx)}
-                                title="Remove medication"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
-                                <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Medicine Name</label>
-                                <input
-                                  type="text"
-                                  className="pp-input"
-                                  placeholder="Search or enter medicine name"
-                                  value={row.medicine}
-                                  onChange={e => updateMedicationRow(idx, 'medicine', e.target.value)}
-                                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
-                                  autoComplete="off"
-                                />
-                              </div>
-
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Frequency</label>
-                                  <select
-                                    className="pp-input"
-                                    value={row.frequency}
-                                    onChange={e => updateMedicationRow(idx, 'frequency', e.target.value)}
-                                    style={{ width: '100%', padding: '8px', fontSize: '0.85rem', height: '38px', background: 'white' }}
-                                  >
-                                    <option value="Once">Once</option>
-                                    <option value="Twice">Twice</option>
-                                    <option value="Thrice">Thrice</option>
-                                    <option value="Bed Time">Bed Time</option>
-                                    <option value="Empty Stomach">Empty Stomach</option>
-                                    <option value="weekly">weekly</option>
-                                  </select>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
-                                    <button
-                                      type="button"
-                                      disabled={!row.medicine.trim() || aiDetectingIdx === idx}
-                                      onClick={() => detectMedicineIssue(idx, row.medicine)}
-                                      title="AI auto-detect issue from medicine name"
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        fontSize: '0.6rem',
-                                        fontWeight: 700,
-                                        color: aiDetectingIdx === idx ? '#94a3b8' : '#7c3aed',
-                                        background: aiDetectingIdx === idx ? '#f1f5f9' : 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
-                                        border: '1px solid',
-                                        borderColor: aiDetectingIdx === idx ? '#e2e8f0' : '#c4b5fd',
-                                        borderRadius: '6px',
-                                        padding: '3px 8px',
-                                        cursor: !row.medicine.trim() || aiDetectingIdx === idx ? 'not-allowed' : 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        opacity: !row.medicine.trim() ? 0.4 : 1,
-                                        letterSpacing: '0.02em',
-                                        textTransform: 'uppercase',
-                                      }}
-                                    >
-                                      {aiDetectingIdx === idx ? (
-                                        <><Loader2 size={10} className="animate-spin" /> Detecting...</>
-                                      ) : (
-                                        <><Sparkles size={10} /> AI Detect</>
-                                      )}
-                                    </button>
-                                  </div>
-                                  <input
-                                    type="text"
-                                    className="pp-input"
-                                    placeholder="e.g. Fever"
-                                    value={row.issue}
-                                    onChange={e => updateMedicationRow(idx, 'issue', e.target.value)}
-                                    style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', height: '38px', background: 'white' }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                    {isDirectEdit ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Summary Text
+                        </label>
+                        <textarea
+                          value={diagForm.diagnosis || diagForm.complaint || ''}
+                          onChange={(e) => setDiagForm((prev: any) => ({ ...prev, diagnosis: e.target.value, complaint: e.target.value }))}
+                          placeholder="Type or edit the summary text here..."
+                          className="pp-textarea"
+                          style={{ minHeight: '300px', fontSize: '0.92rem', lineHeight: 1.6, padding: '14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}
+                        />
                       </div>
-                      <button
-                        type="button"
-                        onClick={addMedicationRow}
-                        style={{
-                          alignSelf: 'flex-start',
-                          marginTop: '4px',
-                          padding: '6px 12px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          color: '#2563eb',
-                          background: '#eff6ff',
-                          border: '1px dashed #bfdbfe',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#dbeafe';
-                          e.currentTarget.style.borderColor = '#3b82f6';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#eff6ff';
-                          e.currentTarget.style.borderColor = '#bfdbfe';
-                        }}
-                      >
-                        <Plus size={14} /> Add Medication
-                      </button>
-                      <datalist id="medicines-catalog-list">
-                        {(medicines as any[]).map((m: any) => (
-                          <option key={m.id} value={m.name} />
-                        ))}
-                      </datalist>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Investigation</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={diagForm.medication}
-                        onChange={e => setDiagForm({ ...diagForm, medication: e.target.value })}
-                        placeholder="Investigations or next steps..."
-                        style={{ minHeight: '80px' }}
+                    ) : (
+                      <AiFollowupTranscriptPanel
+                        visitId={currentVisitId || visitId || `regid-${regid}`}
+                        patientAge={(() => {
+                          const dob = medicalCase?.dateOfBirth || medicalCase?.dob;
+                          if (!dob) return undefined;
+                          const yrs = Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
+                          return yrs > 0 ? yrs : undefined;
+                        })()}
+                        patientGender={medicalCase?.gender}
+                        initialSummary={diagForm.diagnosis || diagForm.complaint}
+                        onSummaryChange={(s) => setDiagForm((prev: any) => ({ ...prev, diagnosis: s, complaint: s }))}
                       />
-                    </div>
+                    )}
+
                   </div>
 
                   <footer style={{
@@ -1603,7 +1646,7 @@ export default function MedicalCaseDetailPage() {
                         boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.1)'
                       }}
                     >
-                      <Save size={18} /> Save Assessment
+                      <Save size={18} /> Save 
                     </button>
                   </footer>
                 </div>
@@ -1625,12 +1668,14 @@ export default function MedicalCaseDetailPage() {
                   </header>
 
                   <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div style={{ padding: '10px 14px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Sparkles size={14} style={{ color: '#7c3aed' }} />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5b21b6' }}>
-                        Handwritten prescription successfully scanned by AI
-                      </span>
-                    </div>
+                    {isScannedPrescription && (
+                      <div style={{ padding: '10px 14px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={14} style={{ color: '#7c3aed' }} />
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5b21b6' }}>
+                          Handwritten prescription successfully scanned by AI
+                        </span>
+                      </div>
+                    )}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosis</label>
@@ -1658,15 +1703,15 @@ export default function MedicalCaseDetailPage() {
                       <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medication Taking</label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {scannedMedicationRows.map((row, idx) => (
-                          <div 
-                            key={idx} 
-                            style={{ 
-                              border: '1px solid #e2e8f0', 
-                              borderRadius: '8px', 
-                              padding: '12px', 
+                          <div
+                            key={idx}
+                            style={{
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              padding: '12px',
                               background: '#f8fafc',
-                              display: 'flex', 
-                              flexDirection: 'column', 
+                              display: 'flex',
+                              flexDirection: 'column',
                               gap: '10px',
                               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
                             }}
@@ -1730,7 +1775,39 @@ export default function MedicalCaseDetailPage() {
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
+                                    <button
+                                      type="button"
+                                      disabled={!row.medicine.trim() || aiDetectingIdx === idx}
+                                      onClick={() => detectScannedMedicineIssue(idx, row.medicine)}
+                                      title="AI auto-detect issue from medicine name"
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '0.6rem',
+                                        fontWeight: 700,
+                                        color: aiDetectingIdx === idx ? '#94a3b8' : '#7c3aed',
+                                        background: aiDetectingIdx === idx ? '#f1f5f9' : 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                                        border: '1px solid',
+                                        borderColor: aiDetectingIdx === idx ? '#e2e8f0' : '#c4b5fd',
+                                        borderRadius: '6px',
+                                        padding: '3px 8px',
+                                        cursor: !row.medicine.trim() || aiDetectingIdx === idx ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        opacity: !row.medicine.trim() ? 0.4 : 1,
+                                        letterSpacing: '0.02em',
+                                        textTransform: 'uppercase',
+                                      }}
+                                    >
+                                      {aiDetectingIdx === idx ? (
+                                        <><Loader2 size={10} className="animate-spin" /> Detecting...</>
+                                      ) : (
+                                        <><Sparkles size={10} /> AI Detect</>
+                                      )}
+                                    </button>
+                                  </div>
                                   <input
                                     type="text"
                                     className="pp-input"
@@ -1812,15 +1889,20 @@ export default function MedicalCaseDetailPage() {
                     </button>
                     <button
                       onClick={handleSaveScannedPrescription}
+                      disabled={isSavingScannedPrescription}
                       style={{
                         flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
-                        background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', fontWeight: 700,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                        background: isSavingScannedPrescription ? '#94a3b8' : 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', fontWeight: 700,
+                        cursor: isSavingScannedPrescription ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center',
                         justifyContent: 'center', gap: '8px',
                         boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.1)'
                       }}
                     >
-                      <Save size={18} /> Save Details
+                      {isSavingScannedPrescription ? (
+                        <><Loader2 size={18} className="animate-spin" /> Saving...</>
+                      ) : (
+                        <><Save size={18} /> Save Details</>
+                      )}
                     </button>
                   </footer>
                 </div>
@@ -1917,7 +1999,11 @@ export default function MedicalCaseDetailPage() {
                   </div>
                   {isToday && (
                     <button
-                      onClick={() => { setMobileDrawer(null); setShowBillingModal(true); }}
+                      onClick={() => {
+                        setMobileDrawer(null);
+                        setActiveBillingTab('payment');
+                        setShowBillingModal(true);
+                      }}
                       style={{
                         width: '100%', padding: '14px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)',
                         border: '1px solid #BBF7D0', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
@@ -2015,7 +2101,7 @@ export default function MedicalCaseDetailPage() {
           patientId={Number(regid)}
           patientName={medicalCase.patientName || ''}
           onClose={() => setShowAssignModal(false)}
-          onSuccess={() => { 
+          onSuccess={() => {
             refetchFull();
           }}
         />
@@ -2041,6 +2127,20 @@ export default function MedicalCaseDetailPage() {
           displayDate={displayDate || undefined}
           rxWorkflow={rxWorkflow}
           visitId={medicalCase.id}
+          pendingBalance={billingValues.balance}
+          receivedAmount={billingValues.received}
+          currentMedicineCharge={billingValues.daysCharge}
+          onUpdateMedicineCharge={(val) => {
+            setPendingCharge(val);
+            if (regid && displayDate) {
+              const key = `med_override_${regid}_${toClinicDateString(displayDate)}`;
+              if (val > 0) {
+                localStorage.setItem(key, String(val));
+              } else {
+                localStorage.removeItem(key);
+              }
+            }
+          }}
           onClose={() => setShowBillingModal(false)}
         />
       )}
@@ -2092,48 +2192,20 @@ function MedicalCasePageSkeleton() {
             <div className="skeleton-box" style={{ width: '100px', height: '36px', borderRadius: '8px' }} />
           </div>
         </div>
-        <div className="profile-bottom-grid">
-          <div className="profile-info-cell">
-            <label>GENDER</label>
-            <div className="skeleton-box" style={{ width: '60px', height: '15px', marginTop: '4px' }} />
-          </div>
-          <div className="profile-info-cell">
-            <label>AGE</label>
-            <div className="skeleton-box" style={{ width: '80px', height: '15px', marginTop: '4px' }} />
-          </div>
-          <div className="profile-info-cell">
-            <label>PHONE</label>
-            <div className="info-with-icon">
-              <Phone size={14} style={{ opacity: 0.3 }} />
-              <div className="skeleton-box" style={{ width: '100px', height: '15px' }} />
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '24px',
+          marginTop: '24px',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          paddingTop: '20px'
+        }}>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="skeleton-box" style={{ width: '60px', height: '10px', opacity: 0.2, borderRadius: '4px' }} />
+              <div className="skeleton-box" style={{ width: '100px', height: '14px', opacity: 0.4, borderRadius: '4px' }} />
             </div>
-          </div>
-          <div className="profile-info-cell">
-            <label>DOCTOR</label>
-            <div className="info-with-icon">
-              <Stethoscope size={14} style={{ opacity: 0.3 }} />
-              <div className="skeleton-box" style={{ width: '120px', height: '15px' }} />
-            </div>
-          </div>
-          <div className="profile-info-cell">
-            <label>REGISTERED</label>
-            <div className="skeleton-box" style={{ width: '90px', height: '15px', marginTop: '4px' }} />
-          </div>
-          <div className="profile-info-cell">
-            <label>EXPIRES</label>
-            <div className="info-with-icon">
-              <Clock size={14} style={{ opacity: 0.3 }} />
-              <div className="skeleton-box" style={{ width: '85px', height: '15px' }} />
-            </div>
-          </div>
-          <div className="profile-info-cell">
-            <label>ADDRESS</label>
-            <div className="skeleton-box" style={{ width: '140px', height: '15px', marginTop: '4px' }} />
-          </div>
-          <div className="profile-info-cell">
-            <label>CONDITION</label>
-            <div className="skeleton-box" style={{ width: '100px', height: '15px', marginTop: '4px' }} />
-          </div>
+          ))}
         </div>
       </div>
 
@@ -2275,10 +2347,9 @@ function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; cas
         </div>
       </div>
 
-      {/* Table */}
       <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
         <div className="mc-table-container">
-          <table className="pp-table mc-responsive-table">
+          <table className="mc-data-table">
             <thead>
               <tr>
                 <th style={{ width: '40px' }}>#</th>
@@ -2395,7 +2466,8 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
   const [sending, setSending] = useState(false);
 
   const { saveVitals } = useManageClinicalRecords();
-  const sendSms = useSendSms();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   const handleSave = async () => {
     if (!hVal && !wVal) return;
@@ -2444,9 +2516,21 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
       weightStr = `${latest.weightKg} kg (${lbs} lbs)`;
     }
 
-    const msg = `*📊 CLINICAL VITALS REPORT*\n\nHello ${name},\n\nYour latest height/weight recorded at *${clinicName}*:\n\n📏 *Height:* ${heightStr}\n⚖️ *Weight:* ${weightStr}\n📉 *BMI:* ${latest.bmi || '-'}\n\n*Recorded on:* ${new Date(latest.recordedAt).toLocaleDateString()}\n\nThank you!`;
+    const bmiStr = latest.bmi ? String(latest.bmi) : '-';
+
+    const cleaned = String(phone).replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+
     try {
-      await sendSms.mutateAsync({ phone, message: msg, regid });
+      const textMessage = `Dear Patient,\n\nYour latest recorded vitals are:\nHeight: ${heightStr}\nWeight: ${weightStr}\nBMI: ${bmiStr}\n\nRegards,\nMMC HomeoTech`;
+
+      await sendText.mutateAsync({
+        phone: finalPhone,
+        message: textMessage
+      });
+      alert('Vitals shared successfully via WhatsApp.');
+    } catch (err: any) {
+      alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message));
     } finally {
       setSending(false);
     }
@@ -2603,7 +2687,8 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
   const latest = vitals && vitals.length > 0 ? vitals[0] : null;
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const sendSms = useSendSms();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
   const [sending, setSending] = useState(false);
   const { deleteVitals } = useManageClinicalRecords();
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -2659,9 +2744,21 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
       weightStr = `${latest.weightKg} kg (${lbs} lbs)`;
     }
 
-    const msg = `*📊 CLINICAL VITALS REPORT*\n\nHello ${name},\n\nYour latest clinical vitals have been recorded at *${clinicName}*:\n\n📏 *Height:* ${heightStr}\n⚖️ *Weight:* ${weightStr}\n📉 *BMI:* ${latest.bmi || '-'}\n💓 *Blood Pressure:* ${latest.systolicBp}/${latest.diastolicBp} mmHg\n🌡️ *Temperature:* ${latest.temperatureF}°F\n🫁 *Oxygen (SpO2):* ${latest.oxygenSaturation || '-'}%\n\n*Recorded on:* ${new Date(latest.recordedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}\n\n_Note: Please consult your doctor for a detailed assessment of these values._\n\nThank you!`;
+    const bmiStr = latest.bmi ? String(latest.bmi) : '-';
+
+    const cleaned = String(phone).replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+
     try {
-      await sendSms.mutateAsync({ phone, message: msg, regid });
+      const textMessage = `Dear Patient,\n\nYour latest recorded vitals are:\nHeight: ${heightStr}\nWeight: ${weightStr}\nBMI: ${bmiStr}\n\nRegards,\nMMC HomeoTech`;
+
+      await sendText.mutateAsync({
+        phone: finalPhone,
+        message: textMessage
+      });
+      alert('Vitals shared successfully via WhatsApp.');
+    } catch (err: any) {
+      alert('Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message));
     } finally {
       setSending(false);
     }
@@ -2709,7 +2806,7 @@ function VitalsView({ vitals, onRecord, phone, name, regid, clinicName, onAppend
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e40af' }}>Recent Vitals History</span>
               <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 600, marginLeft: '4px' }}>({vitals.length})</span>
             </div>
-            <table className="pp-table" style={{ marginBottom: 0 }}>
+            <table className="mc-data-table" style={{ marginBottom: 0 }}>
               <thead>
                 <tr>
                   <th>Date</th>
@@ -2982,7 +3079,8 @@ const LAB_CONFIG: Record<string, any[]> = {
   ]
 };
 
-function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered }: { investigations: any[]; regid: number; visitId: number; onAppendNote?: (text: string) => void; isDateFiltered?: boolean }) {
+function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered, displayDate }: { investigations: any[]; regid: number; visitId: number; onAppendNote?: (text: string) => void; isDateFiltered?: boolean; displayDate?: string | Date | null }) {
+  const navigate = useNavigate();
   const [activeType, setActiveType] = useState('CBC');
   const [labData, setLabData] = useState<any>({});
   const [saved, setSaved] = useState(false);
@@ -3038,14 +3136,16 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
 
   const handleSave = async (copyToFollowup = false) => {
     try {
-      const investDate = new Date().toISOString().split('T')[0];
+      const { investDate: dataDate, attachmentUrl, summary, id: _ignoreId, ...actualData } = labData;
+      const investDate = dataDate || new Date().toISOString().split('T')[0];
       await saveInvestigation.mutateAsync({
         id: editingInv?.id,
-        regid, visitId, type: activeType, data: labData, investDate
+        regid, visitId, type: activeType, data: actualData, investDate,
+        summary, attachmentUrl
       });
 
       if (copyToFollowup) {
-        const summary = Object.entries(labData)
+        const findingsSummary = Object.entries(actualData)
           .filter(([_, v]) => v)
           .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
           .join(', ');
@@ -3053,7 +3153,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
           regid,
           visitId,
           notesType: 'Followup',
-          notes: `Investigation (${activeType}): ${summary}`
+          notes: `Investigation (${activeType}): ${findingsSummary}`
         });
       }
 
@@ -3081,8 +3181,12 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
   };
 
   const handleDownload = () => {
-    const content = `Investigation Report: ${activeType}\nDate: ${new Date().toLocaleDateString()}\n\n` + 
-      Object.entries(labData).filter(([_, v]) => v).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join('\n');
+    const content = `Investigation Report: ${activeType}\nDate: ${new Date().toLocaleDateString()}\n\n` +
+      (labData.summary ? `Summary:\n${labData.summary}\n\nFindings:\n` : '') +
+      Object.entries(labData)
+        .filter(([k, v]) => v && !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k))
+        .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
+        .join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -3100,7 +3204,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
 
     try {
       setIsScanning(true);
-      
+
       const formData = new FormData();
       formData.append('file', file);
 
@@ -3109,7 +3213,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
           'Content-Type': 'multipart/form-data'
         }
       });
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Failed to process report');
       }
@@ -3127,18 +3231,18 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
         }
         setActiveType('Specific');
         setLabData({
-          investDate: new Date().toISOString().split('T')[0],
+          investDate: (displayDate ? new Date(displayDate).toISOString().split('T')[0] : null) || new Date().toISOString().split('T')[0],
           attachmentUrl: data.data?.attachmentUrl || '',
           summary: ''
         });
       } else {
         // AI succeeded
         const { date, type, data: parsedData, summary } = data.data.parsed;
-        
+
         setActiveType(type || 'Specific');
         setLabData({
           ...(parsedData || {}),
-          investDate: date || new Date().toISOString().split('T')[0],
+          investDate: (displayDate ? new Date(displayDate).toISOString().split('T')[0] : null) || date || new Date().toISOString().split('T')[0],
           attachmentUrl: data.data.attachmentUrl,
           summary: summary || ''
         });
@@ -3146,7 +3250,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
       setEditingInv(null);
       setIsScannedPreview(true);
       setShowDrawer(true);
-      
+
     } catch (err: any) {
       alert(err.message || 'Error scanning report');
     } finally {
@@ -3180,10 +3284,10 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
             </button>
           </div>
           <input type="file" accept="image/*,application/pdf" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
-          <button 
-            onClick={() => fileInputRef.current?.click()} 
-            className="btn-secondary" 
-            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }} 
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="btn-secondary"
+            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }}
             disabled={isScanning}
           >
             {isScanning ? <Loader2 size={16} className="animate-spin" style={{ marginRight: '6px' }} /> : <Sparkles size={16} style={{ marginRight: '6px', color: '#8b5cf6' }} />}
@@ -3216,112 +3320,73 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                 <div style={{ padding: '12px 16px', background: '#f5f3ff', borderBottom: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <FlaskConical size={15} style={{ color: '#8b5cf6' }} />
                   <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
-              <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
-            </div>
-            <table className="pp-table" style={{ marginBottom: 0 }}>
-              <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
-                <tr>
-                  <th style={{ width: '110px' }}>Date</th>
-                  <th style={{ width: '130px' }}>Category</th>
-                  <th>Results</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupedInvs.map((group) => (
-                  <React.Fragment key={group.date}>
-                    {group.items.map((inv, idx) => {
-                      const isExpanded = isDateFiltered || expandedDates.has(group.date);
-                      if (idx > 0 && !isExpanded) return null;
-
+                  <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '16px', gap: '16px', background: '#f8fafc' }}>
+                  {sortedInvs.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>No investigations found for this page.</div>
+                  ) : (
+                    sortedInvs.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(inv => {
                       const dateVal = inv.investDate || 0;
-
                       return (
-                        <tr
-                          key={inv.id}
-                          className="hover-row"
-                          style={{
-                            background: idx > 0 ? '#f8fafc' : 'white',
-                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
-                          }}
-                        >
-                          <td className="appt-cell-mono">
-                            <DateGroupCell
-                              dateVal={dateVal}
-                              isFirst={idx === 0}
-                              isExpanded={isExpanded}
-                              itemsCount={group.items.length}
-                              onToggle={() => toggleDate(group.date)}
-                            />
-                          </td>
-                          <td style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{inv.type}</td>
-                          <td>
-                            <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.5' }}>
-                              {inv.data?.summary || inv.summary || (
-                                <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No summary available</span>
-                              )}
+                        <div key={inv.id} className="pp-card hover-card" style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ background: '#f5f3ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontWeight: 800, fontSize: '0.85rem' }}>
+                                {inv.type}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Calendar size={14} style={{ color: '#94a3b8' }} />
+                                {new Date(dateVal).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+                              </div>
                             </div>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
+                            <div style={{ display: 'flex', gap: '4px' }}>
                               {onAppendNote && (
-                                <button
-                                  onClick={() => handleCopyToFollowup(inv)}
-                                  className="btn-ghost"
-                                  style={{ color: '#16a34a', padding: '4px 8px' }}
-                                  title="Copy to Follow-up"
-                                >
-                                  <Copy size={14} />
-                                </button>
+                                <button onClick={() => handleCopyToFollowup(inv)} className="btn-ghost" style={{ color: '#16a34a', padding: '6px 8px', borderRadius: '6px' }} title="Copy to Follow-up"><Copy size={15} /></button>
                               )}
-                              <button
-                                onClick={() => setPreviewingInv(inv)}
-                                className="btn-ghost"
-                                style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                title="View Report Details"
-                              >
-                                <Eye size={14} />
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  if (confirm('Delete this investigation?')) {
-                                    deleteRecord.mutateAsync({ type: 'investigations', id: inv.id });
-                                  }
-                                }}
-                                className="btn-ghost"
-                                style={{ color: '#dc2626', padding: '4px 8px' }}
-                                title="Delete"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              <button onClick={() => navigate('/clinical/ai-analysis?query=' + encodeURIComponent(inv.summary || inv.data?.summary || ''))} className="btn-ghost" style={{ color: '#8b5cf6', padding: '6px 8px', borderRadius: '6px' }} title="Suggest Remedy"><BrainCircuit size={15} /></button>
+                              <button onClick={() => setPreviewingInv(inv)} className="btn-ghost" style={{ color: 'var(--pp-blue)', padding: '6px 8px', borderRadius: '6px' }} title="View Report Details"><Eye size={15} /></button>
+                              <button onClick={() => { if (confirm('Delete this investigation?')) { deleteRecord.mutateAsync({ type: 'investigations', id: inv.id }); } }} className="btn-ghost" style={{ color: '#ef4444', padding: '6px 8px', borderRadius: '6px' }} title="Delete"><Trash2 size={15} /></button>
                             </div>
-                          </td>
-                        </tr>
+                          </div>
+                          
+                          <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: '1.6', marginBottom: '12px' }}>
+                            {inv.data?.summary || inv.summary || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No summary available</span>}
+                          </div>
+                          
+                          {inv.data && Object.keys(inv.data).filter(k => !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '12px', background: '#f1f5f9', borderRadius: '8px' }}>
+                              {Object.entries(inv.data).filter(([k, v]) => v && !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).map(([k, v]) => (
+                                <div key={k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px', background: 'white', padding: '6px 10px', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', border: '1px solid #e2e8f0' }}>
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{k}</span>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{String(v)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       );
-                    })}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={sortedInvs.length}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-          />
+                    })
+                  )}
+                </div>
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={sortedInvs.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+              />
+            </>
+          )}
         </>
       )}
-    </>
-  )}
 
       {previewingInv && (
-        <InvestigationPreviewModal 
-          inv={previewingInv} 
-          onClose={() => setPreviewingInv(null)} 
+        <InvestigationPreviewModal
+          inv={previewingInv}
+          onClose={() => setPreviewingInv(null)}
         />
       )}
 
@@ -3356,33 +3421,36 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
             </div>
 
             <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: '16px' }}>
-                {fields.map(field => (
-                  <div key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: '6px', ...(field.type === 'full' ? { gridColumn: '1 / -1' } : {}) }}>
-                    <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{field.label}</label>
-                    {field.type === 'full' ? (
-                      <textarea
-                        className="pp-textarea"
-                        placeholder={`Enter ${field.label}...`}
-                        value={getLabValue(field.key)}
-                        onChange={e => handleLabValueChange(field.key, e.target.value)}
-                        style={{ minHeight: '100px' }}
-                      />
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input
-                          type="text"
-                          className="pp-input"
-                          placeholder="0.00"
-                          value={getLabValue(field.key)}
-                          onChange={e => handleLabValueChange(field.key, e.target.value)}
-                          style={{ flex: 1 }}
-                        />
-                        {field.range && <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--pp-text-3)', background: 'var(--pp-warm-2)', padding: '4px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>{field.range}</span>}
-                      </div>
-                    )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Summary / Findings</label>
+                  <textarea
+                    className="pp-textarea"
+                    placeholder="Enter or edit investigation summary..."
+                    value={labData.summary || ''}
+                    onChange={(e) => setLabData({ ...labData, summary: e.target.value })}
+                    style={{ minHeight: '120px', fontSize: '0.9rem', lineHeight: 1.6 }}
+                  />
+                </div>
+                
+                {Object.keys(labData).filter(k => !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).length > 0 && (
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', display: 'block' }}>Extracted Parameters</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: '16px' }}>
+                      {Object.keys(labData).filter(k => !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).map(key => (
+                        <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{key}</label>
+                          <input
+                            type="text"
+                            className="pp-input"
+                            value={labData[key]}
+                            onChange={e => setLabData({ ...labData, [key]: e.target.value })}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -3418,7 +3486,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
 function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number; phone: string; name: string; onAppendNote?: (text: string) => void }) {
   const { data: logs = [], isLoading } = useCommunicationLogs(regid);
   const [message, setMessage] = useState('');
-  const sendSms = useSendSms();
+  const sendWhatsApp = useSendWhatsApp();
 
   const handleCopyToFollowup = (log: any) => {
     if (!onAppendNote) return;
@@ -3450,7 +3518,7 @@ function CommunicationView({ regid, phone, name, onAppendNote }: { regid: number
           <button
             className="btn-primary"
             style={{ width: '100%' }}
-            onClick={() => sendSms.mutateAsync({ phone, message, regid })}
+            onClick={() => sendWhatsApp.mutateAsync({ phone, message, regid })}
           >
             <Send size={16} style={{ marginRight: '8px' }} /> Send WhatsApp
           </button>
@@ -3587,7 +3655,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
 
     const envUrl = import.meta.env['VITE_API_URL'];
     if (envUrl) {
-      const baseUrl = (envUrl as string).replace('/api', '');
+      const baseUrl = (envUrl as string).replace(/\/api\/?$/, '');
       return `${baseUrl}${path.startsWith('/') ? path : '/' + path}`;
     }
 
@@ -3738,9 +3806,9 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
 
       {/* ─── Premium Inline Add Media Form ─── */}
       {showUploadForm && (
-        <div 
+        <div
           className="animate-fade-in"
-          style={{ 
+          style={{
             background: 'white',
             borderRadius: '16px',
             border: '1px solid var(--pp-warm-3)',
@@ -3754,12 +3822,12 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
             boxSizing: 'border-box'
           }}
         >
-          <div 
-            style={{ 
-              background: 'var(--pp-warm-1)', 
-              border: '1.5px dashed var(--border-main)', 
-              borderRadius: '16px', 
-              padding: file ? '24px' : '48px 24px', 
+          <div
+            style={{
+              background: 'var(--pp-warm-1)',
+              border: '1.5px dashed var(--border-main)',
+              borderRadius: '16px',
+              padding: file ? '24px' : '48px 24px',
               textAlign: 'center',
               cursor: 'pointer',
               position: 'relative',
@@ -3782,28 +3850,28 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                 {file ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%' }}>
                     {file.type.startsWith('image/') && previewUrl && (
-                      <img 
-                        src={previewUrl} 
-                        alt="Preview" 
-                        style={{ 
-                          maxHeight: '180px', 
-                          maxWidth: '100%', 
-                          borderRadius: '12px', 
-                          objectFit: 'contain', 
-                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
-                        }} 
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        style={{
+                          maxHeight: '180px',
+                          maxWidth: '100%',
+                          borderRadius: '12px',
+                          objectFit: 'contain',
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)'
+                        }}
                       />
                     )}
                     {file.type.startsWith('video/') && previewUrl && (
-                      <video 
-                        src={previewUrl} 
-                        controls 
-                        style={{ 
-                          maxHeight: '180px', 
-                          maxWidth: '100%', 
-                          borderRadius: '12px', 
-                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)' 
-                        }} 
+                      <video
+                        src={previewUrl}
+                        controls
+                        style={{
+                          maxHeight: '180px',
+                          maxWidth: '100%',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)'
+                        }}
                       />
                     )}
                     {file.type.startsWith('audio/') && previewUrl && (
@@ -3944,9 +4012,9 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
                             <FileAudio size={24} />
                           </div>
                           <audio
-                             src={resolvedUrl}
-                             controls
-                             style={{ width: '100%', maxWidth: '240px' }}
+                            src={resolvedUrl}
+                            controls
+                            style={{ width: '100%', maxWidth: '240px' }}
                           />
                         </div>
                       )}
@@ -4014,7 +4082,7 @@ function MediaView({ regid, visitId, images, isDateFiltered }: { regid: number; 
             <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f766e' }}>Clinical Evidence List</span>
             <span style={{ fontSize: '0.72rem', color: '#5eead4', fontWeight: 600, marginLeft: '4px' }}>({images.length})</span>
           </div>
-          <table className="pp-table" style={{ marginBottom: 0 }}>
+          <table className="mc-data-table" style={{ marginBottom: 0 }}>
             <thead>
               <tr>
                 <th style={{ width: '80px' }}>Preview</th>
@@ -4345,17 +4413,17 @@ const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined)
     if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
       const parsed = JSON.parse(trimmed);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
-      
+
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
           {arr.map((item: any, idx: number) => {
             return (
-              <div 
-                key={idx} 
-                style={{ 
-                  background: '#f8fafc', 
-                  border: '1px solid #e2e8f0', 
-                  borderRadius: '8px', 
+              <div
+                key={idx}
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
                   padding: '8px 12px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -4371,15 +4439,15 @@ const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined)
                     {item.medicine}
                   </span>
                 </div>
-                
+
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {item.frequency && (
-                    <span style={{ 
-                      background: '#eff6ff', 
-                      color: '#1e40af', 
-                      padding: '2px 8px', 
-                      borderRadius: '12px', 
-                      fontSize: '0.7rem', 
+                    <span style={{
+                      background: '#eff6ff',
+                      color: '#1e40af',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
                       fontWeight: 600,
                       border: '1px solid #dbeafe'
                     }}>
@@ -4387,12 +4455,12 @@ const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined)
                     </span>
                   )}
                   {item.days && (
-                    <span style={{ 
-                      background: '#f1f5f9', 
-                      color: '#334155', 
-                      padding: '2px 8px', 
-                      borderRadius: '12px', 
-                      fontSize: '0.7rem', 
+                    <span style={{
+                      background: '#f1f5f9',
+                      color: '#334155',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
                       fontWeight: 600,
                       border: '1px solid #e2e8f0'
                     }}>
@@ -4400,12 +4468,12 @@ const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined)
                     </span>
                   )}
                   {item.issue && (
-                    <span style={{ 
-                      background: '#f0fdf4', 
-                      color: '#166534', 
-                      padding: '2px 8px', 
-                      borderRadius: '12px', 
-                      fontSize: '0.7rem', 
+                    <span style={{
+                      background: '#f0fdf4',
+                      color: '#166534',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
                       fontWeight: 600,
                       border: '1px solid #dcfce7'
                     }}>
@@ -4419,7 +4487,7 @@ const renderMedicationTakingSnapshot = (objectiveVal: string | null | undefined)
         </div>
       );
     }
-  } catch (e) {}
+  } catch (e) { }
   return objectiveVal;
 };
 
@@ -4447,13 +4515,122 @@ const renderMedicationTakingHistory = (objectiveVal: string) => {
         </div>
       );
     }
-  } catch (e) {}
+  } catch (e) { }
   return (
     <div>
       <span style={{ fontWeight: 800, color: 'var(--pp-text-2)', fontSize: '0.7rem', textTransform: 'uppercase' }}>Medication Taking:</span> {objectiveVal}
     </div>
   );
 };
+
+interface HomeoDetailsSnapshotWidgetProps {
+  currentHomeoDetail: any;
+  isToday: boolean;
+  isPendingScan: boolean;
+  onTriggerScan: () => void;
+  onEditAssessment: () => void;
+  prescriptionFileInputRef: React.RefObject<HTMLInputElement | null>;
+  handlePrescriptionFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const HomeoDetailsSnapshotWidget = React.memo(({
+  currentHomeoDetail,
+  isToday,
+  isPendingScan,
+  onTriggerScan,
+  onEditAssessment,
+  prescriptionFileInputRef,
+  handlePrescriptionFileChange
+}: HomeoDetailsSnapshotWidgetProps) => {
+  const data = React.useMemo(() => {
+    if (!currentHomeoDetail?.notes) return null;
+    try {
+      return JSON.parse(currentHomeoDetail.notes);
+    } catch {
+      return null;
+    }
+  }, [currentHomeoDetail]);
+
+  return (
+    <div className="mc-side-card" style={{ marginBottom: '16px' }}>
+      <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isToday && (
+            <>
+              <input
+                type="file"
+                ref={prescriptionFileInputRef}
+                onChange={handlePrescriptionFileChange}
+                style={{ display: 'none' }}
+                accept="image/*"
+              />
+              <button
+                onClick={onTriggerScan}
+                disabled={isPendingScan}
+                style={{
+                  background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                  color: '#7c3aed',
+                  border: '1px solid #c4b5fd',
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  cursor: isPendingScan ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  boxShadow: '0 1px 2px rgba(124, 58, 237, 0.05)',
+                  transition: 'all 0.2s ease',
+                  opacity: isPendingScan ? 0.7 : 1
+                }}
+                title="AI Scan Handwritten Prescription"
+              >
+                {isPendingScan ? (
+                  <Loader2 size={12} className="animate-spin text-purple-600" />
+                ) : (
+                  <BrainCircuit size={12} className="text-purple-600" />
+                )}
+                <span>AI Scan</span>
+              </button>
+              <div
+                onClick={onEditAssessment}
+                style={{ color: '#7c3aed', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                title="Edit Assessment"
+              >
+                <Edit size={14} />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', maxHeight: '400px', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.diagnosis || '—'}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.complaint || '—'}</div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+              {data?.medications && data.medications.length > 0 
+                ? renderMedicationTakingSnapshot(JSON.stringify(data.medications)) 
+                : '—'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
+            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.investigation || '—'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 function DiagnosisView({
   regid,
@@ -4477,6 +4654,13 @@ function DiagnosisView({
   const { deleteRecord } = useManageClinicalRecords();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const isTodayRecord = (record: any) => {
+    if (!record) return false;
+    const dateVal = record.createdAt || record.created_at || record.dateval || 0;
+    const d = new Date(dateVal);
+    return !isNaN(d.getTime()) && d.toDateString() === new Date().toDateString();
+  };
 
   const sortedSoap = soapRecords ? [...soapRecords].sort((a, b) => {
     const timeA = new Date(a.createdAt || 0).getTime();
@@ -4539,7 +4723,7 @@ function DiagnosisView({
       <div className="mc-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div className="mc-section-header" style={{ margin: 0 }}>Clinical Assessments</div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          {/* Main tab 'Add Diagnosis' button removed as requested. User uses sidebar button instead. */}
+
         </div>
       </div>
 
@@ -4547,11 +4731,34 @@ function DiagnosisView({
       {!soapRecords ? (
         <TableSkeleton rows={5} cols={5} />
       ) : soapRecords.length === 0 ? (
-        <EmptyState
-          icon={Sparkles}
-          title="No AI Follow up recorded yet"
-          description="Use the AI Follow up button in the sidebar to start recording clinical findings for this patient."
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <EmptyState
+            icon={Sparkles}
+            title="No AI Follow up recorded yet"
+            description="Start a new AI Follow up to record and analyse the conversation with this patient."
+          />
+          {onAddRecord && (
+            <button
+              onClick={onAddRecord}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 18px',
+                borderRadius: '10px',
+                border: 'none',
+                background: 'var(--pp-blue)',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)',
+              }}
+            >
+              <Sparkles size={16} /> Start AI Follow up
+            </button>
+          )}
+        </div>
       ) : (
         <>
           <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #fde68a', marginBottom: '20px' }}>
@@ -4560,13 +4767,11 @@ function DiagnosisView({
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#92400e' }}>Clinical Assessment History</span>
               <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 600, marginLeft: '4px' }}>({soapRecords.length})</span>
             </div>
-            <table className="pp-table" style={{ marginBottom: 0 }}>
+            <table className="mc-data-table" style={{ marginBottom: 0 }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
                 <tr>
                   <th style={{ width: '120px' }}>Date</th>
-                  <th style={{ width: '220px' }}>Diagnosis</th>
-                  <th>Complaints (S)</th>
-                  <th>Plan (P)</th>
+                  <th>Summary</th>
                   <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
@@ -4598,16 +4803,10 @@ function DiagnosisView({
                             />
                           </td>
                           <td>
-                            <div style={{ fontWeight: 700, color: 'var(--pp-blue)', fontSize: '0.85rem', marginBottom: '2px' }}>{record.assessment || 'No Diagnosis'}</div>
-                            {record.objective && renderMedicationTakingHistory(record.objective)}
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5 }}>
-                              {record.subjective || '—'}
+                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-ink)', lineHeight: 1.5, marginBottom: '6px', whiteSpace: 'pre-wrap' }}>
+                              {record.subjective || record.assessment || '—'}
                             </div>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-2)' }}>{record.plan || record.advice || '—'}</div>
+                            {record.objective && renderMedicationTakingHistory(record.objective)}
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
@@ -4621,22 +4820,26 @@ function DiagnosisView({
                                   <Copy size={14} />
                                 </button>
                               )}
-                              <button
-                                className="btn-ghost"
-                                style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                title="Edit"
-                                onClick={() => onEditRecord?.(record)}
-                              >
-                                <Edit size={14} />
-                              </button>
-                              <button
-                                className="btn-ghost"
-                                style={{ color: '#dc2626', padding: '4px 8px' }}
-                                title="Delete"
-                                onClick={() => handleDelete(record.id)}
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              {isTodayRecord(record) && (
+                                <>
+                                  <button
+                                    className="btn-ghost"
+                                    style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
+                                    title="Edit"
+                                    onClick={() => onEditRecord?.(record)}
+                                  >
+                                    <Edit size={14} />
+                                  </button>
+                                  <button
+                                    className="btn-ghost"
+                                    style={{ color: '#dc2626', padding: '4px 8px' }}
+                                    title="Delete"
+                                    onClick={() => handleDelete(record.id)}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>

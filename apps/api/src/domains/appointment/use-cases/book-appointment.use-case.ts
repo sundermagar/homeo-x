@@ -3,8 +3,13 @@ import type { PatientRepository } from '../../patient/ports/patient.repository.j
 import type { CreateAppointmentDto } from '@mmc/types';
 import { type Result, ok, fail } from '../../../shared/result.js';
 import type { SendSmsUseCase } from '../../communication/use-cases/send-sms.use-case.js';
+import type { SendWhatsAppTemplateUseCase } from '../../communication/use-cases/send-whatsapp-template.use-case.js';
 import { triggerNotification } from '../../../infrastructure/http/notification-trigger.js';
 import type { NotificationsRepository } from '../../communication/ports/notifications.repository.js';
+
+import { createLogger } from '../../../shared/logger.js';
+
+const logger = createLogger('book-appointment');
 
 export class BookAppointmentUseCase {
   constructor(
@@ -12,9 +17,10 @@ export class BookAppointmentUseCase {
     private readonly sms?: SendSmsUseCase,
     private readonly patientRepo?: PatientRepository,
     private readonly notifRepo?: NotificationsRepository,
-  ) {}
+    private readonly whatsapp?: SendWhatsAppTemplateUseCase,
+  ) { }
 
-  async execute(dto: CreateAppointmentDto): Promise<Result<{ id: number }>> {
+  async execute(dto: CreateAppointmentDto): Promise<Result<{ id: number; tokenNo?: number }>> {
     if (!dto.bookingDate) return fail('Booking date is required', 'VALIDATION');
 
     let patientId = dto.patientId;
@@ -34,6 +40,27 @@ export class BookAppointmentUseCase {
 
     const id = await this.repo.create({ ...dto, patientId, unregisteredPatientId });
 
+    let tokenNo: number | undefined;
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    if (dto.bookingDate === todayStr) {
+      try {
+        tokenNo = await this.repo.issueToken(id);
+        if (this.repo.addToWaitlist) {
+          await this.repo.addToWaitlist({
+            patientId: patientId || undefined,
+            appointmentId: id,
+            doctorId: dto.doctorId,
+            consultationFee: dto.consultationFee,
+            clinicId: dto.clinicId
+          });
+        }
+      } catch (err) {
+        logger.warn(`Failed to auto-issue token for appointment ${id}: ${err}`);
+      }
+    }
+
+    // DECOMMISSIONED: SMS session moved to WhatsApp
+    /*
     if (this.sms && dto.phone && dto.patientName) {
       this.sms.sendAppointmentConfirmation({
         phone: dto.phone,
@@ -42,6 +69,19 @@ export class BookAppointmentUseCase {
         time: dto.bookingTime ?? '',
         clinicName: 'MMC Clinic'
       }).catch(() => {});
+    }
+    */
+
+    if (this.whatsapp && dto.phone && dto.patientName && dto.clinicId) {
+      // Find the first active WhatsApp channel for this clinic
+      this.whatsapp.sendAppointmentConfirmation({
+        clinicId: dto.clinicId,
+        phone: dto.phone,
+        patientName: dto.patientName,
+        date: dto.bookingDate,
+        time: dto.bookingTime ?? '',
+        clinicName: 'MMC Clinic'
+      }).catch(err => logger.warn(`WhatsApp confirmation skipped: ${err.message}`));
     }
 
     if (this.notifRepo && dto.doctorId) {
@@ -65,6 +105,6 @@ export class BookAppointmentUseCase {
       }
     }
 
-    return ok({ id });
+    return ok({ id, tokenNo });
   }
 }

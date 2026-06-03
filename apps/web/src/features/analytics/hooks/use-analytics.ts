@@ -52,6 +52,21 @@ export function useCaseMonthWise(fromYearMth: string, toYearMth: string) {
   });
 }
 
+export function useProductDetails(monthKey?: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['analytics', 'productDetails', monthKey],
+    queryFn: async () => {
+      if (!monthKey) return [];
+      const res = await api.get(`/analytics/casemonthwise/product-details?monthKey=${monthKey}`);
+      const inner = unwrap<any>(res, []);
+      return Array.isArray(inner) ? inner : [];
+    },
+    enabled: !!monthKey,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useMonthWiseDues(year: number) {
   const api = useApi();
   return useQuery({
@@ -106,6 +121,23 @@ export function useReferenceListing(from?: Date, to?: Date) {
       const inner = unwrap<any>(res, []);
       return Array.isArray(inner) ? inner as ReferenceListResult[] : [];
     },
+  });
+}
+
+export function useReferenceDetails(reference?: string, from?: Date, to?: Date) {
+  const api = useApi();
+  return useQuery({
+    queryKey: ['analytics', 'references', 'details', reference, from?.toISOString(), to?.toISOString()],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (reference) params.append('reference', reference);
+      if (from) params.append('from_date', from.toISOString());
+      if (to) params.append('to_date', to.toISOString());
+      const res = await api.get(`/analytics/referencelisting/details?${params.toString()}`);
+      const inner = unwrap<any>(res, []);
+      return Array.isArray(inner) ? inner : [];
+    },
+    enabled: !!reference,
   });
 }
 

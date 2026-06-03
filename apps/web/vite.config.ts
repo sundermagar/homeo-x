@@ -27,29 +27,16 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    minify: 'esbuild', // Faster than terser
+    minify: 'esbuild',
     cssCodeSplit: true,
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        // Grouping related dependencies into larger chunks to reduce HTTP request overhead
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('router')) return 'vendor-core';
-            if (id.includes('lucide-react')) return 'vendor-icons';
-            if (id.includes('recharts') || id.includes('d3')) return 'vendor-charts';
-            if (id.includes('@fullcalendar')) return 'vendor-calendar';
-            if (id.includes('livekit')) return 'vendor-video';
-            return 'vendor-utils'; // Group smaller utils together
-          }
-        },
-      },
-    },
   },
   server: {
     allowedHosts: [
-      'frying-deviancy-rocklike.ngrok-free.dev'
+      'swear-scorch-capped.ngrok-free.dev', // current static ngrok domain
+      '.ngrok-free.dev',  // allow any ngrok-free.dev subdomain (future-proof)
+      '.ngrok-free.app',  // allow any ngrok-free.app subdomain (future-proof)
     ],
     proxy: {
       '/api': { 

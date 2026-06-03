@@ -32,6 +32,7 @@ export const createPatientSchema = z.object({
   // Clinical
   referenceType: z.string().max(100).optional(),
   referredBy: z.string().optional(),
+  referredById: z.string().optional(),
   assistantDoctor: z.string().optional(),
   consultationFee: z.coerce.number().optional(),
   courierOutstation: z.boolean().optional().default(false),

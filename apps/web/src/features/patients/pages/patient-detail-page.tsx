@@ -4,7 +4,7 @@ import { usePatient, useDeletePatient, useFamilyMembers, useAddFamilyMember, use
 import { useActivePackage } from '../../packages/hooks/use-packages';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { Edit2, Trash2, UserPlus, Users, X, MapPin, Phone, CheckCircle, Search, TrendingUp, Activity, MessageCircle, Zap, ShieldCheck, Clock, Unlink } from 'lucide-react';
-import { useSendWhatsApp } from '../../communications/hooks/use-communications';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { PatientSummary, FamilyMember } from '@mmc/types';
 import { PageSkeleton } from '@/components/shared/page-skeleton';
@@ -63,7 +63,8 @@ export default function PatientDetailPage() {
     await removeFamilyMutation.mutateAsync({ regid: numRegid, id });
   };
 
-  const waMutation = useSendWhatsApp();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   if (isLoading) {
     return <PageSkeleton variant="detail" />;
@@ -74,14 +75,18 @@ export default function PatientDetailPage() {
 
   const handleWhatsApp = async (phone: string) => {
     if (!phone) return;
-    const msg = `Hello ${patient?.firstName || ''}, this is Homeo-X clinic.`;
+    const cleaned = String(phone).replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+    
     try {
-      const res = await waMutation.mutateAsync({ phone, message: msg });
-      const deepLink = (res.data as any).data?.details?.[0]?.deepLink;
-      if (deepLink) window.open(deepLink, '_blank');
-      else window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+      const textMessage = `Dear ${patient?.firstName || 'Patient'},\n\nThank you for registering with MMC HomeoTech. Your Registration ID is *${patient?.regid ? String(patient.regid) : '-'}*.\n\nPlease use this ID for all future communications.\n\nBest regards,\nYour Clinic`;
+
+      await sendText.mutateAsync({
+        phone: finalPhone,
+        message: textMessage
+      });
     } catch (err) {
-      window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`, '_blank');
+      console.error('WhatsApp send failed:', err);
     }
   };
 

@@ -42,12 +42,18 @@ export interface SavePrescriptionDto {
   instructions?: string;
   notes?: string;
   deliveryMode?: string;  // 'clinic', 'courier', 'pickup'
+  medicineCharge?: number;
 }
 
 // ─── Use Case ────────────────────────────────────────────────────────────────
 
+import type { BillingRepository } from '../../billing/ports/billing.repository.js';
+
 export class RemedyChartUseCase {
-  constructor(private readonly db: any) { }
+  constructor(
+    private readonly db: any,
+    private readonly billingRepo?: BillingRepository
+  ) { }
 
   private async _executeWithFallback(primary: () => Promise<any>, backup: () => Promise<any>) {
     try {
@@ -309,7 +315,44 @@ export class RemedyChartUseCase {
         )
         RETURNING id
       `);
-      prescriptionId = Number((result as any)[0].id);
+      prescriptionId = (result as any[])[0]?.id;
+    }
+
+    if (this.billingRepo && dto.medicineCharge !== undefined && dto.medicineCharge > 0) {
+      // Create or update Consultation bill for this day
+      try {
+        const [existing] = await this.db.execute(sql`
+          SELECT id, received FROM bills 
+          WHERE regid = ${regid} 
+          AND bill_date = ${dateNow}
+          AND bill_type = 'Consultation'
+          AND custom_title = 'Medicine Days Charge'
+          AND deleted_at IS NULL
+          LIMIT 1
+        `) as any[];
+
+        if (existing) {
+          const received = existing.received ?? 0;
+          const newBalance = dto.medicineCharge - received;
+          await this.db.execute(sql`
+            UPDATE bills SET 
+              charges = ${dto.medicineCharge},
+              balance = ${newBalance},
+              updated_at = NOW()
+            WHERE id = ${existing.id}
+          `);
+        } else {
+          const [billNoRes] = await this.db.execute(sql`SELECT nextval('bill_no_seq') as nextval`) as any[];
+          const billNo = billNoRes?.nextval ?? 0;
+          
+          await this.db.execute(sql`
+            INSERT INTO bills (regid, bill_no, bill_date, charges, received, balance, payment_mode, bill_type, custom_title, created_at, updated_at)
+            VALUES (${regid}, ${billNo}, ${dateNow}, ${dto.medicineCharge}, 0, ${dto.medicineCharge}, 'Cash', 'Consultation', 'Medicine Days Charge', NOW(), NOW())
+          `);
+        }
+      } catch (err) {
+        console.error('Failed to create/update medicine charge bill:', err);
+      }
     }
 
     // Upsert Delivery Mode if provided

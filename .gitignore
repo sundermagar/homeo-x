@@ -72,6 +72,7 @@ api_debug.log
 tmp/
 temp/
 managemyclicnicnew/
+whatsway-main 2/
 # apps/api/uploads/
 
 # Testing & Artifacts
@@ -139,4 +140,7 @@ vars.txt
 drop_schemas.sql
 fix-migration.js
 check-db.mjs
+
+packages/database/local.db
+
 

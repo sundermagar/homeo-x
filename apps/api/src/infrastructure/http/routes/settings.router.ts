@@ -87,7 +87,7 @@ export function createSettingsRouter(): Router {
     next();
   }));
 
-  const getRepo = (req: Request) => new SettingsRepositoryPg(req.tenantDb);
+  const getRepo = (req: Request) => new SettingsRepositoryPg(req.tenantDb, (req as any).publicDb, (req as any).user?.contextId);
 
   // ─── Departments ─────────────────────────────────────────────────────────
   router.get('/departments', asyncHandler(async (req: Request, res: Response) => {
@@ -580,6 +580,27 @@ export function createSettingsRouter(): Router {
 
   router.delete('/vaccines/:id', asyncHandler(async (req: Request, res: Response) => {
     await getRepo(req).deleteVaccine(Number(req.params.id));
+    res.json({ success: true });
+  }));
+
+  // ─── Call Statuses ────────────────────────────────────────────────────────
+  router.get('/call-statuses', asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).listCallStatuses();
+    res.json({ success: true, data });
+  }));
+
+  router.post('/call-statuses', asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).createCallStatus(req.body);
+    res.status(201).json({ success: true, data });
+  }));
+
+  router.put('/call-statuses/:id', asyncHandler(async (req: Request, res: Response) => {
+    const data = await getRepo(req).updateCallStatus(Number(req.params.id), req.body);
+    res.json({ success: true, data });
+  }));
+
+  router.delete('/call-statuses/:id', asyncHandler(async (req: Request, res: Response) => {
+    await getRepo(req).deleteCallStatus(Number(req.params.id));
     res.json({ success: true });
   }));
 

@@ -101,7 +101,6 @@ export default function PatientFormPage() {
   const validate = () => {
     const errs: string[] = [];
     if (!form.firstName.trim()) errs.push('First Name is required');
-    if (!form.surname.trim()) errs.push('Surname is required');
     if (!form.phone.trim() && !form.mobile1.trim()) errs.push('At least one phone number is required');
     if (!form.dateOfBirth) errs.push('Date of Birth is required');
 
@@ -167,7 +166,7 @@ export default function PatientFormPage() {
             </div>
             <div>
               <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Consultation Fee (₹)</label>
-              <NumericInput className="pp-input" name="consultationFee" value={form.consultationFee} onChange={handleChange} />
+              <NumericInput className="pp-input" name="consultationFee" value={form.consultationFee ?? ''} onChange={handleChange} />
             </div>
           </div>
 
@@ -188,8 +187,8 @@ export default function PatientFormPage() {
               <input className="pp-input" name="middleName" value={form.middleName} onChange={handleChange} placeholder="Middle Name" />
             </div>
             <div>
-              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Surname <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
-              <input className="pp-input" name="surname" value={form.surname} onChange={handleChange} placeholder="Surname" required />
+              <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>Surname</label>
+              <input className="pp-input" name="surname" value={form.surname} onChange={handleChange} placeholder="Surname" />
             </div>
           </div>
 

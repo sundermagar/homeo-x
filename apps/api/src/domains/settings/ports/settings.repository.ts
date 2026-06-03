@@ -199,6 +199,14 @@ export interface PackagePeriod {
   updatedAt?: Date | null;
 }
 
+export interface CallStatus {
+  id: number;
+  name: string;
+  isActive?: boolean | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+}
+
 // ─── Port Interface ───────────────────────────────────────────────────────────
 
 export interface ISettingsRepository {
@@ -323,5 +331,12 @@ export interface ISettingsRepository {
   createVaccine(data: Omit<Vaccine, 'id' | 'createdAt' | 'updatedAt'>): Promise<Vaccine>;
   updateVaccine(id: number, data: Partial<Omit<Vaccine, 'id'>>): Promise<Vaccine>;
   deleteVaccine(id: number): Promise<void>;
+
+  // Call Statuses
+  listCallStatuses(): Promise<CallStatus[]>;
+  getCallStatus(id: number): Promise<CallStatus | undefined>;
+  createCallStatus(data: Omit<CallStatus, 'id' | 'createdAt' | 'updatedAt'>): Promise<CallStatus>;
+  updateCallStatus(id: number, data: Partial<Omit<CallStatus, 'id'>>): Promise<CallStatus>;
+  deleteCallStatus(id: number): Promise<void>;
 }
 

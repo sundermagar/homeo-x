@@ -85,3 +85,49 @@ export interface PatientBillSummary {
     totalBalance: number;
   };
 }
+
+// ─── Extended Daily Summary (ViewCollection Legacy Parity) ────────────────────
+
+export interface ExtendedDailySummary {
+  date: string;
+  collection: number;
+  cash: number;
+  card: number;
+  cheque: number;
+  online: number;
+  productCharges: number;
+  expenses: number;
+  cashDeposited: number;
+  deficit: number;
+  bankDeposit: number;
+  cashInHand: number;
+  recordCount: number;
+}
+
+export interface PaymentDrilldownRecord {
+  regid: number;
+  patientName: string;
+  amount: number;
+  chargeName?: string;
+  quantity?: number;
+}
+
+export interface MonthListRow extends ExtendedDailySummary {}
+
+export interface CollectionTargetRow {
+  date: string;
+  collection: number;
+  dailyTarget: number;
+  difference: number;
+  cumulativeCollection: number;
+  cumulativeTarget: number;
+  cumulativeDifference: number;
+  isSunday: boolean;
+}
+
+export interface CollectionTargetData {
+  monthlyTarget: number;
+  workingDays: number;
+  dailyTarget: number;
+  rows: CollectionTargetRow[];
+}

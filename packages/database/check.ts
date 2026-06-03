@@ -11,7 +11,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 async function check() {
   const db = createDbClient(process.env.DATABASE_URL!, 'tenant_demo');
-  const result = await db.execute(sql`SELECT id, email, password FROM tenant_demo.users WHERE email = 'admin@kreed.health'`);
+  const result = await db.execute(sql`SELECT id, email, password FROM tenant_demo.users WHERE email = 'admin@MMC'`);
   console.log(result);
 }
 

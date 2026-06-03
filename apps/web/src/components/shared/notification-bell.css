@@ -236,6 +236,7 @@
 .notif-icon-cyan   { color: #06b6d4; }
 .notif-icon-yellow { color: #eab308; }
 .notif-icon-gray   { color: #94a3b8; }
+.notif-icon-whatsapp { color: #22c55e; }
 
 /* Item body */
 .notif-item-body { flex: 1; min-width: 0; }

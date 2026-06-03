@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Component, useEffect, type ErrorInfo, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, Home, RotateCcw } from 'lucide-react';
 import './error-boundary.css';
@@ -85,59 +85,71 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 function DefaultFallback({ error, reset, errorId, occurredAt }: FallbackProps): ReactNode {
-  const reload = (): void => window.location.reload();
-  const goHome = (): void => {
-    window.location.href = '/';
-  };
+  const isChunkError = 
+    error.name === 'ChunkLoadError' || 
+    error.message.includes('Failed to fetch dynamically imported module') ||
+    error.message.includes('Loading chunk');
 
+  // Auto-reload on chunk error (often caused by new deployments or Vite HMR issues)
+  useEffect(() => {
+    if (isChunkError) {
+      window.location.reload();
+    }
+  }, [isChunkError]);
+
+  if (isChunkError) {
+    return null; // Will reload immediately
+  }
+
+  const reload = (): void => window.location.reload();
+  
   const formattedTime = occurredAt
-    ? new Date(occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    ? new Date(occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : '';
 
   return (
-    <div className="eb-root" role="alert">
-      <div className="eb-card">
-        <div className="eb-icon-wrap" aria-hidden="true">
-          <AlertTriangle size={28} strokeWidth={2} />
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#F8FAFC] p-6 text-center">
+      <div className="w-16 h-16 bg-[#FEF2F2] rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-[#FEE2E2]">
+        <AlertTriangle size={28} className="text-[#EF4444]" />
+      </div>
+      
+      <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight mb-2">Something went wrong</h1>
+      <p className="text-[#64748B] max-w-md mx-auto mb-8 text-[15px]">
+        {error.message || 'An unexpected error occurred while rendering this page.'}
+      </p>
 
-        <h1 className="eb-title">Something went wrong</h1>
-        <p className="eb-subtitle">
-          The page hit an unexpected problem. Your data is safe — try one of the actions below to recover.
-        </p>
-
-        <div className="eb-message">
-          {error.message || 'An unexpected error occurred while rendering this view.'}
-        </div>
-
-        <div className="eb-actions">
-          <button type="button" className="eb-btn eb-btn-primary" onClick={reset}>
-            <RotateCcw size={14} strokeWidth={2.2} />
-            Try again
-          </button>
-          <button type="button" className="eb-btn eb-btn-secondary" onClick={goHome}>
-            <Home size={14} strokeWidth={2.2} />
-            Go home
-          </button>
-          <button type="button" className="eb-btn eb-btn-ghost" onClick={reload}>
-            <RefreshCw size={14} strokeWidth={2.2} />
-            Reload page
-          </button>
-        </div>
-
-        {(errorId || formattedTime) && (
-          <div className="eb-meta">
-            {errorId && <span>ID: {errorId}</span>}
-            {errorId && formattedTime && <span className="eb-meta-divider">•</span>}
-            {formattedTime && <span>{formattedTime}</span>}
-          </div>
-        )}
+      <div className="flex items-center gap-3 mb-10">
+        <button 
+          onClick={reset}
+          className="flex items-center gap-2 h-11 px-6 rounded-xl bg-[#0F172A] text-white font-semibold text-[14px] hover:bg-[#1E293B] transition-colors"
+        >
+          <RotateCcw size={16} />
+          Try Again
+        </button>
+        <button 
+          onClick={reload}
+          className="flex items-center gap-2 h-11 px-6 rounded-xl bg-white text-[#475569] font-semibold text-[14px] hover:bg-[#F1F5F9] border border-[#E2E8F0] shadow-sm transition-colors"
+        >
+          <RefreshCw size={16} />
+          Reload Page
+        </button>
       </div>
 
+      {errorId && (
+        <div className="flex flex-col items-center gap-1 text-[11px] font-mono text-[#94A3B8] bg-white px-4 py-2 rounded-lg border border-[#E2E8F0]">
+          <span>Error ID: {errorId}</span>
+          {formattedTime && <span>Time: {formattedTime}</span>}
+        </div>
+      )}
+      
       {isDev && error.stack && (
-        <details className="eb-trace">
-          <summary>Stack trace (development only)</summary>
-          <pre>{error.stack}</pre>
+        <details className="mt-8 text-left w-full max-w-3xl bg-[#0F172A] rounded-xl overflow-hidden border border-[#1E293B] shadow-lg">
+          <summary className="px-4 py-3 bg-[#1E293B] text-[12px] font-semibold text-[#94A3B8] cursor-pointer hover:text-white transition-colors">
+            Debug Details (Dev Only)
+          </summary>
+          <pre className="p-4 text-[12px] text-[#FCA5A5] font-mono overflow-auto max-h-[400px] whitespace-pre-wrap">
+            {error.stack}
+          </pre>
         </details>
       )}
     </div>

@@ -3,7 +3,8 @@ import { useState } from 'react';
 import {
   LayoutDashboard, Users, UsersRound, Calendar, FileText,
   LogOut, X, Briefcase, ChevronDown, ChevronRight, Circle,
-  BarChart3, Stethoscope, Receipt, Settings, MessageCircle, Truck
+  BarChart3, Stethoscope, Receipt, Settings, MessageCircle, Truck,
+  Bot, MessageSquare, Send, Zap, Globe
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { useQuery } from '@tanstack/react-query';
@@ -19,7 +20,9 @@ type UserRole = 'SuperAdmin' | 'Admin' | 'Clinicadmin' | 'Doctor' | 'Receptionis
 interface NavSubItem {
   label: string;
   path: string;
+  icon?: React.ReactNode;
   badge?: number;
+  roles?: UserRole[];
 }
 
 interface NavItem {
@@ -37,7 +40,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const user = useAuthStore((s) => s.user);
   const location = useLocation();
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
-    'Operations Hub': location.pathname.includes('/operations')
+    'Operations Hub': location.pathname.includes('/operations'),
+    'WhatsApp Pro': location.pathname.includes('/communications/whatsapp')
   });
 
   const { data: unreadResponse } = useQuery({
@@ -46,7 +50,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       const { data } = await apiClient.get('/courier/unread-count');
       return data.data as { count: number };
     },
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 5 * 60_000, // Refresh every 5 min (remote DB is slow)
     enabled: !!user
   });
   const unreadCount = unreadResponse?.count || 0;
@@ -97,7 +101,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: CLINICAL_ROLES,
       subItems: [
         { label: 'Case History', path: '/consultation-history' },
-        { label: 'Remedy Matrix', path: '/clinical/remedy-chart' },
+        { label: 'AI Analysis', path: '/clinical/ai-analysis' },
         { label: 'Height & Weight Check', path: '/vitals-check' },
         { label: 'Medical Case List', path: '/medical-cases' },
       ]
@@ -124,7 +128,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       label: 'Staff & Admin',
       icon: <Briefcase size={20} />,
       path: '/staff',
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
+      roles: ['SuperAdmin', 'Admin'],
     },
     {
       label: 'Analytics',
@@ -133,11 +137,26 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       roles: [...ADMIN_ROLES, 'Doctor'],
     },
     {
+      label: 'WhatsApp Pro',
+      icon: <MessageCircle size={20} className="text-pp-blue" />,
+      roles: [...ADMIN_ROLES, 'Doctor', 'Receptionist'],
+      subItems: [
+        { label: 'Dashboard', path: '/communications/whatsapp/overview', icon: <LayoutDashboard size={14} />, roles: ADMIN_ROLES },
+        { label: 'Team Inbox', path: '/communications/whatsapp/inbox', icon: <MessageSquare size={14} /> },
+        { label: 'Contacts', path: '/communications/whatsapp/contacts', icon: <Users size={14} /> },
+        { label: 'Campaigns', path: '/communications/whatsapp/campaigns', icon: <Send size={14} />, roles: ADMIN_ROLES },
+        { label: 'Templates', path: '/communications/whatsapp/templates', icon: <FileText size={14} />, roles: ADMIN_ROLES },
+        { label: 'Automations', path: '/communications/whatsapp/automations', icon: <Zap size={14} />, roles: ADMIN_ROLES },
+        { label: 'AI Chatbot', path: '/communications/whatsapp/chatbots', icon: <Bot size={14} />, roles: ADMIN_ROLES },
+        { label: 'Analytics', path: '/communications/whatsapp/analytics', icon: <BarChart3 size={14} />, roles: ADMIN_ROLES },
+        { label: 'Widget Builder', path: '/communications/whatsapp/widget-builder', icon: <Bot size={14} />, roles: ADMIN_ROLES },
+      ]
+    },
+    {
       label: 'Communications',
-      icon: <MessageCircle size={20} />,
+      icon: <Globe size={20} />,
       roles: ADMIN_ROLES,
       subItems: [
-        { label: 'WhatsApp Messenger', path: '/communications/whatsapp' },
         { label: 'Birthday Greetings', path: '/communications/birthdays' },
         { label: 'SMS Reports', path: '/communications/reports' },
       ]
@@ -145,7 +164,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     {
       label: 'Operations Hub',
       icon: <Settings size={20} />,
-      roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor'],
+      roles: ADMIN_ROLES,
       subItems: [
         { label: 'Logistics & Couriers', path: '/operations?tab=logistics' },
         { label: 'Lead CRM & Promos', path: '/operations?tab=crm' },
@@ -170,7 +189,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <div className="sb-container" data-open={isOpen}>
         {/* Brand & Close Button (Mobile) */}
         <div className="sb-brand">
-          <div className="sb-logo">MMC</div>
+          <div className="sb-logo">KH</div>
           <span className="sb-brand-name">MMC</span>
           <button onClick={onClose} className="sb-close-btn mobile-only" aria-label="Close menu">
             <X size={20} />
@@ -202,7 +221,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   </button>
                   {expandedFolders[item.label] && (
                     <div className="sb-sub-nav">
-                      {item.subItems.map(subItem => (
+                      {item.subItems
+                         .filter(sub => !sub.roles || sub.roles.includes(normalizedRole))
+                         .map(subItem => (
                         <NavLink
                           key={subItem.label}
                           to={subItem.path}
@@ -217,7 +238,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                             return `sb-sub-item${isMatch ? ' active' : ''}`;
                           }}
                         >
-                          <Circle size={6} fill="currentColor" />
+                          {subItem.icon || <Circle size={6} fill="currentColor" />}
                           <span style={{ flex: 1 }}>{subItem.label}</span>
                           {subItem.badge !== undefined && subItem.badge > 0 && (
                             <span className="nav-badge">{subItem.badge}</span>

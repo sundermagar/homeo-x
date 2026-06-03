@@ -24,13 +24,13 @@ export class SendSmsUseCase {
     vars: { name?: string; date?: string; clinic?: string; time?: string; doctor?: string; fee?: string; package?: string }
   ): string {
     return message
-      .replace(/{#name#}/gi,     vars.name    ?? 'Patient')
-      .replace(/{#date#}/gi,     vars.date    ?? new Date().toLocaleDateString('en-IN'))
-      .replace(/{#clinic#}/gi,   vars.clinic  ?? 'MMC Clinic')
-      .replace(/{#time#}/gi,     vars.time    ?? '')
-      .replace(/{#doctor#}/gi,   vars.doctor  ?? '')
-      .replace(/{#fee#}/gi,      vars.fee     ?? '')
-      .replace(/{#package#}/gi,  vars.package ?? '');
+      .replace(/{#name#}/gi, vars.name ?? 'Patient')
+      .replace(/{#date#}/gi, vars.date ?? new Date().toLocaleDateString('en-IN'))
+      .replace(/{#clinic#}/gi, vars.clinic ?? 'MMC Clinic')
+      .replace(/{#time#}/gi, vars.time ?? '')
+      .replace(/{#doctor#}/gi, vars.doctor ?? '')
+      .replace(/{#fee#}/gi, vars.fee ?? '')
+      .replace(/{#package#}/gi, vars.package ?? '');
   }
 
   // ── Core send ─────────────────────────────────────────────────────────────
@@ -138,9 +138,9 @@ export class SendSmsUseCase {
   }): Promise<Result<SendSmsResult>> {
     const template = `Dear {#name#}, your appointment at {#clinic#} is confirmed for {#date#} at {#time#}. Kindly arrive 10 minutes early. Regards, MMC Clinic.`;
     const message = this.replacePlaceholders(template, {
-      name:   params.patientName,
-      date:   params.date,
-      time:   params.time,
+      name: params.patientName,
+      date: params.date,
+      time: params.time,
       clinic: params.clinicName,
       doctor: params.doctorName,
     });
@@ -161,9 +161,9 @@ export class SendSmsUseCase {
   }): Promise<Result<SendSmsResult>> {
     const template = `Dear {#name#}, a friendly reminder: your appointment at {#clinic#} is tomorrow ({#date#}) at {#time#}. Wishing you good health! - MMC Clinic`;
     const message = this.replacePlaceholders(template, {
-      name:   params.patientName,
-      date:   params.date,
-      time:   params.time,
+      name: params.patientName,
+      date: params.date,
+      time: params.time,
       clinic: params.clinicName,
       doctor: params.doctorName,
     });

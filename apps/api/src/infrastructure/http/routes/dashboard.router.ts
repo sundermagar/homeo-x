@@ -28,7 +28,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     console.log(`[Dashboard] /dashboard?period=${period} took ${elapsed}ms`);
   }
   if (!result.success) throw new Error(result.error);
-  res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
+  res.setHeader('Cache-Control', 'no-store');
   sendSuccess(res, result.data);
 }));
 
@@ -46,7 +46,7 @@ router.get('/clinic-admin', asyncHandler(async (req, res) => {
     console.log(`[Dashboard] /clinic-admin?period=${period} took ${elapsed}ms`);
   }
   if (!result.success) throw new Error(result.error);
-  res.setHeader('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
+  res.setHeader('Cache-Control', 'no-store');
   sendSuccess(res, result.data);
 }));
 

@@ -157,7 +157,7 @@ export default function ExpensesPage() {
       {/* ─── Stats Bar ─── */}
       <div className="bill-stats-bar">
         <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-bg)', color: 'var(--pp-blue)' }}>
+          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
             <DollarSign size={22} />
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

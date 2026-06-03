@@ -35,7 +35,7 @@ export function DashboardAnalyticsPage() {
         <div>
           <h1 className="pp-page-hero-title">
             <TrendingUp size={22} style={{ color: 'var(--pp-blue)' }} />
-            Analytics Dashboard
+            Analytics Overview
           </h1>
           <p className="pp-page-hero-sub">Real-time overview of clinical case distributions and financial performance.</p>
         </div>
@@ -58,7 +58,7 @@ export function DashboardAnalyticsPage() {
         {/* Revenue Trend */}
         <div className="pp-table-container-enhanced" style={{ overflow: 'visible' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--pp-warm-4)' }}>
-            <h3><IndianRupee size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Revenue Trends (Last 6 Months)</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}><IndianRupee size={14} /> Monthly Revenue Trends (Last 6 Months)</h3>
           </div>
           <div style={{ padding: '24px 12px', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -109,7 +109,7 @@ export function DashboardAnalyticsPage() {
         {/* New Patients Bar Chart */}
         <div className="pp-table-container-enhanced" style={{ overflow: 'visible' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--pp-warm-4)' }}>
-            <h3><Users size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> New Patients (Last 6 Months)</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}><Users size={14} /> Monthly New Patients (Last 6 Months)</h3>
           </div>
           <div style={{ padding: '24px 12px', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">

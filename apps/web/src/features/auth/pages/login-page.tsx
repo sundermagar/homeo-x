@@ -1,114 +1,139 @@
-import { useState, useEffect, memo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Mail, Lock, Eye, EyeOff, Loader2, AlertCircle,
-  Video, Activity, ShieldCheck, Building2, KeyRound, ArrowLeft, CheckCircle2, User
+  Video, Activity, ShieldCheck, Building2, X
 } from 'lucide-react';
 import { z } from 'zod';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { LoginRequestSchema } from '@mmc/validation';
-import hospitalHero from '@/assets/hospital-hero.jpg';
+import hospitalHero from '@/assets/Gemini_Generated_Image_3dl6iv3dl6iv3dl6.png';
+import mmcIconOrange from '@/assets/mmc-icon-orange-transparent.png';
 import { prefetchDashboard } from '@/features/dashboard/hooks/use-dashboard';
+import { toast } from '@/hooks/use-toast';
 import '../styles/login-page.css';
 
 type LoginFields = z.infer<typeof LoginRequestSchema>;
-type ViewState = 'LOGIN' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD';
 
-// ─── Hero Side Component (Memoized) ──────────────────────────────────────────
-const HeroSide = memo(() => (
-  <div className="login-hero-side">
-    <div className="hero-background-shapes">
-      <div className="hero-shape-diag" />
-      <div className="hero-shape-hex" />
-    </div>
-    <div className="hospital-image-container">
-      <img src={hospitalHero} alt="Hospital Facility" className="hospital-image" />
-    </div>
-  </div>
-));
-
-HeroSide.displayName = 'HeroSide';
-
-// ─── Auth Flow Component ─────────────────────────────────────────────────────
-function AuthFlow() {
-  const [view, setView] = useState<ViewState>('LOGIN');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-
-  // Form states
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof LoginFields, string>>>({});
-
-
-  // Reset Password specific states
-  const [resetEmail, setResetEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  
-  // Find Account state
-  const [isAccountFound, setIsAccountFound] = useState(false);
-  const [foundUserName, setFoundUserName] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState(false);
+  const [showForgotForm, setShowForgotForm] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const resetToken = searchParams.get('token');
+  const resetEmail = searchParams.get('email');
+
   const queryClient = useQueryClient();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  // Check for reset token in URL on mount
+  // If in reset mode, pre-fill email
   useEffect(() => {
-    const tokenParam = searchParams.get('token');
-    const emailParam = searchParams.get('email');
-    if (tokenParam && emailParam) {
-      setResetEmail(emailParam);
-      setOtp(tokenParam);
-      setView('RESET_PASSWORD');
-
-      // Clear sensitive params from URL to keep it clean and secure
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('token');
-      newParams.delete('email');
-      setSearchParams(newParams, { replace: true });
+    if (resetEmail && !email) {
+      setEmail(resetEmail);
     }
-  }, [searchParams, setSearchParams]);
+  }, [resetEmail]);
 
-  // Auto-clear messages after 5 seconds
   useEffect(() => {
-    if (successMessage || error) {
-      const timer = setTimeout(() => {
-        setSuccessMessage(null);
-        setError(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMessage, error]);
+    if (isAuthenticated) navigate('/', { replace: true });
+  }, [isAuthenticated, navigate]);
 
-  const clearMessages = () => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError(null);
+    setForgotSuccess(null);
+
+    if (!forgotEmail) {
+      setForgotError('Please enter your email address.');
+      return;
+    }
+
+    setIsForgotPasswordLoading(true);
+    try {
+      const { data } = await apiClient.post('/auth/forgot-password', { email: forgotEmail });
+      if (data.success && data.data?.success) {
+        setForgotSuccess('Reset link sent! Check your email inbox.');
+        setForgotError(null);
+      } else {
+        setForgotError(data.data?.message || 'Could not send reset link. Please try again.');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.response?.data?.error || '';
+      if (msg.toLowerCase().includes('not found') || err.response?.status === 404) {
+        setForgotError('No account found with this email address.');
+      } else {
+        setForgotError(msg || 'Failed to send reset link. Please try again.');
+      }
+    } finally {
+      setIsForgotPasswordLoading(false);
+    }
+  };
+
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    setIsResetting(true);
     setError(null);
-    setSuccessMessage(null);
-    setFieldErrors({});
+    try {
+      const { data } = await apiClient.post('/auth/reset-password', {
+        email: resetEmail || email,
+        token: resetToken,
+        newPassword
+      });
+      if (data.success) {
+        toast({ title: 'Success', description: 'Password reset successfully. Please login.' });
+        navigate('/login', { replace: true });
+        setPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to reset password.');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
-  const handleBackToLogin = () => {
-    clearMessages();
-    setView('LOGIN');
-    setResetEmail('');
-    setOtp('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setIsAccountFound(false);
-    setFoundUserName(null);
-  };
+  // Warm up the dashboard chunk and the dashboard query while the user is reading
+  // the login form. Hides ~500-1500ms of perceived wait on first navigation to "/".
+  useEffect(() => {
+    const warmup = () => {
+      void import('@/features/dashboard/pages/dashboard-page');
+    };
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const id = (window as any).requestIdleCallback(warmup, { timeout: 1500 });
+      return () => (window as any).cancelIdleCallback?.(id);
+    }
+    const timer = setTimeout(warmup, 800);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    clearMessages();
+    setError(null);
+    setFieldErrors({});
 
     const validation = LoginRequestSchema.safeParse({ email, password });
     if (!validation.success) {
@@ -121,7 +146,11 @@ function AuthFlow() {
     try {
       const { data } = await apiClient.post('/auth/login', { email, password });
       if (data.success && data.data?.token) {
-        setAuth(data.data.token, data.data.user);
+        setAuth(data.data.token, data.data.user, rememberMe);
+        // Fire ONE dashboard request matching this user's role so it's in flight by
+        // the time React mounts the dashboard route. Firing both 'month' and 'day'
+        // at once doubles connection-pool pressure on the remote DB and makes the
+        // first load slower, not faster.
         const role = String(data.data.user?.type || '').toLowerCase();
         const period = role === 'doctor' ? 'day' : 'month';
         prefetchDashboard(queryClient, period);
@@ -140,389 +169,315 @@ function AuthFlow() {
     }
   };
 
-  const handleFindAccount = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resetEmail) {
-      setError('Please enter your email address.');
-      return;
-    }
-    setIsLoading(true);
-    clearMessages();
-
-    try {
-      const { data } = await apiClient.post('/auth/find-account', { email: resetEmail });
-      if (data.success) {
-        setIsAccountFound(true);
-        setFoundUserName(data.data.name);
-        setSuccessMessage(`Account found for ${data.data.name}.`);
-      } else {
-        setError(data.error || 'No account found with this email.');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'No account found with this email.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSendResetLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    clearMessages();
-
-    try {
-      const { data } = await apiClient.post('/auth/forgot-password', { email: resetEmail });
-      if (data.success) {
-        setSuccessMessage(data.message || 'Reset link sent successfully to your email.');
-        setView('LOGIN');
-        setIsAccountFound(false);
-        setFoundUserName(null);
-      } else {
-        setError(data.error || 'Failed to send reset link.');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to send reset link. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    setIsLoading(true);
-    clearMessages();
-
-    try {
-      const { data } = await apiClient.post('/auth/reset-password', { email: resetEmail, otp, newPassword });
-      if (data.success) {
-        setSuccessMessage('Password updated successfully. You can now log in.');
-        setView('LOGIN');
-        setResetEmail('');
-        setOtp('');
-        setNewPassword('');
-        setConfirmPassword('');
-        
-        searchParams.delete('token');
-        searchParams.delete('email');
-        setSearchParams(searchParams);
-      } else {
-        setError(data.error || 'Failed to reset password.');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to reset password. Please try again or request a new link.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="login-form-card">
-      <div className="login-form-header-row">
-        <div className="login-form-header-badge">
-          <ShieldCheck size={14} />
-          Secure Hospital Access
-        </div>
-        <div className="system-status-badge">
-          <div className="status-dot pulse" />
-          <span>System Online</span>
-        </div>
-      </div>
-      
-      {view === 'LOGIN' && (
-        <>
-          <h1 className="login-form-title">Hospital Portal</h1>
-          <p className="login-form-subtitle">
-            Access your clinical dashboard, patient records, and hospital management tools.
-          </p>
-
-          <form className="login-form" onSubmit={handleLoginSubmit} noValidate>
-            <div className="form-group input-wrapper has-input-icon">
-              <div className="input-icon-bg">
-                <Mail size={18} className="input-icon" />
-              </div>
-              <input
-                id="login-email"
-                type="email"
-                className={`login-input${fieldErrors.email ? ' error' : ''}`}
-                placeholder="Staff Email / ID"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-              />
-            </div>
-
-            <div className="form-group input-wrapper has-input-icon">
-              <div className="input-icon-bg">
-                <Lock size={18} className="input-icon" />
-              </div>
-              <input
-                id="login-password"
-                type={showPassword ? 'text' : 'password'}
-                className={`login-input${fieldErrors.password ? ' error' : ''}`}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            <div className="login-form-options">
-
-              <button 
-                type="button" 
-                className="forgot-pass" 
-                onClick={(e) => { e.preventDefault(); clearMessages(); setView('FORGOT_PASSWORD'); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-              >
-                Reset Password?
-              </button>
-            </div>
-
-            {error && (
-              <div className="login-error-alert">
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </div>
-            )}
-            {successMessage && (
-              <div className="login-success-alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'rgba(34, 197, 94, 0.1)', color: '#16a34a', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', fontWeight: 500 }}>
-                <CheckCircle2 size={16} />
-                <span>{successMessage}</span>
-              </div>
-            )}
-
-            <button type="submit" className="login-btn-primary" disabled={isLoading}>
-              {isLoading ? <Loader2 size={20} className="animate-spin" /> : 'Enter Portal'}
-            </button>
-          </form>
-        </>
-      )}
-
-      {view === 'FORGOT_PASSWORD' && (
-        <>
-          <button type="button" className="back-btn" onClick={handleBackToLogin} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, marginBottom: '16px', fontSize: '14px', fontWeight: 500 }}>
-            <ArrowLeft size={16} /> Back to Login
-          </button>
-          <h1 className="login-form-title">{isAccountFound ? 'Account Verified' : 'Find Account'}</h1>
-          <p className="login-form-subtitle">
-            {isAccountFound 
-              ? `We found an account for ${foundUserName}. Click below to send a reset link to ${resetEmail}.`
-              : 'Enter your registered email address and we\'ll find your account.'}
-          </p>
-
-          <form className="login-form" onSubmit={isAccountFound ? handleSendResetLink : handleFindAccount} noValidate>
-            <div className="form-group input-wrapper has-input-icon">
-              <div className="input-icon-bg">
-                {isAccountFound ? <User size={18} className="input-icon" /> : <Mail size={18} className="input-icon" />}
-              </div>
-              <input
-                type="email"
-                className="login-input"
-                placeholder="Registered Email"
-                value={resetEmail}
-                onChange={(e) => { setResetEmail(e.target.value); setIsAccountFound(false); }}
-                readOnly={isAccountFound}
-                required
-              />
-              {isAccountFound && (
-                <button 
-                  type="button" 
-                  className="password-toggle" 
-                  onClick={() => setIsAccountFound(false)}
-                  style={{ color: 'var(--hospital-blue)', fontSize: '12px', fontWeight: 600 }}
-                >
-                  Change
-                </button>
-              )}
-            </div>
-
-            {error && (
-              <div className="login-error-alert">
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </div>
-            )}
-            {successMessage && !error && (
-              <div className="login-success-alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'rgba(34, 197, 94, 0.1)', color: '#16a34a', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', fontWeight: 500 }}>
-                <CheckCircle2 size={16} />
-                <span>{successMessage}</span>
-              </div>
-            )}
-
-            <button type="submit" className="login-btn-primary" disabled={isLoading}>
-              {isLoading ? <Loader2 size={20} className="animate-spin" /> : (isAccountFound ? 'Send Reset Link' : 'Find Account')}
-            </button>
-          </form>
-        </>
-      )}
-
-      {view === 'RESET_PASSWORD' && (
-        <>
-          <button type="button" className="back-btn" onClick={handleBackToLogin} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, marginBottom: '16px', fontSize: '14px', fontWeight: 500 }}>
-            <ArrowLeft size={16} /> Cancel
-          </button>
-          <h1 className="login-form-title">Create New Password</h1>
-          <p className="login-form-subtitle">
-            Please enter your new password below. Make sure it\'s secure.
-          </p>
-
-          <form className="login-form" onSubmit={handleResetPasswordSubmit} noValidate>
-            <div className="form-group input-wrapper has-input-icon">
-              <div className="input-icon-bg">
-                <Lock size={18} className="input-icon" />
-              </div>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className="login-input"
-                placeholder="New Password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            <div className="form-group input-wrapper has-input-icon">
-              <div className="input-icon-bg">
-                <Lock size={18} className="input-icon" />
-              </div>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className="login-input"
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            {error && (
-              <div className="login-error-alert">
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </div>
-            )}
-            {successMessage && (
-              <div className="login-success-alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'rgba(34, 197, 94, 0.1)', color: '#16a34a', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', fontWeight: 500 }}>
-                <CheckCircle2 size={16} />
-                <span>{successMessage}</span>
-              </div>
-            )}
-
-            <button type="submit" className="login-btn-primary" disabled={isLoading}>
-              {isLoading ? <Loader2 size={20} className="animate-spin" /> : 'Update Password'}
-            </button>
-          </form>
-        </>
-      )}
-
-      {/* ─── Platform Features ─────────────────────────────────────── */}
-      {view === 'LOGIN' && (
-        <div className="login-platform-features">
-          <div className="feature-item">
-            <div className="feature-icon"><Activity size={18} /></div>
-            <div className="feature-text">
-              <strong>AI Consultation</strong>
-              <span>Smart clinical assistance</span>
-            </div>
-          </div>
-          <div className="feature-item">
-            <div className="feature-icon"><Video size={18} /></div>
-            <div className="feature-text">
-              <strong>Telehealth Ready</strong>
-              <span>Integrated video care</span>
-            </div>
-          </div>
-          <div className="feature-item">
-            <div className="feature-icon"><ShieldCheck size={18} /></div>
-            <div className="feature-text">
-              <strong>Secure Data</strong>
-              <span>Enterprise protection</span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Main Page Component ─────────────────────────────────────────────────────
-export default function LoginPage() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Only redirect to dashboard if authenticated AND NOT trying to reset password
-    if (isAuthenticated && !searchParams.has('token')) {
-      navigate('/', { replace: true });
-    }
-  }, [isAuthenticated, navigate, searchParams]);
-
-  useEffect(() => {
-    const warmup = () => {
-      void import('@/features/dashboard/pages/dashboard-page');
-    };
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      const id = (window as any).requestIdleCallback(warmup, { timeout: 1500 });
-      return () => (window as any).cancelIdleCallback?.(id);
-    }
-    const timer = setTimeout(warmup, 800);
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <div className="login-screen">
       <div className="login-container fade-in">
-        <div className="login-header">
-          <div className="login-logo">
-            <div className="login-logo-icon">
-              <Building2 size={32} color="white" strokeWidth={2.5} />
-            </div>
-            <span className="login-logo-text">Kreed<span>.health</span></span>
-          </div>
-        </div>
 
+
+        {/* ─── Main Content Area ─────────────────────────────────────────────── */}
         <div className="login-content-grid">
-          <HeroSide />
 
+          {/* Left Side: Hospital Hero Illustration */}
+          <div className="login-hero-side">
+            <div className="hero-background-shapes">
+              <div className="hero-shape-diag" />
+              <div className="hero-shape-hex" />
+            </div>
+
+            <div className="hospital-image-container">
+              <img src={hospitalHero} alt="Hospital Facility" className="hospital-image" />
+            </div>
+
+          </div>
+
+          {/* Right Side: Form */}
           <div className="login-form-side">
-            <AuthFlow />
+            <div className="login-form-card">
+              {/* ─── Integrated Logo ─── */}
+              <div className="login-form-logo" style={{ alignItems: 'center', justifyContent: 'center', marginTop: '-32px', marginBottom: '36px' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '16px' }}>
+                  <img src={mmcIconOrange} alt="MMC Icon" style={{ height: '48px', width: '48px', objectFit: 'contain', transform: 'scale(1.4)' }} />
+                  <span style={{ fontSize: '36px', fontWeight: '800', color: '#1e3a8a', letterSpacing: '-0.5px' }}>MMC</span>
+                </div>
+              </div>
 
+              <div className="login-form-header-row">
+                <div className="login-form-header-badge">
+                  <ShieldCheck size={14} />
+                  Secure Clinic Access
+                </div>
+                <div className="system-status-badge">
+                  <div className="status-dot pulse" />
+                  <span>System Online</span>
+                </div>
+              </div>
+              <h1 className="login-form-title">
+                {resetToken ? 'Reset Password' : showForgotForm ? 'Forgot Password' : 'Clinic Portal'}
+              </h1>
+              <div className="login-subtitle-container">
+                <p className={`login-form-subtitle ${activeFeature ? 'is-insight' : ''}`}>
+                  {activeFeature === 'ai' && (
+                    <>
+                      <Activity size={12} className="insight-inline-icon" />
+                      <strong>AI Intelligence:</strong> Our proprietary engine assists with clinical analysis and remedy suggestions using 15+ years of data.
+                    </>
+                  )}
+                  {activeFeature === 'tele' && (
+                    <>
+                      <Video size={12} className="insight-inline-icon" />
+                      <strong>Telehealth:</strong> Integrated HD video suite designed for remote diagnostics with built-in vitals tracking.
+                    </>
+                  )}
+                  {activeFeature === 'data' && (
+                    <>
+                      <ShieldCheck size={12} className="insight-inline-icon" />
+                      <strong>Security:</strong> Enterprise-grade HIPAA-compliant 256-bit encryption with dedicated clinical tenant isolation.
+                    </>
+                  )}
+                  {!activeFeature && "Access your clinical dashboard, patient records, and clinic management tools."}
+                </p>
+                {activeFeature && (
+                  <button className="insight-close-pill" onClick={() => setActiveFeature(null)}>
+                    <X size={10} />
+                    <span>Back</span>
+                  </button>
+                )}
+              </div>
+
+              {resetToken ? (
+                <form className="login-form" onSubmit={handleResetPassword} noValidate>
+                  <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px', textAlign: 'center' }}>
+                    Set a new password for <br /><strong style={{ color: '#1e3a8a' }}>{resetEmail}</strong>
+                  </p>
+                  
+                  <div className="form-group input-wrapper has-input-icon">
+                    <div className="input-icon-bg">
+                      <Lock size={18} className="input-icon" />
+                    </div>
+                    <input
+                      id="reset-password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="login-input"
+                      placeholder="New Password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+
+                  <div className="form-group input-wrapper has-input-icon">
+                    <div className="input-icon-bg">
+                      <ShieldCheck size={18} className="input-icon" />
+                    </div>
+                    <input
+                      id="confirm-password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="login-input"
+                      placeholder="Confirm New Password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      autoComplete="new-password"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="login-error-alert">
+                      <AlertCircle size={16} />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <button type="submit" className="login-btn-primary" disabled={isResetting}>
+                    {isResetting ? <Loader2 size={20} className="animate-spin" /> : 'Set New Password'}
+                  </button>
+
+                  <div className="login-form-options" style={{ justifyContent: 'center', marginTop: '16px' }}>
+                    <Link to="/login" className="forgot-pass">
+                      Back to Login
+                    </Link>
+                  </div>
+                </form>
+              ) : showForgotForm ? (
+                <form className="login-form" onSubmit={handleForgotPassword} noValidate>
+                  <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px', textAlign: 'center' }}>
+                    Enter your registered email address. We'll search your account and send a reset link.
+                  </p>
+
+                  <div className="form-group input-wrapper has-input-icon">
+                    <div className="input-icon-bg">
+                      <Mail size={18} className="input-icon" />
+                    </div>
+                    <input
+                      id="forgot-email"
+                      type="email"
+                      className={`login-input${forgotError ? ' error' : ''}`}
+                      placeholder="Enter your email address"
+                      value={forgotEmail}
+                      onChange={(e) => { setForgotEmail(e.target.value); setForgotError(null); setForgotSuccess(null); }}
+                      autoComplete="email"
+                      autoFocus
+                    />
+                  </div>
+
+                  {forgotError && (
+                    <div className="login-error-alert">
+                      <AlertCircle size={16} />
+                      <span>{forgotError}</span>
+                    </div>
+                  )}
+
+                  {forgotSuccess && (
+                    <div className="login-error-alert" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534' }}>
+                      <ShieldCheck size={16} />
+                      <span>{forgotSuccess}</span>
+                    </div>
+                  )}
+
+                  <button type="submit" className="login-btn-primary" disabled={isForgotPasswordLoading}>
+                    {isForgotPasswordLoading ? <Loader2 size={20} className="animate-spin" /> : 'Search & Send Reset Link'}
+                  </button>
+
+                  <div className="login-form-options" style={{ justifyContent: 'center', marginTop: '16px' }}>
+                    <a
+                      href="#"
+                      className="forgot-pass"
+                      onClick={(e) => { e.preventDefault(); setShowForgotForm(false); setForgotError(null); setForgotSuccess(null); }}
+                    >
+                      Back to Login
+                    </a>
+                  </div>
+                </form>
+              ) : (
+                <form className="login-form" onSubmit={handleSubmit} noValidate>
+                  <div className="form-group input-wrapper has-input-icon">
+                    <div className="input-icon-bg">
+                      <Mail size={18} className="input-icon" />
+                    </div>
+                    <input
+                      id="login-email"
+                      type="email"
+                      className={`login-input${fieldErrors.email ? ' error' : ''}`}
+                      placeholder="Staff Email / ID"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
+                    />
+                  </div>
+
+                  <div className="form-group input-wrapper has-input-icon">
+                    <div className="input-icon-bg">
+                      <Lock size={18} className="input-icon" />
+                    </div>
+                    <input
+                      id="login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      className={`login-input${fieldErrors.password ? ' error' : ''}`}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+
+                  <div className="login-form-options">
+                    <label className="remember-me">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                      />
+                      <span>Keep me logged in</span>
+                    </label>
+                    <a
+                      href="#"
+                      className="forgot-pass"
+                      onClick={(e) => { e.preventDefault(); setShowForgotForm(true); setForgotEmail(''); setForgotError(null); setForgotSuccess(null); }}
+                    >
+                      Reset Password?
+                    </a>
+                  </div>
+
+                  {error && (
+                    <div className="login-error-alert">
+                      <AlertCircle size={16} />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <button type="submit" className="login-btn-primary" disabled={isLoading}>
+                    {isLoading ? <Loader2 size={20} className="animate-spin" /> : 'Enter Portal'}
+                  </button>
+                </form>
+              )}
+
+              {/* ─── Platform Features ─────────────────────────────────────── */}
+              <div className="login-platform-features">
+                <div
+                  className={`feature-item ${activeFeature === 'ai' ? 'is-active' : ''}`}
+                  onClick={() => setActiveFeature('ai')}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="feature-icon"><Activity size={18} /></div>
+                  <div className="feature-text">
+                    <strong>AI Consultation</strong>
+                    <span>Smart clinical assistance</span>
+                  </div>
+                </div>
+                <div
+                  className={`feature-item ${activeFeature === 'tele' ? 'is-active' : ''}`}
+                  onClick={() => setActiveFeature('tele')}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="feature-icon"><Video size={18} /></div>
+                  <div className="feature-text">
+                    <strong>Telehealth Ready</strong>
+                    <span>Integrated video care</span>
+                  </div>
+                </div>
+                <div
+                  className={`feature-item ${activeFeature === 'data' ? 'is-active' : ''}`}
+                  onClick={() => setActiveFeature('data')}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="feature-icon"><ShieldCheck size={18} /></div>
+                  <div className="feature-text">
+                    <strong>Secure Data</strong>
+                    <span>Enterprise protection</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ─── Minimal Footer ────────────────────────────────────────── */}
             <div className="login-mini-footer">
-              <span>© 2026 HomeoX Platform</span>
+              <span>© 2026 MMC Clinical Systems</span>
               <div className="footer-dot" />
-              <a href="#">Privacy</a>
+              <Link to="/privacy-policy" className="footer-highlight">Privacy Policy</Link>
               <div className="footer-dot" />
-              <a href="#">Terms</a>
-              <div className="footer-dot" />
-              <a href="#">Status</a>
+              <Link to="/terms-of-service" className="footer-highlight">Terms of Service</Link>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

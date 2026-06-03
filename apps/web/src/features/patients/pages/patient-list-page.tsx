@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { type PatientSummary } from '@mmc/types';
 import { PatientFormDrawer } from '../components/patient-form-drawer';
+import { PatientCaseInterceptModal } from '../components/patient-case-intercept-modal';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import '../../appointments/styles/appointments.css';
@@ -16,6 +17,7 @@ import '../../dashboard/pages/role-dashboards.css';
 import '../styles/patients.css';
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyState } from '@/components/shared/empty-state';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 function formatDate(date: Date | string | null | undefined) {
@@ -23,13 +25,6 @@ function formatDate(date: Date | string | null | undefined) {
   const d = new Date(date);
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function openWhatsApp(phone: string | null, name: string) {
-  if (!phone) return alert('No phone number available.');
-  const cleaned = phone.replace(/\D/g, '');
-  const msg = encodeURIComponent(`Hello ${name}, this is a message from your clinic.`);
-  window.open(`https://wa.me/91${cleaned}?text=${msg}`, '_blank');
 }
 
 function getInitials(name: string) {
@@ -115,11 +110,28 @@ export default function PatientListPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
   const [assignPkgPatient, setAssignPkgPatient] = useState<{ regid: number; name: string } | null>(null);
+  const [interceptPatient, setInterceptPatient] = useState<{ regid: number; name: string } | null>(null);
   const [selectedUnregistered, setSelectedUnregistered] = useState<any | null>(null);
   const [patientFilter, setPatientFilter] = useState<'registered' | 'unregistered'>('registered');
 
   const user = useAuthStore(s => s.user);
   const token = useAuthStore(s => s.token);
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
+
+  const openWhatsApp = (phone: string | null, name: string, regid: number) => {
+    if (!phone) return alert('No phone number available.');
+    const cleaned = phone.replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+    
+    sendText.mutate({
+      phone: finalPhone,
+      message: `Dear ${name || 'Patient'},\n\nThank you for registering with MMC HomeoTech. Your Registration ID is *${regid}*.\n\nPlease use this ID for all future communications.\n\nBest regards,\nYour Clinic`
+    }, {
+      onSuccess: () => alert('✅ Registration WhatsApp sent via Meta Cloud API!'),
+      onError: (err: any) => alert('❌ Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))
+    });
+  };
 
   const { data, isLoading, refetch } = usePatients({
     page, limit: pageSize, search: debouncedSearch,
@@ -173,7 +185,7 @@ export default function PatientListPage() {
     if (!confirm(`Delete patient "${name}"? This cannot be undone.`)) return;
     setDeletingId(regid);
     try { await deleteMutation.mutateAsync(regid); refetch(); }
-    catch { alert('Failed to delete patient.'); }
+    catch { /* Global API interceptor handles the toast notification */ }
     finally { setDeletingId(null); }
   };
 
@@ -191,13 +203,23 @@ export default function PatientListPage() {
       <button className="appt-kebab-item" onClick={() => { navigate(`/patients/${p.regid}`); closeMenu(); }}>
         <Users size={14} /> Manage Family
       </button>
-      <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName); closeMenu(); }}>
+      <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName, p.regid); closeMenu(); }}>
         <MessageCircle size={14} /> WhatsApp
       </button>
-      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/remedy-chart/pdf/${p.regid}?token=${token}`, '_blank'); closeMenu(); }}>
+      <button className="appt-kebab-item" onClick={() => {
+        const envUrl = import.meta.env['VITE_API_URL'];
+        const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
+        window.open(`${apiBase}/medical-cases/remedy-chart/pdf/${p.regid}?token=${token}`, '_blank');
+        closeMenu();
+      }}>
         <Printer size={14} /> Print Prescription
       </button>
-      <button className="appt-kebab-item" onClick={() => { window.open(`/api/medical-cases/pdf/summary/${p.regid}?token=${token}`, '_blank'); closeMenu(); }}>
+      <button className="appt-kebab-item" onClick={() => {
+        const envUrl = import.meta.env['VITE_API_URL'];
+        const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
+        window.open(`${apiBase}/medical-cases/pdf/summary/${p.regid}?token=${token}`, '_blank');
+        closeMenu();
+      }}>
         <Download size={14} /> Download Report
       </button>
       <div className="appt-kebab-divider" />
@@ -358,9 +380,9 @@ export default function PatientListPage() {
                           {p.isUnregistered ? (
                             <span className="appt-cell-name" style={{ color: 'var(--pp-unregistered-fg)', fontWeight: 700 }}>{p.fullName}</span>
                           ) : (
-                            <Link to={`/medical-cases/${p.regid}`} className="appt-cell-name pp-clickable-name">
+                            <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="appt-cell-name pp-clickable-name" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
                               {p.fullName || 'Unknown'}
-                            </Link>
+                            </button>
                           )}
                           <div className="appt-cell-phone">
                             {p.gender === 'M' ? 'Male' : p.gender === 'F' ? 'Female' : p.gender || '—'}
@@ -372,9 +394,9 @@ export default function PatientListPage() {
                       {p.isUnregistered ? (
                         <span className="pp-regid-pill" style={{ opacity: 0.5, background: 'var(--pp-bg-subtle)' }}>PENDING</span>
                       ) : (
-                        <Link to={`/medical-cases/${p.regid}`} className="pp-regid-pill">
+                        <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="pp-regid-pill" style={{ cursor: 'pointer' }}>
                           #{p.regid}
-                        </Link>
+                        </button>
                       )}
                     </td>
                     <td data-label="Contact">
@@ -429,9 +451,9 @@ export default function PatientListPage() {
                   {p.isUnregistered ? (
                     <span className="appt-grid-card-patient">{p.fullName}</span>
                   ) : (
-                    <Link to={`/medical-cases/${p.regid}`} className="appt-grid-card-patient clickable-link">
+                    <button onClick={() => setInterceptPatient({ regid: p.regid, name: p.fullName || 'Unknown' })} className="appt-grid-card-patient clickable-link" style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
                       {p.fullName}
-                    </Link>
+                    </button>
                   )}
                   <div className="appt-grid-card-phone">
                     {p.isUnregistered ? (
@@ -463,7 +485,7 @@ export default function PatientListPage() {
                     Add Patient
                   </button>
                 ) : (
-                  <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName)}>
+                  <button className="appt-btn-minimal white-pill" style={{ flex: 1 }} onClick={() => openWhatsApp(p.phone, p.fullName, p.regid)}>
                     <MessageCircle size={14} /> WhatsApp
                   </button>
                 )}
@@ -508,6 +530,15 @@ export default function PatientListPage() {
           onClose={() => setAssignPkgPatient(null)}
           patientId={assignPkgPatient.regid}
           patientName={assignPkgPatient.name}
+        />
+      )}
+
+      {interceptPatient && (
+        <PatientCaseInterceptModal
+          isOpen={!!interceptPatient}
+          onClose={() => setInterceptPatient(null)}
+          regid={interceptPatient.regid}
+          patientName={interceptPatient.name}
         />
       )}
     </div>

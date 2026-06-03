@@ -151,7 +151,7 @@ export function ConsultationStage({
     return () => {
       // Explicitly notify the patient before disconnecting so they get the leave event
       // even if the disconnect handler is delayed by network latency.
-      try { socket.emit('call:leave'); } catch {}
+      try { socket.emit('call:leave'); } catch { }
       socket.disconnect();
       vcSocketRef.current = null;
     };
@@ -193,9 +193,9 @@ export function ConsultationStage({
       return;
     }
 
-    const speaker: SpeakerLabel = 
-      (callMode === 'IN_PERSON' && isListeningForAnswer) 
-        ? 'PATIENT' 
+    const speaker: SpeakerLabel =
+      (callMode === 'IN_PERSON' && isListeningForAnswer)
+        ? 'PATIENT'
         : (result.role === 'PATIENT' ? 'PATIENT' : 'DOCTOR');
 
     if (result.isFinal) {
@@ -297,7 +297,7 @@ export function ConsultationStage({
         // Find the first remote user with an audio track
         const remoteUser = video?.remoteUsers?.find((u: any) => u.audioTrack);
         const ptTrack = remoteUser?.audioTrack?.mediaStreamTrack || remoteUser?.audioTrack;
-        
+
         if (ptTrack && ptTrack instanceof MediaStreamTrack) {
           hasAutoStartedPt.current = true;
           console.log('[ConsultationStage] Auto-starting PT transcription via remote track');
@@ -345,129 +345,118 @@ export function ConsultationStage({
 
   // --- Mode-specific question generation ---
   const modeQuestions = useModeQuestions();
+  const [suggestedQuestions, setSuggestedQuestions] = useState<any[]>([]);
   const symptomExtraction = useSymptomExtraction();
   const [answeredQuestions, setAnsweredQuestions] = useState<string[]>([]);
   const lastQuestionRef = useRef<string>('');
 
-  const segmentsRef = useRef<TranscriptSegmentLocal[]>([]);
-  useEffect(() => {
-    segmentsRef.current = segments;
-  }, [segments]);
-
-  const answeredQuestionsRef = useRef<string[]>([]);
-  useEffect(() => {
-    answeredQuestionsRef.current = answeredQuestions;
-  }, [answeredQuestions]);
-
-  // Auto-regenerate questions in batches: count 5 answers, then fire one
-  // suggest/questions call. Cuts AI credits vs. firing on every Q&A pair.
-  const QUESTION_BATCH_SIZE = 5;
-  const answersSinceLastGenRef = useRef(0);
+  // Sync mode questions to local state so they persist and don't disappear during thinking state
+  // useEffect(() => {
+  //   if (modeQuestions.data?.questions) {
+  //     setSuggestedQuestions(modeQuestions.data.questions);
+  //   }
+  // }, [modeQuestions.data]);
 
   // --- Auto-extract symptoms from live transcript during calls ---
   const lastExtractedSegCountRef = useRef(0);
   const extractionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    // Auto-extract for ALL modes:
-    // - AUDIO/VIDEO: dual-mic, segments are labeled DOCTOR vs PATIENT
-    // - IN_PERSON: single mic, all segments labeled DOCTOR — extract from raw text
-    if (!binaryTranscriber.isRecording) return;
+  // useEffect(() => {
+  //   // Auto-extract for ALL modes:
+  //   // - AUDIO/VIDEO: dual-mic, segments are labeled DOCTOR vs PATIENT
+  //   // - IN_PERSON: single mic, all segments labeled DOCTOR — extract from raw text
+  //   if (!binaryTranscriber.isRecording) return;
 
-    const finalSegs = segments.filter(s => s.isFinal);
-    const newSegCount = finalSegs.length;
+  //   const finalSegs = segments.filter(s => s.isFinal);
+  //   const newSegCount = finalSegs.length;
 
-    // Need at least 4 new segments since last extraction (saves credits)
-    if (newSegCount - lastExtractedSegCountRef.current < 4) return;
+  //   // Need at least 4 new segments since last extraction (saves credits)
+  //   if (newSegCount - lastExtractedSegCountRef.current < 4) return;
 
-    // Debounce: wait 4 seconds of silence
-    if (extractionTimerRef.current) {
-      clearTimeout(extractionTimerRef.current);
-    }
+  //   // Debounce: wait 4 seconds of silence
+  //   if (extractionTimerRef.current) {
+  //     clearTimeout(extractionTimerRef.current);
+  //   }
 
-    extractionTimerRef.current = setTimeout(() => {
-      const newSegs = finalSegs.slice(lastExtractedSegCountRef.current);
-      const isInPerson = callMode === 'IN_PERSON';
+  //   extractionTimerRef.current = setTimeout(() => {
+  //     const newSegs = finalSegs.slice(lastExtractedSegCountRef.current);
+  //     const isInPerson = callMode === 'IN_PERSON';
 
-      let questionText: string;
-      let answerText: string;
+  //     let questionText: string;
+  //     let answerText: string;
 
-      if (isInPerson) {
-        const allText = newSegs.map(s => s.translatedText || s.text).join(' ');
-        if (!allText.trim()) return;
-        questionText = lastQuestionRef.current || 'Doctor-patient conversation';
-        answerText = allText;
-      } else {
-        const doctorSegs = newSegs.filter(s => s.speaker === 'DOCTOR');
-        const patientSegs = newSegs.filter(s => s.speaker === 'PATIENT');
-        if (patientSegs.length === 0) return;
-        questionText = doctorSegs.length > 0
-          ? doctorSegs.map(s => s.translatedText || s.text).join(' ')
-          : 'General conversation';
-        answerText = patientSegs.map(s => s.translatedText || s.text).join(' ');
-      }
+  //     if (isInPerson) {
+  //       // Single-mic mode: send all new transcript text as the answer.
+  //       // The AI will extract symptoms regardless of who said what.
+  //       const allText = newSegs.map(s => s.translatedText || s.text).join(' ');
+  //       if (!allText.trim()) return;
+  //       questionText = lastQuestionRef.current || 'Doctor-patient conversation';
+  //       answerText = allText;
+  //     } else {
+  //       // Dual-mic mode: pair doctor question with patient answer
+  //       const doctorSegs = newSegs.filter(s => s.speaker === 'DOCTOR');
+  //       const patientSegs = newSegs.filter(s => s.speaker === 'PATIENT');
+  //       if (patientSegs.length === 0) return;
+  //       questionText = doctorSegs.length > 0
+  //         ? doctorSegs.map(s => s.translatedText || s.text).join(' ')
+  //         : 'General conversation';
+  //       answerText = patientSegs.map(s => s.translatedText || s.text).join(' ');
+  //     }
 
-      lastExtractedSegCountRef.current = newSegCount;
+  //     lastExtractedSegCountRef.current = newSegCount;
 
-      const genAtDispatch = clearGenerationRef.current;
-      symptomExtraction.mutate(
-        {
-          visitId,
-          consultationMode,
-          question: questionText,
-          answer: answerText,
-          existingSymptoms: categorizedSymptoms,
-          labContext: labContextRef.current || undefined,
-        },
-        {
-          onSuccess: (result) => {
-            if (clearGenerationRef.current !== genAtDispatch) return;
-            if (result && (result.mental?.length || result.physical?.length || result.particular?.length)) {
-              onSymptomsExtracted(result);
-            }
-          },
-        },
-      );
+  //     // Extract symptoms from this Q&A pair
+  //     const genAtDispatch = clearGenerationRef.current;
+  //     symptomExtraction.mutate(
+  //       {
+  //         visitId,
+  //         consultationMode,
+  //         question: questionText,
+  //         answer: answerText,
+  //         existingSymptoms: categorizedSymptoms,
+  //         labContext: labContextRef.current || undefined,
+  //       },
+  //       {
+  //         onSuccess: (result) => {
+  //           if (clearGenerationRef.current !== genAtDispatch) return; // user cleared — discard stale result
+  //           if (result) {
+  //             onSymptomsExtracted(result);
+  //           }
+  //         },
+  //       },
+  //     );
 
-      answersSinceLastGenRef.current += 1;
-      if (answersSinceLastGenRef.current >= QUESTION_BATCH_SIZE) {
-        answersSinceLastGenRef.current = 0;
-        modeQuestions.mutate({
-          consultationMode,
-          transcript: finalSegs.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-          answeredQuestions,
-          chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
-          patientAge,
-          patientGender: patient?.gender,
-        });
-      }
-    }, 8000);
+  //     // Also regenerate mode-specific questions based on updated transcript
+  //     modeQuestions.mutate({
+  //       consultationMode,
+  //       transcript: finalSegs.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
+  //       answeredQuestions,
+  //       chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
+  //       patientAge,
+  //       patientGender: patient?.gender,
+  //     });
+  //   }, 8000);
 
-    return () => {
-      if (extractionTimerRef.current) {
-        clearTimeout(extractionTimerRef.current);
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segments.length, callMode, binaryTranscriber.isRecording]);
+  //   return () => {
+  //     if (extractionTimerRef.current) {
+  //       clearTimeout(extractionTimerRef.current);
+  //     }
+  //   };
+  // // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [segments.length, callMode, binaryTranscriber.isRecording]);
 
+  // ── Question suggestion disabled to save credits (2026-05-26) ──
+  // Feature wasn't being used in practice; the Regenerate button is now a no-op.
   const handleLoadModeQuestions = useCallback(() => {
-    answersSinceLastGenRef.current = 0;
-    modeQuestions.mutate({
-      consultationMode,
-      transcript: segments.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-      answeredQuestions,
-      chiefComplaint: visit.chiefComplaint,
-      patientAge,
-      patientGender: patient?.gender,
-    });
-  }, [consultationMode, segments, answeredQuestions, visit.chiefComplaint, patientAge, patient?.gender, modeQuestions]);
+    setSuggestedQuestions([]);
+  }, [setSuggestedQuestions]);
 
   // Auto-load questions when mode changes
-  useEffect(() => {
-    handleLoadModeQuestions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [consultationMode]);
+  // useEffect(() => {
+  //   setSuggestedQuestions([]);
+  //   handleLoadModeQuestions();
+  // // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [consultationMode]);
 
   const totalSymptoms = categorizedSymptoms.mental.length + categorizedSymptoms.physical.length + categorizedSymptoms.particular.length;
 
@@ -477,14 +466,13 @@ export function ConsultationStage({
   }, [segments, drInterimText, ptInterimText]);
 
   // Combine AI and mode questions with deduplication
-  const modeQList = (modeQuestions.data as any)?.questions || [];
-  
-  const allQuestions = modeQList.map((q: any, i: number) => {
+  const allQuestions = suggestedQuestions.map((q: any, i: number) => {
     const qText = typeof q === 'string' ? q : q.question;
     const isAnswered = answeredQuestions.includes(qText);
     return {
       id: `mode-${i}`,
       question: qText,
+      category: (q as any).category || 'symptom',
       options: (q as any).options,
       answered: isAnswered,
       isLive: false,
@@ -588,45 +576,15 @@ export function ConsultationStage({
       return updated;
     });
 
-    const finalAnswerText = answerText;
-
-    // Extract symptoms from this Q&A pair (like demo does per answer)
-    const genAtDispatch = clearGenerationRef.current;
-    symptomExtraction.mutate(
-      {
-        visitId,
-        consultationMode,
-        question: questionText,
-        answer: finalAnswerText,
-        existingSymptoms: categorizedSymptoms,
-        labContext: labContextRef.current || undefined,
-      },
-      {
-        onSuccess: (result) => {
-          if (clearGenerationRef.current !== genAtDispatch) return;
-          if (result && (result.mental?.length || result.physical?.length || result.particular?.length)) {
-            onSymptomsExtracted(result);
-          }
-        },
-      },
-    );
-
-    // Batched regenerate: fire only after 5 answers have come in.
-    answersSinceLastGenRef.current += 1;
-    if (answersSinceLastGenRef.current >= QUESTION_BATCH_SIZE) {
-      answersSinceLastGenRef.current = 0;
-      setTimeout(() => {
-        modeQuestions.mutate({
-          consultationMode,
-          transcript: segmentsRef.current.map(s => `${s.speaker}: ${s.translatedText || s.text}`).join('\n'),
-          answeredQuestions: answeredQuestionsRef.current,
-          chiefComplaint: (visit.chiefComplaint || (visit as any).notes || '').trim(),
-          patientAge,
-          patientGender: patient?.gender,
-        });
-      }, 500);
-    }
-  }, [onTranscriptUpdate, symptomExtraction, consultationMode, categorizedSymptoms, onSymptomsExtracted, visit, patientAge, patient?.gender, modeQuestions]);
+    // ── Silent AI calls disabled to save credits (2026-05-26) ──
+    // Both per-Q&A symptom extraction and auto question re-fetch ran in the
+    // background with no loader. Symptoms are now extracted in bulk by
+    // "End & Analyse" (handleAnalyzeConversation) and questions only load
+    // on the explicit "Load suggested questions" button.
+    void questionText;
+    void answerText;
+    void newSegments;
+  }, [patientAnswer, onTranscriptUpdate, segments]);
 
   useEffect(() => {
     injectAnswerRef.current = injectAnswer;
@@ -653,19 +611,12 @@ export function ConsultationStage({
     onSymptomsExtracted({ mental: [], physical: [], particular: [] });
   }, [onSymptomsExtracted, segments]);
 
-  // Progress percentage (50% for consultation stage)
-  const progressPercent = 50;
+
 
   return (
     <div className="space-y-6 pp-fade-in relative">
-      
-      {/* 1. Progress bar at top */}
-      <div className="w-full h-1.5 bg-[#E3E2DF] rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full bg-[#2563EB]"
-          style={{ width: `${progressPercent}%` }}
-        />
-      </div>
+
+
 
       {/* 2. Header row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
@@ -678,11 +629,12 @@ export function ConsultationStage({
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3B82F6] opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-[#2563EB]"></span>
           </span>
-          {MODE_CONFIG[consultationMode].label} <span className="opacity-50">|</span> {CALL_MODE_LABELS[callMode]}
+          {CALL_MODE_LABELS[callMode]}
         </span>
       </div>
 
       {/* GNM Progress Status (if available) */}
+      {/* 
       {gnmAnalysis && (
         <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[#FFFBEB] border border-[#FDE68A]">
           <Sparkles className="h-4 w-4 text-[#D97706] shrink-0" />
@@ -696,12 +648,13 @@ export function ConsultationStage({
           </span>
         </div>
       )}
+      */}
 
-      {/* 4. Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
+      {/* 4. Full-width layout */}
+      <div className="w-full">
 
-        {/* LEFT COLUMN: chat-wrap */}
-        <div className="space-y-4 min-w-0">
+        {/* chat-wrap */}
+        <div className="space-y-4 w-full">
 
           {/* Call interface panel (AICaptureModule + CallInterfacePanel) */}
           <AICaptureModule
@@ -736,14 +689,18 @@ export function ConsultationStage({
                 {
                   onSuccess: (result) => {
                     if (clearGenerationRef.current !== genAtDispatch) return;
-                    if (result && (result.mental?.length || result.physical?.length || result.particular?.length)) {
+                    if (result) {
                       onSymptomsExtracted(result);
-                    } else {
-                      toast({
-                        title: 'No abnormal findings detected',
-                        description: 'Lab parsed but no rubrics were extracted. Check that values are flagged as high/low or out of range.',
-                        variant: 'default',
-                      });
+
+                      const added = (result.mental?.length || 0) + (result.physical?.length || 0) + (result.particular?.length || 0);
+
+                      if (added === 0) {
+                        toast({
+                          title: 'No abnormal findings detected',
+                          description: 'Lab parsed but no rubrics were extracted. Check that values are flagged as high/low or out of range.',
+                          variant: 'default',
+                        });
+                      }
                     }
                   },
                   onError: (err) => {
@@ -759,313 +716,319 @@ export function ConsultationStage({
           >
             {({ AttachLabButton, uploadStatus, uploadedLabs: _uploadedLabs }) => {
               return (
-              <CallInterfacePanel
-                callMode={callMode}
-                video={video}
-                localSpeaker="DOCTOR"
-                patientJoinLink={ROUTES.PATIENT_MEET(visitId)}
-                transcript={segments}
-                drInterimText={drInterimText}
-                ptInterimText={ptInterimText}
-                isTranscribing={binaryTranscriber.isRecording || patientTranscriber.isRecording}
-                isRemotePaused={false}
-                error={null}
-                onLeave={() => {
-                  if (vcSocketRef.current?.connected) {
-                    vcSocketRef.current.emit('call:leave');
+                <CallInterfacePanel
+                  callMode={callMode}
+                  video={video}
+                  localSpeaker="DOCTOR"
+                  patientJoinLink={ROUTES.PATIENT_MEET(visitId)}
+                  transcript={segments}
+                  drInterimText={drInterimText}
+                  ptInterimText={ptInterimText}
+                  isTranscribing={binaryTranscriber.isRecording || patientTranscriber.isRecording}
+                  isRemotePaused={false}
+                  error={null}
+                  onLeave={() => {
+                    if (vcSocketRef.current?.connected) {
+                      vcSocketRef.current.emit('call:leave');
+                    }
+                    // Stop all transcription
+                    binaryTranscriber.stopRecording();
+                    patientTranscriber.stopRecording();
+                    // Disconnect video
+                    video?.leave?.();
+                    onStartVideoCall?.(null as any);
+                  }}
+                  onPauseToggle={onPauseToggle}
+                  isPaused={isVideoPaused}
+                  onStartRecording={handleStartRecording}
+                  onStopRecording={handleStopRecording}
+                  aiQuestions={allQuestions}
+                  isGeneratingQuestions={modeQuestions.isPending}
+                  onQuestionAnswered={() => { }}
+                  transcriptHeaderActions={
+                    <div className="flex items-center gap-2">
+                      {callMode === 'IN_PERSON' && (
+                        <button
+                          onClick={() => setIsListeningForAnswer(prev => !prev)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors",
+                            isListeningForAnswer
+                              ? "bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] animate-pulse"
+                              : "bg-[#FAFAF8] text-[#4A4A47] border border-[#E3E2DF] hover:bg-[#EFF6FF] hover:text-[#2563EB] hover:border-[#BFDBFE]"
+                          )}
+                          title="Toggle who is speaking to correctly label the transcript"
+                        >
+                          <Mic className="h-3 w-3" />
+                          {isListeningForAnswer ? "Patient Speaking" : "Doctor Speaking"}
+                        </button>
+                      )}
+                      {AttachLabButton}
+                    </div>
                   }
-                  // Stop all transcription
-                  binaryTranscriber.stopRecording();
-                  patientTranscriber.stopRecording();
-                  // Disconnect video
-                  video?.leave?.();
-                  onStartVideoCall?.(null as any);
-                }}
-                onPauseToggle={onPauseToggle}
-                isPaused={isVideoPaused}
-                onStartRecording={handleStartRecording}
-                onStopRecording={handleStopRecording}
-                aiQuestions={allQuestions}
-                isGeneratingQuestions={modeQuestions.isPending}
-                onQuestionAnswered={() => {}}
-                transcriptHeaderActions={
-                  <div className="flex items-center gap-2">
-                    {callMode === 'IN_PERSON' && (
-                      <button
-                        onClick={() => setIsListeningForAnswer(prev => !prev)}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors",
-                          isListeningForAnswer
-                            ? "bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] animate-pulse"
-                            : "bg-[#FAFAF8] text-[#4A4A47] border border-[#E3E2DF] hover:bg-[#EFF6FF] hover:text-[#2563EB] hover:border-[#BFDBFE]"
-                        )}
-                        title="Toggle who is speaking to correctly label the transcript"
-                      >
-                        <Mic className="h-3 w-3" />
-                        {isListeningForAnswer ? "Patient Speaking" : "Doctor Speaking"}
-                      </button>
-                    )}
-                    {AttachLabButton}
-                  </div>
-                }
-                transcriptBottomActions={uploadStatus}
-              />
-            ); }}
+                  transcriptBottomActions={uploadStatus}
+                />
+              );
+            }}
           </AICaptureModule>
 
 
           {/* AI Suggested Inquiries panel */}
-          <div className="pp-card overflow-hidden">
-            <div className="px-5 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-[#2563EB]" />
-                <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight">AI Suggested Inquiries</span>
-                {modeQuestions.isPending && (
-                  <span className="flex items-center gap-1 ml-2 text-[10px] text-[#2563EB] font-bold animate-pulse uppercase tracking-widest">
-                    <div className="flex gap-0.5">
-                      <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                      <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                      <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce"></div>
-                    </div>
-                    Thinking...
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={handleLoadModeQuestions}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4A4A47] hover:text-[#2563EB] px-2 py-1 rounded-md hover:bg-[#EFF6FF] transition-colors uppercase"
-              >
-                <RefreshCw className={cn('h-3 w-3', modeQuestions.isPending && 'animate-spin')} />
-                Regenerate
-              </button>
-            </div>
-
-            <div className="p-4 space-y-2 bg-white">
-              {allQuestions.filter((q: any) => !q.answered).length === 0 && !modeQuestions.isPending && (
-                <p className="text-[13px] text-[#888786] italic text-center py-4">
-                  No questions available. Click Regenerate or start recording.
-                </p>
-              )}
-              <div className="grid grid-cols-1 gap-2">
-                {allQuestions.filter((q: any) => !q.answered).map((q: any) => (
-                  <div key={q.id} className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      onClick={() => injectQuestion(q.question, q.options, q.id)}
-                      className="group flex items-start gap-3 p-3 rounded-md bg-white border border-[#E3E2DF] hover:border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors text-left"
-                    >
-                      <Star className={cn("h-4 w-4 mt-0.5 shrink-0 transition-colors", q.isLive ? "text-amber-500" : "text-[#2563EB] opacity-70 group-hover:opacity-100")} />
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[13px] text-[#0F0F0E] font-medium leading-snug">
-                            {q.question}
-                          </span>
-                          {q.isLive && (
-                            <span className="px-1.5 py-0.5 rounded-[4px] bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-tighter border border-amber-200">
-                              New
-                            </span>
-                          )}
-                        </div>
+          {false && (
+            <div className="pp-card overflow-hidden">
+              <div className="px-5 py-3 bg-[#FAFAF8] border-b border-[#E3E2DF] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-[#2563EB]" />
+                  <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight">AI Suggested Inquiries</span>
+                  {modeQuestions.isPending && (
+                    <span className="flex items-center gap-1 ml-2 text-[10px] text-[#2563EB] font-bold animate-pulse uppercase tracking-widest">
+                      <div className="flex gap-0.5">
+                        <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-1 h-1 bg-[#2563EB] rounded-full animate-bounce"></div>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-[#888786] group-hover:text-[#2563EB] mt-0.5 shrink-0 ml-auto transition-transform group-hover:translate-x-1" />
-                    </button>
-                    
-                    {q.options && q.options.length > 0 && (() => {
-                      const selectedOptions = selectedOptionsMap[q.question] || [];
-                      return (
-                        <div className="flex flex-wrap items-center gap-1.5 ml-6 mb-2">
-                          {q.options.map((opt: string, idx: number) => {
-                            const isSelected = selectedOptions.includes(opt);
-                            return (
-                              <button
-                                key={idx}
-                                onClick={() => {
-                                  setSelectedOptionsMap(prev => {
-                                    const current = prev[q.question] || [];
-                                    const next = current.includes(opt)
-                                      ? current.filter(o => o !== opt)
-                                      : [...current, opt];
-                                    return { ...prev, [q.question]: next };
-                                  });
-                                }}
-                                className={cn(
-                                  "px-2 py-1 text-[11px] font-bold border rounded-[4px] transition-all",
-                                  isSelected
-                                    ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm scale-95"
-                                    : "bg-[#FAFAF8] border-[#E3E2DF] text-[#4A4A47] hover:border-[#2563EB] hover:text-[#2563EB]"
-                                )}
-                              >
-                                {opt}
-                              </button>
-                            );
-                          })}
-                          {selectedOptions.length > 0 && (
-                            <button
-                              onClick={() => {
-                                injectQuestion(q.question, q.id);
-                                setTimeout(() => injectAnswer(selectedOptions.join(', ')), 300);
-                                // Clear selection for this question
-                                setSelectedOptionsMap(prev => {
-                                  const next = { ...prev };
-                                  delete next[q.question];
-                                  return next;
-                                });
-                              }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-[#2563EB] text-white border border-[#2563EB] rounded-[4px] hover:bg-[#1D4ED8] transition-colors uppercase tracking-wider shadow-sm ml-2"
-                            >
-                              <Check className="h-3 w-3" /> Submit
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 pt-3 mt-3 border-t border-[#E3E2DF]">
-                <input
-                  type="text"
-                  value={customQuestion}
-                  onChange={(e) => setCustomQuestion(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && customQuestion.trim()) {
-                      injectQuestion(customQuestion.trim());
-                      setCustomQuestion('');
-                    }
-                  }}
-                  placeholder="Type a custom question..."
-                  className="flex-1 text-[13px] font-medium px-3 py-1.5 rounded-md border border-[#E3E2DF] bg-[#FAFAF8] focus:outline-none focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] text-[#0F0F0E]"
-                />
+                      Thinking...
+                    </span>
+                  )}
+                </div>
                 <button
-                  onClick={() => {
-                    if (customQuestion.trim()) {
-                      injectQuestion(customQuestion.trim());
-                      setCustomQuestion('');
-                    }
-                  }}
-                  className="pp-btn-secondary h-8 px-3 text-[11px] uppercase tracking-wider"
+                  onClick={handleLoadModeQuestions}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#4A4A47] hover:text-[#2563EB] px-2 py-1 rounded-md hover:bg-[#EFF6FF] transition-colors uppercase"
                 >
-                  Add
+                  <RefreshCw className={cn('h-3 w-3', modeQuestions.isPending && 'animate-spin')} />
+                  Regenerate
                 </button>
               </div>
 
+              <div className="p-4 space-y-2 bg-white">
+                {allQuestions.filter((q: any) => !q.answered).length === 0 && !modeQuestions.isPending && (
+                  <p className="text-[13px] text-[#888786] italic text-center py-4">
+                    No questions available. Click Regenerate or start recording.
+                  </p>
+                )}
+                {/* No inline loader on background generation */}
+                <div className="grid grid-cols-1 gap-2">
+                  {allQuestions.filter((q: any) => !q.answered).map((q: any) => (
+                    <div key={q.id} className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => injectQuestion(q.question, q.options, q.id)}
+                        className="group flex items-start gap-3 p-3 rounded-md bg-white border border-[#E3E2DF] hover:border-[#BFDBFE] hover:bg-[#EFF6FF] transition-colors text-left"
+                      >
+                        <Star className={cn("h-4 w-4 mt-0.5 shrink-0 transition-colors", q.isLive ? "text-amber-500" : "text-[#2563EB] opacity-70 group-hover:opacity-100")} />
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] text-[#0F0F0E] font-medium leading-snug">
+                              {q.question}
+                            </span>
+                            {q.isLive && (
+                              <span className="px-1.5 py-0.5 rounded-[4px] bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-tighter border border-amber-200">
+                                New
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-[#888786] group-hover:text-[#2563EB] mt-0.5 shrink-0 ml-auto transition-transform group-hover:translate-x-1" />
+                      </button>
+
+                      {q.options && q.options.length > 0 && (() => {
+                        const selectedOptions = selectedOptionsMap[q.question] || [];
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 ml-6 mb-2">
+                            {q.options.map((opt: string, idx: number) => {
+                              const isSelected = selectedOptions.includes(opt);
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => {
+                                    setSelectedOptionsMap(prev => {
+                                      const current = prev[q.question] || [];
+                                      const next = current.includes(opt)
+                                        ? current.filter(o => o !== opt)
+                                        : [...current, opt];
+                                      return { ...prev, [q.question]: next };
+                                    });
+                                  }}
+                                  className={cn(
+                                    "px-2 py-1 text-[11px] font-bold border rounded-[4px] transition-all",
+                                    isSelected
+                                      ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm scale-95"
+                                      : "bg-[#FAFAF8] border-[#E3E2DF] text-[#4A4A47] hover:border-[#2563EB] hover:text-[#2563EB]"
+                                  )}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                            {selectedOptions.length > 0 && (
+                              <button
+                                onClick={() => {
+                                  injectQuestion(q.question, undefined, q.id);
+                                  setTimeout(() => injectAnswer(selectedOptions.join(', ')), 300);
+                                  // Clear selection for this question
+                                  setSelectedOptionsMap(prev => {
+                                    const next = { ...prev };
+                                    delete next[q.question];
+                                    return next;
+                                  });
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold bg-[#2563EB] text-white border border-[#2563EB] rounded-[4px] hover:bg-[#1D4ED8] transition-colors uppercase tracking-wider shadow-sm ml-2"
+                              >
+                                <Check className="h-3 w-3" /> Submit
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 pt-3 mt-3 border-t border-[#E3E2DF]">
+                  <input
+                    type="text"
+                    value={customQuestion}
+                    onChange={(e) => setCustomQuestion(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && customQuestion.trim()) {
+                        injectQuestion(customQuestion.trim());
+                        setCustomQuestion('');
+                      }
+                    }}
+                    placeholder="Type a custom question..."
+                    className="flex-1 text-[13px] font-medium px-3 py-1.5 rounded-md border border-[#E3E2DF] bg-[#FAFAF8] focus:outline-none focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] text-[#0F0F0E]"
+                  />
+                  <button
+                    onClick={() => {
+                      if (customQuestion.trim()) {
+                        injectQuestion(customQuestion.trim());
+                        setCustomQuestion('');
+                      }
+                    }}
+                    className="pp-btn-secondary h-8 px-3 text-[11px] uppercase tracking-wider"
+                  >
+                    Add
+                  </button>
+                </div>
+
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
 
         {/* RIGHT COLUMN: Live Symptom Extraction panel */}
-        <div className="space-y-0">
-          <div className="pp-card sticky top-8">
-            <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] flex items-center justify-between">
-              <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight flex items-center gap-2">
-                <Search className="h-4 w-4 text-[#2563EB]" />
-                Live Extraction
-              </span>
-              <button
-                onClick={handleClearAllSymptoms}
-                className="inline-flex items-center gap-1 text-[10px] font-bold text-[#DC2626] hover:bg-[#FEF2F2] border border-transparent hover:border-[#FECACA] px-2 py-1 rounded-[4px] transition-colors uppercase tracking-wider"
-              >
-                <Trash2 className="h-3 w-3" />
-                Clear All
-              </button>
-            </div>
-
-            <div className="divide-y divide-[#E3E2DF] bg-white">
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Brain className="h-4 w-4 text-[#2563EB]" />
-                  <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Mental Generals</span>
-                  <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
-                    {categorizedSymptoms.mental.length}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {categorizedSymptoms.mental.length === 0 && (
-                    <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
-                  )}
-                  {categorizedSymptoms.mental.map((s, i) => (
-                    <span
-                      key={i}
-                      className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
-                    >
-                      {s}
-                      <button
-                        onClick={() => handleRemoveSymptom('mental', i)}
-                        className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Heart className="h-4 w-4 text-[#2563EB]" />
-                  <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Physical Generals</span>
-                  <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
-                    {categorizedSymptoms.physical.length}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {categorizedSymptoms.physical.length === 0 && (
-                    <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
-                  )}
-                  {categorizedSymptoms.physical.map((s, i) => (
-                    <span
-                      key={i}
-                      className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
-                    >
-                      {s}
-                      <button
-                        onClick={() => handleRemoveSymptom('physical', i)}
-                        className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-3">
+        {false && (
+          <div className="space-y-0">
+            <div className="pp-card sticky top-8">
+              <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] flex items-center justify-between">
+                <span className="text-[14px] font-bold text-[#0F0F0E] tracking-tight flex items-center gap-2">
                   <Search className="h-4 w-4 text-[#2563EB]" />
-                  <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Particulars</span>
-                  <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
-                    {categorizedSymptoms.particular.length}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {categorizedSymptoms.particular.length === 0 && (
-                    <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
-                  )}
-                  {categorizedSymptoms.particular.map((s, i) => (
-                    <span
-                      key={i}
-                      className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
-                    >
-                      {s}
-                      <button
-                        onClick={() => handleRemoveSymptom('particular', i)}
-                        className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                  Live Extraction
+                </span>
+                <button
+                  onClick={handleClearAllSymptoms}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#DC2626] hover:bg-[#FEF2F2] border border-transparent hover:border-[#FECACA] px-2 py-1 rounded-[4px] transition-colors uppercase tracking-wider"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Clear All
+                </button>
+              </div>
+
+              <div className="divide-y divide-[#E3E2DF] bg-white">
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Brain className="h-4 w-4 text-[#2563EB]" />
+                    <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Mental Generals</span>
+                    <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
+                      {categorizedSymptoms.mental.length}
                     </span>
-                  ))}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {categorizedSymptoms.mental.length === 0 && (
+                      <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
+                    )}
+                    {categorizedSymptoms.mental.map((s, i) => (
+                      <span
+                        key={i}
+                        className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
+                      >
+                        {s}
+                        <button
+                          onClick={() => handleRemoveSymptom('mental', i)}
+                          className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Heart className="h-4 w-4 text-[#2563EB]" />
+                    <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Physical Generals</span>
+                    <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
+                      {categorizedSymptoms.physical.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {categorizedSymptoms.physical.length === 0 && (
+                      <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
+                    )}
+                    {categorizedSymptoms.physical.map((s, i) => (
+                      <span
+                        key={i}
+                        className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
+                      >
+                        {s}
+                        <button
+                          onClick={() => handleRemoveSymptom('physical', i)}
+                          className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Search className="h-4 w-4 text-[#2563EB]" />
+                    <span className="text-[10px] font-bold text-[#4A4A47] uppercase tracking-widest">Particulars</span>
+                    <span className="ml-auto text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px]">
+                      {categorizedSymptoms.particular.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {categorizedSymptoms.particular.length === 0 && (
+                      <p className="text-[12px] text-[#888786] italic">None extracted yet</p>
+                    )}
+                    {categorizedSymptoms.particular.map((s, i) => (
+                      <span
+                        key={i}
+                        className="group flex flex-1 w-full items-center gap-2 text-[12px] font-medium text-[#0F0F0E] bg-white border border-[#E3E2DF] px-3 py-2 rounded-md hover:border-[#BFDBFE] transition-colors cursor-default"
+                      >
+                        {s}
+                        <button
+                          onClick={() => handleRemoveSymptom('particular', i)}
+                          className="ml-auto text-[#888786] hover:text-[#DC2626] p-1 rounded-sm shrink-0 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="px-4 py-2 bg-[#FAFAF8] border-t border-[#E3E2DF] text-center">
-              <span className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">{totalSymptoms} symptom{totalSymptoms !== 1 ? 's' : ''} extracted</span>
+              <div className="px-4 py-2 bg-[#FAFAF8] border-t border-[#E3E2DF] text-center">
+                <span className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">{totalSymptoms} symptom{totalSymptoms !== 1 ? 's' : ''} extracted</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Navigation buttons are in the bottom bar — no duplicate here */}

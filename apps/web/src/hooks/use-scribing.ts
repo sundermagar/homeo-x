@@ -110,9 +110,13 @@ export function useHomeopathyConsult() {
       thirstPattern?: string;
       sleepPosition?: string;
       perspiration?: string;
+      causation?: string;
+      location?: string;
+      concomitants?: string;
       doctorNotes?: string;
       labReports?: Record<string, string>;
       consultationMode?: 'acute' | 'chronic' | 'followup';
+      categorizedSymptoms?: { mental: string[]; physical: string[]; particular: string[] };
     }) => api.post<HomeopathyConsultResult>(API.AI.CONSULT_HOMEOPATHY, data),
   });
 }

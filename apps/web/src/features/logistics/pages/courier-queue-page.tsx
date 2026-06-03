@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { NumericInput } from '@/shared/components/NumericInput';
 import './courier-queue-page.css';
 
@@ -34,8 +35,16 @@ interface CourierEntry {
 
 export function CourierQueuePage() {
   const queryClient = useQueryClient();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,18 +52,28 @@ export function CourierQueuePage() {
   
   // Modal states
   const [assignModal, setAssignModal] = useState<CourierEntry | null>(null);
-  const [messageModal, setMessageModal] = useState<{ phone: string; message: string; regid: number } | null>(null);
+  const [messageModal, setMessageModal] = useState<{
+    phone: string;
+    patientName: string;
+    courierCompany: string;
+    podNumber: string;
+    regid: number;
+  } | null>(null);
   const [historyModal, setHistoryModal] = useState<{ regid: number; entries: CourierEntry[] } | null>(null);
 
   // Assign form state
   const [assignPcd, setAssignPcd] = useState('');
   const [assignCourier, setAssignCourier] = useState('');
   const [assignPickup, setAssignPickup] = useState(false);
+  const [assignSendWhatsapp, setAssignSendWhatsapp] = useState(true);
 
   const { data: queue = [], isLoading } = useQuery({
-    queryKey: ['courier-queue', selectedDate],
+    queryKey: ['courier-queue', selectedDate, debouncedSearch],
     queryFn: async () => {
-      const { data } = await apiClient.get(`/courier/queue?date=${selectedDate}`);
+      const url = debouncedSearch
+        ? `/courier/queue?search=${encodeURIComponent(debouncedSearch)}`
+        : `/courier/queue?date=${selectedDate}`;
+      const { data } = await apiClient.get(url);
       return data.data as CourierEntry[];
     }
   });
@@ -70,12 +89,35 @@ export function CourierQueuePage() {
     mutationFn: async (input: any) => {
       await apiClient.patch(`/courier/${input.id}/assign`, input);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['courier-queue'] });
+      
+      // Auto-send WhatsApp on assign
+      if (assignSendWhatsapp && assignModal?.phone && (variables.pcd || variables.pickup)) {
+        const phone = assignModal.phone.replace(/\D/g, '');
+        const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
+        
+        let textMessage = '';
+        if (variables.pickup) {
+          textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines are ready for pickup at the clinic.\n\nRegards,\nMMC HomeoTech`;
+        } else {
+          textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines have been dispatched via *${variables.courier || 'DTDC'}* and the POD number is *${variables.pcd || 'N/A'}*.\n\nFor tracking, log on to the courier tracking website.\n\nRegards,\nMMC HomeoTech`;
+        }
+        
+        sendText.mutate({
+          phone: finalPhone,
+          message: textMessage,
+        }, {
+          onSuccess: () => alert('✅ Dispatch details saved and WhatsApp message sent!'),
+          onError: (err: any) => alert('❌ Dispatch saved, but failed to send WhatsApp: ' + (err.response?.data?.message || err.message))
+        });
+      }
+
       setAssignModal(null);
       setAssignPcd('');
       setAssignCourier('');
       setAssignPickup(false);
+      setAssignSendWhatsapp(true);
     }
   });
 
@@ -89,18 +131,14 @@ export function CourierQueuePage() {
     });
   };
 
-  const handleOpenMessage = async (entry: CourierEntry) => {
-    try {
-      const { data } = await apiClient.get(`/courier/${entry.id}/sms-detail`);
-      setMessageModal(data.data);
-    } catch {
-      // Fallback
-      setMessageModal({
-        phone: entry.phone || '',
-        regid: entry.caseId,
-        message: `Dear ${entry.patientName || 'Patient'}, your medicines have been dispatched via ${entry.courier || 'courier'} and the POD number is ${entry.pcd || 'N/A'}. Regards, MMC`
-      });
-    }
+  const handleOpenMessage = (entry: CourierEntry) => {
+    setMessageModal({
+      phone: entry.phone || '',
+      regid: entry.caseId,
+      patientName: entry.patientName || '',
+      courierCompany: entry.courier || '',
+      podNumber: entry.pcd || '',
+    });
   };
 
   const handleOpenHistory = async (regid: number) => {
@@ -115,9 +153,25 @@ export function CourierQueuePage() {
   const handleSendWhatsApp = () => {
     if (!messageModal) return;
     const phone = messageModal.phone.replace(/\D/g, '');
-    const encodedMsg = encodeURIComponent(messageModal.message);
-    window.open(`https://wa.me/${phone.startsWith('91') ? phone : '91' + phone}?text=${encodedMsg}`, '_blank');
-    setMessageModal(null);
+    const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
+
+    const textMessage = `Dear ${messageModal.patientName || 'Patient'},\n\nYour medicines have been dispatched via *${messageModal.courierCompany || 'DTDC'}* and the POD number is *${messageModal.podNumber || 'N/A'}*.\n\nFor tracking, log on to the courier tracking website.\n\nRegards,\nMMC HomeoTech`;
+
+    sendText.mutate(
+      {
+        phone: finalPhone,
+        message: textMessage,
+      },
+      {
+        onSuccess: () => {
+          setMessageModal(null);
+          alert('✅ Courier dispatch WhatsApp sent successfully!');
+        },
+        onError: (err: any) => {
+          alert('❌ Failed to send: ' + (err.response?.data?.message || err.message));
+        },
+      }
+    );
   };
 
   const filteredQueue = queue.filter(e => {
@@ -270,12 +324,9 @@ export function CourierQueuePage() {
                                 Assign
                               </button>
                             ) : (
-                              <button
-                                className="action-btn action-message"
-                                onClick={() => handleOpenMessage(entry)}
-                              >
-                                <MessageCircle size={12} /> Message
-                              </button>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-success-fg)', display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: 'var(--pp-success-bg)', borderRadius: 6 }}>
+                                <CheckCircle2 size={12} /> Assigned
+                              </span>
                             )}
                             <button
                               className="action-btn action-history"
@@ -370,10 +421,21 @@ export function CourierQueuePage() {
                 </div>
               )}
               
-              <div style={{ marginTop: '32px', padding: '16px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.05)', border: '1px dashed rgba(59, 130, 246, 0.2)' }}>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                  <strong>Note:</strong> Once assigned, you can send a WhatsApp notification to the patient with these details.
-                </p>
+              <div style={{ marginTop: '32px', padding: '16px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', margin: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={assignSendWhatsapp}
+                    onChange={(e) => setAssignSendWhatsapp(e.target.checked)}
+                    style={{ marginTop: '3px', width: '16px', height: '16px', accentColor: '#22c55e' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>Send WhatsApp Notification</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      Automatically message {assignModal.phone || 'the patient'} with tracking details.
+                    </span>
+                  </div>
+                </label>
               </div>
             </div>
             <div className="courier-modal-footer">
@@ -411,21 +473,50 @@ export function CourierQueuePage() {
                 />
               </div>
               <div className="modal-field">
-                <label>Message Content</label>
-                <textarea
-                  value={messageModal.message}
-                  onChange={(e) => setMessageModal({ ...messageModal, message: e.target.value })}
-                  className="modal-textarea"
-                  rows={4}
+                <label>Patient Name (Variable 1)</label>
+                <input
+                  type="text"
+                  value={messageModal.patientName}
+                  onChange={(e) => setMessageModal({ ...messageModal, patientName: e.target.value })}
+                  className="modal-input"
                 />
+              </div>
+              <div className="modal-field">
+                <label>Courier Company (Variable 2)</label>
+                <input
+                  type="text"
+                  value={messageModal.courierCompany}
+                  onChange={(e) => setMessageModal({ ...messageModal, courierCompany: e.target.value })}
+                  className="modal-input"
+                  placeholder="e.g. DTDC"
+                />
+              </div>
+              <div className="modal-field">
+                <label>POD Number (Variable 3)</label>
+                <input
+                  type="text"
+                  value={messageModal.podNumber}
+                  onChange={(e) => setMessageModal({ ...messageModal, podNumber: e.target.value })}
+                  className="modal-input"
+                  placeholder="Tracking Number"
+                />
+              </div>
+              <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', background: 'var(--pp-bg-subtle)', border: '1px solid var(--pp-border)' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  <strong>Template Preview:</strong> Dear <strong>{messageModal.patientName || '{name}'}</strong> Your medicines has been dispatched via <strong>{messageModal.courierCompany || '{courier}'}</strong> and the POD number is <strong>{messageModal.podNumber || '{pod}'}</strong> For tracking log on www.dtdc.com Regards MMC HomeoTech
+                </p>
               </div>
             </div>
             <div className="courier-modal-footer">
               <button className="modal-btn modal-btn-cancel" onClick={() => setMessageModal(null)}>
                 Cancel
               </button>
-              <button className="modal-btn modal-btn-whatsapp" onClick={handleSendWhatsApp}>
-                <Send size={14} /> Send via WhatsApp
+              <button 
+                className="modal-btn modal-btn-whatsapp" 
+                onClick={handleSendWhatsApp}
+                disabled={sendText.isPending}
+              >
+                <Send size={14} /> {sendText.isPending ? 'Sending...' : 'Send via WhatsApp'}
               </button>
             </div>
           </div>

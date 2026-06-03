@@ -18,7 +18,7 @@ import './operations-dashboard.css';
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type GenericTab = 'logistics' | 'crm' | 'knowledge' | 'tools';
+type GenericTab = 'crm' | 'knowledge' | 'tools';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MOCK DATA
@@ -93,7 +93,9 @@ const PageHeader = memo(function PageHeader({ title, desc, actions }: { title: s
 
 export default function OperationsDashboard() {
   const [searchParams] = useSearchParams();
-  const activeTab = (searchParams.get('tab') as GenericTab) || 'logistics';
+  const validTabs: GenericTab[] = ['crm', 'knowledge', 'tools'];
+  const urlTab = searchParams.get('tab') as GenericTab;
+  const activeTab = validTabs.includes(urlTab) ? urlTab : 'crm';
   const { token } = useAuthStore();
   const [modalType, setModalType] = useState<'courier' | 'lead' | 'dictionary' | 'export' | 'referral' | 'reminder' | 'book' | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -105,11 +107,9 @@ export default function OperationsDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // ─── Real Data State ───
   const [leads, setLeads] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
-  const [shipments, setShipments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // ─── Knowledge Tab State ───
@@ -142,14 +142,7 @@ export default function OperationsDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'logistics') {
-        try {
-          const couriersRes = await apiClient.get('/logistics/couriers');
-          setShipments(couriersRes.data.data || []);
-        } catch {
-          setShipments([]);
-        }
-      } else if (activeTab === 'crm') {
+      if (activeTab === 'crm') {
         const [leadsRes, refsRes, remsRes] = await Promise.all([
           apiClient.get('/crm/leads'),
           apiClient.get('/crm/referrals/summary'),
@@ -272,14 +265,12 @@ export default function OperationsDashboard() {
   };
 
   const headers: Record<GenericTab, { title: string; desc: string }> = {
-    logistics: { title: 'Logistics & Couriers', desc: 'Manage shipping vendors and track active medicine deliveries.' },
     crm: { title: 'Lead CRM & Promos', desc: 'Capture new patient leads, track network referrals, and schedule reminders.' },
     knowledge: { title: 'Medical Knowledge Base', desc: 'Access global diagnosis terminology and uploaded reference books.' },
     tools: { title: 'Global Data Tools', desc: 'Administer database exports and system-wide backups.' },
   };
 
-  const actionMap: Record<GenericTab, { label: string; type: 'courier' | 'lead' | 'dictionary' | 'export' | null }> = {
-    logistics: { label: '+ Assign Courier', type: 'courier' },
+  const actionMap: Record<GenericTab, { label: string; type: 'lead' | 'dictionary' | 'export' | null }> = {
     crm: { label: '+ Add Lead', type: 'lead' },
     knowledge: { label: '+ Add Entry', type: 'dictionary' },
     tools: { label: '+ New Export', type: 'export' },
@@ -302,114 +293,6 @@ export default function OperationsDashboard() {
           ) : null
         }
       />
-
-      {/* ─── LOGISTICS TAB ─── */}
-      {activeTab === 'logistics' && (
-        <div className="slide-up">
-          <div className="ops-stats-row">
-            <StatCard icon={Package} value={shipments.length} label="Total Shipments" variant="default" />
-            <StatCard icon={Clock} value={shipments.filter(s => (s.status || '').toLowerCase() === 'dispatched' || (s.status || '').toLowerCase() === 'in transit').length} label="In Transit" variant="warn" />
-            <StatCard icon={CheckCircle2} value={shipments.filter(s => (s.status || '').toLowerCase() === 'delivered').length} label="Delivered" variant="success" />
-            <StatCard icon={AlertCircle} value={shipments.filter(s => (s.status || '').toLowerCase() === 'pending').length} label="Pending" variant="danger" />
-          </div>
-
-          <div className="ops-content card">
-            <div className="ops-table-header" style={{ alignItems: 'flex-start' }}>
-              <div>
-                <h2 className="pane-title">Active Shipments</h2>
-                <p style={{ fontSize: '0.72rem', color: 'var(--pp-muted)', marginTop: 4 }}>Real-time tracking of medicine dispatches.</p>
-              </div>
-              <div className="appt-segmented-toggle">
-                <button
-                  className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
-                  onClick={() => setViewMode('list')}
-                >
-                  <List size={16} /> List
-                </button>
-                <button
-                  className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                  onClick={() => setViewMode('grid')}
-                >
-                  <LayoutGrid size={16} /> Grid
-                </button>
-              </div>
-            </div>
-
-            {loading ? (
-              <TableSkeleton rows={5} columns={shipmentCols.length} />
-            ) : shipments.length === 0 ? (
-              <EmptyState 
-                icon={Package}
-                title="No shipments found"
-                description="Assign a courier to start tracking medicine deliveries."
-                actionLabel="+ Assign Courier"
-                onAction={() => setModalType('courier')}
-              />
-            ) : viewMode === 'list' ? (
-              <div className="plat-table-container">
-                <table className="plat-table ops-shipments-table">
-                  <thead>
-                    <tr>{shipmentCols.map(col => <th key={col}>{col}</th>)}</tr>
-                  </thead>
-                  <tbody>
-                    {shipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => (
-                      <tr key={s.id} className="plat-table-row">
-                        <td><span className="reg-badge">#{s.regid || '-'}</span></td>
-                        <td>
-                          <div className="cell-main">{s.patient_name || s.patient || `Patient #${s.regid || '-'}`}</div>
-                          <div className="cell-sub"><Phone size={11} /> {s.mobile || '-'}</div>
-                        </td>
-                        <td><span className="courier-tag">{s.courier_name || s.courier || '-'}</span></td>
-                        <td><span className="mono">{s.tracking_no || s.tracking || '-'}</span></td>
-                        <td><StatusBadge status={s.status || 'Pending'} /></td>
-                        <td><span className="cell-sub">{s.dispatch_date ? new Date(s.dispatch_date).toLocaleDateString() : s.created_at ? new Date(s.created_at).toLocaleDateString() : '-'}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="ops-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-                {shipments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => (
-                  <div key={s.id} className="ops-card" style={{ padding: 16, borderRadius: 18 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                      <div>
-                        <div className="reg-badge" style={{ marginBottom: 8, display: 'inline-block' }}>#{s.regid || '-'}</div>
-                        <div className="cell-main" style={{ fontSize: '15px' }}>{s.patient_name || s.patient || `Patient #${s.regid || '-'}`}</div>
-                        <div className="cell-sub"><Phone size={11} /> {s.mobile || '-'}</div>
-                      </div>
-                      <StatusBadge status={s.status || 'Pending'} />
-                    </div>
-                    <div style={{ padding: '12px', background: 'var(--bg-surface-2)', borderRadius: 12, display: 'grid', gap: 8 }}>
-                      <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Courier</span>
-                        <span style={{ fontWeight: 600 }}>{s.courier_name || s.courier || '-'}</span>
-                      </div>
-                      <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Tracking</span>
-                        <span className="mono">{s.tracking_no || s.tracking || '-'}</span>
-                      </div>
-                    </div>
-                    <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span className="cell-sub">{s.dispatch_date ? new Date(s.dispatch_date).toLocaleDateString() : '-'}</span>
-                      <button className="ops-btn ops-btn-ghost" style={{ padding: '6px 12px', fontSize: '11px', borderRadius: 8 }}>Details</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <Pagination
-              totalItems={shipments.length}
-              currentPage={currentPage}
-              pageSize={itemsPerPage}
-              totalPages={Math.ceil(shipments.length / itemsPerPage)}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={setItemsPerPage}
-            />
-          </div>
-        </div>
-      )}
 
       {/* ─── CRM TAB ─── */}
       {activeTab === 'crm' && (

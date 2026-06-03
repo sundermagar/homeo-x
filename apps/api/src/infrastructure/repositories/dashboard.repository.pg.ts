@@ -80,7 +80,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
   public static clearQueueCache(): void {
     for (const key of DashboardRepositoryPg.cache.keys()) {
-      if (key.startsWith('queue:')) {
+      if (
+        key.startsWith('queue:') ||
+        key.startsWith('kpis:') ||
+        key.startsWith('activity:') ||
+        key.startsWith('revSeries:') ||
+        key.startsWith('multiRevSeries:') ||
+        key.startsWith('recentTransactions:')
+      ) {
         DashboardRepositoryPg.cache.delete(key);
       }
     }
@@ -191,7 +198,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   }
 
   async getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis> {
-    return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 60_000, async () => {
+    return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 5 * 60_000, async () => {
       const sp = await this.getSearchPath();
       const isPlatformView = (sp.includes('public') && !sp.includes('tenant_')) || !contextId || contextId === 0;
 
@@ -389,6 +396,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             w.id as wl_id,
             w.appointment_id,
             w.patient_id,
+            w.unregistered_patient_id,
             w.doctor_id,
             w.waiting_number as token_no,
             w.status,
@@ -402,6 +410,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           q.wl_id,
           q.id,
           q.patient_id,
+          q.unregistered_patient_id,
           q.doctor_id,
           q.token_no,
           q.status,
@@ -410,6 +419,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           q.booking_time,
           q.visit_id,
           q.notes,
+          COALESCE(p.mobile1, p.phone, q.a_phone) as phone,
           COALESCE(p.first_name || ' ' || p.surname, q.manual_name, 'Unknown Patient') as patient_name,
           COALESCE(p.regid, p.id, q.patient_id) as regid,
           COALESCE(
@@ -434,6 +444,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             tw.wl_id,
             COALESCE(a.id, tw.wl_id * -1) as id,
             tw.patient_id,
+            tw.unregistered_patient_id,
             tw.doctor_id,
             tw.token_no,
             CASE WHEN tw.status = 1 THEN 'Consultation' WHEN tw.status = 2 THEN 'Completed' ELSE 'Waitlist' END as status,
@@ -441,7 +452,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             tw.checked_in_at as created_at,
             COALESCE(a.booking_time, '') as booking_time,
             COALESCE(a.id, tw.appointment_id) as visit_id,
-            a.notes
+            a.notes,
+            a.phone as a_phone
           FROM today_waitlist tw
           LEFT JOIN appointments a ON a.id = tw.appointment_id
 
@@ -451,6 +463,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             NULL as wl_id,
             a.id,
             a.patient_id,
+            a.unregistered_patient_id,
             a.doctor_id,
             a.token_no,
             CASE WHEN a.status IN ('In Progress', 'InProgress') THEN 'Consultation' ELSE a.status END as status,
@@ -458,7 +471,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.created_at,
             a.booking_time,
             a.id as visit_id,
-            a.notes
+            a.notes,
+            a.phone as a_phone
           FROM appointments a
           WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL OR a.clinic_id = 0 OR a.clinic_id = 1)
@@ -493,12 +507,15 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         id: r.id,
         wlId: r.wl_id,
         patientId: r.patient_id,
+        unregisteredId: r.unregistered_patient_id,
         regid: r.regid,
         patientName: r.patient_name,
         doctorName: r.doctor_name,
+        doctorId: r.doctor_id,
         bookingTime: r.booking_time || '',
         tokenNo: r.token_no,
         status: r.status,
+        phone: r.phone || '',
         isUrgent: false,
         age: undefined,
         gender: undefined,
@@ -529,7 +546,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
 
   async getRecentActivity(contextId: number, limit: number): Promise<ActivityItem[]> {
-    return this.getCached(`activity:${contextId}:${limit}`, 60_000, async () => {
+    return this.getCached(`activity:${contextId}:${limit}`, 5 * 60_000, async () => {
       const revInfo = await this.getRevenueTableInfo();
 
 
@@ -757,21 +774,22 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         const results = await this.db.execute(sql`
           WITH combined AS (
             SELECT 
-              b.id::text,
+              MAX(b.id)::text as id,
               b.regid,
-              COALESCE(b.bill_no::text, 'INV-' || b.id::text) AS invoice_no,
-              COALESCE(CAST(NULLIF(b.charges::text, '') AS numeric), 0)::int AS amount,
+              COALESCE(MAX(b.bill_no)::text, 'INV-' || MAX(b.id)::text) AS invoice_no,
+              SUM(COALESCE(CAST(NULLIF(b.charges::text, '') AS numeric), 0))::int AS amount,
               CASE
-                WHEN COALESCE(CAST(NULLIF(b.balance::text, '') AS numeric), 0) <= 0 THEN 'paid'
-                WHEN COALESCE(CAST(NULLIF(b.received::text, '') AS numeric), 0) > 0 THEN 'partial'
+                WHEN SUM(COALESCE(CAST(NULLIF(b.balance::text, '') AS numeric), 0)) <= 0 THEN 'paid'
+                WHEN SUM(COALESCE(CAST(NULLIF(b.received::text, '') AS numeric), 0)) > 0 THEN 'partial'
                 ELSE 'due'
               END AS status,
-              b.created_at
+              MAX(b.created_at) as created_at
             FROM bills b
             JOIN case_datas pb ON pb.regid = b.regid
             WHERE (b.deleted_at IS NULL OR b.deleted_at::text = '')
               AND (pb.deleted_at IS NULL OR pb.deleted_at::text = '')
               AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL OR b.clinic_id = 0 OR b.clinic_id = 1)
+            GROUP BY b.regid, COALESCE(b.bill_date, b.created_at::date)
             
             UNION ALL
             
@@ -781,7 +799,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               'RCT-' || r.id::text AS invoice_no,
               COALESCE(CAST(NULLIF(r.amount::text, '') AS numeric), 0)::int AS amount,
               'paid' AS status,
-              COALESCE(r.created_at, NOW()) as created_at
+              r.created_at
             FROM receipt r
             JOIN case_datas pr ON pr.regid = r.regid
             WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
@@ -797,6 +815,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         `);
         return (results as any[]).map(r => ({
           id: r.id,
+          regid: r.regid,
           patientName: r.patient_name || 'Patient',
           invoiceNo: r.invoice_no,
           amount: Number(r.amount) || 0,
@@ -935,12 +954,13 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const { start, boundary } = this.getPeriodDates(period);
 
       const results = await this.db.execute(sql`
-        SELECT b.id, NULLIF(TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.surname, '')), '') as patient_name,
+        SELECT MIN(b.id) as id, 
+               NULLIF(TRIM(COALESCE(MAX(p.first_name), '') || ' ' || COALESCE(MAX(p.surname), '')), '') as patient_name,
                p.regid,
-               b.charges as total,
+               COALESCE(SUM(b.charges), 0) as total,
                CASE
-                 WHEN b.balance <= 0 THEN 'Paid'
-                 WHEN b.received > 0 THEN 'Partial'
+                 WHEN COALESCE(SUM(b.balance), 0) <= 0 THEN 'Paid'
+                 WHEN COALESCE(SUM(b.received), 0) > 0 THEN 'Partial'
                  ELSE 'Pending'
                END as status
         FROM bills b
@@ -948,7 +968,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         WHERE b.bill_date::date >= ${start}::date AND b.bill_date::date < ${boundary}::date
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
           AND (p.clinic_id = ${contextId} OR p.clinic_id IS NULL)
-        ORDER BY b.charges DESC NULLS LAST
+        GROUP BY p.regid
+        ORDER BY COALESCE(SUM(b.charges), 0) DESC
         LIMIT ${limit}
       `) as any[];
 
@@ -1116,8 +1137,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       let totalPlatformRev = 0;
       let totalPlatformDues = 0;
 
-      // 2. Sum data across all discovered schemas
-      for (const s of schemas) {
+      // 2. Sum data across all discovered schemas concurrently
+      await Promise.all(schemas.map(async (s) => {
         const schema = s.schema_name;
         try {
           const stats = await this.db.execute(sql`
@@ -1134,18 +1155,18 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           }
         } catch (e) {
           // Skip schemas that might not have the bills table or are inaccessible
-          continue;
         }
-      }
+      }));
 
       const userStats = await this.db.execute(sql`
         SELECT
           (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true) as user_count,
-          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true AND type = 'Clinicadmin') as admin_count
+          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true AND type = 'Clinicadmin') as admin_count,
+          (SELECT count(*)::int FROM public.organizations WHERE deleted_at IS NULL) as clinic_count
       `) as any[];
 
       const res = userStats[0] || {};
-      const clinicCount = schemas.length || 1;
+      const clinicCount = Number(res.clinic_count) || 1;
       const revDensity = Math.round(totalPlatformRev / clinicCount);
 
       return {
@@ -1267,7 +1288,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         };
       });
 
-      for (const s of schemas) {
+      await Promise.all(schemas.map(async (s) => {
         const schema = s.schema_name;
         try {
           const results = await this.db.execute(sql`
@@ -1284,8 +1305,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             const m = months.find(m => m.month === r.month);
             if (m) m.revenue += r.revenue || 0;
           }
-        } catch (e) { continue; }
-      }
+        } catch (e) { /* skip schema */ }
+      }));
 
       return months.map(m => ({ month: m.month, revenue: m.revenue }));
     });

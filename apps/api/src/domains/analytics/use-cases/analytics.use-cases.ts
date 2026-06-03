@@ -41,6 +41,16 @@ export class AnalyticsUseCases {
     }
   }
 
+  async getProductDetails(clinicId?: number, monthKey?: string): Promise<Result<any[]>> {
+    try {
+      if (!monthKey) return fail('Month key is required', 'VALIDATION');
+      const data = await this.repo.getProductDetails(clinicId, monthKey);
+      return ok(data);
+    } catch (err) {
+      return fail(errMsg(err));
+    }
+  }
+
   async getMonthWiseDues(clinicId?: number, year?: number): Promise<Result<MonthWiseDueSummary[]>> {
     try {
       const data = await this.repo.getMonthWiseDues(clinicId, year);
@@ -72,6 +82,15 @@ export class AnalyticsUseCases {
   async getReferenceListing(clinicId?: number, from?: Date, to?: Date): Promise<Result<ReferenceListResult[]>> {
     try {
       const data = await this.repo.getReferenceListing(clinicId, from, to);
+      return ok(data);
+    } catch (err) {
+      return fail(errMsg(err));
+    }
+  }
+
+  async getReferenceDetails(clinicId?: number, reference?: string, from?: Date, to?: Date): Promise<Result<any[]>> {
+    try {
+      const data = await this.repo.getReferenceDetails(clinicId, reference, from, to);
       return ok(data);
     } catch (err) {
       return fail(errMsg(err));

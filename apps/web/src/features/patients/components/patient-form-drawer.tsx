@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { usePatient, useCreatePatient, useUpdatePatient, usePatientFormMeta, usePatientLookup } from '../hooks/use-patients';
 import { useReferrals } from '../../settings/hooks/use-settings';
@@ -8,6 +8,7 @@ import { VisitType } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { X, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import '../styles/patients.css';
 
 const INDIAN_STATES = [
@@ -49,6 +50,17 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
   const [errors, setErrors] = useState<string[]>([]);
   const [refSearch, setRefSearch] = useState('');
   const [showRefDropdown, setShowRefDropdown] = useState(false);
+  const refDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (refDropdownRef.current && !refDropdownRef.current.contains(event.target as Node)) {
+        setShowRefDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const { data: meta } = usePatientFormMeta(clinicId);
   const { data: patient } = usePatient(isEdit && regid ? Number(regid) : 0);
@@ -58,6 +70,8 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient();
   const createApptMutation = useCreateAppointment();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   const { data: slots = [] } = useAvailableSlots(
     form.assistantDoctor ? Number(form.assistantDoctor) : undefined,
@@ -70,6 +84,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
   useEffect(() => {
     if (isOpen) {
       if (isEdit && patient) {
+        setRefSearch(patient.referredBy || '');
         setForm({
           title: patient.title || '',
           firstName: patient.firstName || '',
@@ -93,7 +108,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
           maritalStatus: patient.maritalStatus || '',
           bloodGroup: patient.bloodGroup || '',
           referenceType: patient.referenceType || '',
-          referredBy: patient.referredBy || '',
+          referredBy: patient.referredByName || patient.referredBy || '',
           assistantDoctor: patient.assistantDoctor || '',
           consultationFee: patient.consultationFee || 500,
           courierOutstation: patient.courierOutstation || false,
@@ -109,6 +124,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
           notes: '',
         });
       } else if (unregisteredPatient) {
+        setRefSearch('');
         const latestAppt = unregisteredPatient.latestAppointment;
         const nameParts = (unregisteredPatient.name || '').trim().split(' ');
         const firstName = nameParts[0] || '';
@@ -144,6 +160,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
         });
       } else if (!isEdit) {
         setForm(INIT_FORM);
+        setRefSearch('');
       }
       setErrors([]);
     }
@@ -186,7 +203,6 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
   const validate = () => {
     const errs: string[] = [];
     if (!form.firstName.trim()) errs.push('First Name is required');
-    if (!form.surname.trim()) errs.push('Surname is required');
     if (!form.phone.trim() && !form.mobile1.trim()) errs.push('At least one phone number is required');
     if (!form.dateOfBirth) errs.push('Date of Birth is required');
     
@@ -205,12 +221,13 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
     setErrors([]);
     try {
       if (isEdit) {
-        await updateMutation.mutateAsync({ regid: Number(regid), ...form });
+        await updateMutation.mutateAsync({ regid: Number(regid), ...form, referredById: form.referredById ? String(form.referredById) : undefined });
         onSuccess?.();
         onClose();
       } else {
         const patientResult = await createMutation.mutateAsync({
            ...form,
+           referredById: refSearch || undefined,
            unregisteredId: unregisteredPatient?.id
         });
         
@@ -227,6 +244,21 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
             consultationFee: form.consultationFee || 0,
             notes: 'Initial consultation booked during registration.',
           });
+        }
+        
+        // Auto-send WhatsApp registration text
+        if (patientResult?.regid && (form.phone || form.mobile1)) {
+          const rawPhone = form.phone || form.mobile1;
+          const cleaned = rawPhone.replace(/\D/g, '');
+          const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+          try {
+            await sendText.mutateAsync({
+              phone: finalPhone,
+              message: `Dear ${form.firstName} ${form.surname},\n\nThank you for registering with MMC HomeoTech. Your Registration ID is *${patientResult.regid}*.\n\nPlease use this ID for all future communications.\n\nBest regards,\nYour Clinic`
+            });
+          } catch (err) {
+            console.error('Auto WhatsApp failed', err);
+          }
         }
         
         onSuccess?.();
@@ -271,7 +303,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                 </select>
                 <input className="drawer-input" style={{ flex: 1 }} name="firstName" value={form.firstName} onChange={handleChange} placeholder="First Name" required />
                 <input className="drawer-input" style={{ flex: 1 }} name="middleName" value={form.middleName} onChange={handleChange} placeholder="Middle Name" />
-                <input className="drawer-input" style={{ flex: 1 }} name="surname" value={form.surname} onChange={handleChange} placeholder="Surname" required />
+                <input className="drawer-input" style={{ flex: 1 }} name="surname" value={form.surname} onChange={handleChange} placeholder="Surname" />
               </div>
             </div>
 
@@ -323,7 +355,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
                </div>
                <div className="form-group">
                   <label className="drawer-label">Consultation Fee (₹)</label>
-                  <NumericInput className="drawer-input" name="consultationFee" value={form.consultationFee} onChange={handleChange} />
+                  <NumericInput className="drawer-input" name="consultationFee" value={form.consultationFee ?? ''} onChange={handleChange} />
                </div>
             </div>
 
@@ -463,49 +495,65 @@ export function PatientFormDrawer({ isOpen, onClose, regid, unregisteredPatient,
               </div>
 
               {(form.referenceType?.toLowerCase().includes('patient') || form.referenceType?.toLowerCase().includes('recommendation')) && (
-                <div className="form-group animate-fade-in">
-                  <label className="drawer-label">Referred By</label>
-                  <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
-                    <input 
-                      className="drawer-input" 
-                      style={{ width: '80px' }} 
-                      placeholder="ID" 
-                      value={refSearch}
-                      onChange={e => {
-                         setRefSearch(e.target.value);
-                         setShowRefDropdown(true);
-                      }}
-                      onFocus={() => setShowRefDropdown(true)}
-                    />
-                    <input 
-                      className="drawer-input" 
-                      style={{ flex: 1 }} 
-                      name="referredBy" 
-                      value={form.referredBy} 
-                      onChange={handleChange} 
-                      placeholder="Patient Name" 
-                      readOnly
-                    />
-                    
-                    {showRefDropdown && refSearch.length >= 2 && refResults.length > 0 && (
-                      <div className="appt-kebab-menu" style={{ position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 10, maxHeight: '200px', overflowY: 'auto' }}>
-                        {refResults.map(p => (
-                          <button 
-                            key={p.regid} 
-                            type="button"
-                            className="appt-kebab-item" 
-                            onClick={() => {
-                              setForm(f => ({ ...f, referredBy: p.fullName }));
-                              setRefSearch(String(p.regid));
-                              setShowRefDropdown(false);
-                            }}
-                          >
-                            <span className="pp-mono text-small" style={{ color: 'var(--pp-blue)' }}>{p.regid}</span> - {p.fullName}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                <div className="form-group animate-fade-in" ref={refDropdownRef}>
+                  <label className="drawer-label">Referred By Patient</label>
+                  {form.referredBy ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: 'var(--bg-surface-3)', borderRadius: '6px', border: '1px solid var(--border-main)' }}>
+                      <span className="pp-mono text-small font-bold" style={{ color: 'var(--pp-blue)', background: 'var(--pp-blue-bg)', padding: '2px 6px', borderRadius: '4px' }}>
+                        {refSearch}
+                      </span>
+                      <span style={{ fontSize: '13px', fontWeight: 500 }}>{form.referredBy}</span>
+                      <button 
+                        type="button" 
+                        style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                        onClick={() => {
+                          setForm(f => ({ ...f, referredBy: '' }));
+                          setRefSearch('');
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ position: 'relative' }}>
+                      <input 
+                        className="drawer-input" 
+                        placeholder="Search ID, Name or Mobile..." 
+                        value={refSearch}
+                        onChange={e => {
+                           setRefSearch(e.target.value);
+                           setShowRefDropdown(true);
+                        }}
+                        onFocus={() => setShowRefDropdown(true)}
+                      />
+                      
+                      {showRefDropdown && refSearch.length >= 2 && (
+                        <div className="appt-kebab-menu" style={{ position: 'absolute', top: '100%', left: 0, width: '100%', zIndex: 10, maxHeight: '200px', overflowY: 'auto', background: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                          {refResults.length === 0 ? (
+                            <div style={{ padding: '8px 12px', fontSize: '12px', color: '#64748b' }}>No patients found</div>
+                          ) : (
+                            refResults.map(p => (
+                              <button 
+                                key={p.regid} 
+                                type="button"
+                                className="appt-kebab-item" 
+                                style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                onClick={() => {
+                                  setForm(f => ({ ...f, referredBy: p.fullName }));
+                                  setRefSearch(String(p.regid));
+                                  setShowRefDropdown(false);
+                                }}
+                              >
+                                <span className="pp-mono text-small font-bold" style={{ color: '#2563eb', background: '#eff6ff', padding: '2px 6px', borderRadius: '4px' }}>{p.regid}</span>
+                                <span style={{ fontSize: '13px', color: '#1e293b' }}>{p.fullName}</span>
+                                {p.phone && <span style={{ fontSize: '11px', color: '#64748b', marginLeft: 'auto' }}>{p.phone}</span>}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -15,21 +15,21 @@ const sql = postgres(dbUrl);
 async function main() {
   try {
     console.log('Updating legacy organizations with administrator emails...');
-    
+
     // Vismedicos
     await sql`
       UPDATE public.organizations 
-      SET admin_email = 'vis@kreed.health', admin_password = 'password123'
+      SET admin_email = 'vis@MMC', admin_password = 'password123'
       WHERE name ILIKE '%vismedicos%'
     `;
-    
+
     // Aman Medical
     await sql`
       UPDATE public.organizations 
-      SET admin_email = 'aman@kreed.health', admin_password = 'password123'
+      SET admin_email = 'aman@MMC', admin_password = 'password123'
       WHERE name ILIKE '%amanmedical%' OR name ILIKE '%aman medical%'
     `;
-    
+
     console.log('Successfully updated organization admin fields.');
   } catch (err) {
     console.error('Update failed:', err);

@@ -20,6 +20,9 @@ interface PaymentReceiptModalProps {
     balance: number;
     hasActivePackage?: boolean;
     activePackageName?: string;
+    packagePrice?: number;
+    originalPackagePrice?: number;
+    isPurchaseDate?: boolean;
     originalRegular?: number;
     originalDaysCharge?: number;
   };
@@ -44,6 +47,12 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
   const rows = [
     { label: 'Registration Charge', value: billingData.regular, isCovered: billingData.hasActivePackage && (billingData.originalRegular || 0) > 0 && billingData.regular === 0, originalValue: billingData.originalRegular },
     { label: 'Medicine Days Charge', value: billingData.daysCharge, isCovered: billingData.hasActivePackage && (billingData.originalDaysCharge || 0) > 0 && billingData.daysCharge === 0, originalValue: billingData.originalDaysCharge },
+    ...(billingData.hasActivePackage ? [{
+      label: `Plan: ${billingData.activePackageName}`,
+      value: billingData.packagePrice,
+      isCovered: !billingData.isPurchaseDate,
+      originalValue: billingData.originalPackagePrice
+    }] : []),
     { label: 'Additional Charge', value: billingData.additional },
   ];
 
@@ -51,6 +60,11 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white">
         <div className="p-6 print:p-0" id="receipt-content">
+          <style>{`
+            @media print {
+              @page { size: A4 portrait; margin: 1cm; }
+            }
+          `}</style>
           {/* Receipt Header */}
           <div className="text-center mb-6 border-bottom pb-4">
             <h2 className="text-2xl font-bold text-gray-800">Payment Receipt</h2>

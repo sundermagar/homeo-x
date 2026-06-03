@@ -4,8 +4,6 @@ import type {
   SmsTemplate, SmsReport,
   CreateSmsTemplateDto, UpdateSmsTemplateDto,
   SendSmsDto, BroadcastSmsDto,
-  SendWhatsAppDto, BroadcastWhatsAppDto,
-  WhatsAppLog,
 } from '@mmc/types';
 
 // ─── Query Keys ──────────────────────────────────────────────────────────────
@@ -17,8 +15,6 @@ export const commKeys = {
   template:     (id: number) => [...ALL_KEY, 'template', id] as const,
   reports:      (f: Record<string, any>) => [...ALL_KEY, 'reports', f] as const,
   whatsappLogs: [...ALL_KEY, 'whatsapp-logs'] as const,
-  whatsappQr:   [...ALL_KEY, 'whatsapp-qr'] as const,
-  whatsappStatus: (id: string) => [...ALL_KEY, 'whatsapp-status', id] as const,
 };
 
 // ─── SMS Templates ────────────────────────────────────────────────────────────
@@ -93,45 +89,44 @@ export function useBroadcastSms() {
   });
 }
 
-// ─── WhatsApp ──────────────────────────────────────────────────────────────────
+// ─── WhatsApp (Meta Cloud API) ──────────────────────────────────────────────────────────
+// All hooks now route through /api/whatsapp/* (Meta Cloud API, channel from wa_channels)
+
+/** Send a single WhatsApp text message via Meta Cloud API */
 export function useSendWhatsApp() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: SendWhatsAppDto) => apiClient.post('/communications/whatsapp/send', dto),
+    mutationFn: ({ phone, message }: { phone: string; message: string }) =>
+      apiClient.post('/whatsapp/send-text', { phone, message }).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: commKeys.whatsappLogs }),
   });
 }
 
+/** Broadcast a WhatsApp text message to multiple phones via Meta Cloud API (unified WABA) */
 export function useBroadcastWhatsApp() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: BroadcastWhatsAppDto) => apiClient.post('/communications/whatsapp/broadcast', dto),
+    mutationFn: async ({ phones, message }: { phones: string[]; message: string }) => {
+      // Send each phone through the unified WABA endpoint
+      const results = await Promise.allSettled(
+        phones.map(phone =>
+          apiClient.post('/whatsapp/send-text', { phone, message }).then(r => r.data)
+        )
+      );
+      const sent = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+      return { success: true, sent, failed };
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: commKeys.whatsappLogs }),
   });
 }
 
+
+/** Fetch legacy WhatsApp send logs */
 export function useWhatsAppLogs() {
   return useQuery({
     queryKey: commKeys.whatsappLogs,
-    queryFn: () => apiClient.get<{ success: boolean; data: WhatsAppLog[] }>('/communications/whatsapp/logs').then(r => r.data.data ?? []),
+    queryFn: () => apiClient.get('/communications/whatsapp/logs').then(r => (r.data as any).data ?? []),
     staleTime: 60_000,
-  });
-}
-
-export function useWhatsAppQr() {
-  return useQuery({
-    queryKey: commKeys.whatsappQr,
-    queryFn: () => apiClient.get<{ success: boolean; data: { qrCode: string; instanceId: string } }>('/communications/whatsapp/qr').then(r => r.data.data),
-    staleTime: 0,
-    enabled: false, // Only manual refetch
-  });
-}
-
-export function useWhatsAppStatus(instanceId: string | null) {
-  return useQuery({
-    queryKey: commKeys.whatsappStatus(instanceId || ''),
-    queryFn: () => apiClient.get<{ success: boolean; data: { connected: boolean } }>(`/communications/whatsapp/status/${instanceId}`).then(r => r.data.data),
-    enabled: !!instanceId,
-    refetchInterval: 5000,
   });
 }

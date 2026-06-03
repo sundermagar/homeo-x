@@ -132,12 +132,16 @@ export class NotificationsRepositoryPg implements NotificationsRepository {
     if (roles.length === 0) return [];
     try {
       const lowerRoles = roles.map(r => r.toLowerCase());
-      const rows = await this.db.execute(sql`
+      const rolesList = lowerRoles.map(r => `'${r.replace(/'/g, "''")}'`).join(', ');
+      const clinicCondition = (clinicId && clinicId !== 0)
+        ? `AND (context_id = ${clinicId} OR context_id IS NULL)`
+        : '';
+      const rows = await this.db.execute(sql.raw(`
         SELECT id FROM users
-        WHERE LOWER(type) = ANY(${lowerRoles}::text[])
+        WHERE LOWER(type) IN (${rolesList})
           AND (deleted_at IS NULL OR deleted_at::text = '')
-          ${clinicId ? sql`AND (context_id = ${clinicId} OR context_id IS NULL)` : sql``}
-      `);
+          ${clinicCondition}
+      `));
       return (rows as any[]).map(r => r.id).filter((x): x is number => typeof x === 'number');
     } catch (err: any) {
       logger.error({ err: err.message }, `Failed to find users by role ${roles.join(',')}`);

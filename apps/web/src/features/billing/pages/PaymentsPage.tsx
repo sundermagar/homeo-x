@@ -8,6 +8,7 @@ import { usePaymentHistory, useRecordManualPayment } from '../hooks/use-payments
 import { usePatient } from '../../patients/hooks/use-patients';
 import { PaymentModeEnum } from '@mmc/validation';
 import type { PaymentWithPatient } from '@mmc/types';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { Pagination } from '@/shared/components/Pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -332,6 +333,9 @@ function ManualPaymentDrawerContent({ onClose }: { onClose: () => void }) {
   const [error,  setError]  = useState('');
 
   const recordManual = useRecordManualPayment();
+  const { data: patient, isLoading: patientLoading, isError: patientError } = usePatient(regid ? parseInt(regid) : 0);
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -344,6 +348,22 @@ function ManualPaymentDrawerContent({ onClose }: { onClose: () => void }) {
         paymentMode: mode as any,
         notes,
       });
+      
+      // Auto-send WhatsApp receipt
+      if (patient && (patient.phone || patient.mobile1)) {
+        const rawPhone = patient.phone || patient.mobile1 || '';
+        const cleaned = rawPhone.replace(/\D/g, '');
+        const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+        try {
+          await sendText.mutateAsync({
+            phone: finalPhone,
+            message: `Dear ${patient.firstName} ${patient.surname},\n\nWe have successfully received your payment of *₹${amount}* via ${mode}.\n\nThank you for choosing MMC HomeoTech.\n\nRegards,\nYour Clinic`
+          });
+        } catch (err) {
+          console.error('Auto WhatsApp failed', err);
+        }
+      }
+      
       onClose();
     } catch {
       setError('Failed to record payment. Please try again.');

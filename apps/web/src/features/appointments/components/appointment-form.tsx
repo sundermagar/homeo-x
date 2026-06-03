@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2, Printer, Phone, CheckCircle } from 'lucide-react';
+import { X, User, Calendar, Clock, Stethoscope, DollarSign, Loader2, Printer, Phone, CheckCircle, Search, FileText } from 'lucide-react';
 import { VisitType, Role } from '@mmc/types';
 import type { Appointment, CreateAppointmentDto } from '@mmc/types';
 import { useCreateAppointment, useUpdateAppointment, useAvailableSlots } from '../hooks/use-appointments';
 import { useDoctors } from '../hooks/use-doctors';
+import { useCreatePatient } from '@/features/patients/hooks/use-patients';
 import { useOrganizations } from '@/features/platform/hooks/use-organizations';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { NumericInput } from '@/shared/components/NumericInput';
 import { printAppointmentSlip } from '@/shared/utils/print';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import '../styles/appointments.css';
 
 interface Doctor { id: number; name: string; consultation_fee?: number; isActive?: boolean; }
@@ -19,12 +21,15 @@ interface Props {
   editAppointment?: Appointment | null;
   onClose: () => void;
   onSuccess?: () => void;
-  onCancel?: () => void; // Added onCancel support for drawer
+  onCancel?: () => void;
 }
 
 const EMPTY_FORM = {
   patientId: '',
   patientName: '',
+  gender: 'M',
+  dateOfBirth: '',
+  city: '',
   phone: '',
   doctorId: '',
   bookingDate: new Date().toISOString().split('T')[0],
@@ -34,22 +39,25 @@ const EMPTY_FORM = {
   notes: '',
 };
 
+type SearchStatus = 'idle' | 'searching' | 'found' | 'not-found';
+
 export function AppointmentForm({ initialDate, editAppointment, onClose, onSuccess, onCancel }: Props) {
   const [form, setForm] = useState({ ...EMPTY_FORM, bookingDate: initialDate ?? EMPTY_FORM.bookingDate });
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [error, setError] = useState('');
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [activeSearchField, setActiveSearchField] = useState<'name' | 'id' | 'phone' | null>(null);
+  const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
   const [bookingResult, setBookingResult] = useState<{doctorName: string; tokenNo?: number} | null>(null);
 
   const createMutation = useCreateAppointment();
   const updateMutation = useUpdateAppointment();
+  const createPatientMutation = useCreatePatient();
   const { data: slots = [] } = useAvailableSlots(
     form.doctorId ? Number(form.doctorId) : undefined,
     form.bookingDate || undefined,
   );
+  
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
 
   const user = useAuthStore(s => s.user);
 
@@ -91,6 +99,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
         consultationFee: editAppointment.consultationFee ?? '',
         notes: editAppointment.notes ?? '',
       });
+      setSearchStatus('found');
     }
   }, [editAppointment]);
 
@@ -105,46 +114,69 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     }));
   };
 
-  // Debounced lookup for suggestions
-  useEffect(() => {
-    // Only search if user is actively typing in a field
-    if (!activeSearchField) return;
+  const set = (key: keyof typeof form, val: string) => setForm(f => ({ ...f, [key]: val }));
 
-    const value = activeSearchField === 'name' ? form.patientName
-      : activeSearchField === 'id' ? form.patientId
-        : activeSearchField === 'phone' ? form.phone : '';
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
-    if (value.trim().length >= 2) {
-      setLookupLoading(true);
-      const timer = setTimeout(async () => {
-        try {
-          const { data } = await apiClient.get<any>(`/patients/lookup?query=${encodeURIComponent(value)}`);
-          const results = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-          setSuggestions(results);
-          setShowSuggestions(true);
-        } catch { /* silent */ } finally {
-          setLookupLoading(false);
-        }
-      }, 300);
-      return () => clearTimeout(timer);
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
+  const handleSearch = async () => {
+    if (form.phone.length < 10) {
+      setError('Please enter a valid 10-digit mobile number.');
+      return;
     }
-  }, [form.patientName, form.patientId, form.phone, activeSearchField]);
+    setError('');
+    setSearchStatus('searching');
+    setSearchResults([]);
+    try {
+      const { data } = await apiClient.get<any>(`/patients/lookup?query=${encodeURIComponent(form.phone)}`);
+      const results = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+      
+      if (results.length > 0) {
+        if (results.length > 1) {
+           // Let the user pick if multiple
+           setSearchResults(results);
+           setSearchStatus('idle'); // We will show suggestions
+        } else {
+           selectPatient(results[0]);
+        }
+      } else {
+        setForm(f => ({
+          ...f,
+          visitType: VisitType.New,
+          patientId: '',
+          patientName: '',
+        }));
+        setSearchStatus('not-found');
+      }
+    } catch (e) {
+      console.error('Search failed', e);
+      setSearchStatus('not-found');
+    }
+  };
 
-  const selectSuggestion = (p: any) => {
+  const selectPatient = (p: any) => {
+    let previousDoctorId = form.doctorId;
+    let previousFee = form.consultationFee;
+    if (p.doctorName && doctorsList.length > 0) {
+       const doc = doctorsList.find((d: Doctor) => d.name === p.doctorName);
+       if (doc) {
+         previousDoctorId = String(doc.id);
+         previousFee = (doc.consultation_fee !== undefined && doc.consultation_fee !== null) 
+             ? String(doc.consultation_fee) 
+             : form.consultationFee;
+       }
+    }
+
     setForm(f => ({
       ...f,
       patientId: String(p.regid ?? p.id ?? f.patientId),
-      phone: p.mobile1 ?? p.phone ?? f.phone,
       patientName: p.fullName || `${p.firstName ?? ''} ${p.surname ?? ''}`.trim() || f.patientName,
+      doctorId: previousDoctorId,
+      consultationFee: previousFee,
+      visitType: VisitType.FollowUp,
     }));
-    setShowSuggestions(false);
-    setActiveSearchField(null);
+    setSearchStatus('found');
+    setSearchResults([]);
   };
-
-  const set = (key: keyof typeof form, val: string) => setForm(f => ({ ...f, [key]: val }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,39 +184,78 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     if (!form.bookingDate) { setError('Booking date is required'); return; }
     if (!form.bookingTime) { setError('Please select a time slot'); return; }
 
-    if (!form.notes || !form.notes.trim()) {
-      setError('Chief Complaint is required — describe what brings the patient in today.');
+    if (form.visitType === VisitType.New && (!form.patientName || !form.patientName.trim())) {
+      setError('Patient name is required for new registration.');
+      return;
+    }
+    if (form.visitType === VisitType.New && !form.dateOfBirth && !form.patientId) {
+      setError('Date of birth is required for new patient registration.');
       return;
     }
 
-    // Ensure date is in YYYY-MM-DD format for the backend
     let normalizedDate = form.bookingDate;
     if (normalizedDate && normalizedDate.includes('/')) {
       const parts = normalizedDate.split('/');
       if (parts.length === 3 && parts[0] && parts[1] && parts[2] && parts[2].length === 4) {
-        // DD/MM/YYYY -> YYYY-MM-DD
         normalizedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
       }
     }
 
-    const dto: CreateAppointmentDto = {
-      patientId: form.patientId ? Number(form.patientId) : undefined,
-      patientName: form.patientName || undefined,
-      phone: form.phone || undefined,
-      doctorId: form.doctorId ? Number(form.doctorId) : undefined,
-      bookingDate: normalizedDate,
-      bookingTime: form.bookingTime || undefined,
-      visitType: form.visitType as any,
-      consultationFee: form.consultationFee ? Number(form.consultationFee) : 0,
-      notes: form.notes || '',
-    };
-
     try {
       if (editAppointment) {
+        const dto: CreateAppointmentDto = {
+          patientId: form.patientId ? Number(form.patientId) : undefined,
+          patientName: form.patientName || undefined,
+          phone: form.phone || undefined,
+          doctorId: form.doctorId ? Number(form.doctorId) : undefined,
+          bookingDate: normalizedDate,
+          bookingTime: form.bookingTime || undefined,
+          visitType: form.visitType as any,
+          consultationFee: form.consultationFee ? Number(form.consultationFee) : 0,
+          notes: form.notes || '',
+        };
         await updateMutation.mutateAsync({ id: editAppointment.id, dto });
         onSuccess?.();
         onClose();
       } else {
+        let finalPatientId = form.patientId ? Number(form.patientId) : undefined;
+        let unregisteredPatientId = undefined;
+
+        // If it's a completely new patient without an ID, register them now
+        if (form.visitType === VisitType.New && !finalPatientId) {
+            const nameParts = form.patientName.trim().split(' ');
+            const firstName = nameParts[0];
+            const surname = nameParts.slice(1).join(' ') || '.';
+
+            try {
+                const newPatient = await createPatientMutation.mutateAsync({
+                    title: form.gender === 'F' ? 'Mrs.' : 'Mr.',
+                    firstName,
+                    surname,
+                    gender: form.gender as 'M'|'F'|'Other',
+                    phone: form.phone,
+                    dateOfBirth: form.dateOfBirth,
+                    city: form.city,
+                });
+                finalPatientId = newPatient.regid;
+            } catch (err: any) {
+                setError(err.response?.data?.message || 'Failed to register patient');
+                return;
+            }
+        }
+
+        const dto: CreateAppointmentDto = {
+          patientId: finalPatientId,
+          patientName: form.patientName || undefined,
+          phone: form.phone || undefined,
+          doctorId: form.doctorId ? Number(form.doctorId) : undefined,
+          bookingDate: normalizedDate,
+          bookingTime: form.bookingTime || undefined,
+          visitType: form.visitType as any,
+          consultationFee: form.consultationFee ? Number(form.consultationFee) : 0,
+          notes: form.notes || '',
+        };
+
         const result = await createMutation.mutateAsync(dto);
         const created = result?.data ?? result;
         const doc = doctors.find(d => String(d.id) === form.doctorId);
@@ -192,6 +263,20 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
           doctorName: doc?.name || 'N/A',
           tokenNo: created?.tokenNo,
         });
+        
+        if (form.phone) {
+          const cleaned = form.phone.replace(/\D/g, '');
+          const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+          try {
+            await sendText.mutateAsync({
+              phone: finalPhone,
+              message: `Dear ${form.patientName || 'Patient'},\n\nYour appointment with Dr. ${doc?.name || 'N/A'} is confirmed for ${normalizedDate} at ${form.bookingTime || 'N/A'}.\n${created?.tokenNo ? `Your Token Number is *${created.tokenNo}*.\n` : ''}\nRegards,\nMMC HomeoTech`
+            });
+          } catch (err) {
+            console.error('Auto WhatsApp failed', err);
+          }
+        }
+        
         onSuccess?.();
       }
     } catch (err: any) {
@@ -201,11 +286,9 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
-  // True when the selected doctor is explicitly marked offline/inactive
   const selectedDoctorInactive = !!form.doctorId &&
     doctors.some(d => String(d.id) === form.doctorId && d.isActive === false);
 
-  // If booking was successful, show the success panel
   if (bookingResult) {
     return (
       <div className="appt-success-panel animate-fade-in">
@@ -257,258 +340,257 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
         <div className="appt-alert appt-alert-error">{error}</div>
       )}
 
-      {/* Doctor + Fee */}
-      <div className="appt-form-row appt-form-row-2">
+      {!editAppointment && (
         <div className="appt-form-group">
           <label className="appt-form-label">
-            <Stethoscope size={13} strokeWidth={1.6} />
-            Practitioner
+            <Phone size={13} strokeWidth={1.6} />
+            Mobile Number
           </label>
-          <select
-            className={`appt-form-select${selectedDoctorInactive ? ' appt-select-offline' : ''}`}
-            value={form.doctorId}
-            onChange={e => handleDoctorChange(e.target.value)}
-          >
-            <option value="">Select Doctor</option>
-            {/* Active doctors */}
-            {doctors.filter(d => d.isActive !== false).map(d => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-            {/* Inactive doctors */}
-            {doctors.filter(d => d.isActive === false).map(d => (
-              <option key={d.id} value={d.id} disabled>
-                {d.name} (INACTIVE)
-              </option>
-            ))}
-          </select>
-
-          {/* Inactive warning banner */}
-          {selectedDoctorInactive && (
-            <div className="appt-offline-banner">
-              <span className="appt-offline-dot" />
-              <span>
-                <strong>Dr. {doctors.find(d => String(d.id) === form.doctorId)?.name}</strong> is currently <strong>Inactive</strong>. Appointments cannot be booked.
-              </span>
-            </div>
-          )}
-        </div>
-        <div className="appt-form-group">
-          <label className="appt-form-label">
-            <DollarSign size={13} strokeWidth={1.6} />
-            Fee (₹)
-          </label>
-          <NumericInput
-            className="appt-form-input"
-            placeholder="0.00"
-            value={form.consultationFee}
-            onChange={e => set('consultationFee', e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Date + Visit Type */}
-      <div className="appt-form-row appt-form-row-2">
-        <div className="appt-form-group">
-          <label className="appt-form-label">
-            <Calendar size={13} strokeWidth={1.6} />
-            Booking Date
-          </label>
-          <input
-            className="appt-form-input"
-            type="date"
-            value={form.bookingDate}
-            min={new Date().toLocaleDateString('en-CA')} // YYYY-MM-DD in local time
-            onChange={e => set('bookingDate', e.target.value)}
-            required
-          />
-        </div>
-        <div className="appt-form-group">
-          <label className="appt-form-label">Visit Type</label>
-          <div className="appt-type-toggle">
-            {[VisitType.New, VisitType.FollowUp].map(t => (
-              <button
-                key={t}
-                type="button"
-                className={`appt-type-btn ${form.visitType === t ? 'active' : ''}`}
-                onClick={() => {
-                  set('visitType', t);
-                  if (t === VisitType.New) {
-                    setForm(f => ({ ...f, patientId: '', patientName: '' }));
-                  }
-                }}
-              >
-                {t === VisitType.New ? 'New Case' : 'Follow Up'}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Time Slot Picker */}
-      <div className="appt-form-group">
-        <label className="appt-form-label">
-          <Clock size={13} strokeWidth={1.6} />
-          Time Slot
-        </label>
-        {selectedDoctorInactive ? (
-          <div className="appt-slots-unavailable">
-            <span style={{ fontSize: 20 }}>🔴</span>
-            <span>No slots available — doctor is inactive</span>
-          </div>
-        ) : slots.length === 0 ? (
-          <div className="appt-slots-hint">
-            Select doctor and date to see available slots
-          </div>
-        ) : (
-          <div className="appt-slots-grid">
-            {slots
-              .filter(s => !s.isPast || s.booked || s.time === form.bookingTime)
-              .map(slot => (
-              <button
-                key={slot.time}
-                type="button"
-                className={`appt-slot-btn ${form.bookingTime === slot.time ? 'selected' :
-                  slot.booked ? 'booked' :
-                    slot.isPast ? 'past' : 'available'
-                  }`}
-                disabled={slot.booked || slot.isPast}
-                onClick={() => set('bookingTime', slot.time)}
-              >
-                {slot.time}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Patient Lookup */}
-      <div className="appt-form-group" style={{ position: 'relative' }}>
-        <label className="appt-form-label">
-          <User size={13} strokeWidth={1.6} />
-          Patient Selection
-        </label>
-        
-        <div className="appt-search-container">
-          <div className="appt-search-inputs">
-            {form.visitType === VisitType.FollowUp ? (
-              <div className="appt-input-with-icon">
-                <span className="appt-input-prefix">#</span>
-                <input
-                  className="appt-form-input"
-                  placeholder="Enter Case ID / Reg No."
-                  value={form.patientId}
-                  onChange={e => { set('patientId', e.target.value); setActiveSearchField('id'); }}
-                  onFocus={() => setActiveSearchField('id')}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                />
-              </div>
-            ) : (
-              <div className="appt-input-with-icon">
-                <User size={14} className="appt-input-prefix-icon" />
-                <input
-                  className="appt-form-input"
-                  placeholder="Patient Full Name"
-                  value={form.patientName}
-                  onChange={e => { set('patientName', e.target.value); setActiveSearchField('name'); }}
-                  onFocus={() => setActiveSearchField('name')}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  required
-                />
-              </div>
-            )}
-            
-            <div className="appt-input-with-icon">
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="appt-input-with-icon" style={{ flex: 1 }}>
               <span className="appt-input-prefix">+91</span>
               <NumericInput
                 className="appt-form-input"
-                placeholder="Mobile Number"
+                placeholder="Enter 10-digit mobile number"
                 value={form.phone}
-                onChange={e => { set('phone', e.target.value); setActiveSearchField('phone'); }}
-                onFocus={() => setActiveSearchField('phone')}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onChange={e => {
+                   set('phone', e.target.value);
+                   if (searchStatus !== 'idle') setSearchStatus('idle');
+                   if (searchResults.length > 0) setSearchResults([]);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (form.phone.length >= 10 && searchStatus !== 'searching') {
+                      handleSearch();
+                    }
+                  }
+                }}
+                disabled={searchStatus === 'searching'}
+              />
+            </div>
+            <button
+              type="button"
+              className="appt-btn appt-btn-primary"
+              onClick={handleSearch}
+              disabled={form.phone.length < 10 || searchStatus === 'searching'}
+              style={{ width: '120px', justifyContent: 'center' }}
+            >
+              {searchStatus === 'searching' ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+              Search
+            </button>
+          </div>
+        </div>
+      )}
+
+      {searchResults.length > 0 && !editAppointment && (
+        <div className="appt-form-group">
+          <label className="appt-form-label" style={{ color: 'var(--pp-blue)' }}>
+            Multiple Patients Found — Select One:
+          </label>
+          <ul className="appt-autocomplete-list" style={{ position: 'relative', border: '1px solid var(--pp-blue)', display: 'block' }}>
+            {searchResults.map(p => (
+              <li
+                key={p.regid || p.id}
+                className="appt-autocomplete-item"
+                onClick={() => selectPatient(p)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="appt-autocomplete-name">
+                  {p.fullName || `${p.firstName ?? ''} ${p.surname ?? ''}`.trim()}
+                </div>
+                <div className="appt-autocomplete-meta">
+                  <span><strong>ID:</strong> {p.regid || p.id}</span>
+                  {(p.mobile1 || p.phone) && <span><Phone size={10} /> {p.mobile1 || p.phone}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {searchStatus === 'found' && !editAppointment && (
+        <div className="appt-alert appt-alert-success" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CheckCircle size={16} />
+          <span>Patient Found: <strong>{form.patientName}</strong> (ID: {form.patientId})</span>
+        </div>
+      )}
+
+      {searchStatus === 'not-found' && !editAppointment && (
+        <div className="appt-alert appt-alert-info">
+          New Patient. Please fill in the details below to proceed.
+        </div>
+      )}
+
+      {searchStatus !== 'idle' && (
+        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          <div className="appt-form-group">
+            <label className="appt-form-label">
+              <User size={13} strokeWidth={1.6} />
+              Patient Full Name <span className="appt-required">*</span>
+            </label>
+            <input
+              className="appt-form-input"
+              placeholder="Enter patient full name"
+              value={form.patientName}
+              onChange={e => set('patientName', e.target.value)}
+              required
+              readOnly={searchStatus === 'found'}
+              style={searchStatus === 'found' ? { backgroundColor: 'var(--pp-surface-alt)', opacity: 0.8 } : {}}
+            />
+          </div>
+
+          {searchStatus === 'not-found' && !editAppointment && (
+            <div className="appt-form-row appt-form-row-2 animate-fade-in" style={{ marginTop: '8px' }}>
+              <div className="appt-form-group">
+                <label className="appt-form-label">Gender <span className="appt-required">*</span></label>
+                <select
+                  className="appt-form-select"
+                  value={form.gender}
+                  onChange={e => set('gender', e.target.value)}
+                >
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="appt-form-group">
+                <label className="appt-form-label">Date of Birth <span className="appt-required">*</span></label>
+                <input
+                  className="appt-form-input"
+                  type="date"
+                  value={form.dateOfBirth}
+                  onChange={e => set('dateOfBirth', e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                  required
+                />
+              </div>
+              <div className="appt-form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="appt-form-label">City (Optional)</label>
+                <input
+                  className="appt-form-input"
+                  placeholder="e.g. Chandigarh"
+                  value={form.city}
+                  onChange={e => set('city', e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="appt-form-row appt-form-row-2">
+            <div className="appt-form-group">
+              <label className="appt-form-label">
+                <Stethoscope size={13} strokeWidth={1.6} />
+                Practitioner
+              </label>
+              <select
+                className={`appt-form-select${selectedDoctorInactive ? ' appt-select-offline' : ''}`}
+                value={form.doctorId}
+                onChange={e => handleDoctorChange(e.target.value)}
+              >
+                <option value="">Select Doctor</option>
+                {doctors.filter(d => d.isActive !== false).map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+                {doctors.filter(d => d.isActive === false).map(d => (
+                  <option key={d.id} value={d.id} disabled>
+                    {d.name} (INACTIVE)
+                  </option>
+                ))}
+              </select>
+              {selectedDoctorInactive && (
+                <div className="appt-offline-banner">
+                  <span className="appt-offline-dot" />
+                  <span><strong>Inactive</strong> doctor selected.</span>
+                </div>
+              )}
+            </div>
+            <div className="appt-form-group">
+              <label className="appt-form-label">
+                <DollarSign size={13} strokeWidth={1.6} />
+                Fee (₹)
+              </label>
+              <NumericInput
+                className="appt-form-input"
+                placeholder="0.00"
+                value={form.consultationFee}
+                onChange={e => set('consultationFee', e.target.value)}
               />
             </div>
           </div>
 
-          {/* Autocomplete Dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <ul className="appt-autocomplete-list">
-              {suggestions.map(p => (
-                <li
-                  key={p.regid || p.id}
-                  className="appt-autocomplete-item"
-                  onMouseDown={(e) => { e.preventDefault(); selectSuggestion(p); }}
-                >
-                  <div className="appt-autocomplete-name">
-                    {p.fullName || `${p.firstName ?? ''} ${p.surname ?? ''}`.trim()}
-                  </div>
-                  <div className="appt-autocomplete-meta">
-                    <span><strong>ID:</strong> {p.regid || p.id}</span>
-                    {(p.mobile1 || p.phone) && <span><Phone size={10} /> {p.mobile1 || p.phone}</span>}
-                    {p.lastVisit && <span style={{ opacity: 0.7 }}>Last Visit: {new Date(p.lastVisit).toLocaleDateString()}</span>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {showSuggestions && !lookupLoading && suggestions.length === 0 && (
-            <div className="appt-autocomplete-list appt-autocomplete-empty">
-              <p>No matching patients found. {form.visitType === VisitType.FollowUp ? 'Check the ID and try again.' : 'You can enter a new patient name.'}</p>
+          <div className="appt-form-row appt-form-row-2">
+            <div className="appt-form-group">
+              <label className="appt-form-label">
+                <Calendar size={13} strokeWidth={1.6} />
+                Booking Date
+              </label>
+              <input
+                className="appt-form-input"
+                type="date"
+                value={form.bookingDate}
+                min={new Date().toLocaleDateString('en-CA')}
+                onChange={e => set('bookingDate', e.target.value)}
+                required
+              />
             </div>
-          )}
+            <div className="appt-form-group">
+              <label className="appt-form-label">
+                <Clock size={13} strokeWidth={1.6} />
+                Time Slot
+              </label>
+              <select
+                className="appt-form-select"
+                value={form.bookingTime}
+                onChange={e => set('bookingTime', e.target.value)}
+                required
+              >
+                <option value="">Select Time Slot</option>
+                {slots
+                  .filter(s => !s.isPast || s.booked || s.time === form.bookingTime)
+                  .map(slot => (
+                    <option 
+                      key={slot.time} 
+                      value={slot.time} 
+                      disabled={slot.booked || slot.isPast}
+                    >
+                      {slot.time} {slot.booked ? '(Booked)' : ''}
+                    </option>
+                  ))
+                }
+              </select>
+            </div>
+          </div>
+
+          <div className="appt-form-group">
+            <label className="appt-form-label">
+              <FileText size={13} strokeWidth={1.6} />
+              Chief Complaint
+            </label>
+            <textarea
+              className="appt-form-input appt-form-textarea"
+              placeholder="What brings the patient in today? e.g. fever for 3 days, recurring headache, anxiety…"
+              value={form.notes}
+              onChange={e => set('notes', e.target.value)}
+            />
+          </div>
+
+          <div className="appt-form-actions" style={{ marginTop: '16px' }}>
+            <button type="button" className="appt-btn appt-form-cancel" onClick={onCancel || onClose}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="appt-btn appt-btn-primary appt-form-submit"
+              disabled={isLoading || selectedDoctorInactive}
+            >
+              {isLoading ? <><Loader2 size={15} className="animate-spin" /> Saving…</> :
+                editAppointment ? 'Save Changes' : 'Confirm Booking'}
+            </button>
+          </div>
         </div>
-
-        {lookupLoading && (
-          <div className="appt-lookup-spinner">
-            <Loader2 size={12} className="animate-spin" /> Looking up patient…
-          </div>
-        )}
-
-        {/* If follow-up, show the name only after successful lookup if we have it */}
-        {form.visitType === VisitType.FollowUp && form.patientName && !showSuggestions && (
-          <div className="appt-followup-confirmed">
-            <CheckCircle size={14} />
-            <span>
-              Confirmed: <strong>{form.patientName}</strong> (ID: {form.patientId})
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Chief Complaint — required, shown to the doctor on the consultation page */}
-      <div className="appt-form-group">
-        <label className="appt-form-label">
-          Chief Complaint <span style={{ color: 'var(--pp-danger-fg)' }}>*</span>
-        </label>
-        <textarea
-          className="appt-form-input appt-form-textarea"
-          placeholder="What brings the patient in today? e.g. fever for 3 days, recurring headache, anxiety…"
-          value={form.notes}
-          onChange={e => set('notes', e.target.value)}
-          required
-          aria-required="true"
-        />
-        <p style={{ fontSize: 11, color: 'var(--pp-text-3)', margin: '4px 0 0' }}>
-          Required. This appears on the doctor's consultation screen as the chief complaint.
-        </p>
-      </div>
-
-      {/* Actions */}
-      <div className="appt-form-actions">
-        <button type="button" className="appt-btn appt-form-cancel" onClick={onCancel || onClose}>
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="appt-btn appt-btn-primary appt-form-submit"
-          disabled={isLoading || selectedDoctorInactive}
-          title={selectedDoctorInactive ? 'Doctor is inactive. Please select an available doctor.' : undefined}
-        >
-          {isLoading ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Saving…</> :
-            editAppointment ? 'Save Changes' : 'Confirm Booking'}
-        </button>
-      </div>
+      )}
     </form>
   );
 }

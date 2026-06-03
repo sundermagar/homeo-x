@@ -1,4 +1,5 @@
 import { eq, asc, sql } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 import { createLogger } from '../../shared/logger.js';
 
 import type { DbClient } from '@mmc/database';
@@ -7,13 +8,13 @@ import type {
   Department, Dispensary, ReferralSource, Sticker,
   StaticPage, Faq, PdfSetting, Medicine, Potency, Frequency,
   MessageTemplate, StockLog, PackagePlan, Courier,
-  User, Vaccine, Stock, PackagePeriod
+  User, Vaccine, Stock, PackagePeriod, CallStatus
 } from '../../domains/settings/ports/settings.repository.js';
 
 export class SettingsRepositoryPg implements ISettingsRepository {
   private readonly logger = createLogger('settings-repository-pg');
   private initPromise: Promise<void> | null = null;
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient, private readonly publicDb?: DbClient, private readonly contextId?: number) {}
 
   private async initPackagePeriods() {
     try {
@@ -195,7 +196,7 @@ export class SettingsRepositoryPg implements ISettingsRepository {
 
   // ─── Dispensaries ─────────────────────────────────────────────────────────
   async listDispensaries(): Promise<Dispensary[]> {
-    return this.q<Dispensary>('SELECT * FROM dispensaries ORDER BY id ASC');
+    return this.q<Dispensary>('SELECT * FROM dispensaries WHERE deleted_at IS NULL ORDER BY id ASC');
   }
   async getDispensary(id: number): Promise<Dispensary | undefined> {
     return this.q1('SELECT * FROM dispensaries WHERE id = $1', [id]);
@@ -208,29 +209,80 @@ export class SettingsRepositoryPg implements ISettingsRepository {
       dept, dateBirth, contactNumber, isActive 
     } = data;
 
+    const cleanStr = (val: any) => (val === '' || val === undefined ? null : val);
+    const cleanInt = (val: any, fallback: number = 0): number => {
+      if (val === '' || val === null || val === undefined) return fallback;
+      const num = Number(val);
+      return isNaN(num) ? fallback : Math.floor(num);
+    };
+
+    const dbEmail = email === '' || email === undefined || email === null ? '' : email;
+    const dbGender = cleanStr(gender) ?? 'Male';
+    const dbDept = cleanInt(dept, 0);
+    const dbDateBirth = cleanStr(dateBirth);
+    const dbIsActive = isActive ?? true;
+
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : '';
+    let nextId: number | undefined;
+
+    if (this.db) {
+      try {
+        const userMirrorResult = await this.db.execute(sql`
+          INSERT INTO users (
+            name, email, password, type, context_id,
+            created_at, updated_at
+          ) VALUES (
+            ${name}, ${dbEmail}, ${hashedPassword}, 'Dispensary',
+            ${this.contextId || 1}, NOW(), NOW()
+          ) RETURNING id
+        `) as any[];
+        nextId = userMirrorResult[0]?.id;
+
+        if (nextId) {
+          await this.db.execute(sql`
+            INSERT INTO role_user (id, user_id, role_id, created_at)
+            VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM role_user), ${nextId}, 6, NOW())
+            ON CONFLICT (id) DO NOTHING
+          `);
+        }
+      } catch (err: any) {
+        this.logger.warn({ err: err.message }, 'Failed to mirror dispensary to users table');
+      }
+    }
+
     try {
+      const qCols = ['name', 'email', 'password', 'gender', 'mobile', 'mobile2', 'location', 'city', 'address', 'about', 'designation', 'dept', 'date_birth', 'contact_number', 'is_active', 'created_at', 'updated_at'];
+      const qVals = [name, dbEmail, cleanStr(password), dbGender, cleanStr(mobile), cleanStr(mobile2), cleanStr(location), cleanStr(city), cleanStr(address), cleanStr(about), cleanStr(designation), dbDept, dbDateBirth, cleanStr(contactNumber), dbIsActive];
+      let placeholders = '$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()';
+
+      if (nextId) {
+        qCols.unshift('id');
+        qVals.unshift(nextId);
+        placeholders = '$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW()';
+      }
+
       return await this.q1<any>(
-        `INSERT INTO dispensaries (
-          name, email, password, gender, mobile, mobile2, 
-          location, city, address, about, designation, 
-          dept, date_birth, contact_number, is_active, created_at, updated_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()) RETURNING *`,
-        [
-          name, email ?? null, password ?? null, gender ?? 'Male', 
-          mobile ?? null, mobile2 ?? null, location ?? null, 
-          city ?? null, address ?? null, about ?? null, 
-          designation ?? null, dept ?? null, dateBirth ?? null, 
-          contactNumber ?? null, isActive ?? true
-        ]
+        `INSERT INTO dispensaries (${qCols.join(', ')})
+         VALUES (${placeholders}) RETURNING *`,
+        qVals
       ) as Dispensary;
     } catch (err: any) {
-      if (err.message?.includes('column "location" does not exist') || err.message?.includes('column "is_active" does not exist')) {
+      if (err.message?.includes('column "location" does not exist') || err.message?.includes('column "is_active" does not exist') || err.message?.includes('column "contact_number" does not exist')) {
         this.logger.warn('Modern columns missing in dispensaries, retrying legacy insert');
+        const qColsLeg = ['name', 'email', 'password', 'gender', 'mobile', 'mobile2', 'city', 'address', 'about', 'designation', 'dept', 'date_birth', 'date_left', 'salary_cur', 'created_at', 'updated_at'];
+        const qValsLeg = [name, dbEmail, cleanStr(password) ?? '', dbGender, cleanStr(mobile) ?? '', cleanStr(mobile2) ?? '', cleanStr(city) ?? '', cleanStr(address) ?? '', cleanStr(about) ?? '', cleanStr(designation) ?? '', dbDept, dbDateBirth ?? '1990-01-01', '1990-01-01', 0];
+        let placeholdersLeg = '$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW()';
+
+        if (nextId) {
+          qColsLeg.unshift('id');
+          qValsLeg.unshift(nextId);
+          placeholdersLeg = '$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()';
+        }
+
         return await this.q1<any>(
-          `INSERT INTO dispensaries (name, email, password, gender, mobile, mobile2, city, address, designation, dept, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) RETURNING *`,
-          [name, email ?? null, password ?? null, gender ?? 'Male', mobile ?? null, mobile2 ?? null, city ?? null, address ?? null, designation ?? null, dept ?? null]
+          `INSERT INTO dispensaries (${qColsLeg.join(', ')})
+           VALUES (${placeholdersLeg}) RETURNING *`,
+          qValsLeg
         ) as Dispensary;
       }
       throw err;
@@ -238,8 +290,16 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
 
   async updateDispensary(id: number, data: Partial<Omit<Dispensary, 'id'>>): Promise<Dispensary> {
+    const cleanStr = (val: any) => (val === '' || val === undefined ? null : val);
+    const cleanIntOrNull = (val: any): number | null => {
+      if (val === '' || val === null || val === undefined) return null;
+      const num = Number(val);
+      return isNaN(num) ? null : Math.floor(num);
+    };
+
+    let result: any;
     try {
-      const r = await this.q1<any>(
+      result = await this.q1<any>(
         `UPDATE dispensaries SET 
           name = COALESCE($1, name), 
           email = COALESCE($2, email),
@@ -252,38 +312,76 @@ export class SettingsRepositoryPg implements ISettingsRepository {
           address = COALESCE($9, address),
           about = COALESCE($10, about),
           designation = COALESCE($11, designation),
-          dept = COALESCE($12, dept),
+          dept = COALESCE($12::integer, dept),
           date_birth = COALESCE($13, date_birth),
           contact_number = COALESCE($14, contact_number),
           is_active = COALESCE($15, is_active),
           updated_at = NOW() 
          WHERE id = $16 RETURNING *`,
         [
-          data.name ?? null, data.email ?? null, data.password ?? null, data.gender ?? null,
-          data.mobile ?? null, data.mobile2 ?? null, data.location ?? null,
-          data.city ?? null, data.address ?? null, data.about ?? null,
-          data.designation ?? null, data.dept ?? null, data.dateBirth ?? null,
-          data.contactNumber ?? null, data.isActive ?? null, id
+          cleanStr(data.name), cleanStr(data.email), cleanStr(data.password), cleanStr(data.gender),
+          cleanStr(data.mobile), cleanStr(data.mobile2), cleanStr(data.location),
+          cleanStr(data.city), cleanStr(data.address), cleanStr(data.about),
+          cleanStr(data.designation), cleanIntOrNull(data.dept), cleanStr(data.dateBirth),
+          cleanStr(data.contactNumber), data.isActive ?? null, id
         ]
       );
-      return r;
     } catch (err: any) {
-      if (err.message?.includes('column "location" does not exist') || err.message?.includes('column "is_active" does not exist')) {
-        const r = await this.q1<any>(
+      if (err.message?.includes('column "location" does not exist') || err.message?.includes('column "is_active" does not exist') || err.message?.includes('column "contact_number" does not exist')) {
+        result = await this.q1<any>(
           `UPDATE dispensaries SET name = COALESCE($1, name), email = COALESCE($2, email), password = COALESCE($3, password),
-           city = COALESCE($4, city), address = COALESCE($5, address), designation = COALESCE($6, designation),
-           updated_at = NOW() WHERE id = $7 RETURNING *`,
-          [data.name ?? null, data.email ?? null, data.password ?? null, data.city ?? null, data.address ?? null, data.designation ?? null, id]
+           gender = COALESCE($4, gender), mobile = COALESCE($5, mobile), mobile2 = COALESCE($6, mobile2),
+           city = COALESCE($7, city), address = COALESCE($8, address), about = COALESCE($9, about),
+           designation = COALESCE($10, designation), dept = COALESCE($11::integer, dept),
+           updated_at = NOW() WHERE id = $12 RETURNING *`,
+          [
+            cleanStr(data.name), cleanStr(data.email), cleanStr(data.password),
+            cleanStr(data.gender), cleanStr(data.mobile), cleanStr(data.mobile2),
+            cleanStr(data.city), cleanStr(data.address), cleanStr(data.about),
+            cleanStr(data.designation), cleanIntOrNull(data.dept), id
+          ]
         );
-        return r;
+      } else {
+        throw err;
       }
-      throw err;
     }
+
+    if (this.db) {
+      try {
+        const userUpdates = [];
+        if (data.name !== undefined) userUpdates.push(sql`name = ${cleanStr(data.name)}`);
+        if (data.email !== undefined) userUpdates.push(sql`email = ${cleanStr(data.email)}`);
+        if (data.password) {
+          const hashed = await bcrypt.hash(data.password, 10);
+          userUpdates.push(sql`password = ${hashed}`);
+        }
+        if (userUpdates.length > 0) {
+          userUpdates.push(sql`updated_at = NOW()`);
+          await this.db.execute(sql`
+            UPDATE users SET ${sql.join(userUpdates, sql`, `)}
+            WHERE id = ${id} AND type = 'Dispensary'
+          `);
+        }
+      } catch (err: any) {
+        this.logger.warn({ err: err.message }, 'Failed to update user mirror for dispensary');
+      }
+    }
+
+    return result as Dispensary;
   }
 
 
   async deleteDispensary(id: number): Promise<void> {
-    await this.q('DELETE FROM dispensaries WHERE id = $1', [id]);
+    await this.q('UPDATE dispensaries SET deleted_at = NOW() WHERE id = $1', [id]);
+    if (this.db) {
+      try {
+        await this.db.execute(sql`
+          UPDATE users SET deleted_at = NOW() WHERE id = ${id} AND type = 'Dispensary'
+        `);
+      } catch (err: any) {
+        this.logger.warn({ err: err.message }, 'Failed to delete user mirror for dispensary');
+      }
+    }
   }
 
   // ─── Referral Sources ─────────────────────────────────────────────────────
@@ -795,6 +893,30 @@ export class SettingsRepositoryPg implements ISettingsRepository {
   }
   async deleteVaccine(id: number): Promise<void> {
     await this.q('DELETE FROM vaccinedatas WHERE id = $1', [id]);
+  }
+
+  // ─── Call Statuses ─────────────────────────────────────────────────────────
+  async listCallStatuses(): Promise<CallStatus[]> {
+    return this.q('SELECT * FROM call_statuses ORDER BY id ASC');
+  }
+  async getCallStatus(id: number): Promise<CallStatus | undefined> {
+    return this.q1('SELECT * FROM call_statuses WHERE id = $1', [id]);
+  }
+  async createCallStatus(data: Omit<CallStatus, 'id' | 'createdAt' | 'updatedAt'>): Promise<CallStatus> {
+    return this.q1(
+      `INSERT INTO call_statuses (name, is_active, created_at, updated_at) 
+       VALUES ($1, $2, NOW(), NOW()) RETURNING *`,
+      [data.name, data.isActive ?? true]
+    ) as Promise<CallStatus>;
+  }
+  async updateCallStatus(id: number, data: Partial<Omit<CallStatus, 'id'>>): Promise<CallStatus> {
+    return this.q1(
+      `UPDATE call_statuses SET name = COALESCE($1, name), is_active = COALESCE($2, is_active), updated_at = NOW() WHERE id = $3 RETURNING *`,
+      [data.name ?? null, data.isActive ?? null, id]
+    ) as Promise<CallStatus>;
+  }
+  async deleteCallStatus(id: number): Promise<void> {
+    await this.q('DELETE FROM call_statuses WHERE id = $1', [id]);
   }
 
   // ─── Practitioners (Doctors from users table) ──────────────────────────────

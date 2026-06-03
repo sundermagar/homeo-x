@@ -13,6 +13,8 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   clinicName?: string;
+  resetOtp?: string | null;
+  resetOtpExpiry?: Date | null;
 }
 
 export interface AuthTokenPayload {

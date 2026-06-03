@@ -21,6 +21,7 @@ export interface MonthWiseResult {
   online: number;
   card: number;
   product_charges: number;
+  coupon: number;
   expenses: number;
   cash_deposit: number;
   bank_deposit: number;
@@ -29,8 +30,15 @@ export interface MonthWiseResult {
 
 export interface MonthWiseDueSummary {
   month: number;
-  count: number;
   total_due: number;
+  informed: number;
+  cured: number;
+  left_uncured: number;
+  reg_only: number;
+  discontinued: number;
+  pickup: number;
+  courier: number;
+  reserve_medicine: number;
 }
 
 export interface MonthWiseDueDetail {
@@ -67,6 +75,15 @@ export interface ReferenceListResult {
   totalcollection: number;
 }
 
+export interface ReferenceDetailResult {
+  regid: number;
+  date: string;
+  first_name: string;
+  surname: string;
+  payment_method: string;
+  amount: number;
+}
+
 export interface DashboardKpis {
   newPatientsCount: number;
   followUpsCount: number;
@@ -89,6 +106,7 @@ export interface QueueItem {
   regid: number;
   patientName: string;
   doctorName: string;
+  doctorId?: number;
   bookingTime: string;
   tokenNo: number | string;
   status: string;
@@ -143,6 +161,7 @@ export interface IntelligenceInsight {
 
 export interface RecentTransaction {
   id: number;
+  regid: number;
   patientName: string;
   invoiceNo: string;
   amount: number;

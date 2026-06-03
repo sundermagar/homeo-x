@@ -9,7 +9,7 @@ export async function seedPdfSettings(db: DbClient) {
     {
       templateName: 'Standard Prescription',
       headerHtml: '<h1>MMC Clinical Prescription</h1>',
-      footerHtml: '<p>Contact: +91 99999 88888 | www.mmc.in</p>',
+      footerHtml: '<p>Contact: +91 99999 88888 | www.kreedhealth.com</p>',
       margin: '20mm',
       isDefault: true
     },

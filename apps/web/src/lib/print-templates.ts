@@ -358,12 +358,12 @@ const PRINT_STYLES = `
   .rx-page {
     width: 100%;
     max-width: 210mm;
+    min-height: 262mm;
     margin: 0 auto;
     color: #111827;
     font-family: 'Inter', 'Segoe UI', Tahoma, sans-serif;
     display: flex;
     flex-direction: column;
-    min-height: 98vh; /* Use 98vh to push content down without forcing a 2nd blank page */
   }
   .rx-footer-wrapper {
     margin-top: auto;
@@ -640,22 +640,22 @@ function renderClinicHeader(clinic: ClinicInfo, docTitle?: string): string {
 
   const contactBits: string[] = [];
   if (clinic.address) contactBits.push(`<span>${safe(clinic.address)}</span>`);
-  if (clinic.phone)   contactBits.push(`<span>📞 ${safe(clinic.phone)}</span>`);
-  if (clinic.email)   contactBits.push(`<span>✉ ${safe(clinic.email)}</span>`);
+  if (clinic.phone) contactBits.push(`<span>📞 ${safe(clinic.phone)}</span>`);
+  if (clinic.email) contactBits.push(`<span>✉ ${safe(clinic.email)}</span>`);
   if (clinic.website) contactBits.push(`<span>🌐 ${safe(clinic.website)}</span>`);
 
   const idBits: string[] = [];
   if (clinic.registrationNo) idBits.push(`Reg: ${safe(clinic.registrationNo)}`);
-  if (clinic.gstin)          idBits.push(`GSTIN: ${safe(clinic.gstin)}`);
+  if (clinic.gstin) idBits.push(`GSTIN: ${safe(clinic.gstin)}`);
 
   return `
     <div class="letterhead" style="--lh-accent:${accent};">
       <div class="letterhead-band"></div>
       <div class="letterhead-row">
         ${clinic.logoUrl
-          ? `<img src="${escapeHtml(clinic.logoUrl)}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
-          : `<div class="letterhead-logo-fallback">${safe((clinic.name || 'C').charAt(0).toUpperCase())}</div>`
-        }
+      ? `<img src="${escapeHtml(clinic.logoUrl)}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
+      : `<div class="letterhead-logo-fallback">${safe((clinic.name || 'C').charAt(0).toUpperCase())}</div>`
+    }
         <div class="letterhead-title">
           <div class="clinic-name">${safe(clinic.name)}</div>
           ${clinic.tagline ? `<div class="clinic-tagline">${safe(clinic.tagline)}</div>` : ''}
@@ -678,8 +678,13 @@ function renderClinicFooter(clinic: ClinicInfo): string {
 
 // ─── Escape HTML ─────────────────────────────────────────────────────────
 
-function escapeHtml(str: string): string {
-  return str
+function escapeHtml(str: any): string {
+  if (str === null || str === undefined) return '';
+  if (Array.isArray(str)) {
+    return str.map(item => escapeHtml(item)).join('\n');
+  }
+  const s = typeof str === 'string' ? str : String(str);
+  return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -750,6 +755,7 @@ export interface PrescriptionPrintData {
 export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   const accent = data.clinic.accentColor || '#2563EB';
   const safe = (s?: string) => (s ? escapeHtml(s) : '');
+  const cleanDoctorName = data.doctor.name.replace(/^Dr\.?\s*/i, '');
 
   const formattedDate = new Date(data.visit.date || Date.now()).toLocaleDateString('en-GB', {
     day: '2-digit', month: 'short', year: 'numeric',
@@ -759,8 +765,8 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
 
   const contactBits: string[] = [];
   if (data.clinic.address) contactBits.push(safe(data.clinic.address));
-  if (data.clinic.phone)   contactBits.push(safe(data.clinic.phone));
-  if (data.clinic.email)   contactBits.push(safe(data.clinic.email));
+  if (data.clinic.phone) contactBits.push(safe(data.clinic.phone));
+  if (data.clinic.email) contactBits.push(safe(data.clinic.email));
   if (data.clinic.website) contactBits.push(safe(data.clinic.website));
 
   const ageGender = [
@@ -774,8 +780,8 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   const followUpDate = data.followUp
     ? null
     : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric',
-      });
+      day: '2-digit', month: 'short', year: 'numeric',
+    });
 
   const vitalsCells = renderVitalsCells(data.vitals);
   const medsHtml = renderMedicationsLetterhead(data.medications, data.prescriptionStrategy);
@@ -789,7 +795,7 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
 
   // ─── Resolve Header ───
   let headerHtml = data.clinic.headerHtml;
-  
+
   // Ignore legacy seed HTML so the new premium default layout activates
   if (headerHtml && (headerHtml.includes('MMC Clinical Prescription') || headerHtml.includes('HomeoX Clinical Prescription') || headerHtml.includes('Clinical Prescription'))) {
     headerHtml = undefined;
@@ -805,8 +811,8 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
     headerHtml = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:28px; margin-bottom:18px; gap:30px; padding:20px 22px; background:linear-gradient(135deg, #f8fbff 0%, #ffffff 60%); border-radius:12px; box-shadow:0 2px 12px rgba(22, 101, 228, 0.06), inset 0 -1px 0 rgba(22, 101, 228, 0.08);">
         <div style="display:flex; flex-direction:column; gap:14px; flex:1; min-width:0; align-items:flex-start;">
-          <div style="max-height:110px; max-width:350px; display:flex; align-items:center; justify-content:flex-start; overflow:hidden; flex-shrink:0;">
-            ${data.clinic.logoUrl ? `<img src="${safe(data.clinic.logoUrl)}" style="max-height:110px; width:auto; max-width:100%; object-fit:contain;" />` : `<div style="height:70px; width:70px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(22, 101, 228, 0.08);"><span style="font-size:24px; color:#9ca3af; font-weight:bold;">${safe(data.clinic.name?.charAt(0))}</span></div>`}
+          <div style="height:70px; min-width:70px; max-width:160px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(22, 101, 228, 0.08), inset 0 1px 2px rgba(255,255,255,0.8); flex-shrink:0; padding:4px 8px;">
+            ${data.clinic.logoUrl ? `<img src="${safe(data.clinic.logoUrl)}" style="height:100%; width:auto; max-width:100%; object-fit:contain;" />` : `<span style="font-size:24px; color:#9ca3af; font-weight:bold;">${safe(data.clinic.name?.charAt(0))}</span>`}
           </div>
           <div style="display:flex; flex-direction:column; justify-content:center; min-width:0; width:100%;">
             <h2 style="font-size:1.4rem; font-weight:900; color:#0f172a; margin:0; text-transform:uppercase; letter-spacing:-0.03em; line-height:1.15; overflow-wrap:break-word; font-family:Georgia, 'Times New Roman', serif;">${safe(data.clinic.name)}</h2>
@@ -816,7 +822,7 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
         </div>
         <div style="text-align:right; display:flex; flex-direction:column; gap:8px; padding-left:16px; min-width:200px; max-width:320px; flex-shrink:0;">
           <div style="display:flex; flex-direction:column; gap:2px;">
-            <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:flex-start; gap:5px; justify-content:flex-end; line-height:1.35; text-align:right;">
+            <div style="font-size:0.68rem; color:#334155; font-weight:700; display:flex; align-items:flex-start; gap:5px; justify-content:flex-end; line-height:1.35;">
               ${mapPinIcon}
               <span style="overflow-wrap:break-word;">${safe(data.clinic.address) || 'Clinic Address'}</span>
             </div>
@@ -847,7 +853,7 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
       </div>
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
         <div>
-          <p style="font-size:11px; font-weight:700; color:#1F2937; margin:0;">Dr. ${safe(data.doctor.name)}${data.doctor.qualification ? ` — ${safe(data.doctor.qualification)}` : ''}</p>
+          <p style="font-size:11px; font-weight:700; color:#1F2937; margin:0;">Dr. ${safe(cleanDoctorName)}${data.doctor.qualification ? ` — ${safe(data.doctor.qualification)}` : ''}</p>
           ${data.doctor.registrationNumber ? `<p style="font-size:10px; color:#6B7280; font-weight:500; margin:2px 0 0;">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
         </div>
         <div style="text-align:right;">
@@ -865,7 +871,7 @@ export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
   }
   if (!footerHtml) {
     footerHtml = `
-      <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-end; gap:16px;">
+      <div style="margin-top:30px; padding-top:20px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-end; gap:16px;">
         <div style="display:flex; gap:30px; flex-wrap:wrap; flex:1;">
           <div style="display:flex; flex-direction:column; gap:4px;">
             <span style="font-size:0.6rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em;">Website</span>
@@ -905,7 +911,7 @@ ${PRINT_STYLES}
       </div>
       <div class="rx-patient-cell">
         <span class="rx-cell-label">Patient ID</span>
-        <p class="rx-cell-value">${safe(data.patient.mrn) || '—'}</p>
+        <p class="rx-cell-value">${safe(data.patient.mrn || (data.patient as any).id) || '—'}</p>
       </div>
       <div class="rx-patient-cell">
         <span class="rx-cell-label">Visit Date</span>
@@ -939,23 +945,19 @@ ${PRINT_STYLES}
 
   ${labsHtml}
 
-  ${(data.advice || data.followUp) ? `
-    <div class="rx-twocol">
-      ${data.advice ? `
-        <section class="rx-section" style="margin-bottom:0;">
-          <h3 class="rx-section-label">Advice / Instructions</h3>
-          <p class="rx-prose">${escapeHtml(data.advice).replace(/\n/g, '<br>')}</p>
-        </section>
-      ` : '<div></div>'}
-      
-      ${data.followUp ? `
-        <section class="rx-section" style="margin-bottom:0;">
-          <h3 class="rx-section-label">Follow-up</h3>
-          <p class="rx-prose-em">${safe(data.followUp)}</p>
-          ${followUpDate ? `<p class="rx-prose-meta">Suggested: ${followUpDate}</p>` : ''}
-        </section>
-      ` : '<div></div>'}
-    </div>
+  ${data.advice ? `
+    <section class="rx-section">
+      <h3 class="rx-section-label">Advice / Instructions</h3>
+      <p class="rx-prose">${escapeHtml(data.advice).replace(/\n/g, '<br>')}</p>
+    </section>
+  ` : ''}
+
+  ${data.followUp ? `
+    <section class="rx-section">
+      <h3 class="rx-section-label">Follow-up</h3>
+      <p class="rx-prose-em">${safe(data.followUp)}</p>
+      ${followUpDate ? `<p class="rx-prose-meta">Suggested: ${followUpDate}</p>` : ''}
+    </section>
   ` : ''}
 
   ${data.prescriptionNotes ? `
@@ -967,12 +969,10 @@ ${PRINT_STYLES}
 
   <div class="rx-footer-wrapper">
     <footer class="rx-signature">
-      <p class="rx-sig-name">Dr. ${safe(data.doctor.name)}</p>
+      <p class="rx-sig-name">Dr. ${safe(cleanDoctorName)}</p>
       ${data.doctor.qualification ? `<p class="rx-sig-meta">${safe(data.doctor.qualification)}</p>` : ''}
       ${data.doctor.registrationNumber ? `<p class="rx-sig-meta">Reg. No. ${safe(data.doctor.registrationNumber)}</p>` : ''}
     </footer>
-
-    ${footerHtml}
 
     <div class="rx-print-footer">
       ${safe(data.clinic.footer || `${data.clinic.name}${data.clinic.phone ? ` · ${data.clinic.phone}` : ''}`)}
@@ -1025,7 +1025,9 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
 
   const rows = meds.map((med, i) => {
     const numCell = `<td class="rx-md-num">${i + 1}.</td>`;
-    const dateStr = med.date ? new Date(med.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—';
+    const dateStr = (med.date && med.date !== '—' && med.date !== '')
+      ? new Date(med.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+      : new Date(data.visit.date || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
     const dateCell = `<td style="white-space:nowrap; color:#6B7280; font-size:9.5px; font-weight:700;">${dateStr}</td>`;
     const nameCell = `
       <td class="rx-md-name">

@@ -19,6 +19,8 @@ export interface PaymentRepository {
     status: string;
     paymentMode: string;
     paymentDate?: Date;
+    skipLegacyReceipt?: boolean;
   }): Promise<Payment>;
   updateStatus(id: number, status: string): Promise<Payment | null>;
+  recordLegacyReceipt(data: { regid: number; amount: number; paymentMode: string; paymentDate?: Date }): Promise<void>;
 }

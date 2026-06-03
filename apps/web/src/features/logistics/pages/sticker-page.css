@@ -1,0 +1,308 @@
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 24px;
+}
+
+.sticker-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+}
+
+.sticker-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.15);
+}
+
+.sticker-card-header {
+  padding: 20px 24px;
+  background: linear-gradient(to right, rgba(248, 250, 252, 0.8), rgba(255, 255, 255, 0.4));
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.sticker-patient-info h3 {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: capitalize;
+}
+
+.sticker-patient-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sticker-type-badge {
+  padding: 6px 12px;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sticker-type-courier {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #b45309;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.15);
+}
+
+.sticker-type-pickup {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1d4ed8;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.15);
+}
+
+.sticker-type-clinic {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #047857;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.15);
+}
+
+.sticker-card-body {
+  padding: 24px;
+  flex: 1;
+}
+
+.sticker-medicines {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sticker-medicine-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.sticker-medicine-item:hover {
+  background: #f1f5f9;
+}
+
+.sticker-med-icon {
+  color: #3b82f6;
+  margin-top: 2px;
+  background: #eff6ff;
+  padding: 8px;
+  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+}
+
+.sticker-med-details {
+  flex: 1;
+}
+
+.sticker-med-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #1e293b;
+  margin: 0 0 6px;
+}
+
+.sticker-med-meta {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+  display: flex;
+  gap: 16px;
+}
+
+.sticker-card-footer {
+  padding: 20px 24px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.sticker-billing {
+  display: flex;
+  flex-direction: column;
+}
+
+.sticker-billing-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sticker-billing-amount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sticker-print-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.sticker-print-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.sticker-print-btn:active {
+  transform: translateY(0);
+}
+
+.sticker-print-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sticker-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  border: 2px dashed #e2e8f0;
+  margin-top: 24px;
+}
+
+.sticker-empty h3 {
+  margin: 20px 0 8px;
+  color: #1e293b;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* ========================================= */
+/* Print Styles for Thermal Printer          */
+/* ========================================= */
+
+.print-only-container {
+  display: none;
+}
+
+@media print {
+  /* Hide EVERYTHING else */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Reset margins for thermal printer */
+  @page {
+    size: 50mm 25mm; /* Standard generic thermal label size */
+    margin: 0;
+  }
+
+  /* Show only the print container */
+  .print-only-container, .print-only-container * {
+    visibility: visible;
+  }
+  
+  .print-only-container {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  .thermal-label {
+    width: 48mm;
+    height: 23mm;
+    padding: 1mm;
+    box-sizing: border-box;
+    font-family: monospace; /* Thermal printers render monospace best */
+    font-size: 8px;
+    line-height: 1.2;
+    color: black;
+    overflow: hidden;
+    page-break-after: always; /* Each medicine gets its own sticker */
+  }
+
+  .thermal-header {
+    font-weight: bold;
+    font-size: 9px;
+    text-align: center;
+    border-bottom: 1px dashed black;
+    margin-bottom: 1mm;
+    padding-bottom: 0.5mm;
+  }
+
+  .thermal-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5mm;
+  }
+  
+  .thermal-patient-name {
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+  }
+
+  .thermal-remedy {
+    font-weight: bold;
+    font-size: 10px;
+    margin: 1mm 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .thermal-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 7px;
+    margin-top: 1mm;
+    border-top: 1px dashed black;
+    padding-top: 0.5mm;
+  }
+}

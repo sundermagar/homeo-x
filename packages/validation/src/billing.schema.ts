@@ -29,7 +29,7 @@ export const listBillsQuerySchema = z.object({
   regid: z.coerce.number().int().positive().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD').optional(),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(200).default(30),
+  limit: z.coerce.number().int().min(1).max(1000).default(30),
 });
 
 // ─── Payment Schemas ──────────────────────────────────────────────────────────
@@ -59,6 +59,7 @@ export const recordManualPaymentSchema = z.object({
   amount: z.number().min(0, 'Amount must be non-negative').optional(),
   paymentMode: PaymentModeEnum.default('Cash').optional(),
   splitPayments: z.array(z.object({
+    billId: z.number().int().positive(),
     amount: z.number().min(0),
     paymentMode: PaymentModeEnum
   })).optional(),

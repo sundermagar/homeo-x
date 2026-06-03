@@ -10,6 +10,7 @@ import { NotificationsRepositoryPg } from '../../repositories/notifications.repo
 import { authMiddleware } from '../middleware/auth.js';
 import { SettingsRepositoryPg } from '../../repositories/settings.repository.pg.js';
 import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
+import { CourierRepositoryPg } from '../../repositories/courier.repository.pg.js';
 import { CreateMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/create-medical-case.use-case.js';
 import { GetFullMedicalCaseUseCase } from '../../../domains/medical-case/use-cases/get-full-medical-case.use-case.js';
 import { FinalizeConsultationUseCase } from '../../../domains/medical-case/use-cases/finalize-consultation.use-case.js';
@@ -23,6 +24,8 @@ import { saveInvestigationSchema } from '@mmc/validation';
 
 const router = Router();
 router.use(authMiddleware);
+
+import { uploadFileToR2 } from '../../storage/r2-storage.js';
 
 import { streamToSSE } from '../../../shared/sse.js';
 
@@ -253,6 +256,23 @@ router.delete('/records/notes/:id', asyncHandler(async (req, res) => {
 router.post('/records/prescriptions', asyncHandler(async (req, res) => {
   const useCase = new ManageClinicalRecordsUseCase(getRepo(req));
   await useCase.savePrescription(req.body);
+
+  // If deliveryMode is courier or pickup, create a courier queue entry
+  const mode = (req.body.deliveryMode || '').toLowerCase();
+  if (mode === 'courier' || mode === 'pickup') {
+    const courierRepo = new CourierRepositoryPg(req.tenantDb);
+    await courierRepo.create({
+      caseId: req.body.regid,
+      regid: undefined,
+      randId: 'RX' + Date.now(),
+      remedy: req.body.remedyName || req.body.rxremedy || null,
+      potency: req.body.potencyName || req.body.rxpotency || null,
+      frequency: req.body.frequencyName || req.body.rxfrequency || null,
+      days: req.body.days?.toString() || req.body.rxdays || null,
+      postType: mode === 'pickup' ? 'Pickup' : 'Courier'
+    });
+  }
+
   sendSuccess(res, null, 'Prescription added');
 }));
 
@@ -344,7 +364,7 @@ router.post('/records/investigations/upload', upload.single('file'), asyncHandle
   const fileBuffer = await fs.promises.readFile(req.file.path);
   const base64Data = fileBuffer.toString('base64');
   const mimeType = req.file.mimetype;
-  const attachmentUrl = `/uploads/${req.file.filename}`;
+  const attachmentUrl = await uploadFileToR2(req.file.path, req.file.originalname, req.file.mimetype);
 
   try {
     const { getAiProviderChain } = await import('../../../infrastructure/ai/ai-provider-chain.js');
@@ -412,10 +432,10 @@ router.post('/records/images', upload.array('files', 5), asyncHandler(async (req
   const fileArray = req.files as Express.Multer.File[];
   let picturePath = req.body.picture;
 
-  // If Multer processed files, map the local path to the DTO
+  // If Multer processed files, upload to R2 (or fallback to local uploads folder)
   if (fileArray && fileArray.length > 0 && fileArray[0]) {
-    // Relative path served by the static assets handler
-    picturePath = `/uploads/${fileArray[0].filename}`;
+    const file = fileArray[0];
+    picturePath = await uploadFileToR2(file.path, file.originalname, file.mimetype);
   }
 
   const result = await useCase.saveImage({
@@ -456,20 +476,21 @@ router.put('/:regid/diagnosis', asyncHandler(async (req, res) => {
   let activeCase = cases.find((c: any) => c.status === 'Active') || cases[0];
 
   if (!activeCase) {
-    // Self-healing: If no case exists (new patient), create an active one implicitly
+    const clinicId = (req as any).user?.contextId;
+    const doctorId = (req as any).user?.id;
     const newCaseId = await repo.create({
       regid,
-      condition,
+      clinicId,
+      doctorId,
       status: 'Active',
-      clinicId: (req as any).user?.contextId,
-      doctorId: (req as any).user?.id
+      condition,
     });
-    sendSuccess(res, { condition, id: newCaseId, created: true }, 'Medical case created and diagnosis updated');
+    sendSuccess(res, { condition, id: newCaseId }, 'Diagnosis updated successfully');
     return;
   }
 
   await repo.update(activeCase.id, { condition });
-  sendSuccess(res, { condition }, 'Diagnosis updated successfully');
+  sendSuccess(res, { condition, id: activeCase.id }, 'Diagnosis updated successfully');
 }));
 
 // ─── Consultation Workflow ───
@@ -495,7 +516,7 @@ import { RemedyChartUseCase } from '../../../domains/medical-case/use-cases/reme
 // ─── Remedy Chart Session ────────────────────────────────────────────────────
 // Migrated from MMC legacy: remedychartAPI, addcasepotency, casepotencylisting, etc.
 
-const getRemedyChart = (req: any) => new RemedyChartUseCase(req.tenantDb);
+const getRemedyChart = (req: any) => new RemedyChartUseCase(req.tenantDb, new BillingRepositoryPg(req.tenantDb));
 
 // GET /api/medical-cases/remedy-chart/lookups  — medicines + potencies + frequencies
 router.get('/remedy-chart/lookups', asyncHandler(async (req, res) => {
@@ -565,12 +586,19 @@ router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
   const clinicId = (req as any).user?.contextId;
   const orgRepo = new OrganizationRepositoryPg(req.publicDb);
 
-  const [prescriptions, caseData, settings, organization] = await Promise.all([
+  const [prescriptions, caseData, settings, orgs] = await Promise.all([
     uc.getPrescriptionsForPatient(regid),
     repo.getCaseSummaryForPdf(regid),
     settingsRepo.listPdfSettings(),
-    clinicId ? orgRepo.findById(clinicId) : Promise.resolve(null)
+    orgRepo.findAll()
   ]);
+
+  let organization = null;
+  if (clinicId && orgs.find(o => o.id === clinicId)) {
+    organization = orgs.find(o => o.id === clinicId);
+  } else if (orgs.length > 0) {
+    organization = orgs[0]; // Fallback to first org, same as frontend
+  }
 
   const defaultSetting = settings.find((s: any) => s.isDefault) || settings[0];
   const patient = caseData?.medicalCase;
@@ -581,33 +609,61 @@ router.get('/remedy-chart/pdf/:regid', asyncHandler(async (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="prescription-${regid}.pdf"`);
 
-  await pdfService.generatePrescription(res, {
-    clinicName: organization?.name || defaultSetting?.templateName || (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
-    clinicAddress: organization?.address || (defaultSetting as any)?.clinicAddress || '',
-    clinicPhone: organization?.phone || (defaultSetting as any)?.clinicPhone || '',
-    clinicEmail: organization?.email || '',
-    clinicWebsite: organization?.website || '',
-    clinicLogo: organization?.logo || '',
-    clinicTagline: organization?.tagLine || '',
-    clinicRegistration: organization?.registration || '',
-    clinicTiming: organization?.timing || '',
-    patientName: patient?.patientName || `Patient ${regid}`,
-    patientAge: (patient as any)?.age,
-    patientGender: patient?.gender || '',
-    patientPhone: patient?.phone || patient?.mobile || '',
-    patientAddress: [patient?.address, patient?.city, patient?.state].filter(Boolean).join(', '),
-    diagnosis: patient?.condition || '',
-    followUpNote: caseData?.notes?.find((n: any) => n.notesType === 'Followup')?.notes || '',
-    regid,
-    potencies: prescriptions.map((p: any) => ({
-      medicine: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
-      potency: p.potency_name || p.potencyName || p.potency || '—',
-      frequency: p.frequency_name || p.frequencyTitle || p.frequency || '—',
-      days: p.days,
-      instructions: p.instructions || p.prescription || p.notes || '—',
-      createdAt: p.created_at || p.createdAt || p.dateval
-    })),
-    settings: defaultSetting
+    let filteredPrescriptions = prescriptions;
+    let filteredNotes = caseData?.notes || [];
+    
+    if (req.query.date) {
+      const targetDate = new Date(req.query.date as string).toDateString();
+      filteredPrescriptions = prescriptions.filter((p: any) => {
+        const d = new Date(p.created_at || p.createdAt || p.dateval);
+        return d.toDateString() === targetDate;
+      });
+      filteredNotes = filteredNotes.filter((n: any) => {
+        const d = new Date(n.created_at || n.createdAt || n.dateval || n.createdAt); // Try both standard casing and Drizzle casing
+        // Note: For CaseNote, Drizzle uses createdAt or dateval
+        return d.toDateString() === targetDate;
+      });
+    }
+
+    await pdfService.generatePrescription(res, {
+      clinicName: organization?.name || defaultSetting?.templateName || (req as any).tenantDb?.schemaName || 'Homeo-X Clinic',
+      clinicAddress: organization?.address || (defaultSetting as any)?.clinicAddress || '',
+      clinicPhone: organization?.phone || (defaultSetting as any)?.clinicPhone || '',
+      clinicEmail: organization?.email || '',
+      clinicWebsite: organization?.website || '',
+      clinicLogo: organization?.logo || '',
+      clinicTagline: organization?.tagLine || '',
+      clinicRegistration: organization?.registration || '',
+      clinicTiming: organization?.timing || '',
+      patientName: patient?.patientName || `Patient ${regid}`,
+      patientAge: (() => {
+        let age = (patient as any)?.age;
+        if (!age && patient?.dateOfBirth) {
+          const dob = new Date(patient.dateOfBirth);
+          if (!isNaN(dob.getTime())) {
+            const ageDifMs = Date.now() - dob.getTime();
+            const ageDate = new Date(ageDifMs);
+            age = Math.abs(ageDate.getUTCFullYear() - 1970);
+          }
+        }
+        return age;
+      })(),
+      patientGender: patient?.gender || '',
+      patientPhone: patient?.phone || patient?.mobile || '',
+      patientAddress: [patient?.address, patient?.city, patient?.state].filter(Boolean).join(', '),
+      doctorName: patient?.doctorName || '',
+      diagnosis: patient?.condition || '',
+      followUpNote: filteredNotes.find((n: any) => n.notesType === 'Followup')?.notes || '',
+      regid,
+      potencies: filteredPrescriptions.map((p: any) => ({
+        medicine: p.remedy_name || p.remedyName || p.medicineName || p.medicine || '—',
+        potency: p.potency_name || p.potencyName || p.potency || '—',
+        frequency: p.frequency_name || p.frequencyTitle || p.frequency || '—',
+        days: p.days,
+        instructions: p.instructions || p.prescription || p.notes || '—',
+        createdAt: p.created_at || p.createdAt || p.dateval
+      })),
+      settings: defaultSetting
   });
 }));
 
@@ -634,10 +690,17 @@ router.get('/pdf/summary/:regid', asyncHandler(async (req, res) => {
   const clinicId = (req as any).user?.contextId;
   const orgRepo = new OrganizationRepositoryPg(req.publicDb);
 
-  const [settings, organization] = await Promise.all([
+  const [settings, orgs] = await Promise.all([
     settingsRepo.listPdfSettings(),
-    clinicId ? orgRepo.findById(clinicId) : Promise.resolve(null)
+    orgRepo.findAll()
   ]);
+
+  let organization = null;
+  if (clinicId && orgs.find(o => o.id === clinicId)) {
+    organization = orgs.find(o => o.id === clinicId);
+  } else if (orgs.length > 0) {
+    organization = orgs[0];
+  }
 
   const defaultSetting = settings.find((s: any) => s.isDefault) || settings[0];
 

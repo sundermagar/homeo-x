@@ -3,8 +3,31 @@ import {
   Search, BookOpen, ChevronRight, Activity,
   FlaskConical, Save, Trash2, Calendar, FileText, Printer, Plus, X,
   History, Edit, MoreHorizontal, Truck, Home, Package, AlertTriangle, CheckCircle2,
-  Upload, Loader2, CircleDollarSign
+  Upload, Loader2
 } from 'lucide-react';
+
+/** A custom, premium Circle-A icon indicating "Additional Charge" or "Add" */
+function AdditionalChargeIcon({ size = 14, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8l-3.5 8" />
+      <path d="M12 8l3.5 8" />
+      <path d="M9.5 13.5h5" />
+    </svg>
+  );
+}
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
 import {
   useAlphabetIndex,
@@ -65,7 +88,6 @@ export function RemedyChartSession({
   selectedDate?: string | null,
   onAddAdditionalCharge?: () => void
 }) {
-  const formRef = useRef<HTMLDivElement>(null);
   const {
     history, isLoading, isRxToday, firstRxOfToday,
     form, setForm, editingId, setEditingId,
@@ -103,13 +125,13 @@ export function RemedyChartSession({
     setExpandedDates(next);
   };
 
-  // 1. Group all history items by date FIRST for accurate daily pagination
-  const allGroupedHistory = useMemo(() => {
-    if (!history) return [];
+  const totalPages = Math.ceil((history?.length || 0) / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentHistory = history?.slice(startIndex, startIndex + pageSize) || [];
+
+  const groupedHistory = useMemo(() => {
     const groups: { date: string; items: any[] }[] = [];
-    
-    // History is assumed to be sorted by date DESC from the API
-    history.forEach(rx => {
+    currentHistory.forEach(rx => {
       const dateVal = rx.created_at || rx.dateval;
       if (!dateVal) return;
       const date = new Date(dateVal).toDateString();
@@ -127,13 +149,7 @@ export function RemedyChartSession({
     });
 
     return groups;
-  }, [history]);
-
-  // 2. Paginate the date groups
-  const totalItems = allGroupedHistory.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const groupedHistory = allGroupedHistory.slice(startIndex, startIndex + pageSize);
+  }, [currentHistory]);
 
   const dayOptions = useMemo(() => {
     return dayCharges.map((dc: any) => String(dc.days)).filter(Boolean);
@@ -143,8 +159,6 @@ export function RemedyChartSession({
     if (!form.days) return null;
     return dayCharges.find((dc: any) => String(dc.days) === String(form.days));
   }, [form.days, dayCharges]);
-
-  // Auto-close on click outside has been removed as per user request to keep the form open until manually closed
 
   useEffect(() => {
     if (onDayChargeChange && selectedDayCharge) {
@@ -168,18 +182,33 @@ export function RemedyChartSession({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleRepeat = () => {
+  const handleRepeat = async () => {
     if (!history || history.length === 0) return alert('No previous prescription to repeat.');
-    const lastRx = history[0];
-    if (!lastRx) return;
-    repeatRx(lastRx);
+    
+    // Find the last valid prescription that actually has a remedy
+    let lastValidRx = history.find(rx => {
+      const remedy = rx.remedy_name || (rx as any).remedyName;
+      return remedy && remedy.trim().length > 0;
+    });
+
+    if (!lastValidRx) {
+       // Fallback to the first one that is from a previous date
+       lastValidRx = history.find(rx => {
+         const dateVal = rx.created_at || (rx as any).createdAt || rx.dateval;
+         return dateVal && new Date(dateVal).toDateString() !== new Date().toDateString();
+       });
+    }
+
+    if (!lastValidRx) lastValidRx = history[0];
+
+    await repeatRx(lastValidRx);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Removed duplicate startNewRx and auto-save useEffect as they are now provided by the workflow hook
 
-  const handleRepeatRow = (rx: PrescriptionRow) => {
-    repeatRx(rx);
+  const handleRepeatRow = async (rx: PrescriptionRow) => {
+    await repeatRx(rx);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -195,8 +224,15 @@ export function RemedyChartSession({
   };
 
   const handlePrintRow = (rx: PrescriptionRow) => {
-    const token = useAuthStore.getState().token;
-    window.open(`/api/medical-cases/remedy-chart/pdf/${regid}?token=${token}`, '_blank');
+    const token = localStorage.getItem('token');
+    const dateParam = rx.created_at || (rx as any).createdAt || rx.dateval;
+    const queryStr = dateParam ? `&date=${encodeURIComponent(new Date(dateParam).toISOString())}` : '';
+    
+    const envUrl = import.meta.env['VITE_API_URL'];
+    const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
+    const url = `${apiBase}/medical-cases/remedy-chart/pdf/${regid}?token=${token}${queryStr}`;
+    
+    window.open(url, '_blank');
   };
 
   return (
@@ -249,26 +285,25 @@ export function RemedyChartSession({
 
       {(activeTab === 'rx' || activeTab === null) && (
         <div>
-          {/* Inline Form - Only visible when Rx tab is active and current day is selected */}
+          {/* Inline Form - Only visible when Rx tab is active */}
           {activeTab === 'rx' && isSelectedDateToday && (
-            <div ref={formRef} className="animate-slide-in-top" style={{ 
-              background: 'var(--pp-blue-faded)', 
-              borderRadius: '16px', 
-              padding: '20px', 
-              marginBottom: '24px', 
-              border: '1.5px solid var(--pp-blue-border)',
-              position: 'relative',
-              boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.1)'
-            }}>
-              <button 
-                onClick={() => setActiveTab(null)}
-                style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: 'var(--pp-blue)', cursor: 'pointer', opacity: 0.6 }}
-              >
-                <X size={18} />
-              </button>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: '16px', alignItems: 'flex-start', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Remedy:</label>
+            <>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr 1fr' : '2.5fr 1.2fr 1.5fr 1.2fr', 
+                gap: '16px', 
+                alignItems: 'flex-start', 
+                marginBottom: '24px',
+                background: 'linear-gradient(135deg, #ffffff 0%, #fbfbfc 100%)',
+                border: '1.5px solid var(--pp-warm-2)',
+                padding: '20px',
+                borderRadius: '16px',
+                boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.05)'
+              }}>
+                <div style={{ gridColumn: isMobile ? 'span 2' : 'span 1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    <Activity size={13} style={{ color: 'var(--pp-blue)' }} /> Remedy:
+                  </label>
                   <SearchableSelect
                     value={form.remedyName}
                     onChange={val => {
@@ -279,8 +314,10 @@ export function RemedyChartSession({
                   />
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Potency:</label>
+                <div style={{ gridColumn: 'span 1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    <FlaskConical size={13} style={{ color: 'var(--pp-blue)' }} /> Potency:
+                  </label>
                   <SearchableSelect
                     value={form.potencyName}
                     onChange={val => {
@@ -290,8 +327,10 @@ export function RemedyChartSession({
                     options={lookups?.potencies?.map((p: any) => p.name) || []}
                   />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Frequency:</label>
+                <div style={{ gridColumn: 'span 1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    <History size={13} style={{ color: 'var(--pp-blue)' }} /> Frequency:
+                  </label>
                   <SearchableSelect
                     value={form.frequencyName}
                     onChange={val => {
@@ -301,9 +340,31 @@ export function RemedyChartSession({
                     options={lookups?.frequencies?.map((f: any) => f.name) || []}
                   />
                 </div>
-                 {(!isRxToday || (editingId && firstRxOfToday && editingId === firstRxOfToday.id)) && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Days:</label>
+                 {(!isRxToday || (editingId && firstRxOfToday && editingId === firstRxOfToday.id)) ? (
+                  <div style={{ gridColumn: 'span 1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                        <Calendar size={13} style={{ color: 'var(--pp-blue)' }} /> Days:
+                      </label>
+                      {selectedDayCharge && selectedDayCharge.regularCharges != null && (
+                        <div style={{ 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '2px', 
+                          background: '#ecfdf5', 
+                          border: '1px solid #a7f3d0', 
+                          color: '#065f46', 
+                          padding: '2px 6px', 
+                          borderRadius: '6px', 
+                          fontSize: '0.68rem', 
+                          fontWeight: 800,
+                          lineHeight: 1,
+                          boxShadow: '0 1px 2px rgba(6, 95, 70, 0.03)'
+                        }}>
+                          <span>₹{selectedDayCharge.regularCharges}</span>
+                        </div>
+                      )}
+                    </div>
                     {dayOptions.length > 0 ? (
                       <SearchableSelect
                         value={form.days ? String(form.days) : ''}
@@ -317,7 +378,23 @@ export function RemedyChartSession({
                     ) : (
                       <input
                         type="number"
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-main)', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box', background: 'var(--bg-card)', color: 'var(--pp-ink)' }}
+                        style={{ 
+                          width: '100%', 
+                          padding: '8px 12px', 
+                          border: '1.5px solid var(--border-main)', 
+                          borderRadius: '10px', 
+                          fontSize: '0.85rem', 
+                          fontWeight: 600,
+                          boxSizing: 'border-box', 
+                          background: 'white', 
+                          color: 'var(--pp-ink)',
+                          minHeight: '38px',
+                          outline: 'none',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                          transition: 'border-color 0.2s ease'
+                        }}
+                        onFocus={e => e.currentTarget.style.borderColor = 'var(--pp-blue)'}
+                        onBlur={e => e.currentTarget.style.borderColor = 'var(--border-main)'}
                         value={form.days}
                         onChange={e => {
                           setManualInstruction(false);
@@ -325,30 +402,39 @@ export function RemedyChartSession({
                         }}
                       />
                     )}
-                    {selectedDayCharge && selectedDayCharge.regularCharges != null && (
-                      <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
-                        ₹{selectedDayCharge.regularCharges}
-                      </span>
-                    )}
                   </div>
+                ) : (
+                  <div style={{ gridColumn: 'span 1' }} />
                 )}
                 <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>Instructions:</label>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    <FileText size={13} style={{ color: 'var(--pp-blue)' }} /> Instructions:
+                  </label>
                   <textarea
                     placeholder="Enter manual instructions for this remedy..."
                     style={{ 
                       width: '100%', 
-                      padding: '10px 14px', 
-                      border: '1px solid var(--border-main)', 
-                      borderRadius: '10px', 
+                      padding: '12px 14px', 
+                      border: '1.5px solid var(--border-main)', 
+                      borderRadius: '12px', 
                       fontSize: '0.85rem', 
-                      minHeight: '60px', 
+                      minHeight: '80px', 
                       resize: 'vertical', 
                       fontFamily: 'inherit', 
                       boxSizing: 'border-box', 
                       background: 'white', 
                       color: 'var(--pp-ink)',
-                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                      boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)',
+                      outline: 'none',
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = 'var(--pp-blue)';
+                      e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.02), 0 0 0 3px rgba(37, 99, 235, 0.05)';
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = 'var(--border-main)';
+                      e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.02)';
                     }}
                     value={form.instructions}
                     onChange={e => {
@@ -358,28 +444,28 @@ export function RemedyChartSession({
                   />
                 </div>
               </div>
-            </div>
+            </>
           )}
 
           <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #bfdbfe' }}>
             <div style={{ padding: '12px 16px', background: 'var(--pp-blue-faded)', borderBottom: '1px solid var(--pp-blue-border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <BookOpen size={15} style={{ color: 'var(--pp-blue)' }} />
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-blue)' }}>Prescription History</span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', fontWeight: 600, marginLeft: '4px' }}>({allGroupedHistory.length || 0} Sessions)</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', fontWeight: 600, marginLeft: '4px' }}>({history?.length || 0})</span>
             </div>
             {isLoading ? (
               <TableSkeleton rows={5} cols={8} />
             ) : (
               <table className="mc-data-table" style={{ marginBottom: 0 }}>
-                <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--pp-warm-2)' }}>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f5f3ff', borderBottom: '1px solid #ede9fe' }}>
                   <tr>
-                    <th>DATE</th>
-                    <th>REMEDY</th>
-                    <th>POTENCY</th>
-                    <th>FREQUENCY</th>
-                    <th className="mc-col-days">DAYS</th>
-                    <th className="mc-col-instructions">INSTRUCTIONS</th>
-                    <th style={{ textAlign: 'right' }}>ACTION</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>DATE</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>REMEDY</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>POTENCY</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>FREQUENCY</th>
+                    <th className="mc-col-days" style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>DAYS</th>
+                    <th className="mc-col-instructions" style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px' }}>INSTRUCTIONS</th>
+                    <th style={{ color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', padding: '10px 6px', textAlign: 'right' }}>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -398,23 +484,22 @@ export function RemedyChartSession({
                             className={`hover-row ${editingId === rx.id ? 'editing' : ''} ${isRowSelected ? 'mc-row-selected' : ''}`}
                             style={{ 
                               cursor: onSelectDate ? 'pointer' : 'default',
-                              background: isRowSelected ? 'var(--pp-blue-faded)' : (idx > 0 ? '#f8fafc' : 'white'),
-                              borderLeft: isRowSelected ? '4px solid var(--pp-blue)' : (idx > 0 ? '3px solid #e2e8f0' : 'none'),
-                              transition: 'all 0.2s'
+                              background: isRowSelected ? '#f5f3ff' : (idx > 0 ? '#faf5ff' : 'white'),
+                              borderLeft: isRowSelected ? '4px solid #7c3aed' : (idx > 0 ? '3px solid #e9d5ff' : 'none'),
+                              borderBottom: '1px solid #f1f5f9',
+                              transition: 'all 0.2s ease-in-out'
                             }}
-                            onClick={() => {
-                              onSelectDate?.(rx.created_at || rx.createdAt || rx.dateval);
-                            }}
+                            onClick={() => onSelectDate?.(rx.created_at || rx.createdAt || rx.dateval)}
                           >
-                            <td data-label="Date">
+                            <td data-label="Date" style={{ padding: '8px 6px' }}>
                               {idx === 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
+                                  <div className="remedy-date-val" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
                                     {new Date(rx.created_at || rx.createdAt || rx.dateval).getDate()}
-                                  </span>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>
+                                  </div>
+                                  <div className="remedy-date-mo" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--pp-text-3)', textTransform: 'uppercase' }}>
                                     {new Date(rx.created_at || rx.createdAt || rx.dateval).toLocaleString('default', { month: 'short' })} {new Date(rx.created_at || rx.createdAt || rx.dateval).getFullYear()}
-                                  </span>
+                                  </div>
                                   {group.items.length > 1 && (
                                     <button 
                                       onClick={(e) => { e.stopPropagation(); toggleDate(group.date); }}
@@ -435,30 +520,30 @@ export function RemedyChartSession({
                                 <div style={{ marginLeft: '12px', borderLeft: '2px dashed #cbd5e1', height: '20px' }} />
                               )}
                             </td>
-                            <td data-label="Remedy">
+                            <td data-label="Remedy" style={{ padding: '8px 6px' }}>
                               <div className="remedy-name">
                                 {rx.remedy_name}
                               </div>
                             </td>
-                            <td data-label="Potency">
-                              <span style={{ padding: '4px 12px', background: 'var(--pp-warm-1)', border: '1px solid var(--border-main)', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
+                            <td data-label="Potency" style={{ padding: '8px 6px' }}>
+                              <span style={{ padding: '4px 10px', background: 'var(--pp-warm-1)', border: '1px solid var(--border-main)', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-text-2)' }}>
                                 {rx.potency_name}
                               </span>
                             </td>
-                            <td data-label="Frequency">
-                              <span style={{ color: 'var(--pp-blue)', fontWeight: 700, fontSize: '0.9rem' }}>{rx.frequency_name}</span>
+                            <td data-label="Frequency" style={{ padding: '8px 6px' }}>
+                              <span style={{ color: '#7c3aed', fontWeight: 700, fontSize: '0.9rem' }}>{rx.frequency_name}</span>
                             </td>
-                            <td data-label="Days" className="mc-col-days">
+                            <td data-label="Days" className="mc-col-days" style={{ padding: '8px 6px' }}>
                               <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pp-ink)' }}>{rx.days}</span>
                             </td>
-                            <td data-label="Instructions" className="mc-col-instructions">
+                            <td data-label="Instructions" className="mc-col-instructions" style={{ padding: '8px 6px' }}>
                               <div style={{ 
                                 maxHeight: '60px', 
                                 overflowY: 'auto', 
                                 fontSize: '0.82rem', 
                                 color: 'var(--pp-text-3)', 
                                 lineHeight: 1.4,
-                                width: '220px',
+                                width: '130px',
                                 paddingRight: '8px',
                                 background: (rx.prescription || rx.notes) ? '#f8fafc' : 'transparent',
                                 borderRadius: '6px',
@@ -467,25 +552,39 @@ export function RemedyChartSession({
                                 {rx.prescription || rx.notes || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>No instructions</span>}
                               </div>
                             </td>
-                            <td data-label="Actions" style={{ textAlign: 'right' }}>
+                            <td data-label="Actions" style={{ textAlign: 'right', padding: '8px 6px' }}>
                               <div className="mc-table-actions">
-                                  <div className="mc-desktop-actions">
+                                  <div className="mc-desktop-actions" style={{ gap: '4px' }}>
                                     {(() => {
-                                      const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
+                                      const rxDate = new Date(rx.created_at || (rx as any).createdAt || rx.dateval);
                                       const isToday = rxDate.toDateString() === new Date().toDateString();
-                                      if (!isToday) return null;
                                       return (
                                         <>
-                                          <button 
-                                            onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }} 
-                                            className="mc-action-btn" 
-                                            title="Add Additional Charge"
-                                          >
-                                            <CircleDollarSign size={14} />
-                                          </button>
-                                          <button onClick={(e) => { e.stopPropagation(); startNewRx(); }} className="mc-action-btn" title="Add Extra"><Plus size={14} /></button>
-                                          <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
-                                          <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
+                                          <button onClick={(e) => { e.stopPropagation(); handlePrintRow(rx); }} className="mc-action-btn" title="Print"><Printer size={14} /></button>
+                                          {!isToday && (
+                                            <button 
+                                              onClick={(e) => { e.stopPropagation(); handleRepeatRow(rx); }} 
+                                              className="mc-action-btn" 
+                                              title="Repeat Prescription"
+                                              style={{ color: '#7c3aed' }}
+                                            >
+                                              <History size={14} />
+                                            </button>
+                                          )}
+                                          {isToday && (
+                                            <>
+                                              <button 
+                                                onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }} 
+                                                className="mc-action-btn" 
+                                                title="Add Additional Charge"
+                                              >
+                                                <AdditionalChargeIcon size={14} />
+                                              </button>
+                                              <button onClick={(e) => { e.stopPropagation(); startNewRx(); }} className="mc-action-btn" title="Add Extra"><Plus size={14} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }} className="mc-action-btn" title="Edit"><Edit size={14} /></button>
+                                              <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} className="mc-action-btn danger" title="Remove"><Trash2 size={14} /></button>
+                                            </>
+                                          )}
                                         </>
                                       );
                                     })()}
@@ -494,17 +593,28 @@ export function RemedyChartSession({
                                     <button className="mc-dots-btn"><MoreHorizontal size={18} /></button>
                                     <div className="mc-dots-dropdown">
                                       {(() => {
-                                        const rxDate = new Date(rx.created_at || rx.createdAt || rx.dateval);
+                                        const rxDate = new Date(rx.created_at || (rx as any).createdAt || rx.dateval);
                                         const isToday = rxDate.toDateString() === new Date().toDateString();
-                                        if (!isToday) return null;
                                         return (
                                           <>
-                                            <button onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }}>
-                                              <CircleDollarSign size={14} /> Add Charge
+                                            <button onClick={(e) => { e.stopPropagation(); handlePrintRow(rx); }}>
+                                              <Printer size={14} /> Print
                                             </button>
-                                            <button onClick={(e) => { e.stopPropagation(); startNewRx(); }}><Plus size={14} /> Add Extra</button>
-                                            <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }}><Edit size={14} /> Edit</button>
-                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>
+                                            {!isToday && (
+                                              <button onClick={(e) => { e.stopPropagation(); handleRepeatRow(rx); }} style={{ color: '#7c3aed' }}>
+                                                <History size={14} /> Repeat
+                                              </button>
+                                            )}
+                                            {isToday && (
+                                              <>
+                                                <button onClick={(e) => { e.stopPropagation(); onAddAdditionalCharge?.(); }}>
+                                                  <AdditionalChargeIcon size={14} /> Add Charge
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); startNewRx(); }}><Plus size={14} /> Add Extra</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleEdit(rx); }}><Edit size={14} /> Edit</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDelete(rx.id, rx.remedy_name); }} style={{ color: '#dc2626' }}><Trash2 size={14} /> Remove</button>
+                                              </>
+                                            )}
                                           </>
                                         );
                                       })()}
@@ -533,7 +643,7 @@ export function RemedyChartSession({
             currentPage={currentPage}
             totalPages={totalPages}
             pageSize={pageSize}
-            totalItems={totalItems}
+            totalItems={history?.length || 0}
             onPageChange={setCurrentPage}
             onPageSizeChange={setPageSize}
           />

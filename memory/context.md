@@ -1,6 +1,6 @@
-# Context - Kreed.health
+# Context - MMC
 
-Kreed.health is an enterprise-grade Homeopathic Clinic Management Platform.
+MMC is an enterprise-grade Homeopathic Clinic Management Platform.
 
 ## Features
 

@@ -11,10 +11,10 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 async function fix() {
   const db = createDbClient(process.env.DATABASE_URL!, 'tenant_demo');
-  const emails = ['doctor@kreed.health', 'admin@kreed.health', 'reception@kreed.health', 'clinicadmin@kreed.health'];
-  
+  const emails = ['doctor@MMC', 'admin@MMC', 'reception@MMC', 'clinicadmin@MMC'];
+
   const hash = '$2a$10$1ChhskXKK67s0g9p4q.sAuHA/RNLPdRvKRh3LSCtYqE7yqYFbi.8S'; // hash for 'password123'
-  
+
   for (const email of emails) {
     await db.execute(sql`UPDATE tenant_demo.users SET password = ${hash} WHERE email = ${email}`);
     console.log(`Updated password for ${email}`);

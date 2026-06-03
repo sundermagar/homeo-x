@@ -10,8 +10,6 @@ export function useFullMedicalCase(regid: number) {
       return res.data.data;
     },
     enabled: !!regid,
-    staleTime: 30_000, // 30s — prevents redundant refetches while actively viewing
-    gcTime: 5 * 60_000, // keep in cache for 5 min after unmount
   });
 }
 
@@ -23,8 +21,6 @@ export function useMasterVaccines() {
       const res = await api.get<{ success: boolean; data: any[] }>('/medical-cases/vaccines/master');
       return res.data.data;
     },
-    staleTime: 5 * 60_000, // 5 min — master vaccine list is effectively static
-    gcTime: 30 * 60_000,   // keep in cache for 30 min
   });
 }
 
@@ -133,28 +129,6 @@ export function useManageClinicalRecords() {
 
   const saveVaccine = useMutation({
     mutationFn: (data: any) => api.post('/medical-cases/vaccines', data),
-    onMutate: async (newRecord) => {
-      await queryClient.cancelQueries({ queryKey: ['medical-case', 'full', newRecord.regid] });
-      const previousData = queryClient.getQueryData(['medical-case', 'full', newRecord.regid]);
-      
-      if (previousData) {
-        queryClient.setQueryData(['medical-case', 'full', newRecord.regid], (old: any) => ({
-          ...old,
-          vaccines: [...(old.vaccines || []), { 
-            ...newRecord, 
-            id: Date.now(), // temporary ID
-            createdAt: new Date().toISOString() 
-          }]
-        }));
-      }
-      
-      return { previousData };
-    },
-    onError: (err, newRecord, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['medical-case', 'full', newRecord.regid], context.previousData);
-      }
-    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['medical-case', 'full', variables.regid] });
     },
@@ -283,12 +257,12 @@ export function useCommunicationLogs(regid: number) {
   });
 }
 
-export function useSendSms() {
+export function useSendWhatsApp() {
   const api = useApi();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { phone: string; message: string; regid: number }) => 
-      api.post('/medical-cases/communication/send-sms', data),
+      api.post('/whatsapp/send-text', data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['medical-case', 'communication', variables.regid] });
     },

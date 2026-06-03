@@ -29,7 +29,7 @@ export function useDoctorStatus(isDoctor: boolean) {
     if (!isDoctor) return;
 
     if (!socket) {
-      const baseUrl = (import.meta.env['VITE_API_URL'] || '').replace('/api', '');
+      const baseUrl = (import.meta.env['VITE_API_URL'] || '').replace(/\/api\/?$/, '');
       socket = io(baseUrl || window.location.origin, {
         withCredentials: true,
       });

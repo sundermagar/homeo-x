@@ -1,4 +1,4 @@
-# Tasks - Kreed.health Agent Instructions
+# Tasks - MMC Agent Instructions
 
 ## General Instructions
 

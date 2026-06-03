@@ -107,6 +107,61 @@ export function usePrescriptionWorkflow(
     }
   };
 
+  const repeatRx = async (rx: any) => {
+    if (!regid) return;
+    setEditingId(null); // Clear editing ID first to prevent auto-saving form changes to the previous Rx!
+    
+    const rxForm = {
+      remedyName: rx.remedy_name || rx.remedyName || '',
+      potencyName: rx.potency_name || rx.potencyName || '',
+      frequencyName: rx.frequency_name || rx.frequencyName || '',
+      days: Number(rx.days) || 0,
+      instructions: rx.prescription || rx.notes || rx.instructions || '',
+      notes: rx.notes || ''
+    };
+    
+    setForm(rxForm);
+    setActiveTab('rx');
+    setManualInstruction(true);
+    
+    // Auto-select today's date immediately to update other tabs without delay
+    const todayIso = new Date().toISOString();
+    onSelectDate?.(todayIso);
+    
+    try {
+      // Find if we already have an empty prescription for today to reuse
+      const todayRxs = (history || []).filter(r => {
+        const dateVal = r.created_at || r.dateval;
+        return dateVal && new Date(dateVal).toDateString() === new Date().toDateString();
+      });
+      const emptyTodayRx = todayRxs.find(r => !(r.remedy_name || (r as any).remedyName));
+      
+      const payload: any = {
+        regid,
+        visitId,
+        deliveryMode: deliveryRef.current,
+        ...rxForm
+      };
+      
+      if (emptyTodayRx) {
+        payload.id = emptyTodayRx.id;
+      } else {
+        setEditingId(null);
+      }
+      
+      const res = await saveMutation.mutateAsync(payload);
+      if (res && typeof res === 'object' && 'id' in res) {
+        setEditingId(Number(res.id));
+        
+        // Auto-select with exact timestamp from server response if available
+        const rxDate = res.created_at || res.dateval || res.createdAt || todayIso;
+        onSelectDate?.(rxDate);
+      }
+    } catch (err) {
+      console.error('Failed to repeat Rx:', err);
+    }
+  };
+
   useEffect(() => {
     if (!isLoading && history && !hasAutoOpenedRef.current) {
       hasAutoOpenedRef.current = true;
@@ -163,62 +218,7 @@ export function usePrescriptionWorkflow(
 
   // startNewRx moved above for dependency use
 
-  const repeatRx = async (rx: any) => {
-    if (!regid || !rx) return;
-    setEditingId(null); // Clear editing ID first to prevent auto-saving repeated data to the previous Rx!
-    const repeatData = {
-      remedyName: rx.remedy_name || rx.remedyName || '',
-      potencyName: rx.potency_name || rx.potencyName || '',
-      frequencyName: rx.frequency_name || rx.frequencyName || '',
-      days: Number(rx.days) || 0,
-      instructions: rx.prescription || rx.notes || rx.instructions || '',
-      notes: rx.notes || ''
-    };
-
-    setForm(repeatData);
-    setActiveTab('rx');
-    setManualInstruction(true);
-    
-    // Auto-select today's date immediately
-    const todayIso = new Date().toISOString();
-    onSelectDate?.(todayIso);
-
-    try {
-      const res = await saveMutation.mutateAsync({
-        regid,
-        visitId,
-        deliveryMode: deliveryRef.current,
-        ...repeatData
-      });
-      if (res && typeof res === 'object' && 'id' in res) {
-        setEditingId(Number(res.id));
-        
-        // Auto-select with exact timestamp from server response if available
-        const rxDate = res.created_at || res.dateval || res.createdAt || todayIso;
-        onSelectDate?.(rxDate);
-      }
-    } catch (err) {
-      console.error('Failed to repeat Rx:', err);
-    }
-  };
-
-  const handleDeliveryChange = (newMode: string) => {
-    setDelivery(newMode);
-    deliveryRef.current = newMode;
-    if (editingId && regid) {
-      saveMutation.mutate({
-        regid,
-        visitId,
-        id: editingId,
-        deliveryMode: newMode,
-        ...form
-      });
-    }
-  };
-
-  // Debounced auto-save — uses deliveryRef to avoid re-triggering when
-  // delivery state changes (prevents the race condition where the sync
-  // useEffect resets delivery and auto-save then overwrites the DB).
+  // Debounced auto-save
   useEffect(() => {
     if (!editingId || !regid) return;
 
@@ -246,7 +246,7 @@ export function usePrescriptionWorkflow(
     editingId,
     setEditingId,
     delivery,
-    setDelivery: handleDeliveryChange,
+    setDelivery,
     manualInstruction,
     setManualInstruction,
     startNewRx,

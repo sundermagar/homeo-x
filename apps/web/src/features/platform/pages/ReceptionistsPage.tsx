@@ -425,7 +425,10 @@ function StaffModal({
           </div>
           {/* Section 4: Statutory Documents */}
           <div className="plat-form-section">
-            <h4 className="plat-form-section-title">Statutory Documents</h4>
+            <h4 className="plat-form-section-title">
+              Statutory Documents
+              <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--pp-text-3)', marginLeft: '8px' }}>(Optional)</span>
+            </h4>
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Aadhar Number</label>
@@ -462,7 +465,7 @@ function StaffModal({
     </Drawer>
   );
 }
-export default function ReceptionistsPage() {
+export default function ReceptionistsPage({ actionTrigger }: { actionTrigger?: number }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -483,6 +486,14 @@ export default function ReceptionistsPage() {
   const staff = data?.data || [];
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
   const activeCount = data?.activeCount ?? 0;
+
+  useEffect(() => {
+    if (actionTrigger && actionTrigger > 0) {
+      setEditingId(null);
+      setModalOpen(true);
+    }
+  }, [actionTrigger]);
+
   const handleEdit = (s: StaffSummary) => {
     setEditingId(s.id);
     setModalOpen(true);
@@ -497,24 +508,8 @@ export default function ReceptionistsPage() {
     if (!confirm('This will revoke all clinical access for this receptionist. Proceed?')) return;
     await deleteMutation.mutateAsync({ category: CATEGORY, id });
   };
-  // return (
   return (
-    <div className="plat-page">
-      <div className="plat-header">
-        <div>
-          <h1 className="plat-header-title">
-            <ClipboardList size={16} className="color-primary" />
-            {META.label}
-          </h1>
-          <p className="plat-header-sub">{META.description}</p>
-        </div>
-        <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
-            <Plus size={14} />
-            Add Receptionist
-          </button>
-        </div>
-      </div>
+    <div className="plat-tab-content">
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
           <p className="plat-stat-label">Desk Force</p>

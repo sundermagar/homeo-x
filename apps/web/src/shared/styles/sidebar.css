@@ -107,8 +107,8 @@
   left: 0;
   width: 264px;
   height: 100%;
-  background: var(--bg-card);
-  border-right: 1px solid var(--border-main);
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   z-index: 100;
@@ -299,6 +299,7 @@
   transition: all 0.15s ease;
   text-decoration: none;
   cursor: pointer;
+  position: relative;
 }
 
 .sidebar.collapsed .sidebar-item {
@@ -312,9 +313,22 @@
 }
 
 .sidebar-item.active {
-  background: var(--primary-tint);
-  color: var(--primary);
-  font-weight: 600;
+  background: white;
+  color: #0f172a;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+  background: var(--primary);
+  z-index: 2;
 }
 
 .dark .sidebar-item.active {
@@ -325,6 +339,31 @@
   width: 17px;
   height: 17px;
   flex-shrink: 0;
+}
+
+.sidebar-top-link {
+  transition: all 0.15s ease;
+}
+
+.sidebar-top-link:hover {
+  color: #0f172a !important;
+}
+
+.sidebar-top-link.active {
+  color: var(--primary) !important;
+}
+
+/* Left-border accent line when active */
+.sidebar-top-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+  background: var(--primary);
+  z-index: 2;
 }
 
 /* ─── Grouped Section ─── */
@@ -452,9 +491,10 @@
 }
 
 .sidebar-child-item.active {
-  background: var(--primary-tint);
-  color: var(--primary);
-  font-weight: 600;
+  background: white;
+  color: #0f172a;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .sidebar-child-item.sub-item {
@@ -466,11 +506,11 @@
 .sidebar-child-item.active::before {
   content: '';
   position: absolute;
-  left: -17px;
-  top: 15%;
-  height: 70%;
-  width: 2.5px;
-  border-radius: 0 2px 2px 0;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
   background: var(--primary);
   z-index: 2;
 }
@@ -499,10 +539,26 @@
 }
 
 .sidebar-child-icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-  opacity: 0.8;
+  opacity: 0.9;
+  color: #64748b;
+}
+
+.sidebar-item.active .sidebar-item-icon,
+.sidebar-child-item.active .sidebar-child-icon {
+  color: var(--primary);
+}
+
+.nav-badge {
+  background: #3b82f6;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: auto;
 }
 
 /* ─── Section Divider Label ─── */

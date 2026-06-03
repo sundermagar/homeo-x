@@ -62,7 +62,10 @@ import { TranslatorEngine } from '../../domains/consultation/engines/translator.
 import { getAiProviderChain } from '../ai/ai-provider-chain.js';
 import { createTerminologyRouter } from './routes/terminology.router.js';
 import { createNotificationsRouter } from './routes/notifications.router.js';
+import { whatsappRouter } from './routes/whatsapp.js';
+import { whatsappWidgetRouter } from './routes/whatsapp-widget.js';
 import { setupNotificationsGateway, setNotificationEmitters } from './gateways/notifications.gateway.js';
+import { setupWhatsAppGateway, setWhatsAppGateway } from './gateways/whatsapp.gateway.js';
 
 const logger = createLogger('http');
 
@@ -166,6 +169,8 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   app.use('/api/records', authMiddleware, recordsRouter);
   app.use('/api/staff', authMiddleware, staffRouter);
   app.use('/api/notifications', authMiddleware, createNotificationsRouter());
+  app.use('/api/whatsapp', whatsappRouter);
+  app.use('/api/widget', whatsappWidgetRouter);
 
   // Roles & Permissions
   app.use('/api/roles', authMiddleware, rolesRouter);
@@ -208,14 +213,21 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
     logger.error({ err: err?.message }, 'Failed to initialize video-call gateway');
   }
 
-  // ─── Notifications gateway (Socket.IO /notifications namespace) ───
-  // Pushes real-time notifications to authenticated users.
   try {
     const { emitToUser, emitToClinic } = setupNotificationsGateway(io);
     setNotificationEmitters(emitToUser, emitToClinic);
     logger.info('Notifications gateway initialized on /notifications namespace');
   } catch (err: any) {
     logger.error({ err: err?.message }, 'Failed to initialize notifications gateway');
+  }
+
+  // ─── WhatsApp gateway (Socket.IO /whatsapp namespace) ───
+  try {
+    const gateway = setupWhatsAppGateway(io);
+    setWhatsAppGateway(gateway);
+    logger.info('WhatsApp gateway initialized on /whatsapp namespace');
+  } catch (err: any) {
+    logger.error({ err: err?.message }, 'Failed to initialize whatsapp gateway');
   }
 
   // ─── Error Handling (must be last) ───
@@ -278,6 +290,69 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   warmDbPools()
     .then(() => logger.info('DB pools warmed (idle keep-alive ping running)'))
     .catch(err => logger.warn({ err: err?.message }, 'DB pool warmup skipped'));
+
+  // --- AUTO-ALIGN WABA ACCESS TOKENS WITH ENV ---
+  // If the developer updates process.env.WHATSAPP_TOKEN, propagate it to the DB channels
+  (async () => {
+    try {
+      const envToken = process.env.WHATSAPP_TOKEN;
+      if (!envToken) return;
+
+      const { sql } = await import('drizzle-orm');
+      const { encrypt, decrypt } = await import('../../shared/crypto.js');
+
+      // Optimization: Only align schemas that actually have the 'wa_channels' table.
+      // This avoids creating 50+ database connection pools for empty schemas.
+      const schemaRows = await publicDb.execute(sql`
+        SELECT table_schema 
+        FROM information_schema.tables 
+        WHERE table_name = 'wa_channels' 
+          AND table_schema LIKE 'tenant_%'
+      `);
+      const rawActiveSchemas = (schemaRows as any[]).map(r => r.table_schema);
+      const activeSchemas: string[] = [];
+
+      for (const schemaName of rawActiveSchemas) {
+        try {
+          const channelCheck = await publicDb.execute(sql`
+            SELECT id FROM ${sql.raw(`"${schemaName}"."wa_channels"`)} LIMIT 1
+          `);
+          const hasChannels = Array.isArray(channelCheck) ? channelCheck.length > 0 : (channelCheck as any).rows?.length > 0;
+          if (hasChannels) {
+            activeSchemas.push(schemaName);
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+
+      logger.info(`Aligning WABA access tokens with .env for ${activeSchemas.length} active tenant schema(s)...`);
+      for (const schemaName of activeSchemas) {
+        try {
+          const tenantDb = createDbClient(process.env.DATABASE_URL!, schemaName);
+          const channelRows = await tenantDb.execute(sql`
+            SELECT id, access_token FROM wa_channels LIMIT 10
+          `);
+          const rows = Array.isArray(channelRows) ? channelRows : (channelRows as any).rows || [];
+          for (const row of rows) {
+            const dbTokenDecrypted = decrypt(row.access_token);
+            if (dbTokenDecrypted !== envToken) {
+              logger.info(`[SyncToken] Updating access token in schema ${schemaName} for WABA channel ${row.id}`);
+              const encryptedToken = encrypt(envToken);
+              await tenantDb.execute(sql`
+                UPDATE wa_channels SET access_token = ${encryptedToken}, updated_at = NOW() WHERE id = ${row.id}
+              `);
+            }
+          }
+        } catch (e: any) {
+          // Ignore if table or schema does not exist
+        }
+      }
+      logger.info('WABA access token alignment complete');
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Failed to align WABA access tokens');
+    }
+  })();
 
   return { app, server, io, tenantDb, publicDb };
 }
@@ -343,16 +418,6 @@ async function ensureIndexes(db: any): Promise<void> {
   const indexes: string[] = [
     `CREATE INDEX IF NOT EXISTS idx_patients_clinic_deleted ON patients (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_patients_deleted ON patients (id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
-    
-    // ── Clinical Record Indexes (Optimization for Case Details) ──
-    `CREATE INDEX IF NOT EXISTS idx_mc_regid ON medicalcases (regid)`,
-    `CREATE INDEX IF NOT EXISTS idx_mc_clinic ON medicalcases (clinic_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_soap_regid ON soap_notes (regid)`,
-    `CREATE INDEX IF NOT EXISTS idx_soap_visit ON soap_notes (visit_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_vitals_regid ON vitals (regid)`,
-    `CREATE INDEX IF NOT EXISTS idx_vitals_visit ON vitals (visit_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_presc_regid ON case_potencies (regid)`,
-    `CREATE INDEX IF NOT EXISTS idx_presc_visit ON case_potencies (visit_id)`,
     // ── Dashboard-critical composite indexes ──────────────────────────────────
     // appointments: used in KPI counts + revenue series (clinic_id + booking_date filter)
     `CREATE INDEX IF NOT EXISTS idx_appts_clinic_date ON appointments (clinic_id, booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
@@ -370,6 +435,13 @@ async function ensureIndexes(db: any): Promise<void> {
     // doctors + users: used in staff-on-duty (clinic_id filter)
     `CREATE INDEX IF NOT EXISTS idx_doctors_clinic ON doctors (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_users_context_active ON users (context_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    
+    // ── Receptionist Dashboard Query Optimization Indexes ──
+    `CREATE INDEX IF NOT EXISTS idx_users_id_text ON users ((id::text)) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_doctors_id_text ON doctors ((id::text)) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_waitlist_date_text ON waitlist (clinic_id, (date::text)) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    `CREATE INDEX IF NOT EXISTS idx_appts_bdate_text ON appointments (clinic_id, (booking_date::text)) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
+    
     // ── Legacy / admin ────────────────────────────────────────────────────────
     `CREATE INDEX IF NOT EXISTS idx_appts_clinic ON appointments (clinic_id) WHERE deleted_at IS NULL OR deleted_at::text = ''`,
     `CREATE INDEX IF NOT EXISTS idx_appts_date ON appointments (booking_date) WHERE deleted_at IS NULL OR deleted_at::text = ''`,

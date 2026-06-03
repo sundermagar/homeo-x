@@ -9,7 +9,7 @@ import {
   Stethoscope, PackageCheck, MessageCircle, PieChart,
   Building2, Users2, UserCheck, UserPlus, Contact,
   FileBarChart, Download, Boxes, HelpCircle,
-  BookOpen, Tags, Bike, LayoutList, Sticker, Cpu, Clock
+  BookOpen, Tags, Bike, LayoutList, Sticker, Cpu, Clock, PhoneCall
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
@@ -123,21 +123,17 @@ function buildCommands(
       ['appointment', 'schedule', 'booking', 'visit']),
     nav('Calendar', '/appointments/calendar', <Calendar size={16} />, ALL,
       ['calendar', 'schedule', 'view']),
-    nav('Token Queue', '/appointments/queue', <ClipboardList size={16} />, CLINICAL,
-      ['token', 'queue', 'waitlist', 'running']),
 
     // ── Medical Cases ─────────────────────────────────────────────────────────
     nav('Vitals Check', '/vitals-check', <Activity size={16} />, CLINICAL,
       ['vital', 'bp', 'weight', 'pulse', 'checkup']),
-    // nav('AI Analysis', '/ai-analysis', <BrainCircuit size={16} />, CLINICAL,
-    //   ['ai', 'consultant', 'advisor', 'bot', 'assistant', 'analysis']),
-    nav('Remedy Chart', '/clinical/remedy-chart', <Brain size={16} />, CLINICAL,
-      ['remedy', 'chart', 'tree', 'medicine', 'drug']),
+    nav('AI Analysis', '/clinical/ai-analysis', <BrainCircuit size={16} />, CLINICAL,
+      ['remedy', 'chart', 'tree', 'medicine', 'drug', 'ai', 'analysis']),
 
     // ── Packages ─────────────────────────────────────────────────────────────
     nav('Packages', '/packages', <Package size={16} />, ADMIN_CLINIC,
       ['package', 'membership', 'subscription', 'plan']),
-    nav('Package Tracking', '/packages/tracking', <PackageCheck size={16} />, ADMIN_CLINIC,
+    nav('Package Tracking', '/packages/tracking', <PackageCheck size={16} />, [...ADMIN_CLINIC, 'Receptionist'],
       ['tracking', 'package', 'membership']),
 
     // ── Billing & Payments ────────────────────────────────────────────────────
@@ -145,13 +141,15 @@ function buildCommands(
       ['bill', 'invoice', 'payment', 'finance']),
     nav('Payments', '/payments', <Wallet size={16} />, BILLING,
       ['payment', 'transaction', 'collection', 'ledger']),
+    nav('View Balance', '/billing/balance', <Wallet size={16} />, BILLING,
+      ['balance', 'due', 'outstanding', 'patient']),
     nav('Custom Bill', '/billing/custom', <Receipt size={16} />, BILLING,
       ['custom', 'bill', 'invoice']),
-    nav('Additional Charges', '/billing/additional-charges', <Plus size={16} />, BILLING_ADMIN,
+    nav('Additional Charges', '/billing/additional-charges', <Plus size={16} />, ADMIN_CLINIC,
       ['additional', 'charges', 'extra']),
     nav('Assigned Charges', '/billing/assigned-charges', <Plus size={16} />, BILLING_ADMIN,
       ['assigned', 'charges', 'patient', 'allocation']),
-    nav('Day Charges', '/billing/day-charges', <Calendar size={16} />, BILLING_ADMIN,
+    nav('Day Charges', '/billing/day-charges', <Calendar size={16} />, ADMIN_CLINIC,
       ['day', 'charges', 'daily']),
     nav('Deposits', '/billing/deposits', <Wallet size={16} />, BILLING_ADMIN,
       ['deposit', 'advance', 'prepaid']),
@@ -172,14 +170,16 @@ function buildCommands(
     nav('Operations Hub', '/operations', <LayoutDashboard size={16} />, ADMIN_CLINIC,
       ['operation', 'crm', 'leads', 'task', 'logistics']),
 
-    // ── Communications ────────────────────────────────────────────────────────
+    // ── Communications (SMS decommissioned) ──────────────────────────────────
+    /*
     nav('Group SMS', '/communications/sms', <MessageSquare size={16} />, ADMIN_CLINIC,
       ['sms', 'group', 'broadcast', 'send', 'message']),
     nav('SMS Templates', '/communications/templates', <Mail size={16} />, ADMIN_CLINIC,
       ['sms', 'template', 'canned']),
     nav('SMS Reports', '/communications/reports', <FileBarChart size={16} />, ADMIN_CLINIC,
       ['sms', 'report', 'reports']),
-    nav('WhatsApp', '/communications/whatsapp', <MessageCircle size={16} />, ADMIN_CLINIC,
+    */
+    nav('WhatsApp', '/communications/whatsapp', <MessageCircle size={16} />, ALL,
       ['whatsapp', 'message', 'chat']),
 
     // ── Staff & Platform ─────────────────────────────────────────────────────
@@ -202,6 +202,8 @@ function buildCommands(
     // ── Settings ────────────────────────────────────────────────────────────
     nav('Settings: Departments', '/settings/departments', <LayoutList size={16} />, ADMIN_CLINIC,
       ['department', 'unit']),
+    nav('Settings: Call Statuses', '/settings/call-statuses', <PhoneCall size={16} />, ADMIN_CLINIC,
+      ['call', 'status', 'follow up']),
     nav('Settings: Medicines', '/settings/medicines', <Pill size={16} />, ADMIN_CLINIC,
       ['medicine', 'drug', 'drugstore', 'pharmacy']),
     nav('Settings: Dispensaries', '/settings/dispensaries', <Database size={16} />, ADMIN_CLINIC,

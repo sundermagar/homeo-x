@@ -1,4 +1,4 @@
-# Kreed.health Product Roadmap (Memory)
+# MMC Product Roadmap (Memory)
 
 ## Execution Strategy
 - **Vertical Slices**: Backend → Frontend → Migration → Tests per module.

@@ -1,4 +1,4 @@
-import { sql, eq, and, isNull } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import type { User } from '@mmc/types';
 import { Role } from '@mmc/types';
 import type { DbClient } from '@mmc/database';
@@ -47,6 +47,8 @@ export class UserRepositoryPG implements UserRepository {
       isActive: row.is_active !== false,
       createdAt: row.created_at || new Date(),
       updatedAt: row.updated_at || new Date(),
+      resetOtp: row.reset_otp ?? null,
+      resetOtpExpiry: row.reset_otp_expiry ? new Date(row.reset_otp_expiry) : null,
     };
   }
 
@@ -87,48 +89,6 @@ export class UserRepositoryPG implements UserRepository {
     );
   }
 
-  async updateResetOtp(userId: number, hashedOtp: string, expiry: Date): Promise<void> {
-    await this.db.update(schema.users)
-      .set({
-        // @ts-ignore: TS type inference drops these properties due to declaration merging limits
-        resetOtp: hashedOtp,
-        resetOtpExpiry: expiry,
-        updatedAt: new Date()
-      })
-      .where(eq(schema.users.id, userId));
-  }
-
-  async getResetOtp(email: string): Promise<{ resetOtp: string | null; resetOtpExpiry: Date | null } | null> {
-    const results = await this.db
-      .select({
-        // @ts-ignore: TS type inference drops these properties due to declaration merging limits
-        resetOtp: schema.users.resetOtp,
-        // @ts-ignore
-        resetOtpExpiry: schema.users.resetOtpExpiry
-      })
-      .from(schema.users)
-      .where(and(eq(schema.users.email, email), isNull(schema.users.deletedAt)))
-      .limit(1);
-
-    const row = results[0];
-    if (!row) return null;
-    return {
-      resetOtp: row.resetOtp,
-      resetOtpExpiry: row.resetOtpExpiry ? new Date(row.resetOtpExpiry) : null
-    };
-  }
-
-  async clearResetOtp(userId: number): Promise<void> {
-    await this.db.update(schema.users)
-      .set({
-        // @ts-ignore: TS type inference drops these properties due to declaration merging limits
-        resetOtp: null,
-        resetOtpExpiry: null,
-        updatedAt: new Date()
-      })
-      .where(eq(schema.users.id, userId));
-  }
-
   async getUserPermissions(roleId: number): Promise<string[]> {
     if (!roleId) return [];
     try {
@@ -149,5 +109,18 @@ export class UserRepositoryPG implements UserRepository {
           FROM users WHERE type = 'Doctor' AND deleted_at IS NULL`
     );
     return (rows as any[]).map(row => this.rowToUser(row));
+  }
+
+  async updateResetOtp(userId: number, hashedToken: string, expiry: Date): Promise<void> {
+    const expiryStr = expiry.toISOString();
+    await this.db.execute(
+      sql`UPDATE users SET reset_otp = ${hashedToken}, reset_otp_expiry = ${expiryStr}, updated_at = NOW() WHERE id = ${userId}`
+    );
+  }
+
+  async updatePasswordAndClearOtp(userId: number, newPasswordHash: string): Promise<void> {
+    await this.db.execute(
+      sql`UPDATE users SET password_hash = ${newPasswordHash}, reset_otp = NULL, reset_otp_expiry = NULL, updated_at = NOW() WHERE id = ${userId}`
+    );
   }
 }

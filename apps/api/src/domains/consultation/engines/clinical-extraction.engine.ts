@@ -28,6 +28,12 @@ export interface ClinicalExtractionResult {
   thermalReaction?: string;
   constitution?: string;
   miasm?: string;
+  thirstPattern?: string;
+  sleepPosition?: string;
+  perspiration?: string;
+  causation: string[];
+  location: string[];
+  concomitants: string[];
   confidence: number;
 }
 
@@ -46,11 +52,17 @@ Extract these categories:
 5. physicalSymptoms: Specific physical complaints
 6. generalSymptoms: Constitutional/general symptoms (energy, sleep, appetite, thirst, thermal preference)
 7. modalities: What makes symptoms worse (aggravation) and better (amelioration)
-8. thermalReaction: HOT, CHILLY, or AMBITHERMAL
-9. constitution: Constitutional type if identifiable
-10. miasm: Predominant miasm if identifiable (PSORA, SYCOSIS, SYPHILIS, TUBERCULAR)
+8. thermalReaction: "chilly", "hot", or "ambithermal" (Infer from sensitivity to weather, need for covering, bathing preferences. E.g. "I can't stand the cold" -> chilly)
+9. constitution: Constitutional type
+10. miasm: "psora", "sycosis", "syphilis", "tubercular" (Infer from pathology: psora=functional/itching, sycosis=overgrowth/warts/damp agg, syphilis=destructive/ulcers/night agg, tubercular=wasting/changeable)
+11. thirstPattern: "thirsty", "thirstless", or "sips" (Infer from drinking habits)
+12. sleepPosition: "knees", "abdomen", "left", "right", "back" (Infer from sleep habits)
+13. perspiration: "profuse", "scanty", "offensive", etc. (Infer from sweat complaints)
+14. causation: Ailments from, triggers, or etiologies (e.g., "grief", "exposure to cold", "overwork").
+15. location: Specific body parts or side affinities (e.g., "left-sided", "right knee").
+16. concomitants: Symptoms that appear simultaneously with the main complaint (e.g., "headache with nausea").
 
-IMPORTANT: Extract ONLY what is explicitly present. Do NOT fabricate.
+IMPORTANT: Act as a Master Homeopath. Patients rarely state their miasm or thermal type directly (e.g. "my miasm is psora"). You MUST INFER these constitutional factors from the clinical picture and pathology presented in the transcript. If there is enough clinical evidence, extract them! If the picture is completely unclear, leave them as null.
 CRITICAL: Do NOT extract duplicate symptoms. If a symptom has already been mentioned or is a slight variation of an existing one, merge them into a single, comprehensive entry. Ensure all arrays contain strictly unique items.
 
 Respond ONLY with JSON in this exact structure:
@@ -62,9 +74,15 @@ Respond ONLY with JSON in this exact structure:
   "physicalSymptoms": ["hair fall"],
   "generalSymptoms": [],
   "modalities": {"aggravation": ["cold weather"], "amelioration": []},
-  "thermalReaction": "CHILLY",
+  "thermalReaction": null,
   "constitution": null,
-  "miasm": "PSORA"
+  "miasm": null,
+  "thirstPattern": null,
+  "sleepPosition": null,
+  "perspiration": null,
+  "causation": [],
+  "location": [],
+  "concomitants": []
 }`;
 
     const userPrompt = `Patient: Age ${input.patientAge || 'Unknown'}, Gender ${input.patientGender || 'Unknown'}
@@ -107,6 +125,12 @@ Extract all clinical data:`;
         thermalReaction: parsed.thermalReaction || undefined,
         constitution: parsed.constitution || undefined,
         miasm: parsed.miasm || undefined,
+        thirstPattern: parsed.thirstPattern || undefined,
+        sleepPosition: parsed.sleepPosition || undefined,
+        perspiration: parsed.perspiration || undefined,
+        causation: Array.isArray(parsed.causation) ? [...new Set<string>(parsed.causation)] : [],
+        location: Array.isArray(parsed.location) ? [...new Set<string>(parsed.location)] : [],
+        concomitants: Array.isArray(parsed.concomitants) ? [...new Set<string>(parsed.concomitants)] : [],
         confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
       };
     } catch (error: any) {
@@ -115,6 +139,7 @@ Extract all clinical data:`;
         observations: [], clinicalFindings: [], mentalState: [],
         emotionProfile: [], physicalSymptoms: [], generalSymptoms: [],
         modalities: { aggravation: [], amelioration: [] },
+        causation: [], location: [], concomitants: [],
         confidence: 0,
       };
     }

@@ -1,7 +1,7 @@
-# PROJECT: Kreed.health
+# PROJECT: MMC
 
 ## Overview
-Kreed.health is an enterprise-grade homeopathic clinic management platform with:
+MMC is an enterprise-grade homeopathic clinic management platform with:
 - AI-powered consultation
 - Real-time transcription
 - Multi-tenant architecture (schema-per-tenant)

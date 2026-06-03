@@ -1,5 +1,5 @@
 // ─── Repertorization Engine ───────────────────────────────────────────────────
-// AI-powered Kent's Repertory rubric extraction + remedy scoring.
+// AI-powered Mac Repertory rubric extraction + remedy scoring.
 // The core homeopathic analysis engine.
 // Ported from: Ai-Counsultaion/apps/api/src/modules/ai/engines/repertorization.engine.ts
 
@@ -83,6 +83,9 @@ export interface RepertorizeExtractInput {
   generalSymptoms?: string[];
   particularSymptoms?: string[];
   modalities?: { aggravation?: string[]; amelioration?: string[] };
+  causation?: string[];
+  location?: string[];
+  concomitants?: string[];
   thermalReaction?: string;
   /** Doctor's explicit mode selection from PATIENT_INFO. Drives the case-type
    *  priority logic in the rubric-extraction prompt. */
@@ -478,10 +481,10 @@ function normalizeRemedyName(name: string): string {
 }
 
 export class RepertorizationEngine {
-  constructor(private providerChain: AiProviderChain) {}
+  constructor(private providerChain: AiProviderChain) { }
 
   /**
-   * Phase A: Extract rubrics from symptoms using AI Kent's Pattern Matcher
+   * Phase A: Extract rubrics from symptoms using AI Mac Repertory Pattern Matcher
    */
   async extractRubrics(tenantId: string, userId: string, input: RepertorizeExtractInput): Promise<RubricExtractionResult> {
     try {
@@ -496,6 +499,9 @@ export class RepertorizationEngine {
         ...(input.particularSymptoms || []),
         ...(input.modalities?.aggravation || []),
         ...(input.modalities?.amelioration || []),
+        ...(input.causation?.map(c => `Causation: ${c}`) || []),
+        ...(input.location?.map(l => `Location: ${l}`) || []),
+        ...(input.concomitants?.map(c => `Concomitant: ${c}`) || []),
       ]
         .filter(Boolean)
         .join(' ')
@@ -506,7 +512,7 @@ export class RepertorizationEngine {
         return this.emptyExtractionResult();
       }
 
-      logger.info(`Extracting Kent rubrics for: ${symptomText.substring(0, 100)}...`);
+      logger.info(`Extracting Mac Repertory rubrics for: ${symptomText.substring(0, 100)}...`);
 
       const modeOverride = input.consultationMode
         ? `## STEP 0 (PRE-DETERMINED): The doctor has selected "${input.consultationMode.toUpperCase()}" as the case type. USE THIS — do not re-classify.`
@@ -580,7 +586,7 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
 
       const res = await this.providerChain.complete({
         systemPrompt,
-        userPrompt: `Patient Case for Deep Clinical Analysis:\n${symptomText}\n\nDetermine case type (ACUTE/CHRONIC), perform INDIVIDUAL analysis, and extract Kent Rubrics:`,
+        userPrompt: `Patient Case for Deep Clinical Analysis:\n${symptomText}\n\nDetermine case type (ACUTE/CHRONIC), perform INDIVIDUAL analysis, and extract Mac Repertory Rubrics:`,
         responseFormat: 'json',
         temperature: 0.1,
       });
@@ -619,6 +625,113 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
   }
 
   /**
+   * Manual Disease to Rubrics Search
+   */
+  async extractDiseaseRubrics(tenantId: string, userId: string, input: { disease: string; consultationMode?: string }): Promise<{ suggestedRubrics: SuggestedRubric[] }> {
+    try {
+      if (!input.disease?.trim()) return { suggestedRubrics: [] };
+
+      logger.info(`Extracting Mac Repertory rubrics for disease: ${input.disease}`);
+
+      const systemPrompt = `You are a homeopathic repertory assistant. 
+Your task is to take a clinical disease or condition name and return the 5-8 most characteristic Mac Repertory rubrics associated with it.
+
+CRITICAL RULES:
+- Only return exact or highly accurate classical rubrics.
+- Keep them directly related to the disease pathognomonic symptoms.
+- Output MUST be strictly JSON.
+
+OUTPUT FORMAT:
+{
+  "suggestedRubrics": [
+    { "chapter": "Generalities", "category": "GENERAL", "description": "Generalities - Ailments from - ...", "importance": 4, "remedyCount": 50 }
+  ]
+}`;
+
+      const res = await this.providerChain.complete({
+        systemPrompt,
+        userPrompt: `Disease/Condition: ${input.disease}\n\nGenerate the relevant Mac Repertory rubrics:`,
+        responseFormat: 'json',
+        temperature: 0.1,
+      });
+
+      const parsed: any = safeJsonParse(res.content);
+      if (!parsed) return { suggestedRubrics: [] };
+
+      const suggestedRubrics: SuggestedRubric[] = (parsed.suggestedRubrics || []).map((r: any, i: number) => ({
+        rubricId: `ai-disease-${Date.now()}-${i}`,
+        description: r.description,
+        category: r.category || 'PARTICULAR',
+        chapter: r.chapter || 'Unknown',
+        importance: r.importance || 3,
+        source: 'ai' as const,
+        confidence: 0.9,
+        remedyCount: r.remedyCount || 50,
+      }));
+
+      return { suggestedRubrics };
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Disease rubric extraction failed');
+      return { suggestedRubrics: [] };
+    }
+  }
+
+  /**
+   * Lab Report to Rubrics Analysis
+   */
+  async extractRubricsFromReport(tenantId: string, userId: string, input: { visitId: string, documents: { base64: string, mimeType: string }[] }): Promise<{ reportSummary?: string, rubrics: SuggestedRubric[] }> {
+    try {
+      if (!input.documents || input.documents.length === 0) return { rubrics: [] };
+
+      logger.info(`Extracting Mac Repertory rubrics from lab reports for visit: ${input.visitId}`);
+
+      const systemPrompt = `You are a medical lab report analyzer and homeopathic repertory assistant. 
+Your task is to analyze the provided lab report images or documents, identify any abnormal medical findings (e.g., high cholesterol, low hemoglobin, high uric acid), and translate them into 3-6 characteristic Mac Repertory rubrics.
+Also provide a short 2-3 sentence clinical summary of the report.
+
+CRITICAL RULES:
+- Only return exact or highly accurate classical rubrics related to the abnormal lab findings.
+- If the report is normal, return an empty array for rubrics.
+- Output MUST be strictly JSON.
+
+OUTPUT FORMAT:
+{
+  "reportSummary": "The patient has elevated fasting glucose (126 mg/dL) and HbA1c (7.2%), indicating uncontrolled diabetes mellitus.",
+  "rubrics": [
+    { "chapter": "Generalities", "category": "GENERAL", "description": "Generalities - Anemia", "importance": 3, "remedyCount": 50 }
+  ]
+}`;
+
+      const res = await this.providerChain.complete({
+        systemPrompt,
+        userPrompt: `Analyze the attached lab reports and extract abnormal findings as Mac Repertory rubrics.`,
+        documents: input.documents,
+        responseFormat: 'json',
+        temperature: 0.1,
+      });
+
+      const parsed: any = safeJsonParse(res.content);
+      if (!parsed) return { rubrics: [] };
+
+      const rubrics: SuggestedRubric[] = (parsed.rubrics || []).map((r: any, i: number) => ({
+        rubricId: `ai-lab-${Date.now()}-${i}`,
+        description: r.description,
+        category: r.category || 'PARTICULAR',
+        chapter: r.chapter || 'Unknown',
+        importance: r.importance || 3,
+        source: 'ai' as const,
+        confidence: 0.9,
+        remedyCount: r.remedyCount || 50,
+      }));
+
+      return { reportSummary: parsed.reportSummary, rubrics };
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Lab report rubric extraction failed');
+      return { rubrics: [] };
+    }
+  }
+
+  /**
    * Phase B: AI Repertorization Scoring (Materia Medica Grid)
    */
   async scoreRemedies(tenantId: string, userId: string, input: RepertorizeScoreInput): Promise<RepertorizationResult> {
@@ -626,11 +739,11 @@ Remedy Count: Low=20-50 (high value), Medium=50-150, High=150+
       return { scoredRemedies: [], maxPossibleScore: 0, totalRubricsUsed: 0, confidence: 0 };
     }
 
-    const systemPrompt = `You are a Master Homeopathic Repertorizer engine combining Kent's methodology and Materia Medica knowledge.
-Take a list of EXACT rubrics and score the TOP 8 classically indicated remedies.
+    const systemPrompt = `You are a Master Homeopathic Repertorizer engine combining Mac Repertory methodology and Materia Medica knowledge.
+Take a list of EXACT rubrics and score up to 6 highly relevant, classically indicated remedies.
 
 CRITICAL RULES:
-1. Identify EXACTLY 8 remedies that best cover the combined totality.
+1. Identify up to 6 remedies that best cover the combined totality. ONLY include remedies that are strong, genuine matches. Do NOT include poorly matching remedies just to fill a quota.
 2. FULL COVERAGE MAPPING: You MUST evaluate and list coverage for ALL selected rubrics that each remedy is known to cover in classical repertories. Do NOT just list 1 or 2 rubrics; if a remedy is indicated for 4 of the selected rubrics, you must list all 4 of them in the remedy's "coverage" array.
 3. ANTI-POLYCREST BIAS: Do NOT automatically default to Arsenicum album, Sulphur, Nux vomica, or Pulsatilla unless the case strictly demands it. Heavily favor smaller, specific remedies if they perfectly match a highly characteristic or "Grade 3" rubric in the case.
 4. For EACH remedy, provide a unique "coverage" array with the EXACT grade for each rubric.
@@ -641,7 +754,8 @@ CRITICAL RULES:
 5. DYNAMIC MATERIA MEDICA PROPERTIES: You MUST dynamically assign the accurate, classical "thermalType" (e.g. 'Hot', 'Chilly', or 'Ambithermal') and dominant "miasm" (e.g. 'Psora', 'Sycosis', 'Syphilis', or 'Tubercular') matching Homeopathic Materia Medica for each remedy. Do NOT blindly copy example values.
 6. NO DUPLICATIONS: Each remedy in the list MUST represent its actual clinical profile. The coverage, keynotes, miasm, and thermalType must be distinct and specific to the individual remedy.
 7. Strictly return JSON format.
-8. CONSTITUTIONAL MATCHING (MANDATORY): If the patient's constitutional factors (thermal reaction, miasm, thirst, perspiration, sleep position) are provided, you MUST strongly prefer remedies that MATCH these factors. At least 4-5 of the 8 remedies should match the patient's thermal type. Remedies matching both thermal AND miasm should be ranked highest. Do NOT place a Chilly remedy at #1 when the patient is Hot, or a Psoric remedy at #1 when the patient's miasm is Syphilis — unless rubric coverage is overwhelmingly superior.
+8. CONSTITUTIONAL MATCHING: If the patient's constitutional factors (thermal reaction, miasm, thirst, perspiration, sleep position) are provided, use them as helpful guidance and tiebreakers when selecting and ranking remedies. Remedies matching the patient's thermal type and miasm should be preferred when rubric coverage is similar. Do NOT rank a poorly-matching remedy high just because of constitutional factors; rubric coverage is the primary selection criteria.
+
 
 JSON Output Template:
 {
@@ -707,12 +821,16 @@ JSON Output Template:
       return { scoredRemedies: [], totalRubrics: input.selectedRubrics.length, totalRemediesScored: 0 } as any;
     }
 
-    const maxPossibleScore = input.selectedRubrics.reduce((sum, r) => {
+    const theoreticalMaxScore = input.selectedRubrics.reduce((sum, r) => {
       let catWeight = 1;
       if (r.category === 'MIND') catWeight = 3;
       else if (r.category === 'GENERAL') catWeight = 2;
       return sum + (4 * r.importance * catWeight);
     }, 0) || 1;
+    
+    // A realistic excellent match covers maybe 60-70% of all rubrics perfectly,
+    // especially when conflicting rubrics (like 5 types of pain) are present.
+    const maxPossibleScore = Math.max(1, theoreticalMaxScore * 0.65);
 
     let scoredRemedies: ScoredRemedy[] = (parsed.scoredRemedies || []).map((rem: any, i: number) => {
       let totalScore = 0;
@@ -731,38 +849,48 @@ JSON Output Template:
       const finalKeynotes = localData ? localData.keynotes : (Array.isArray(rem.keynotes) ? rem.keynotes : []);
 
       // ─── Constitutional Factor Scoring ─────────────────────────────────
-      // Bonuses are proportional to maxPossibleScore so they meaningfully
-      // shift remedy rankings (not just +1 or +2 on a 200-point scale).
-      // A full constitutional match can add ~25% to the score; mismatches
-      // penalize by ~10%, creating a significant differentiation swing.
-      const baseUnit = Math.max(maxPossibleScore * 0.06, 4); // ~6% of max per factor
+      // Calibrated to act as a gentle tiebreaker (maximum ~3% of total score)
+      // rather than overriding rubric matching scores.
+      const baseUnit = Math.max(maxPossibleScore * 0.015, 1); // ~1.5% of max per factor
 
-      // Thermal reaction: strongest constitutional signal
-      if (typeof input.thermalReaction === 'string' && input.thermalReaction && finalThermalType) {
-        const patientThermal = input.thermalReaction.toLowerCase();
-        const remedyThermal = finalThermalType.toLowerCase();
+      const isThermalValid = (val: any) => {
+        if (!val) return false;
+        const s = String(val).toLowerCase().trim();
+        return s && s !== 'null' && s !== 'undefined' && s !== 'none' && s !== 'unknown' && s !== 'any';
+      };
+
+      const isMiasmValid = (val: any) => {
+        if (!val) return false;
+        const s = String(val).toLowerCase().trim();
+        return s && s !== 'null' && s !== 'undefined' && s !== 'none' && s !== 'unknown' && s !== 'any';
+      };
+
+      // Thermal reaction: minor tiebreaker
+      if (isThermalValid(input.thermalReaction) && finalThermalType) {
+        const patientThermal = String(input.thermalReaction).toLowerCase().trim();
+        const remedyThermal = finalThermalType.toLowerCase().trim();
         if (patientThermal === remedyThermal) {
-          totalScore += baseUnit * 1.8; // ~10.8% of max
+          totalScore += baseUnit * 1.0; // ~1.5% of max
           hasThermalBonus = true;
         } else if (remedyThermal === 'ambithermal') {
           // Ambithermal remedies partially match any patient thermal
-          totalScore += baseUnit * 0.5;
+          totalScore += baseUnit * 0.3;
         } else {
-          // Mismatch penalty: Hot patient → Chilly remedy is wrong
-          totalScore -= baseUnit * 1.0;
+          // Mismatch penalty (very mild tiebreaker penalty)
+          totalScore -= baseUnit * 0.5; // ~0.75% of max
         }
       }
 
-      // Dominant miasm: second strongest
-      if (typeof input.miasm === 'string' && input.miasm && finalMiasm) {
-        const patientMiasm = input.miasm.toLowerCase();
-        const remedyMiasm = finalMiasm.toLowerCase();
+      // Dominant miasm: minor tiebreaker
+      if (isMiasmValid(input.miasm) && finalMiasm) {
+        const patientMiasm = String(input.miasm).toLowerCase().trim();
+        const remedyMiasm = finalMiasm.toLowerCase().trim();
         if (patientMiasm === remedyMiasm) {
-          totalScore += baseUnit * 1.5; // ~9% of max
+          totalScore += baseUnit * 0.8; // ~1.2% of max
           hasMiasmBonus = true;
         } else {
           // Mismatch penalty
-          totalScore -= baseUnit * 0.6;
+          totalScore -= baseUnit * 0.3; // ~0.45% of max
         }
       }
 
@@ -770,39 +898,42 @@ JSON Output Template:
       // These match against known remedy profiles in MATERIA_MEDICA_DB keynotes.
       if (input.thirstPattern && localData) {
         const keynoteStr = localData.keynotes.join(' ').toLowerCase();
-        const thirst = input.thirstPattern.toLowerCase();
+        const thirst = input.thirstPattern.toLowerCase().trim();
         if (
           (thirst === 'thirsty' && (keynoteStr.includes('great thirst') || keynoteStr.includes('thirst for') || keynoteStr.includes('craves cold drinks'))) ||
           (thirst === 'thirstless' && keynoteStr.includes('thirstless')) ||
           (thirst === 'sips' && keynoteStr.includes('small sips'))
         ) {
-          totalScore += baseUnit * 1.2; // ~7.2% of max
+          totalScore += baseUnit * 0.6; // ~0.9% of max
         }
       }
       if (input.sleepPosition && localData) {
         const keynoteStr = localData.keynotes.join(' ').toLowerCase();
+        const sleep = input.sleepPosition.toLowerCase().trim();
         if (
-          (input.sleepPosition === 'knees' && keynoteStr.includes('knee-chest')) ||
-          (input.sleepPosition === 'abdomen' && keynoteStr.includes('abdomen')) ||
-          (input.sleepPosition === 'left' && keynoteStr.includes('left side')) ||
-          (input.sleepPosition === 'right' && keynoteStr.includes('right'))
+          (sleep === 'knees' && keynoteStr.includes('knee-chest')) ||
+          (sleep === 'abdomen' && keynoteStr.includes('abdomen')) ||
+          (sleep === 'left' && keynoteStr.includes('left side')) ||
+          (sleep === 'right' && keynoteStr.includes('right'))
         ) {
-          totalScore += baseUnit * 0.8; // ~4.8% of max
+          totalScore += baseUnit * 0.4; // ~0.6% of max
         }
       }
       if (input.perspiration && localData) {
         const keynoteStr = localData.keynotes.join(' ').toLowerCase();
+        const sweat = input.perspiration.toLowerCase().trim();
         if (
-          (input.perspiration === 'offensive' && (keynoteStr.includes('offensive') || keynoteStr.includes('sour sweat'))) ||
-          (input.perspiration === 'profuse' && (keynoteStr.includes('profuse') || keynoteStr.includes('sweat'))) ||
-          (input.perspiration === 'head' && keynoteStr.includes('sweat on scalp')) ||
-          (input.perspiration === 'staining' && keynoteStr.includes('staining'))
+          (sweat === 'offensive' && (keynoteStr.includes('offensive') || keynoteStr.includes('sour sweat'))) ||
+          (sweat === 'profuse' && (keynoteStr.includes('profuse') || keynoteStr.includes('sweat'))) ||
+          (sweat === 'head' && keynoteStr.includes('sweat on scalp')) ||
+          (sweat === 'staining' && keynoteStr.includes('staining'))
         ) {
-          totalScore += baseUnit * 0.8; // ~4.8% of max
+          totalScore += baseUnit * 0.4; // ~0.6% of max
         }
       }
 
-      const mappedCoverage = (rem.coverage || []).map((cov: any) => {
+      const uniqueCoverageMap = new Map();
+      (rem.coverage || []).forEach((cov: any) => {
         // 1. Try matching by index parsed from ID (e.g. 'R0', 'r0', '0')
         let originalRubric = null;
         const idMatch = typeof cov.id === 'string' ? cov.id.match(/\d+/) : null;
@@ -826,14 +957,22 @@ JSON Output Template:
           originalRubric = input.selectedRubrics.find(r => {
             const cleanOrigDesc = r.description.toLowerCase().trim();
             return cleanOrigDesc === cleanCovDesc ||
-                   cleanOrigDesc.includes(cleanCovDesc) ||
-                   cleanCovDesc.includes(cleanOrigDesc);
+              cleanOrigDesc.includes(cleanCovDesc) ||
+              cleanCovDesc.includes(cleanOrigDesc);
           });
         }
 
-        if (!originalRubric) return null;
+        if (originalRubric) {
+          // Store the highest grade for duplicates
+          const grade = cov.grade || 1;
+          const existing = uniqueCoverageMap.get(originalRubric.rubricId);
+          if (!existing || existing.grade < grade) {
+            uniqueCoverageMap.set(originalRubric.rubricId, { originalRubric, grade });
+          }
+        }
+      });
 
-        const grade = cov.grade || 1;
+      const mappedCoverage = Array.from(uniqueCoverageMap.values()).map(({ originalRubric, grade }) => {
         const importance = originalRubric.importance || 2;
         let catWeight = 1;
         if (originalRubric.category === 'MIND') catWeight = 3;
@@ -854,7 +993,7 @@ JSON Output Template:
           importance,
           contribution,
         };
-      }).filter(Boolean);
+      });
 
       return {
         remedyId: `ai-remedy-${Date.now()}-${i}`,
@@ -892,12 +1031,12 @@ JSON Output Template:
   async searchKentRubrics(query: string): Promise<SuggestedRubric[]> {
     if (!query?.trim() || query.trim().length < 2) return [];
 
-    const systemPrompt = `You are a digital Kent's Repertory and Boericke's Materia Medica reference engine.
-Given a search keyword or symptom phrase, return ALL matching rubrics from Kent's Repertory.
+    const systemPrompt = `You are a digital Mac Repertory and Boericke's Materia Medica reference engine.
+Given a search keyword or symptom phrase, return ALL matching rubrics from Mac Repertory.
 
 CRITICAL RULES:
 1. Return 10-20 matching rubrics.
-2. Use EXACT Kent's Repertory rubric format: "Chapter - Symptom - Modifier".
+2. Use EXACT Mac Repertory rubric format: "Chapter - Symptom - Modifier".
 3. Category must be one of: 'MIND', 'GENERAL', 'PARTICULAR'.
 4. Include rubrics from various chapters.
 5. Sort by clinical relevance.
@@ -910,19 +1049,19 @@ JSON Output:
     try {
       const res = await this.providerChain.complete({
         systemPrompt,
-        userPrompt: `Search Kent's Repertory for: "${query}"`,
+        userPrompt: `Search Mac Repertory for: "${query}"`,
         responseFormat: 'json',
         temperature: 0.1,
       });
 
       const parsed: any = safeJsonParse(res.content);
       if (!parsed) {
-        logger.error({ contentPreview: res.content.slice(0, 300) }, 'Kent rubric search: JSON unrecoverable even after repair');
+        logger.error({ contentPreview: res.content.slice(0, 300) }, 'Mac Repertory rubric search: JSON unrecoverable even after repair');
         return [];
       }
 
       return (parsed.rubrics || []).map((r: any, i: number) => ({
-        rubricId: `kent-search-${Date.now()}-${i}`,
+        rubricId: `mac-search-${Date.now()}-${i}`,
         description: r.description || '',
         category: r.category || 'PARTICULAR',
         chapter: r.chapter || 'Unknown',
@@ -932,7 +1071,7 @@ JSON Output:
         remedyCount: r.remedyCount || 50,
       }));
     } catch (error: any) {
-      logger.error({ error: error.message }, 'Kent rubric search failed');
+      logger.error({ error: error.message }, 'Mac Repertory rubric search failed');
       return [];
     }
   }

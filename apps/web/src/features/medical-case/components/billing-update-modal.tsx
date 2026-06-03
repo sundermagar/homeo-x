@@ -1,21 +1,24 @@
 import React, { useState } from 'react';
-import { 
-  X, CreditCard, Plus, Receipt, IndianRupee, 
+import { createPortal } from 'react-dom';
+import {
+  X, CreditCard, Plus, Receipt, IndianRupee,
   ChevronRight, Save, Loader2, AlertCircle, CheckCircle2,
   Trash2, Edit
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { 
-  useCreateCustomBill, 
-  useRecordPayment 
+import {
+  useCreateCustomBill,
+  useRecordPayment
 } from '../../billing/hooks/use-billing';
 import { useUpdatePatient } from '../../patients/hooks/use-patients';
 import { usePatientBills } from '../../billing/hooks/use-billing';
-import { 
-  useCreateAdditionalCharge, 
+import { apiClient } from '@/infrastructure/api-client';
+import { format } from 'date-fns';
+import {
+  useCreateAdditionalCharge,
   useUpdateAdditionalCharge,
-  useCharges, 
-  useDeleteAdditionalCharge 
+  useCharges,
+  useDeleteAdditionalCharge
 } from '../../billing/hooks/use-accounts';
 
 interface BillingUpdateModalProps {
@@ -23,28 +26,44 @@ interface BillingUpdateModalProps {
   patientName: string;
   onClose: () => void;
   currentConsultationFee?: number;
-  defaultTab?: TabType;
+  defaultTab?: TabType | 'medicine';
   additionalCharges?: any[];
   displayDate?: Date;
   rxWorkflow?: any;
   visitId?: number;
+  pendingBalance?: number;
+  receivedAmount?: number;
+  currentMedicineCharge?: number;
+  onUpdateMedicineCharge?: (amount: number) => void;
 }
 
 type TabType = 'regular' | 'custom' | 'payment';
 
-export function BillingUpdateModal({ 
-  regid, 
-  patientName, 
-  onClose, 
-  currentConsultationFee, 
-  defaultTab, 
+export function BillingUpdateModal({
+  regid,
+  patientName,
+  onClose,
+  currentConsultationFee,
+  defaultTab,
   additionalCharges = [],
   displayDate,
   rxWorkflow,
-  visitId
+  visitId,
+  pendingBalance,
+  receivedAmount,
+  currentMedicineCharge,
+  onUpdateMedicineCharge
 }: BillingUpdateModalProps) {
-  const [activeTab, setActiveTab] = useState<TabType>(defaultTab || 'regular');
-  const [amount, setAmount] = useState<string>(currentConsultationFee?.toString() || '');
+  const [activeTab, setActiveTab] = useState<TabType>((defaultTab === 'medicine' ? 'regular' : defaultTab || 'regular') as TabType);
+  const [amount, setAmount] = useState<string>(() => {
+    if (defaultTab === 'payment') {
+      return (pendingBalance !== undefined && pendingBalance > 0 ? pendingBalance : 0).toString();
+    }
+    return currentConsultationFee?.toString() || '';
+  });
+  const [medicineAmount, setMedicineAmount] = useState<string>(() => {
+    return (currentMedicineCharge !== undefined ? currentMedicineCharge : 0).toString();
+  });
   const [customTitle, setCustomTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [isProduct, setIsProduct] = useState(false);
@@ -70,21 +89,25 @@ export function BillingUpdateModal({
     });
   }, [displayDate, additionalCharges]);
 
+  const hasInitializedRef = React.useRef(false);
+
   React.useEffect(() => {
-    if (activeTab === 'custom' && todayCharges.length > 0 && !editingChargeId) {
+    if (defaultTab === 'custom' && todayCharges.length > 0 && !hasInitializedRef.current) {
       const firstCharge = todayCharges[0];
-      const title = firstCharge.name || firstCharge.additionalName || '';
-      setCustomTitle(title);
-      setAmount((firstCharge.price || firstCharge.additionalPrice || firstCharge.amount || 0).toString());
-      
-      const match = chargesCatalog.find(c => c.charges === title);
-      const isProd = (match && match.type === 'Product') || (firstCharge.quantity !== undefined && firstCharge.quantity !== null);
-      
-      setIsProduct(!!isProd);
-      setQuantity(firstCharge.quantity || 1);
-      setEditingChargeId(firstCharge.id);
+      if (firstCharge) {
+        hasInitializedRef.current = true;
+        const title = firstCharge.name || firstCharge.additionalName || '';
+        setCustomTitle(title);
+        setAmount((firstCharge.price || firstCharge.additionalPrice || firstCharge.amount || 0).toString());
+        setQuantity(firstCharge.quantity || 1);
+        setEditingChargeId(firstCharge.id);
+
+        const match = chargesCatalog.find(c => c.charges === title);
+        const isProd = (match && match.type === 'Product') || (firstCharge.quantity !== undefined && firstCharge.quantity > 0);
+        setIsProduct(!!isProd);
+      }
     }
-  }, [activeTab, todayCharges, editingChargeId, chargesCatalog]);
+  }, [defaultTab, todayCharges, chargesCatalog]);
 
   React.useEffect(() => {
     const originalOverflow = document.body.style.overflow;
@@ -95,12 +118,34 @@ export function BillingUpdateModal({
   }, []);
 
   const handleUpdateRegular = async () => {
-    if (!amount || isNaN(Number(amount))) return;
     try {
-      await updatePatient.mutateAsync({
-        regid,
-        consultationFee: Number(amount)
-      });
+      if (amount && !isNaN(Number(amount))) {
+        await updatePatient.mutateAsync({
+          regid,
+          consultationFee: Number(amount)
+        });
+        if (displayDate) {
+          const dateStr = format(displayDate, 'yyyy-MM-dd');
+          await apiClient.post('/accounts/pending-bills', {
+            regid: Number(regid),
+            dateval: dateStr,
+            regular: Number(amount)
+          }).catch(console.error);
+        }
+      }
+      if (medicineAmount && !isNaN(Number(medicineAmount)) && onUpdateMedicineCharge) {
+        onUpdateMedicineCharge(Number(medicineAmount));
+        if (displayDate) {
+          const dateStr = format(displayDate, 'yyyy-MM-dd');
+          await apiClient.post('/accounts/pending-bills', {
+            regid: Number(regid),
+            dateval: dateStr,
+            daysCharge: Number(medicineAmount)
+          }).catch(console.error);
+        }
+      }
+      refetchBills();
+      qc.invalidateQueries({ queryKey: ['medical-case', 'full'] });
       onClose();
     } catch (err) {
       console.error('Failed to update regular charges:', err);
@@ -109,6 +154,7 @@ export function BillingUpdateModal({
 
   const handleAddCustom = async () => {
     if (!amount || isNaN(Number(amount)) || !customTitle) return;
+    if (isProduct && maxQuantity !== null && (maxQuantity <= 0 || quantity > maxQuantity)) return;
     try {
       if (editingChargeId) {
         await updateAdditionalCharge.mutateAsync({
@@ -154,13 +200,13 @@ export function BillingUpdateModal({
             rxWorkflow.setActiveTab('rx');
           } else {
             const initialDays = 0;
-            const initialForm = { 
-              remedyName: '', 
-              potencyName: '', 
-              frequencyName: '', 
-              days: initialDays, 
-              instructions: customTitle, 
-              notes: '' 
+            const initialForm = {
+              remedyName: '',
+              potencyName: '',
+              frequencyName: '',
+              days: initialDays,
+              instructions: customTitle,
+              notes: ''
             };
             rxWorkflow.setForm(initialForm);
             rxWorkflow.setActiveTab('rx');
@@ -194,7 +240,7 @@ export function BillingUpdateModal({
     // or create a generic payment if the backend supports it.
     // In our case, recordPayment needs a billId.
     const billWithBalance = bills?.bills.find(b => b.balance > 0);
-    
+
     if (!billWithBalance) {
       // If no bill found, we might need to create a custom bill first or show an error
       alert('No outstanding bills found to apply payment to.');
@@ -224,26 +270,42 @@ export function BillingUpdateModal({
 
   const maxQuantity = selectedCatalogItem?.type === 'Product' ? (selectedCatalogItem.quantity || 0) : null;
 
-  return (
+  const isCustomTabInvalid = activeTab === 'custom' && (
+    !customTitle ||
+    (isProduct && maxQuantity !== null && (maxQuantity <= 0 || quantity > maxQuantity))
+  );
+
+  return createPortal(
     <>
-      <div className="mc-drawer-backdrop" onClick={onClose} />
       <div 
-        className="mc-drawer animate-slide-in-right" 
-        style={{ 
+        className="mc-drawer-backdrop" 
+        onClick={onClose} 
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.5)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 999998
+        }}
+      />
+      <div
+        className="mc-drawer animate-slide-in-right"
+        style={{
           position: 'fixed',
           top: 0,
           bottom: 0,
           right: 0,
           width: '100%',
-          maxWidth: '580px', 
-          background: 'white', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          height: '100vh', 
-          borderRadius: 0, 
+          maxWidth: '580px',
+          background: 'white',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          borderRadius: 0,
           boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.15)',
           borderLeft: '1px solid #e2e8f0',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          zIndex: 999999
         }}
       >
         <div style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px' }}>
@@ -267,10 +329,10 @@ export function BillingUpdateModal({
               onClick={() => {
                 setActiveTab(tab);
                 setAmount(
-                  tab === 'regular' 
-                    ? (currentConsultationFee || 0).toString() 
-                    : tab === 'payment' 
-                      ? (bills?.totals.totalBalance || 0).toString()
+                  tab === 'regular'
+                    ? (currentConsultationFee || 0).toString()
+                    : tab === 'payment'
+                      ? (pendingBalance !== undefined && pendingBalance > 0 ? pendingBalance : (bills?.totals.totalBalance || 0)).toString()
                       : ''
                 );
                 if (tab !== 'custom') {
@@ -293,23 +355,23 @@ export function BillingUpdateModal({
                 outline: 'none'
               }}
             >
-              {tab === 'regular' ? 'Registration' : tab === 'custom' ? 'Additional' : 'Payment'}
+              {tab === 'regular' ? 'Registration & Medicine' : tab === 'custom' ? 'Additional' : 'Payment'}
             </button>
           ))}
         </div>
 
-        <div 
-          className="mc-drawer-body" 
-          style={{ 
-            flex: 1, 
-            overflowY: 'auto', 
+        <div
+          className="mc-drawer-body"
+          style={{
+            flex: 1,
+            overflowY: 'auto',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            padding: '24px', 
-            background: 'white', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '20px' 
+            padding: '24px',
+            background: 'white',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px'
           }}
         >
           <style>{`
@@ -323,14 +385,29 @@ export function BillingUpdateModal({
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Registration Charge (₹)</label>
                 <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: '#64748b' }}>₹</span>
-                  <input 
-                    type="number" 
-                    value={amount} 
+                  <input
+                    type="number"
+                    value={amount}
                     onChange={e => setAmount(e.target.value)}
                     placeholder="0"
                     className="pp-input"
                     style={{ width: '100%', paddingLeft: '28px', fontSize: '1rem', fontWeight: 600, borderRadius: '8px', border: '1px solid #e2e8f0', padding: '10px 14px 10px 28px' }}
                     autoFocus
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Medicine Days Charge (₹)</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: '#64748b' }}>₹</span>
+                  <input
+                    type="number"
+                    value={medicineAmount}
+                    onChange={e => setMedicineAmount(e.target.value)}
+                    placeholder="0"
+                    className="pp-input"
+                    style={{ width: '100%', paddingLeft: '28px', fontSize: '1rem', fontWeight: 600, borderRadius: '8px', border: '1px solid #e2e8f0', padding: '10px 14px 10px 28px' }}
                   />
                 </div>
                 <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '8px', lineHeight: 1.4 }}>
@@ -343,11 +420,32 @@ export function BillingUpdateModal({
           {activeTab === 'custom' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
+              {editingChargeId && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600 }}>
+                    Editing existing additional charge
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingChargeId(null);
+                      setCustomTitle('');
+                      setAmount('');
+                      setQuantity(1);
+                      setIsProduct(false);
+                    }}
+                    style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                  >
+                    Add new instead
+                  </button>
+                </div>
+              )}
+
               {chargesCatalog && chargesCatalog.length > 0 && (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Select from Catalog</label>
-                  <select 
-                    className="pp-input" 
+                  <select
+                    className="pp-input"
                     style={{ width: '100%', cursor: 'pointer', fontWeight: 600, color: '#0f172a', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '10px 14px' }}
                     value={chargesCatalog.find(c => c.charges === customTitle)?.id?.toString() || ''}
                     onChange={e => {
@@ -372,9 +470,9 @@ export function BillingUpdateModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Charge Title</label>
-                <input 
-                  type="text" 
-                  value={customTitle} 
+                <input
+                  type="text"
+                  value={customTitle}
                   onChange={e => setCustomTitle(e.target.value)}
                   placeholder="e.g. Investigation, Procedure"
                   className="pp-input"
@@ -387,9 +485,9 @@ export function BillingUpdateModal({
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Amount (₹)</label>
                 <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: '#64748b' }}>₹</span>
-                  <input 
-                    type="number" 
-                    value={amount} 
+                  <input
+                    type="number"
+                    value={amount}
                     onChange={e => setAmount(e.target.value)}
                     placeholder="0"
                     className="pp-input"
@@ -408,18 +506,25 @@ export function BillingUpdateModal({
                       </span>
                     )}
                   </div>
-                  <input 
-                    type="number" 
-                    value={quantity} 
+                  <input
+                    type="number"
+                    value={quantity}
                     onChange={e => setQuantity(Number(e.target.value) || 1)}
                     min="1"
-                    className={`pp-input ${maxQuantity !== null && quantity > maxQuantity ? 'border-red-500' : ''}`}
-                    style={{ width: '100%', borderRadius: '8px', border: maxQuantity !== null && quantity > maxQuantity ? '1px solid #ef4444' : '1px solid #e2e8f0', padding: '10px 14px' }}
+                    disabled={maxQuantity !== null && maxQuantity <= 0}
+                    className={`pp-input ${maxQuantity !== null && (maxQuantity <= 0 || quantity > maxQuantity) ? 'border-red-500' : ''}`}
+                    style={{ width: '100%', borderRadius: '8px', border: maxQuantity !== null && (maxQuantity <= 0 || quantity > maxQuantity) ? '1px solid #ef4444' : '1px solid #e2e8f0', padding: '10px 14px', background: maxQuantity !== null && maxQuantity <= 0 ? '#f8fafc' : undefined }}
                   />
-                  {maxQuantity !== null && quantity > maxQuantity && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', color: '#ef4444', fontSize: '0.75rem', fontWeight: 600 }}>
-                      <AlertCircle size={14} /> Selected quantity ({quantity}) exceeds available stock ({maxQuantity})!
-                    </div>
+                  {maxQuantity !== null && (
+                    maxQuantity <= 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', color: '#ef4444', fontSize: '0.75rem', fontWeight: 600 }}>
+                        <AlertCircle size={14} /> This product is out of stock (0 available)!
+                      </div>
+                    ) : quantity > maxQuantity ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', color: '#ef4444', fontSize: '0.75rem', fontWeight: 600 }}>
+                        <AlertCircle size={14} /> Selected quantity ({quantity}) exceeds available stock ({maxQuantity})!
+                      </div>
+                    ) : null
                   )}
                 </div>
               )}
@@ -433,9 +538,9 @@ export function BillingUpdateModal({
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Amount Received (₹)</label>
                 <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: 600, color: '#64748b' }}>₹</span>
-                  <input 
-                    type="number" 
-                    value={amount} 
+                  <input
+                    type="number"
+                    value={amount}
                     onChange={e => setAmount(e.target.value)}
                     placeholder="0"
                     className="pp-input"
@@ -447,8 +552,8 @@ export function BillingUpdateModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>Payment Mode</label>
-                <select 
-                  className="pp-input" 
+                <select
+                  className="pp-input"
                   style={{ width: '100%', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '10px 14px' }}
                   value={paymentMode}
                   onChange={e => setPaymentMode(e.target.value as any)}
@@ -459,8 +564,18 @@ export function BillingUpdateModal({
                   <option>Bank Transfer</option>
                 </select>
               </div>
-              
-              {bills?.totals.totalBalance === 0 ? (
+
+              {pendingBalance !== undefined ? (
+                pendingBalance <= 0 ? (
+                  <div style={{ padding: '12px', background: '#f0fdf4', color: '#16a34a', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', gap: '8px', alignItems: 'center', border: '1px solid #dcfce7' }}>
+                    <CheckCircle2 size={16} /> All balances are clear.
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px', background: '#fff7ed', color: '#c2410c', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', gap: '8px', alignItems: 'center', border: '1px solid #ffedd5' }}>
+                    <AlertCircle size={16} /> Outstanding Balance: ₹{pendingBalance}
+                  </div>
+                )
+              ) : bills?.totals.totalBalance === 0 ? (
                 <div style={{ padding: '12px', background: '#f0fdf4', color: '#16a34a', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', gap: '8px', alignItems: 'center', border: '1px solid #dcfce7' }}>
                   <CheckCircle2 size={16} /> All balances are clear.
                 </div>
@@ -474,22 +589,22 @@ export function BillingUpdateModal({
 
 
           {/* Previously Added Charges section placed below the action buttons */}
-          {activeTab === 'custom' && additionalCharges && additionalCharges.length > 0 && (
+          {activeTab === 'custom' && todayCharges && todayCharges.length > 0 && (
             <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #f1f5f9' }}>
               <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginBottom: '12px' }}>
-                Previously Added Charges
+                 Added Charges
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {additionalCharges.map((ac: any) => (
-                  <div 
-                    key={ac.id} 
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between', 
-                      padding: '10px 14px', 
-                      background: '#f8fafc', 
-                      borderRadius: '8px', 
+                {todayCharges.map((ac: any) => (
+                  <div
+                    key={ac.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
                       border: '1px solid #e2e8f0',
                     }}
                   >
@@ -510,10 +625,10 @@ export function BillingUpdateModal({
                           const title = ac.name || ac.additionalName || '';
                           setCustomTitle(title);
                           setAmount((ac.price || ac.additionalPrice || ac.amount || 0).toString());
-                          
+
                           const match = chargesCatalog.find(c => c.charges === title);
                           const isProd = (match && match.type === 'Product') || (ac.quantity !== undefined && ac.quantity !== null);
-                          
+
                           setIsProduct(!!isProd);
                           setQuantity(ac.quantity || 1);
                           setEditingChargeId(ac.id);
@@ -571,18 +686,18 @@ export function BillingUpdateModal({
         </div>
 
         <div style={{ padding: '24px', background: 'white', display: 'flex', gap: '12px', borderTop: '1px solid #f1f5f9' }}>
-          <button 
-            className="btn-secondary" 
-            style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontWeight: 600, cursor: 'pointer' }} 
-            onClick={onClose} 
+          <button
+            className="btn-secondary"
+            style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontWeight: 600, cursor: 'pointer' }}
+            onClick={onClose}
             disabled={isLoading}
           >
             Cancel
           </button>
-          <button 
-            className="btn-primary" 
+          <button
+            className="btn-primary"
             style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', borderRadius: '8px', background: '#0f172a', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-            disabled={isLoading || !amount}
+            disabled={isLoading || (!amount && activeTab !== 'regular') || isCustomTabInvalid}
             onClick={() => {
               if (activeTab === 'regular') handleUpdateRegular();
               if (activeTab === 'custom') handleAddCustom();
@@ -591,11 +706,12 @@ export function BillingUpdateModal({
           >
             {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             <span>
-              {activeTab === 'regular' ? 'Update Charge' : activeTab === 'custom' ? (editingChargeId ? 'Save Changes' : 'Add Charge') : 'Record Payment'}
+              {activeTab === 'regular' ? 'Update Charges' : activeTab === 'custom' ? (editingChargeId ? 'Save Changes' : 'Add Charge') : 'Record Payment'}
             </span>
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

@@ -20,6 +20,7 @@ export function createCourierRouter(): Router {
       const repo = getRepo(req);
       const user = (req as any).user;
       const date = req.query.date as string | undefined;
+      const search = req.query.search as string | undefined;
       
       // Determine clinic_id based on user role (matches legacy logic)
       let clinicId: number | null = null;
@@ -27,7 +28,7 @@ export function createCourierRouter(): Router {
         clinicId = user.contextId;
       }
 
-      const queue = await repo.getQueue(clinicId, date);
+      const queue = await repo.getQueue(clinicId, date, search);
       res.json({ success: true, data: queue });
     })
   );

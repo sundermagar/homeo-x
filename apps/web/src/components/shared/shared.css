@@ -129,19 +129,19 @@
   background: var(--pp-blue);
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-size: 0.9375rem;
+  padding: 10px 24px;
+  border-radius: var(--pp-radius-btn);
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s var(--ease-out);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  transition: all 0.2s var(--transition-normal);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
 
 .empty-state__button:hover {
-  background: var(--pp-blue-deep);
+  background: var(--pp-blue-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
 }
 
 .empty-state__button:active {

@@ -22,6 +22,8 @@ export * from './legacy-public-manifest.js';
 export * from './tenant-demo-legacy-schema.js';
 export * from './legacy/index.js';
 export * from './notifications.js';
+export * from './whatsapp.js';
+
 
 // Aliases for legacy tables used in the merged Patient repository
 export { 

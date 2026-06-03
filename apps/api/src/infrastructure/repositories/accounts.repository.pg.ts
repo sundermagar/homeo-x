@@ -43,6 +43,20 @@ import type {
   UpdateExpenseHeadInput,
 } from '@mmc/validation';
 
+function toLegacyDate(isoDate: string | undefined | null): string | null {
+  if (!isoDate) return null;
+  const d = new Date(isoDate + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+}
+
+function toLegacyDateDMY(isoDate: string | undefined | null): string | null {
+  if (!isoDate) return null;
+  const d = new Date(isoDate + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
 /**
  * PostgreSQL adapter for AdditionalChargeRepository.
  */
@@ -390,7 +404,7 @@ export class DepositRepositoryPg implements DepositRepository {
     const [row] = await this.db
       .insert(bankDepositLegacy)
       .values({
-        depositDate: data.depositDate,
+        depositDate: toLegacyDateDMY(data.depositDate) || data.depositDate,
         dateval: data.depositDate,
         amount: data.amount,
         remark: data.remark,
@@ -408,7 +422,7 @@ export class DepositRepositoryPg implements DepositRepository {
     const [row] = await this.db
       .insert(cashDepositLegacy)
       .values({
-        depositDate: data.depositDate,
+        depositDate: toLegacyDateDMY(data.depositDate) || data.depositDate,
         dateval: data.depositDate,
         amount: data.amount,
         remark: data.remark,
@@ -426,7 +440,7 @@ export class DepositRepositoryPg implements DepositRepository {
     const [row] = await this.db
       .update(bankDepositLegacy)
       .set({
-        ...(data.depositDate !== undefined && { depositDate: data.depositDate, dateval: data.depositDate }),
+        ...(data.depositDate !== undefined && { depositDate: toLegacyDateDMY(data.depositDate) || data.depositDate, dateval: data.depositDate }),
         ...(data.amount !== undefined && { amount: data.amount }),
         ...(data.remark !== undefined && { remark: data.remark }),
         ...(data.bankdeposit !== undefined && { bankdeposit: data.bankdeposit }),
@@ -443,7 +457,7 @@ export class DepositRepositoryPg implements DepositRepository {
     const [row] = await this.db
       .update(cashDepositLegacy)
       .set({
-        ...(data.depositDate !== undefined && { depositDate: data.depositDate, dateval: data.depositDate }),
+        ...(data.depositDate !== undefined && { depositDate: toLegacyDateDMY(data.depositDate) || data.depositDate, dateval: data.depositDate }),
         ...(data.amount !== undefined && { amount: data.amount }),
         ...(data.remark !== undefined && { remark: data.remark }),
         ...(data.bankdeposit !== undefined && { bankdeposit: data.bankdeposit }),
@@ -548,7 +562,7 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
     const [row] = await this.db
       .insert(expensesLegacy)
       .values({
-        dateval: data.dateval,
+        dateval: data.dateval || toLegacyDate(data.expDate) || '',
         expDate: data.expDate,
         head: data.head,
         amount: data.amount,
@@ -583,6 +597,7 @@ export class ExpenseRepositoryPg implements ExpenseRepository {
       .update(expensesLegacy)
       .set({
         ...(data.dateval !== undefined && { dateval: data.dateval }),
+        ...((data.expDate !== undefined && !data.dateval) && { dateval: toLegacyDate(data.expDate) || '' }),
         ...(data.expDate !== undefined && { expDate: data.expDate }),
         ...(data.head !== undefined && { head: data.head }),
         ...(data.amount !== undefined && { amount: data.amount }),

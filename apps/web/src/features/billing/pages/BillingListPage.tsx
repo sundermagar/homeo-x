@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Printer } from 'lucide-react';
+import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Download, Printer } from 'lucide-react';
 
 import { useBills, useDailyCollection } from '../hooks/use-billing';
 import { BillingTable } from '../components/BillingTable';
@@ -19,19 +19,25 @@ function DailyCollectionCard({ label, amount, count, icon, type = 'default' }: {
   icon: React.ReactNode;
   type?: 'success' | 'danger' | 'warning' | 'default';
 }) {
-  const accentMap: Record<string, string> = {
-    success: 'var(--pp-success-fg)', danger: 'var(--pp-danger-fg)',
-    warning: 'var(--pp-warning-fg)', default: 'var(--pp-blue)'
-  };
-  const valueClass = type === 'success' ? 'is-success' : type === 'danger' ? 'is-danger' : type === 'warning' ? 'is-warning' : 'is-primary';
   return (
-    <div className="pp-stat-card-enhanced" style={{ '--stat-accent': accentMap[type] } as React.CSSProperties}>
-      <div className="pp-stat-icon" style={{ '--stat-icon-color': accentMap[type], '--stat-icon-bg': `${accentMap[type]}15` } as React.CSSProperties}>
+    <div className="bill-stat-card" data-type={type}>
+      <div className="bill-stat-icon" style={{ 
+        background: type === 'success' ? 'var(--pp-success-bg)' : 
+                    type === 'danger' ? 'var(--pp-danger-bg)' : 
+                    type === 'warning' ? 'var(--pp-warning-bg)' : 
+                    'var(--pp-blue-tint)',
+        color: type === 'success' ? 'var(--pp-success-fg)' : 
+               type === 'danger' ? 'var(--pp-danger-fg)' : 
+               type === 'warning' ? 'var(--pp-warning-fg)' : 
+               'var(--pp-blue)'
+      }}>
         {icon}
       </div>
-      <div className="pp-stat-label">{label}</div>
-      <div className={`pp-stat-value ${valueClass}`}>₹{amount.toLocaleString()}</div>
-      {count !== undefined && <div className="pp-stat-trend">{count} items</div>}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p className="bill-stat-label">{label}</p>
+        <div className="bill-stat-value">₹{amount.toLocaleString('en-IN')}</div>
+        {count !== undefined && <div className="text-[10px] font-bold text-secondary uppercase tracking-wider mt-1">{count} items</div>}
+      </div>
     </div>
   );
 }
@@ -46,17 +52,125 @@ export default function BillingListPage() {
   const [isCustomBillOpen, setIsCustomBillOpen] = useState(false);
 
   const parsedRegid = parseInt(regidFilter, 10);
-  const billsQuery      = useBills({ 
-    page, 
-    limit: pageSize, 
+  // Fetch a large batch to allow client-side grouping and pagination
+  const billsQuery = useBills({ 
+    page: 1, 
+    limit: 1000, 
     regid: (!isNaN(parsedRegid) && regidFilter) ? parsedRegid : undefined, 
     date: date || undefined 
   });
   const collectionQuery = useDailyCollection(date);
 
-  const total     = billsQuery.data?.total     ?? 0;
-  const bills     = billsQuery.data?.data       ?? [];
-  const hasMore   = bills.length === 30;
+  const allBills = billsQuery.data?.data ?? [];
+
+  // Group by regid to determine actual pagination items for List view
+  const uniqueRegIds = Array.from(new Set(allBills.map(b => b.regid)));
+  const totalItems = viewMode === 'list' ? uniqueRegIds.length : allBills.length;
+  
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  
+  let displayedBills: typeof allBills = [];
+  if (viewMode === 'list') {
+    const pageRegIds = new Set(uniqueRegIds.slice(startIndex, endIndex));
+    displayedBills = allBills.filter(b => pageRegIds.has(b.regid));
+  } else {
+    displayedBills = allBills.slice(startIndex, endIndex);
+  }
+
+  const exportToCSV = () => {
+    if (!allBills || allBills.length === 0) return;
+    const headers = ['Bill No', 'Date', 'Patient Name', 'Reg ID', 'Type', 'Mode', 'Charges', 'Received', 'Balance'];
+    const csvContent = [
+      headers.join(','),
+      ...allBills.map(b => [
+        b.billNo,
+        b.billDate ? format(new Date(b.billDate), 'yyyy-MM-dd') : '—',
+        `"${b.patientName || ''}"`,
+        b.regid,
+        (b.billType as string) === 'Additional' ? 'Additional' : b.treatment?.startsWith('Package:') ? 'Package' : b.billType === 'Registration' ? 'Registration' : b.billType === 'Consultation' ? 'Medicine Days' : b.billType || 'Consultation',
+        b.paymentMode || '—',
+        b.charges,
+        b.received,
+        b.balance
+      ].join(','))
+    ].join('\\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Bill_List_Export_${date || 'all'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const printPDF = () => {
+    if (!allBills || allBills.length === 0) return;
+    
+    const html = `
+      <html>
+        <head>
+          <title>Bill List Report</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; color: #1e293b; }
+            h2 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+            th { background: #f8fafc; font-weight: bold; }
+            .right { text-align: right; }
+            @media print {
+              body { padding: 0; }
+              @page { size: A4 portrait; margin: 1cm; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Bill List Report (As of ${date || 'All Dates'})</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Bill #</th>
+                <th>Date</th>
+                <th>Patient</th>
+                <th>Reg ID</th>
+                <th>Type</th>
+                <th>Mode</th>
+                <th class="right">Charges</th>
+                <th class="right">Received</th>
+                <th class="right">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${allBills.map(b => `
+                <tr>
+                  <td>${b.billNo}</td>
+                  <td>${b.billDate ? format(new Date(b.billDate), 'yyyy-MM-dd') : '—'}</td>
+                  <td>${b.patientName || '—'}</td>
+                  <td>${b.regid}</td>
+                  <td>${(b.billType as string) === 'Additional' ? 'Additional' : b.treatment?.startsWith('Package:') ? 'Package' : b.billType === 'Registration' ? 'Registration' : b.billType === 'Consultation' ? 'Medicine Days' : b.billType || 'Consultation'}</td>
+                  <td>${b.paymentMode || '—'}</td>
+                  <td class="right">${b.charges.toLocaleString('en-IN')}</td>
+                  <td class="right">${b.received.toLocaleString('en-IN')}</td>
+                  <td class="right">${b.balance > 0 ? b.balance.toLocaleString('en-IN') : '—'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <script>
+            window.print();
+          </script>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    }
+  };
 
   return (
     <div className="pp-page-container bill-page animate-fade-in">
@@ -78,10 +192,6 @@ export default function BillingListPage() {
             className="pp-input"
             style={{ width: 'auto' }}
           />
-          <button className="btn-secondary" onClick={() => window.print()}>
-            <Printer size={14} />
-            Print Report
-          </button>
           <button className="btn-primary" onClick={() => setIsNewBillOpen(true)}>
             <FilePlus size={14} strokeWidth={1.6} />
             New Bill
@@ -94,7 +204,7 @@ export default function BillingListPage() {
       </div>
 
       {/* ─── KPI Stats ─── */}
-      <div className="pp-stat-grid">
+      <div className="bill-stats-bar">
         <DailyCollectionCard
           label="Total Charges"
           amount={collectionQuery.data?.totalCharges ?? 0}
@@ -133,7 +243,15 @@ export default function BillingListPage() {
           <p className="pp-section-sub">Daily invoices and transaction history</p>
         </div>
 
-        <div className="pp-filter-controls">
+        <div className="pp-filter-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', borderRight: '1px solid var(--border-main)', paddingRight: '12px', marginRight: '4px' }}>
+            <button className="btn-secondary" onClick={exportToCSV} disabled={billsQuery.isLoading || allBills.length === 0}>
+              <Download size={14} /> Export CSV
+            </button>
+            <button className="btn-secondary" onClick={printPDF} disabled={billsQuery.isLoading || allBills.length === 0}>
+              <Printer size={14} /> Print / PDF
+            </button>
+          </div>
           {/* Search */}
           <div className="pp-filter-search-wrap" style={{ maxWidth: 220 }}>
             <Search size={14} />
@@ -169,7 +287,7 @@ export default function BillingListPage() {
 
       {billsQuery.isLoading ? (
         <TableSkeleton rows={8} columns={8} />
-      ) : bills.length === 0 ? (
+      ) : allBills.length === 0 ? (
         <EmptyState 
           icon={Receipt}
           title={regidFilter ? "No billing records found" : "No transactions today"}
@@ -180,10 +298,10 @@ export default function BillingListPage() {
           className="my-8"
         />
       ) : viewMode === 'list' ? (
-        <BillingTable bills={bills} isLoading={false} />
+        <BillingTable bills={displayedBills} isLoading={false} />
       ) : (
         <div className="bill-card-grid">
-          {bills.map((bill) => (
+          {displayedBills.map((bill) => (
             <div key={bill.id} className="bill-card bill-grid-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
                 <div>
@@ -196,6 +314,7 @@ export default function BillingListPage() {
               </div>
               <div style={{ display: 'grid', gap: 10, fontSize: '13px' }}>
                 <div><strong>Patient:</strong> {bill.patientName}</div>
+                <div><strong>Type:</strong> <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>{(bill.billType as string) === 'Additional' ? 'Additional' : bill.treatment?.startsWith('Package:') ? 'Package' : bill.billType === 'Registration' ? 'Registration' : bill.billType === 'Consultation' ? 'Medicine Days' : bill.billType || 'Consultation'}</span></div>
                 <div><strong>Mode:</strong> <span className={`bill-badge ${bill.paymentMode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}>{bill.paymentMode ?? '—'}</span></div>
                 <div><strong>Charges:</strong> ₹{bill.charges.toLocaleString()}</div>
                 <div><strong>Received:</strong> ₹{bill.received.toLocaleString()}</div>
@@ -217,9 +336,9 @@ export default function BillingListPage() {
 
       <Pagination
         currentPage={page}
-        totalPages={Math.ceil(total / pageSize)}
+        totalPages={Math.ceil(totalItems / pageSize)}
         pageSize={pageSize}
-        totalItems={total}
+        totalItems={totalItems}
         onPageChange={(p) => setPage(p)}
         onPageSizeChange={(s) => {
           setPageSize(s);

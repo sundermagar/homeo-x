@@ -102,6 +102,7 @@ export function useDeleteStockLog() {
 
 export const vaccineHooks    = makeSettingsHooks<any>('vaccines');
 export const packagePeriodHooks = makeSettingsHooks<any>('package-periods');
+export const callStatusHooks = makeSettingsHooks<any>('call-statuses');
 
 // ─── Named convenience exports (recommended way to use) ───────────────────────
 export const { useList: useDepartments, useCreate: useCreateDepartment, useUpdate: useUpdateDepartment, useRemove: useDeleteDepartment } = departmentHooks;
@@ -121,3 +122,4 @@ export const { useList: useCouriers, useCreate: useCreateCourier, useUpdate: use
 export const { useList: useStocks, useCreate: useCreateStock, useUpdate: useUpdateStock, useRemove: useDeleteStock } = stockHooks;
 export const { useList: useVaccines, useCreate: useCreateVaccine, useUpdate: useUpdateVaccine, useRemove: useDeleteVaccine } = vaccineHooks;
 export const { useList: usePackagePeriods, useCreate: useCreatePackagePeriod, useUpdate: useUpdatePackagePeriod, useRemove: useDeletePackagePeriod } = packagePeriodHooks;
+export const { useList: useCallStatuses, useCreate: useCreateCallStatus, useUpdate: useUpdateCallStatus, useRemove: useDeleteCallStatus } = callStatusHooks;

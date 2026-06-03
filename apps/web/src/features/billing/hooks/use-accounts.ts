@@ -28,6 +28,7 @@ import type {
   UpdateChargeInput,
 } from '@mmc/validation';
 import type { Charge } from '@mmc/types';
+import { useAuthStore } from '@/shared/stores/auth-store';
 
 
 // ─── Additional Charges Hooks ──────────────────────────────────────────────────
@@ -125,12 +126,14 @@ export function useDeleteAdditionalCharge() {
 // ─── Day Charges Hooks ─────────────────────────────────────────────────────────
 
 export function useDayCharges() {
+  const canViewBilling = useAuthStore(s => s.user?.permissions?.canViewBilling ?? true);
   return useQuery({
     queryKey: ['day-charges'],
     queryFn: async () => {
       const { data } = await apiClient.get<{ success: boolean; data: DayCharge[] }>('/day-charges');
       return data.data ?? [];
     },
+    enabled: canViewBilling,
   });
 }
 
@@ -188,7 +191,10 @@ export function useCreateBankDeposit() {
       const { data } = await apiClient.post<{ success: boolean; data: BankDeposit }>('/deposits/bank', input);
       return data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['bank-deposits'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bank-deposits'] });
+      qc.invalidateQueries({ queryKey: ['billing'] });
+    },
   });
 }
 
@@ -199,7 +205,10 @@ export function useUpdateBankDeposit() {
       const { data } = await apiClient.put<{ success: boolean; data: BankDeposit }>(`/deposits/bank/${id}`, input);
       return data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['bank-deposits'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bank-deposits'] });
+      qc.invalidateQueries({ queryKey: ['billing'] });
+    },
   });
 }
 
@@ -235,7 +244,10 @@ export function useCreateCashDeposit() {
       const { data } = await apiClient.post<{ success: boolean; data: CashDeposit }>('/deposits/cash', input);
       return data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cash-deposits'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cash-deposits'] });
+      qc.invalidateQueries({ queryKey: ['billing'] });
+    },
   });
 }
 
@@ -246,7 +258,10 @@ export function useUpdateCashDeposit() {
       const { data } = await apiClient.put<{ success: boolean; data: CashDeposit }>(`/deposits/cash/${id}`, input);
       return data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cash-deposits'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cash-deposits'] });
+      qc.invalidateQueries({ queryKey: ['billing'] });
+    },
   });
 }
 
@@ -256,7 +271,10 @@ export function useDeleteCashDeposit() {
     mutationFn: async (id: number) => {
       await apiClient.delete(`/deposits/cash/${id}`);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cash-deposits'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cash-deposits'] });
+      qc.invalidateQueries({ queryKey: ['billing'] });
+    },
   });
 }
 
@@ -293,7 +311,10 @@ export function useCreateExpense() {
       const { data } = await apiClient.post<{ success: boolean; data: ExpenseWithHead }>('/expenses', input);
       return data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['expenses'] });
+      qc.invalidateQueries({ queryKey: ['billing'] });
+    },
   });
 }
 
@@ -304,7 +325,10 @@ export function useUpdateExpense() {
       const { data } = await apiClient.put<{ success: boolean; data: ExpenseWithHead }>(`/expenses/${id}`, input);
       return data.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['expenses'] });
+      qc.invalidateQueries({ queryKey: ['billing'] });
+    },
   });
 }
 
@@ -314,7 +338,10 @@ export function useDeleteExpense() {
     mutationFn: async (id: number) => {
       await apiClient.delete(`/expenses/${id}`);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['expenses'] });
+      qc.invalidateQueries({ queryKey: ['billing'] });
+    },
   });
 }
 

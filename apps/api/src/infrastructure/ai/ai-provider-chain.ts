@@ -27,10 +27,10 @@ export class AiProviderChain {
     const defaultModel = process.env.AI_MODEL || 'claude-haiku-4-5';
 
     this.providers = [
-      // Primary: Groq (Ultra-Fast, Stable)
+      // Primary: Groq (Ultra-Fast, Stable, with Vision-capable Scout model first)
+      new GroqAdapter('meta-llama/llama-4-scout-17b-16e-instruct', 1000),
       new GroqAdapter('llama-3.3-70b-versatile', 1000),
       new GroqAdapter('llama-3.1-8b-instant', 14400),
-      new GroqAdapter('meta-llama/llama-4-scout-17b-16e-instruct', 1000),
 
       // Fallback: Local Ollama
       new OllamaAdapter('qwen2.5:1.5b'),
@@ -55,7 +55,8 @@ export class AiProviderChain {
   async complete(request: AiCompletionRequest): Promise<AiCompletionResponse> {
     // ── Cache check ──
     if (request.useCache !== false) {
-      const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt }));
+      const docHash = request.documents ? JSON.stringify(request.documents.map(d => d.base64.substring(0, 100))) : '';
+      const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt, d: docHash }));
       const cached = responseCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
         logger.info(`Cache hit for key ${cacheKey}`);
@@ -81,7 +82,7 @@ export class AiProviderChain {
       }
 
       if (request.documents && request.documents.length > 0) {
-        if (provider.name === 'ollama' || (provider.name === 'groq' && !provider.model.includes('vision'))) {
+        if (provider.name === 'ollama' || (provider.name === 'groq' && !provider.model.includes('vision') && !provider.model.includes('scout'))) {
           logger.warn(`Provider ${provider.name}/${provider.model} does not support image documents, skipping`);
           errors.push(`${provider.name}/${provider.model}: Skipped (does not support images)`);
           continue;
@@ -93,7 +94,8 @@ export class AiProviderChain {
 
         // Cache successful response (1 hour TTL)
         if (request.useCache !== false) {
-          const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt }));
+          const docHash = request.documents ? JSON.stringify(request.documents.map(d => d.base64.substring(0, 100))) : '';
+          const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt, d: docHash }));
           responseCache.set(cacheKey, { response, expiresAt: Date.now() + 3600_000 });
           // Evict oldest if over limit
           if (responseCache.size > MAX_CACHE_SIZE) {

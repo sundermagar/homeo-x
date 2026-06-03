@@ -180,7 +180,6 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
       // 1. Upsert SOAP note (unique on visit_id)
       if (soap) {
         const soapPayload: any = {
-          regid: appt.patientId,
           visitId,
           subjective: soap.subjective ?? null,
           objective: soap.objective ?? null,
@@ -452,13 +451,13 @@ consultationsRouter.get('/:visitId/summary', async (req: Request, res: Response,
 
     const doctorOut = doctor
       ? {
-          id: String(doctor.id),
-          firstName: (doctor as any).firstname ?? (doctor.name ?? '').split(' ')[0] ?? '',
-          lastName: (doctor as any).surname ?? (doctor.name ?? '').split(' ').slice(1).join(' ') ?? '',
-          email: doctor.email,
-          qualifications: (doctor as any).qualification ?? null,
-          specialization: (doctor as any).designation ?? null,
-        }
+        id: String(doctor.id),
+        firstName: (doctor as any).firstname ?? (doctor.name ?? '').split(' ')[0] ?? '',
+        lastName: (doctor as any).surname ?? (doctor.name ?? '').split(' ').slice(1).join(' ') ?? '',
+        email: doctor.email,
+        qualifications: (doctor as any).qualification ?? null,
+        specialization: (doctor as any).designation ?? null,
+      }
       : null;
 
     sendSuccess(res, {

@@ -58,6 +58,7 @@ export interface SavePrescriptionDto {
   notes?: string;
   instructions?: string;
   deliveryMode?: string;
+  medicineCharge?: number;
 }
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────

@@ -120,14 +120,14 @@ export const frequencies = pgTable('case_frequency', {
 });
 
 export const courierMasters = pgTable('courier_masters', {
-  id:            serial('id').primaryKey(),
-  name:          varchar('name',           { length: 255 }).notNull(),
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
   contactPerson: varchar('contact_person', { length: 255 }),
-  phone:         varchar('phone',          { length: 50 }),
-  trackingUrl:   text('tracking_url'),
-  isActive:      boolean('is_active').default(true),
-  createdAt:     timestamp('created_at').defaultNow(),
-  updatedAt:     timestamp('updated_at').defaultNow(),
+  phone: varchar('phone', { length: 50 }),
+  trackingUrl: text('tracking_url'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const remedyTreeNodes = pgTable('remedy_tree_nodes', {
@@ -155,4 +155,10 @@ export const remedyTreeNodes = pgTable('remedy_tree_nodes', {
   deletedAt: timestamp('deleted_at'),
 });
 
-
+export const callStatuses = pgTable('call_statuses', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});

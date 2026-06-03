@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Gift, MessageCircle, RefreshCw, Send, CheckCircle2, User } from 'lucide-react';
 import { apiClient } from '@/infrastructure/api-client';
+import { useBroadcastWhatsApp } from '@/features/communications/hooks/use-communications';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -9,7 +10,7 @@ export default function BirthdayBroadcastPage() {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [message, setMessage] = useState("Happy Birthday! Wishing you a day filled with happiness and a year filled with joy. Regards, Homoeo Home Clinic.");
-  const [sending, setSending] = useState(false);
+  const broadcastWa = useBroadcastWhatsApp();
 
   useEffect(() => {
     fetchBirthdays();
@@ -18,7 +19,7 @@ export default function BirthdayBroadcastPage() {
   const fetchBirthdays = async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/api/patients/meta/birthdays');
+      const res = await apiClient.get('/patients/meta/birthdays');
       if (res.data) {
         const data = Array.isArray(res.data) ? res.data : [];
         setPatients(data);
@@ -45,32 +46,33 @@ export default function BirthdayBroadcastPage() {
   };
 
   const handleBroadcast = async () => {
-    if (selectedIds.size === 0) return alert('Select at least one patient');
-    setSending(true);
-    try {
-      const selectedPatients = patients.filter(p => selectedIds.has(p.id));
-      const patientIds = selectedPatients.map(p => p.regid);
+    if (selectedIds.size === 0) {
+      toast({ title: 'No Selection', description: 'Select at least one patient.', variant: 'error' });
+      return;
+    }
+    const selectedPatients = patients.filter(p => selectedIds.has(p.id));
+    // Extract phone numbers directly — avoids broken server-side patientId lookup
+    const phones = selectedPatients
+      .map(p => (p.phone || p.mobile1 || '').replace(/\D/g, ''))
+      .filter(Boolean);
 
-      const res = await apiClient.post('/api/communications/whatsapp/broadcast', {
-        patientIds,
-        message
-      });
+    if (!phones.length) {
+      toast({ title: 'No Phone Numbers', description: 'None of the selected patients have a phone number.', variant: 'error' });
+      return;
+    }
 
-      if (res.data?.success) {
-        toast({ 
-          title: 'Broadcast Started', 
-          description: `Successfully initiated broadcast for ${res.data?.sent || selectedIds.size} patients.`,
-          variant: 'success'
+    broadcastWa.mutate({ phones, message }, {
+      onSuccess: (data: any) => {
+        toast({
+          title: 'Birthday Broadcast Sent',
+          description: `Sent: ${data?.sent ?? phones.length}, Failed: ${data?.failed ?? 0}`,
         });
         setSelectedIds(new Set());
-      } else {
-        throw new Error(res.data?.error || 'Broadcast failed');
-      }
-    } catch (err: any) {
-      toast({ title: 'Broadcast Failed', description: err.message, variant: 'error' });
-    } finally {
-      setSending(false);
-    }
+      },
+      onError: (err: any) => {
+        toast({ title: 'Broadcast Failed', description: err?.response?.data?.message || err.message, variant: 'error' });
+      },
+    });
   };
 
   return (
@@ -130,11 +132,11 @@ export default function BirthdayBroadcastPage() {
               </div>
               <button
                 onClick={handleBroadcast}
-                disabled={sending || selectedIds.size === 0}
+                disabled={broadcastWa.isPending || selectedIds.size === 0}
                 className="btn-primary"
                 style={{ gap: 8 }}
               >
-                {sending ? 'Sending...' : <><Send size={16} /> Send Greetings</>}
+                {broadcastWa.isPending ? 'Sending...' : <><Send size={16} /> Send Greetings</>}
               </button>
             </div>
 

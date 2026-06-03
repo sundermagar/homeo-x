@@ -187,7 +187,7 @@
 /* ─── Table / Tracking View ─── */
 
 
-.pkg-expiry-badge { padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
+.pkg-expiry-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
 .pkg-expiry-badge.active        { background: var(--success-bg); color: var(--success); }
 .pkg-expiry-badge.expiring-soon { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
 .pkg-expiry-badge.expired       { background: var(--danger-bg); color: var(--danger); }
@@ -526,3 +526,34 @@
   justify-content: flex-end;
   gap: 12px;
 }
+
+/* ─── Imported Table Styles from Follow-ups ─── */
+.fu-patient-info { display: flex; align-items: center; gap: 12px; }
+.fu-avatar-sm {
+  width: 32px; height: 32px;
+  background: var(--pp-warm-3);
+  color: var(--pp-text-2);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px;
+}
+.fu-name { display: block; font-weight: 700; color: var(--text-main); font-size: 14px; }
+.fu-phone { display: block; font-size: 11px; color: var(--text-muted); }
+.fu-meta-cell { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-main); }
+.fu-meta-cell svg { color: var(--text-muted); }
+
+.fu-action-wrap {
+  display: flex; gap: 6px; justify-content: flex-end;
+}
+.fu-action-btn {
+  width: 32px; height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--pp-warm-4);
+  background: var(--bg-card);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--pp-text-2);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.fu-action-btn:hover { background: var(--pp-warm-2); color: var(--pp-blue); border-color: var(--pp-blue-border); }
+.fu-action-btn.wa:hover { background: #f0fdf4; color: var(--pp-success-fg); border-color: #bbf7d0; }

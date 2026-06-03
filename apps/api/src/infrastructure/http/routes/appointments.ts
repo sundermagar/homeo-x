@@ -11,13 +11,17 @@ import { CommunicationRepositoryPG } from '../../repositories/communication.repo
 import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
 import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
 import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg.js';
+import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
+import { SendWhatsAppTemplateUseCase } from '../../../domains/communication/use-cases/send-whatsapp-template.use-case.js';
+import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { BadRequestError, ValidationError } from '../../../shared/errors.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 import { createLogger } from '../../../shared/logger.js';
 import { z } from 'zod';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
+import * as schema from '@mmc/database';
 
 /** Returns true when the doctor's is_active flag is false in the users table. */
 async function isDoctorOffline(req: any, doctorId: number): Promise<boolean> {
@@ -108,6 +112,32 @@ appointmentsRouter.get('/followups', asyncHandler(async (req, res) => {
   }
 }));
 
+// POST /api/appointments/followups/status
+appointmentsRouter.post('/followups/status', asyncHandler(async (req, res) => {
+  const { id, visitType, callStatus, actionDate } = req.body;
+
+  if (!id || !visitType) throw new BadRequestError('id and visitType are required');
+
+  const updateFields: any = { updatedAt: new Date() };
+  if (callStatus !== undefined) updateFields.callStatus = callStatus;
+  if (actionDate !== undefined) updateFields.callDate = actionDate;
+
+  if (visitType !== 'Next Visit') {
+    await req.tenantDb.update(schema.appointments)
+      .set(updateFields)
+      .where(eq(schema.appointments.id, Number(id)));
+  } else {
+    const legacyUpdateFields: any = { updatedAt: new Date() };
+    if (callStatus !== undefined) legacyUpdateFields.callStatus = callStatus;
+    if (actionDate !== undefined) legacyUpdateFields.callDate = actionDate;
+    await req.tenantDb.update(schema.pendingAppointmentsLegacy)
+      .set(legacyUpdateFields)
+      .where(eq(schema.pendingAppointmentsLegacy.id, Number(id)));
+  }
+
+  sendSuccess(res, { updateFields, id, visitType }, 'Status updated successfully');
+}));
+
 // GET /api/appointments/today
 appointmentsRouter.get('/today', asyncHandler(async (req, res) => {
   const { doctor_id } = req.query as Record<string, string>;
@@ -168,12 +198,18 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
   const commRepo = new CommunicationRepositoryPG(req.tenantDb);
   const patientRepo = new PatientRepositoryPg(req.tenantDb);
   const notifRepo = new NotificationsRepositoryPg(req.tenantDb);
+  const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
+  const waGateway = new WhatsAppCloudGateway(waRepo);
+  
   const smsUc = new SendSmsUseCase(commRepo, smsGateway);
-  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo, notifRepo);
+  const waUc = new SendWhatsAppTemplateUseCase(waGateway as any, waRepo);
+  
+  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo, notifRepo, waUc);
   const clinicId = (req as any).user?.contextId;
   const result = await bookAppt.execute({ ...req.body, clinicId });
 
   if (result.success) {
+    DashboardRepositoryPg.clearQueueCache();
     sendSuccess(res, result.data, undefined, 201);
   }
 }));
@@ -182,6 +218,7 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
 appointmentsRouter.put('/:id', asyncHandler(async (req, res) => {
   const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
   await manageAppt.update(Number(req.params.id), req.body);
+  DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, 'Appointment updated');
 }));
 
@@ -189,6 +226,7 @@ appointmentsRouter.put('/:id', asyncHandler(async (req, res) => {
 appointmentsRouter.delete('/:id', asyncHandler(async (req, res) => {
   const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
   await manageAppt.delete(Number(req.params.id));
+  DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, 'Appointment deleted');
 }));
 
@@ -208,6 +246,7 @@ appointmentsRouter.post('/:id/issue-token', asyncHandler(async (req, res) => {
   const result = await manageAppt.issueToken(Number(req.params.id));
   
   if (result.success) {
+    DashboardRepositoryPg.clearQueueCache();
     const io = (req as any).io;
     if (io && !result.data.alreadyIssued) {
       io.emit('tokenIssued', { appointmentId: req.params.id, token: result.data.token });
@@ -233,6 +272,7 @@ appointmentsRouter.post('/waiting', asyncHandler(async (req, res) => {
     clinicId
   });
   if (result.success) {
+    DashboardRepositoryPg.clearQueueCache();
     sendSuccess(res, result.data, undefined, 201);
   }
 }));
@@ -272,5 +312,6 @@ appointmentsRouter.post('/:id/reschedule', asyncHandler(async (req, res) => {
   const { date, time } = req.body;
   const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
   await manageAppt.reschedule(Number(req.params.id), date, time);
+  DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, 'Appointment rescheduled');
 }));

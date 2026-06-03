@@ -1,7 +1,7 @@
-# MMC → Kreed.health Migration PRD (Memory)
+# MMC → MMC Migration PRD (Memory)
 
 ## Project Overview
-Goal: Migrate `ManageMyClinic` (MMC-javascript) to `Kreed.health` (Enterprise Clinical Platform).
+Goal: Migrate `ManageMyClinic` (MMC-javascript) to `MMC` (Enterprise Clinical Platform).
 - **Stack**: Turborepo, TypeScript, PostgreSQL (Drizzle), Express (Hexagonal/DDD).
 - **Multi-tenancy**: Schema-per-tenant (22 clinics).
 

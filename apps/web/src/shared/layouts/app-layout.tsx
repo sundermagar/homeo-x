@@ -5,6 +5,7 @@ import { Sidebar } from '../components/sidebar';
 import { DashboardHeader } from '../components/dashboard-header';
 import { CommandPalette } from '../components/command-palette';
 import { ScrollToTop } from '../components/scroll-to-top';
+import { RouteErrorBoundary } from '@/components/shared/error-boundary';
 import { useMobile } from '../hooks/use-mobile';
 import { useCallback, useEffect } from 'react';
 import { useAuthStore } from '../stores/auth-store';
@@ -63,8 +64,8 @@ export function AppLayout() {
       />
 
       <main className="app-main">
-        <DashboardHeader 
-          onOpenPalette={() => setPaletteOpen(true)} 
+        <DashboardHeader
+          onOpenPalette={() => setPaletteOpen(true)}
           onNewAppointment={() => setAppointmentDrawerOpen(true)}
         />
         <div className="page-content-area">
@@ -81,16 +82,18 @@ export function AppLayout() {
               </div>
             )} */}
             <div className="page-content-main">
-              <Outlet />
+              <RouteErrorBoundary>
+                <Outlet />
+              </RouteErrorBoundary>
             </div>
           </div>
         </div>
       </main>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-      
-      <AppointmentFormDrawer 
-        isOpen={appointmentDrawerOpen} 
+
+      <AppointmentFormDrawer
+        isOpen={appointmentDrawerOpen}
         onClose={() => setAppointmentDrawerOpen(false)}
         onSuccess={() => {
           // If we are on the appointments page, we might want to refresh the list

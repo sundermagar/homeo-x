@@ -77,14 +77,16 @@ export const saveInvestigationSchema = z.object({
   ]),
   data: z.any(), // We will refine this in the backend based on 'type'
   investDate: z.string().optional(),
+  summary: z.string().optional(),
+  attachmentUrl: z.string().optional(),
 }).superRefine((val, ctx) => {
   // Conditionally validate `data` based on `type`
   let schemaToUse = genericInvestigationSchema;
   
-  if (val.type === 'CBC') schemaToUse = cbcSchema as any;
-  else if (val.type === 'Diabetes Profile') schemaToUse = diabetesSchema as any;
-  else if (val.type === 'Liver Profile') schemaToUse = liverProfileSchema as any;
-  else if (val.type === 'Renal Profile') schemaToUse = renalProfileSchema as any;
+  if (val.type === 'CBC') schemaToUse = cbcSchema.passthrough() as any;
+  else if (val.type === 'Diabetes Profile') schemaToUse = diabetesSchema.passthrough() as any;
+  else if (val.type === 'Liver Profile') schemaToUse = liverProfileSchema.passthrough() as any;
+  else if (val.type === 'Renal Profile') schemaToUse = renalProfileSchema.passthrough() as any;
 
   const result = schemaToUse.safeParse(val.data);
   if (!result.success) {

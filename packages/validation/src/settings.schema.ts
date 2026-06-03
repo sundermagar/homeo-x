@@ -13,8 +13,8 @@ export type UpdateDepartmentInput = z.infer<typeof updateDepartmentSchema>;
 // ─── Dispensary ───────────────────────────────────────────────────────────────
 export const createDispensarySchema = z.object({
   name: z.string().min(1, 'Name is required').max(255),
-  email: z.string().email('Invalid email address').optional().nullable(),
-  password: z.string().min(6, 'Password must be at least 6 characters').optional().nullable(),
+  email: z.string().email('Invalid email address').or(z.literal('')).optional().nullable(),
+  password: z.string().min(6, 'Password must be at least 6 characters').or(z.literal('')).optional().nullable(),
   gender: z.enum(['Male', 'Female', 'Other']).default('Male'),
   mobile: z.string().max(50).optional().nullable(),
   mobile2: z.string().max(50).optional().nullable(),

@@ -44,6 +44,17 @@ router.get('/casemonthwise', asyncHandler(async (req: any, res) => {
   sendSuccess(res, result.data);
 }));
 
+router.get('/casemonthwise/product-details', asyncHandler(async (req: any, res) => {
+  const monthKey = req.query.monthKey as string;
+  if (!monthKey) throw new Error('monthKey is required');
+  const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
+
+  const useCases = getUseCases(req);
+  const result = await useCases.getProductDetails(clinicId, monthKey);
+  if (!result.success) throw new Error(result.error);
+  sendSuccess(res, result.data);
+}));
+
 router.get('/monthwisedue', asyncHandler(async (req: any, res) => {
   const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
   const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
@@ -92,6 +103,23 @@ router.get('/referencelisting', asyncHandler(async (req: any, res) => {
 
   const useCases = getUseCases(req);
   const result = await useCases.getReferenceListing(clinicId, from, to);
+  if (!result.success) throw new Error(result.error);
+  sendSuccess(res, result.data);
+}));
+
+router.get('/referencelisting/details', asyncHandler(async (req: any, res) => {
+  const reference = req.query.reference ? String(req.query.reference) : undefined;
+  
+  const today = new Date();
+  const defaultFrom = new Date(today.getFullYear(), today.getMonth(), 1);
+  const defaultTo = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  
+  const from = req.query.from_date ? new Date(req.query.from_date as string) : defaultFrom;
+  const to = req.query.to_date ? new Date(req.query.to_date as string) : defaultTo;
+  const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
+  
+  const useCases = getUseCases(req);
+  const result = await useCases.getReferenceDetails(clinicId, reference, from, to);
   if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));

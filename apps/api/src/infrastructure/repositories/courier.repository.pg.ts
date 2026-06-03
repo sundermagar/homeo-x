@@ -49,15 +49,26 @@ export interface AssignCourierInput {
 }
 
 export class CourierRepositoryPg {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   /**
    * Get today's courier queue — all entries for today with post_type = 'Courier' or 'Pickup',
    * filtered by clinic_id (via case_datas join), matching legacy CouriermedicineController::index().
    */
-  async getQueue(clinicId: number | null, date?: string): Promise<CourierMedicineRow[]> {
+  async getQueue(clinicId: number | null, date?: string, search?: string): Promise<CourierMedicineRow[]> {
     const targetDate = date || new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const dateCondition = search ? sql`` : sql`AND cm.currentdate = ${targetDate}`;
     
+    const searchCondition = search 
+      ? sql`AND (
+          cd.first_name ILIKE ${`%${search}%`} OR 
+          cd.surname ILIKE ${`%${search}%`} OR 
+          CAST(cm.case_id AS TEXT) ILIKE ${`%${search}%`} OR 
+          cm.remedy ILIKE ${`%${search}%`}
+        )` 
+      : sql``;
+
     const rows = await this.db.execute(sql`
       SELECT 
         cm.id, cm.case_id, cm.regid, cm.rand_id, cm.currentdate,
@@ -68,13 +79,15 @@ export class CourierRepositoryPg {
         cd.mobile1 AS phone
       FROM courier_medicine cm
       JOIN case_datas cd ON cd.regid = cm.case_id
-      WHERE cm.currentdate = ${targetDate}
-        AND cm.post_type IN ('Courier', 'Pickup')
+      WHERE cm.post_type IN ('Courier', 'Pickup')
         AND (cm.deleted_at IS NULL OR cm.deleted_at = '')
+        ${dateCondition}
+        ${searchCondition}
         ${clinicId ? sql`AND (cd.clinic_id = ${clinicId} OR cd.clinic_id IS NULL)` : sql`AND (cd.clinic_id IS NULL)`}
       ORDER BY cm.created_at DESC
+      LIMIT 200
     `);
-    
+
     return (rows as any[]).map(r => this.toRow(r));
   }
 
@@ -119,7 +132,7 @@ export class CourierRepositoryPg {
       ORDER BY cm.created_at DESC
       LIMIT 100
     `);
-    
+
     return (rows as any[]).map(r => this.toRow(r));
   }
 

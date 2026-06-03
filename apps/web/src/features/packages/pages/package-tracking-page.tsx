@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
-import { Calendar, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Clock, Phone, User, MessageCircle, Send, CheckSquare, Square } from 'lucide-react';
+import { Calendar, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Clock, Phone, User, MessageCircle, Send, CheckSquare, Square, MessageSquare, ChevronRight, Download, Printer } from 'lucide-react';
 import { usePackageExpiryReport } from '../hooks/use-packages';
-import { useSendWhatsApp } from '@/features/communications/hooks/use-communications';
+import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
+import { toast } from '@/hooks/use-toast';
 import { Drawer } from '@/shared/components/drawer';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { usePagination } from '@/shared/hooks/use-pagination';
 import { AssignPackageModal } from '../components/assign-package-modal';
 import { EmptyState } from '@/components/shared/empty-state';
+import { usePackageHistory } from '@/features/medical-case/hooks/use-medical-cases';
 import '../styles/packages.css';
+import '@/features/medical-case/styles/medical-case.css';
 
 function getDaysLabel(days: number) {
   if (days < 0)  return `Expired ${Math.abs(days)}d ago`;
   if (days === 0) return 'Expires today!';
   return `${days}d remaining`;
+}
+
+function formatStatus(status: string) {
+  if (status === 'ExpiringSoon') return 'Expiring Soon';
+  return status;
 }
 
 function getStatusBadgeClass(status: string) {
@@ -39,13 +47,14 @@ export default function PackageTrackingPage() {
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showSmsModal, setShowSmsModal] = useState(false);
-  const [smsMessage, setSmsMessage] = useState('Dear {#name#}, your subscription is ending soon. Please visit us to renew. - MMC');
   const [statusValue, setStatusValue] = useState('informed');
   const [statusDate, setStatusDate] = useState(new Date().toISOString().split('T')[0]!);
   const [statusNotes, setStatusNotes] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+
+  const { data: packageHistory = [], isLoading: isLoadingHistory } = usePackageHistory(Number(selectedRecord?.regid ?? selectedRecord?.patientId ?? 0));
 
   const handleUpdateStatus = async () => {
     setIsUpdating(true);
@@ -60,7 +69,8 @@ export default function PackageTrackingPage() {
   };
 
   const { data, isLoading, refetch } = usePackageExpiryReport(fromDate, toDate);
-  const sendWa = useSendWhatsApp();
+  const { useSendText } = useWhatsApp();
+  const sendText = useSendText();
   const records = data?.records ?? [];
 
   const {
@@ -89,25 +99,136 @@ export default function PackageTrackingPage() {
   };
 
   const sendBulkWhatsApp = async () => {
-    if (!smsMessage.trim()) return;
     const ids = Array.from(selectedIds);
+    let sent = 0, failed = 0;
     for (const regid of ids) {
       const rec = records.find((r: any) => r.regid === regid);
       if (rec?.phone) {
-        await sendWa.mutateAsync({ phone: String(rec.phone), message: smsMessage.replace(/\{#name#\}/gi, `${rec.firstName} ${rec.surname || ''}`) });
+        try {
+          const cleaned = String(rec.phone).replace(/\D/g, '');
+          const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+          const textMessage = `Dear ${`${rec.firstName} ${rec.surname || ''}`.trim() || 'Patient'},\n\nYour package expires on *${rec.expiryDate || 'soon'}*.\nKindly call on 8727001444 to renew it.\nIgnore if already renewed.\n\nRegards,\nMMC HomeoTech`;
+          
+          await sendText.mutateAsync({
+            phone: finalPhone,
+            message: textMessage
+          });
+          sent++;
+        } catch {
+          failed++;
+        }
       }
     }
     setShowSmsModal(false);
-    setSmsMessage('');
     setSelectedIds(new Set());
-    alert('WhatsApp messages sent!');
+    toast({ title: 'WhatsApp Broadcast', description: `Sent: ${sent}, Failed: ${failed}` });
   };
 
   const sendSingleWhatsApp = (rec: any) => {
-    if (!rec.phone) { alert('No phone number available'); return; }
-    const msg = `Dear ${rec.firstName} ${rec.surname || ''}, your ${rec.packageName} subscription expires on ${rec.expiryDate}. Please visit us to renew. - MMC`;
-    sendWa.mutate({ phone: String(rec.phone), message: msg });
-    alert('WhatsApp message sent!');
+    if (!rec.phone) {
+      toast({ title: 'No Phone Number', description: 'This patient has no phone number on record.', variant: 'error' });
+      return;
+    }
+    const cleaned = String(rec.phone).replace(/\D/g, '');
+    const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
+    
+    const textMessage = `Dear ${`${rec.firstName} ${rec.surname || ''}`.trim() || 'Patient'},\n\nYour package expires on *${rec.expiryDate || 'soon'}*.\nKindly call on 8727001444 to renew it.\nIgnore if already renewed.\n\nRegards,\nMMC HomeoTech`;
+
+    sendText.mutate({
+      phone: finalPhone,
+      message: textMessage
+    }, {
+      onSuccess: () => toast({ title: '✅ WhatsApp Sent', description: `Expiry reminder sent to ${rec.firstName}.` }),
+      onError: (err: any) => toast({ title: '❌ Send Failed', description: err?.response?.data?.message || err.message, variant: 'error' }),
+    });
+  };
+
+  const exportToCSV = () => {
+    if (!records || records.length === 0) return;
+    const headers = ['Reg ID', 'Patient Name', 'Phone', 'Package Plan', 'Price', 'Start Date', 'Expiry Date', 'Status'];
+    const csvContent = [
+      headers.join(','),
+      ...records.map((r: any) => [
+        r.patientId || r.regid,
+        `"${r.firstName || ''} ${r.surname || ''}".trim()`,
+        r.phone || '',
+        `"${r.packageName || ''}"`,
+        r.packagePrice || 0,
+        r.startDate ? new Date(r.startDate).toLocaleDateString('en-GB') : '',
+        r.expiryDate ? new Date(r.expiryDate).toLocaleDateString('en-GB') : '',
+        r.status
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Package_Expiry_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const handlePrint = () => {
+    if (!records || records.length === 0) return;
+    
+    const html = `
+      <html>
+        <head>
+          <title>Package Expiry Tracker Report</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; color: #1e293b; }
+            h2 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+            th { background: #f8fafc; font-weight: bold; }
+            @media print {
+              body { padding: 0; }
+              @page { size: A4 portrait; margin: 1cm; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Package Expiry Tracker (As of ${new Date().toLocaleDateString('en-GB')})</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Reg ID</th>
+                <th>Patient Name</th>
+                <th>Phone</th>
+                <th>Package Plan</th>
+                <th>Price</th>
+                <th>Start Date</th>
+                <th>Expiry Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${records.map((r: any) => `
+                <tr>
+                  <td>#${r.patientId || r.regid}</td>
+                  <td>${r.firstName || ''} ${r.surname || ''}</td>
+                  <td>${r.phone || 'No Contact'}</td>
+                  <td>${r.packageName || '—'}</td>
+                  <td>₹${(r.packagePrice || 0).toLocaleString()}</td>
+                  <td>${r.startDate ? new Date(r.startDate).toLocaleDateString('en-GB') : '—'}</td>
+                  <td>${r.expiryDate ? new Date(r.expiryDate).toLocaleDateString('en-GB') : '—'}</td>
+                  <td>${formatStatus(r.status)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    }
   };
 
   return (
@@ -124,11 +245,21 @@ export default function PackageTrackingPage() {
       </header>
 
       {/* Filters */}
-      <div className="pkg-filters">
-        <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>Date Range:</label>
-        <input type="date" className="pkg-date-input" value={fromDate} onChange={e => setFromDate(e.target.value)} />
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.83rem' }}>to</span>
-        <input type="date" className="pkg-date-input" value={toDate} onChange={e => setToDate(e.target.value)} />
+      <div className="pkg-filters" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>Date Range:</label>
+          <input type="date" className="pkg-date-input" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.83rem' }}>to</span>
+          <input type="date" className="pkg-date-input" value={toDate} onChange={e => setToDate(e.target.value)} />
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="pkg-btn pp-btn-secondary" onClick={exportToCSV} disabled={isLoading || records.length === 0}>
+            <Download size={14} /> Export CSV
+          </button>
+          <button className="pkg-btn pp-btn-secondary" onClick={handlePrint} disabled={isLoading || records.length === 0}>
+            <Printer size={14} /> Print / PDF
+          </button>
+        </div>
       </div>
 
       {/* Bulk Actions */}
@@ -180,76 +311,102 @@ export default function PackageTrackingPage() {
                 <thead>
                   <tr>
                     <th style={{ width: 40 }}>
-                      <button onClick={toggleAll} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
-                        {selectedIds.size === records.length && records.length > 0 ? <CheckSquare size={16} style={{ color: 'var(--pp-blue)' }} /> : <Square size={16} style={{ color: 'var(--pp-text-3)' }} />}
-                      </button>
+                      <input 
+                        type="checkbox" 
+                        checked={records.length > 0 && selectedIds.size === records.length}
+                        onChange={toggleAll}
+                      />
                     </th>
-                    <th>Patient</th>
+                    <th>Reg ID</th>
+                    <th>Patient Details</th>
                     <th>Package Plan</th>
                     <th>Start Date</th>
                     <th>Expiry Date</th>
-                    <th>Days</th>
                     <th>Status</th>
-                    <th style={{ width: 80, textAlign: 'right' }}>Action</th>
+                    <th className="hide-on-print" style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedData.map((r: any, i: number) => (
                     <tr key={i} className="hover-row" style={{ cursor: 'pointer', background: selectedIds.has(Number(r.regid)) ? 'var(--pp-blue-tint)' : undefined }} onClick={() => setSelectedRecord(r)}>
-                      <td data-label="SELECT" onClick={(e) => { e.stopPropagation(); toggleSelect(Number(r.regid)); }}>
-                        <div className="flex justify-end md:justify-start">
-                          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
-                            {selectedIds.has(Number(r.regid)) ? <CheckSquare size={16} style={{ color: 'var(--pp-blue)' }} /> : <Square size={16} style={{ color: 'var(--pp-text-3)' }} />}
-                          </button>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedIds.has(Number(r.regid))}
+                          onChange={() => toggleSelect(Number(r.regid))}
+                        />
+                      </td>
+                      <td data-label="Reg ID">
+                        <span className="fu-meta-cell">#{r.patientId || r.regid}</span>
+                      </td>
+                      <td data-label="Patient">
+                        <div className="fu-patient-info">
+                          <div className="fu-avatar-sm">{(r.firstName?.[0] ?? '?')}</div>
+                          <div>
+                            <span className="fu-name">{r.firstName} {r.surname}</span>
+                            <span className="fu-phone">{r.phone || 'No Contact'}</span>
+                          </div>
                         </div>
                       </td>
-                      <td data-label="PATIENT" className="pkg-patient-cell">
-                        <div className="pkg-avatar-sm" style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>
-                          {(r.firstName?.[0] ?? '?')}{r.surname?.[0] ?? ''}
-                        </div>
-                        <div className="flex flex-col items-end md:items-start text-right md:text-left">
-                          <div className="pkg-patient-name" style={{ fontWeight: 700 }}>{r.firstName} {r.surname}</div>
-                          {r.phone && (
-                            <div className="pkg-patient-phone" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <Phone size={10} strokeWidth={1.6} /> {r.phone}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td data-label="PACKAGE" className="pkg-plan-cell">
+                      <td data-label="Package Plan">
                         <div className="flex flex-col items-end md:items-start text-right md:text-left">
                           <div className="pkg-plan-val" style={{ fontWeight: 600 }}>{r.packageName}</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>₹{r.packagePrice?.toLocaleString()}</div>
                         </div>
                       </td>
-                      <td data-label="START" style={{ fontSize: '0.82rem' }}>{r.startDate}</td>
-                      <td data-label="EXPIRY" style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--pp-ink)' }}>{r.expiryDate}</td>
-                      <td data-label="DAYS" className="pkg-days-cell">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 600, color: r.daysRemaining < 0 ? 'var(--danger)' : r.daysRemaining <= 7 ? '#D97706' : 'var(--success)' }}>
-                          <Clock size={12} strokeWidth={1.6} />
-                          {getDaysLabel(r.daysRemaining)}
+                      <td data-label="Start Date">
+                        <div className="flex items-center gap-1.5 fu-meta-cell">
+                          {r.startDate ? (
+                            <>
+                              <Calendar size={14} className="color-muted" />
+                              {new Date(r.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </>
+                          ) : '—'}
                         </div>
                       </td>
-                      <td data-label="STATUS" className="pkg-status-cell">
+                      <td data-label="Expiry Date">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5 fu-meta-cell">
+                            {r.expiryDate ? (
+                              <>
+                                <Calendar size={14} className="color-muted" />
+                                {new Date(r.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </>
+                            ) : '—'}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 600, color: r.daysRemaining < 0 ? 'var(--danger)' : r.daysRemaining <= 7 ? '#D97706' : 'var(--success)' }}>
+                            {getDaysLabel(r.daysRemaining)}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Status">
                         <span className={`pkg-expiry-badge ${getStatusBadgeClass(r.status)}`}>
-                          {getStatusIcon(r.status)} {r.status}
+                          {getStatusIcon(r.status)} {formatStatus(r.status)}
                         </span>
                       </td>
-                      <td data-label="ACTION" className="pkg-actions-cell">
-                        <div className="flex gap-2 w-full justify-end">
+                      <td className="hide-on-print" data-label="Actions" style={{ textAlign: 'right' }}>
+                        <div className="flex justify-end gap-2 fu-action-wrap">
                            <button
-                             className="pkg-action-btn wa"
+                             className="fu-action-btn wa"
                              title="Send WhatsApp"
                              onClick={(e) => { e.stopPropagation(); sendSingleWhatsApp(r); }}
-                             style={{ background: '#25D366', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
-                             <MessageCircle size={14} color="white" />
+                           >
+                             <MessageSquare size={14} />
                            </button>
                            <button
-                             className="pkg-action-btn"
+                             className="fu-action-btn"
                              title="Renew Package"
                              onClick={(e) => { e.stopPropagation(); setSelectedRecord(r); setShowAssignModal(true); }}
-                             style={{ background: 'var(--primary)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
-                             <RefreshCw size={14} color="white" />
+                             style={{ background: 'var(--primary)', borderColor: 'var(--primary)', color: 'white' }}
+                           >
+                             <RefreshCw size={14} />
+                           </button>
+                           <button
+                             className="fu-action-btn"
+                             title="View Details"
+                             onClick={(e) => { e.stopPropagation(); setSelectedRecord(r); }}
+                           >
+                             <ChevronRight size={14} />
                            </button>
                         </div>
                       </td>
@@ -297,7 +454,7 @@ export default function PackageTrackingPage() {
                 </div>
               </section>
 
-              <div className="drawer-grid-2">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <section>
                   <label className="drawer-label">Start Date</label>
                   <div style={{ fontWeight: 600 }}>{selectedRecord.startDate}</div>
@@ -312,7 +469,7 @@ export default function PackageTrackingPage() {
                 <label className="drawer-label">Current Status</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className={`pkg-expiry-badge ${getStatusBadgeClass(selectedRecord.status)}`} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
-                    {getStatusIcon(selectedRecord.status)} {selectedRecord.status}
+                    {getStatusIcon(selectedRecord.status)} {formatStatus(selectedRecord.status)}
                   </span>
                   <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--pp-text-3)' }}>
                     ({getDaysLabel(selectedRecord.daysRemaining)})
@@ -363,13 +520,50 @@ export default function PackageTrackingPage() {
                   Status updated successfully!
                 </div>
               )}
+
+              <section style={{ marginTop: 16 }}>
+                <label className="drawer-label">Package History</label>
+                <div style={{ marginTop: 12, border: '1.5px solid var(--pp-warm-4)', borderRadius: 12, overflow: 'hidden' }}>
+                  {isLoadingHistory ? (
+                    <div style={{ padding: 20, textAlign: 'center', color: 'var(--pp-text-3)', fontSize: '0.85rem' }}>Loading history...</div>
+                  ) : packageHistory.length === 0 ? (
+                    <div style={{ padding: 20, textAlign: 'center', color: 'var(--pp-text-3)', fontSize: '0.85rem' }}>No package history found.</div>
+                  ) : (
+                    <div className="pp-table-scroll" style={{ margin: 0, border: 'none' }}>
+                      <table className="pp-table" style={{ margin: 0 }}>
+                        <thead>
+                          <tr>
+                            <th>Package Name</th>
+                            <th>Start Date</th>
+                            <th>Expiry Date</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {packageHistory.map((pkg: any, idx: number) => (
+                            <tr key={idx}>
+                              <td style={{ fontWeight: 600, color: 'var(--pp-blue)' }}>{pkg.packageName}</td>
+                              <td>{pkg.startDate}</td>
+                              <td>{pkg.expiryDate}</td>
+                              <td>
+                                <span className={`pkg-expiry-badge ${getStatusBadgeClass(pkg.status)}`} style={{ padding: '4px 8px', fontSize: '0.75rem', borderRadius: 6 }}>
+                                  {pkg.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </section>
             </div>
 
-            <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '32px', borderTop: '1px solid var(--pp-warm-4)', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
-              <button className="pp-btn pp-btn-secondary" onClick={() => setSelectedRecord(null)}>Close</button>
+            <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '32px', borderTop: '1px solid var(--pp-warm-4)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
               <button 
                 className="pp-btn pp-btn-primary" 
-                style={{ background: 'var(--pp-blue)', position: 'relative', minWidth: 120 }} 
+                style={{ background: 'var(--pp-blue)', position: 'relative' }} 
                 onClick={handleUpdateStatus}
                 disabled={isUpdating}
               >
@@ -408,20 +602,16 @@ export default function PackageTrackingPage() {
             </h3>
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Message</label>
-              <textarea
-                className="comm-form-textarea"
-                placeholder="Dear {#name#}, your package is expiring..."
-                value={smsMessage}
-                onChange={e => setSmsMessage(e.target.value)}
-                rows={4}
-                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', resize: 'vertical' }}
-              />
-              <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', marginTop: 4 }}>{'Use {#name#} for patient name'}</div>
+              <div style={{ marginTop: '16px', padding: '12px', borderRadius: '8px', background: 'var(--pp-bg-subtle)', border: '1px solid var(--pp-border)' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  <strong>Template Preview:</strong> Dear <strong>{'{name}'}</strong> Your package expires on <strong>{'{date}'}</strong>. Kindly call on 8727001444 to renew it. Ignore if already renewed. Regards MMC HomeoTech
+                </p>
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="pp-btn pp-btn-secondary" onClick={() => { setShowSmsModal(false); setSmsMessage(''); }}>Cancel</button>
-              <button className="pp-btn" style={{ background: '#25D366', color: 'white' }} onClick={sendBulkWhatsApp} disabled={sendWa.isPending}>
-                <Send size={14} /> {sendWa.isPending ? 'Sending...' : 'Send All'}
+              <button className="pp-btn pp-btn-secondary" onClick={() => setShowSmsModal(false)}>Cancel</button>
+              <button className="pp-btn" style={{ background: '#25D366', color: 'white' }} onClick={sendBulkWhatsApp} disabled={sendText.isPending}>
+                <Send size={14} /> {sendText.isPending ? 'Sending...' : 'Send via WhatsApp'}
               </button>
             </div>
           </div>

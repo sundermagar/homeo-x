@@ -365,22 +365,7 @@ export function AICaptureModule({
   }, [displaySegments.length]);
 
 
-  const attachLabNode = (
-    <div className="relative">
-      <input
-        type="file"
-        accept="application/pdf"
-        onChange={handleFileUpload}
-        title="Upload Lab Report"
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-        disabled={parseLabReport.isPending}
-      />
-      <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1.5 border-gray-200 dark:border-gray-800 bg-white" disabled={parseLabReport.isPending}>
-        {parseLabReport.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" /> : <Paperclip className="h-3.5 w-3.5 text-indigo-500" />}
-        <span className="text-[11px] sm:text-xs">Attach Lab</span>
-      </Button>
-    </div>
-  );
+  const attachLabNode = null;
 
 
   const uploadStatusNode = Object.keys(uploadedLabs).length > 0 ? (
@@ -511,20 +496,7 @@ export function AICaptureModule({
                 </div>
               )}
 
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  onChange={handleFileUpload}
-                  title="Upload Lab Report"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  disabled={parseLabReport.isPending}
-                />
-                <Button variant="outline" size="sm" className="h-8 sm:h-9 gap-1.5 border-gray-200 dark:border-gray-800" disabled={parseLabReport.isPending}>
-                  {parseLabReport.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" /> : <Paperclip className="h-3.5 w-3.5 text-indigo-500" />}
-                  <span className="text-[11px] sm:text-xs">Attach Lab</span>
-                </Button>
-              </div>
+
 
               <Button
                 variant="ghost"

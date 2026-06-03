@@ -9,7 +9,8 @@ export type NotificationType =
   | 'LAB_RESULT_READY'
   | 'WAITLIST_OFFER'
   | 'SYSTEM'
-  | 'GENERAL';
+  | 'GENERAL'
+  | 'WHATSAPP';
 
 export interface Notification {
   id: string | number;

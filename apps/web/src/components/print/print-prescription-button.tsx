@@ -55,6 +55,7 @@ interface PrintPrescriptionButtonProps {
       phone?: string;
     } | null;
   };
+  getInlineData?: () => PrintPrescriptionButtonProps['inlineData'];
 }
 
 export function PrintPrescriptionButton({
@@ -63,7 +64,8 @@ export function PrintPrescriptionButton({
   size = 'sm',
   className,
   label = 'Print Rx',
-  inlineData,
+  inlineData: initialInlineData,
+  getInlineData,
 }: PrintPrescriptionButtonProps) {
   const { data: summary, isLoading } = useConsultationSummary(visitId);
   const { data: orgs = [] } = useOrganizations();
@@ -71,6 +73,7 @@ export function PrintPrescriptionButton({
   const user = useAuthStore(s => s.user);
 
   const handlePrint = () => {
+    const inlineData = getInlineData ? getInlineData() : initialInlineData;
     // Determine data source: inline (in-memory) data takes priority over API data
     const useInline = inlineData && (
       (inlineData.soapData?.subjective || inlineData.soapData?.assessment) ||
@@ -82,7 +85,7 @@ export function PrintPrescriptionButton({
     // Retrieve active organization and pdf settings
     const myOrg: any = orgs.find(o => o.id === user?.contextId) || orgs[0];
     const defaultTemplate = pdfSettings.find((s: any) => s.isDefault) || pdfSettings[0];
-
+    
     // Merge latest org data into clinic letterhead
     const baseClinic = getClinicLetterhead();
     const clinic = {
@@ -115,8 +118,6 @@ export function PrintPrescriptionButton({
 
       const visit = inlineData.visit || { id: visitId };
 
-      const visitDate = (visit as any).completedAt || (visit as any).startedAt || (visit as any).checkedInAt || (visit as any).createdAt || new Date().toISOString();
-
       printData = {
         clinic: clinic as any,
         doctor: getDoctorLetterhead(),
@@ -124,22 +125,22 @@ export function PrintPrescriptionButton({
           name: patientName,
           age: patientAge,
           gender: inlineData.patient?.gender,
-          mrn: inlineData.patient?.mrn || (inlineData.patient as any)?.regid?.toString() || (inlineData.patient as any)?.id?.toString(),
+          mrn: inlineData.patient?.mrn || (inlineData.patient as any)?.id,
           phone: inlineData.patient?.phone,
         },
         visit: {
-          visitNumber: (visit as any).visitNumber || (visit as any).id?.toString?.()?.slice(-6)?.toUpperCase?.() || visitId.slice(-6).toUpperCase(),
-          date: visitDate,
+          visitNumber: (visit as any).visitNumber || visit.id?.slice(-6).toUpperCase() || visitId.slice(-6).toUpperCase(),
+          date: (visit as any).completedAt || (visit as any).startedAt || (visit as any).checkedInAt || new Date().toISOString(),
           specialty: (visit as any).specialty,
           chiefComplaint: (visit as any).chiefComplaint,
         },
         soap: inlineData.soapData
           ? {
-            subjective: inlineData.soapData.subjective,
-            objective: inlineData.soapData.objective,
-            assessment: inlineData.soapData.assessment,
-            plan: inlineData.soapData.plan,
-          }
+              subjective: inlineData.soapData.subjective,
+              objective: inlineData.soapData.objective,
+              assessment: inlineData.soapData.assessment,
+              plan: inlineData.soapData.plan,
+            }
           : undefined,
         diagnosis: inlineData.soapData?.assessment
           ? { assessment: inlineData.soapData.assessment }
@@ -153,7 +154,7 @@ export function PrintPrescriptionButton({
           route: item.route,
           instructions: item.instructions,
           quantity: item.quantity,
-          date: visitDate,
+          date: (item as any).date || inlineData.visit?.completedAt || inlineData.visit?.startedAt || inlineData.visit?.checkedInAt || inlineData.visit?.createdAt || new Date().toISOString(),
         })),
         advice: inlineData.advice,
         followUp: inlineData.followUp,
@@ -185,7 +186,7 @@ export function PrintPrescriptionButton({
         name: patientName,
         age: patientAge,
         gender: summary!.patient?.gender,
-        mrn: summary!.patient?.mrn,
+        mrn: summary!.patient?.mrn || summary!.patient?.id,
         phone: summary!.patient?.phone,
       };
 
@@ -200,41 +201,19 @@ export function PrintPrescriptionButton({
         if (labMatch && labMatch[1]) labOrders = labMatch[1].split(',').map((s: string) => s.trim());
       }
 
-      // Get medications from prescriptions.
-      // The /summary endpoint returns `prescriptions` as a FLAT array of legacy
-      // prescription rows ({ remedy, potency, frequency, duration, instructions }).
-      // It also accepts the older nested shape ({ items: [{ medicationName, dosage, ... }] })
-      // for back-compat — handle both.
-      const visitDate = summary!.visit.completedAt || summary!.visit.startedAt || summary!.visit.checkedInAt || (summary!.visit as any).createdAt || new Date().toISOString();
-
-      const medications = (summary!.prescriptions ?? []).flatMap((rx: any) => {
-        // Back-compat: nested-items shape
-        if (Array.isArray(rx?.items) && rx.items.length > 0) {
-          return rx.items.map((item: any) => ({
-            name: item.medicationName ?? item.remedy ?? item.name,
-            genericName: item.genericName,
-            dosage: item.dosage ?? item.potency,
-            frequency: item.frequency,
-            duration: item.duration,
-            route: item.route,
-            instructions: item.instructions,
-            quantity: item.quantity,
-            date: item.created_at ?? item.date ?? visitDate,
-          }));
-        }
-        // Flat row shape from the legacy `prescriptions` table
-        return [{
-          name: rx?.medicationName ?? rx?.remedy ?? rx?.name ?? '',
-          genericName: rx?.genericName,
-          dosage: rx?.dosage ?? rx?.potency,
-          frequency: rx?.frequency,
-          duration: rx?.duration,
-          route: rx?.route,
-          instructions: rx?.instructions,
-          quantity: rx?.quantity,
-          date: rx?.created_at ?? rx?.date ?? visitDate,
-        }];
-      }).filter((m: any) => m.name);
+      const medications = summary!.prescriptions?.flatMap((rx: any) =>
+        (rx.items || []).map((item: any) => ({
+          name: item.medicationName,
+          genericName: item.genericName,
+          dosage: item.dosage,
+          frequency: item.frequency,
+          duration: item.duration,
+          route: item.route,
+          instructions: item.instructions,
+          quantity: item.quantity,
+          date: item.date || rx.createdAt || summary!.visit.completedAt || summary!.visit.startedAt || summary!.visit.checkedInAt || new Date().toISOString(),
+        })),
+      ) ?? [];
 
       printData = {
         clinic: clinic as any,
@@ -248,29 +227,29 @@ export function PrintPrescriptionButton({
         },
         vitals: summary!.vitals
           ? {
-            heightCm: summary!.vitals.heightCm ?? undefined,
-            weightKg: summary!.vitals.weightKg ?? undefined,
-            bmi: summary!.vitals.bmi ?? undefined,
-            temperatureF: summary!.vitals.temperatureF ?? undefined,
-            pulseRate: summary!.vitals.pulseRate ?? undefined,
-            systolicBp: summary!.vitals.systolicBp ?? undefined,
-            diastolicBp: summary!.vitals.diastolicBp ?? undefined,
-            oxygenSaturation: summary!.vitals.oxygenSaturation ?? undefined,
-          }
+              heightCm: summary!.vitals.heightCm ?? undefined,
+              weightKg: summary!.vitals.weightKg ?? undefined,
+              bmi: summary!.vitals.bmi ?? undefined,
+              temperatureF: summary!.vitals.temperatureF ?? undefined,
+              pulseRate: summary!.vitals.pulseRate ?? undefined,
+              systolicBp: summary!.vitals.systolicBp ?? undefined,
+              diastolicBp: summary!.vitals.diastolicBp ?? undefined,
+              oxygenSaturation: summary!.vitals.oxygenSaturation ?? undefined,
+            }
           : undefined,
         diagnosis: summary!.soap
           ? {
-            icdCodes: summary!.soap.icdCodes,
-            assessment: summary!.soap.assessment ?? undefined,
-          }
+              icdCodes: summary!.soap.icdCodes,
+              assessment: summary!.soap.assessment ?? undefined,
+            }
           : undefined,
         soap: summary!.soap
           ? {
-            subjective: summary!.soap.subjective ?? undefined,
-            objective: summary!.soap.objective ?? undefined,
-            assessment: summary!.soap.assessment ?? undefined,
-            plan: summary!.soap.plan ?? undefined,
-          }
+              subjective: summary!.soap.subjective ?? undefined,
+              objective: summary!.soap.objective ?? undefined,
+              assessment: summary!.soap.assessment ?? undefined,
+              plan: summary!.soap.plan ?? undefined,
+            }
           : undefined,
         medications,
         labOrders,
@@ -286,10 +265,10 @@ export function PrintPrescriptionButton({
   };
 
   // Enable button if we have inline data OR API summary
-  const hasData = !!(inlineData && (
-    (inlineData.soapData?.subjective || inlineData.soapData?.assessment) ||
-    (inlineData.rxItems && inlineData.rxItems.length > 0)
-  )) || !!summary;
+  const hasData = !!(getInlineData || (initialInlineData && (
+    (initialInlineData.soapData?.subjective || initialInlineData.soapData?.assessment) ||
+    (initialInlineData.rxItems && initialInlineData.rxItems.length > 0)
+  ))) || !!summary;
 
   return (
     <Button

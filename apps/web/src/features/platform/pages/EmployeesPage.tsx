@@ -474,7 +474,7 @@ function StaffModal({
     </Drawer>
   );
 }
-export default function EmployeesPage() {
+export default function EmployeesPage({ actionTrigger }: { actionTrigger?: number }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -496,6 +496,13 @@ export default function EmployeesPage() {
   const staff = data?.data || [];
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
   const activeCount = data?.activeCount ?? 0;
+
+  useEffect(() => {
+    if (actionTrigger && actionTrigger > 0) {
+      openCreate();
+    }
+  }, [actionTrigger]);
+
   const openCreate = () => {
     setModalMode('create');
     setEditingId(null);
@@ -516,23 +523,8 @@ export default function EmployeesPage() {
     if (!confirm('Are you sure you want to remove this employee record?')) return;
     await deleteMutation.mutateAsync({ category: CATEGORY, id });
   };
-  // return (
   return (
-    <div className="plat-page">
-      <div className="pp-page-hero">
-        <div>
-          <h1 className="pp-page-hero-title">
-            <Users size={22} style={{ color: 'var(--pp-blue)' }} />
-            {META.label}
-          </h1>
-          <p className="pp-page-hero-sub">{META.description}</p>
-        </div>
-        <div className="pp-page-hero-actions">
-          <button className="btn-primary" onClick={openCreate}>
-            <Plus size={16} strokeWidth={1.8} /> Add Employee
-          </button>
-        </div>
-      </div>
+    <div className="plat-tab-content">
       <div className="pp-stat-grid">
         <div className="pp-stat-card-enhanced">
           <div className="pp-stat-label">Total Roster</div>

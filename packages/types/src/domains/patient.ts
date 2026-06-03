@@ -33,6 +33,7 @@ export interface Patient {
   // Clinical
   referenceType: string | null;
   referredBy: string | null;
+  referredByName: string | null;
   assistantDoctor: string | null;
   consultationFee: number | null;
   courierOutstation: boolean;

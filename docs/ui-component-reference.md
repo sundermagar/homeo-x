@@ -1,6 +1,6 @@
 # Homeo-X UI Component Reference
 
-> **Design System**: Paperplane v2.0 — Kreed.health  
+> **Design System**: Paperplane v2.0 — MMC  
 > **Strategy**: Mobile-first, CSS Variables, Vanilla CSS  
 > **Font**: Geist (sans) + Geist Mono  
 > **Icon Library**: Lucide React

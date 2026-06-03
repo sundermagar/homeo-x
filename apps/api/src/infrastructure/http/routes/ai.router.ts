@@ -27,6 +27,15 @@ function extractJson<T = any>(raw: string): T | null {
 
 export const aiRouter: Router = Router();
 
+// POST /api/ai/analyze-report
+aiRouter.post('/analyze-report', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const uc = getConsultationUseCase();
+    const result = await uc.analyzeLabReport(getTenant(req), getUserId(req), req.body);
+    sendSuccess(res, result);
+  } catch (err) { next(err); }
+});
+
 // Helper to extract tenant/user from request (set by middleware)
 function getTenant(req: Request): string {
   return (req as any).tenantSlug || (req as any).tenantId || 'default';
@@ -98,6 +107,15 @@ aiRouter.post('/consult/homeopathy', async (req: Request, res: Response, next: N
           ...(allRubrics.length > 0 ? { mappedRubrics: allRubrics } : {}),
         });
       }
+    sendSuccess(res, result);
+  } catch (err) { next(err); }
+});
+
+// POST /api/ai/disease-rubrics — Disease to Rubrics Search
+aiRouter.post('/disease-rubrics', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const uc = getConsultationUseCase();
+    const result = await uc.extractDiseaseRubrics(getTenant(req), getUserId(req), req.body);
     sendSuccess(res, result);
   } catch (err) { next(err); }
 });
@@ -177,6 +195,14 @@ aiRouter.post('/extract/symptoms', async (req: Request, res: Response, next: Nex
       mental: Array.isArray(existingSymptoms?.mental) ? existingSymptoms.mental : [],
       physical: Array.isArray(existingSymptoms?.physical) ? existingSymptoms.physical : [],
       particular: Array.isArray(existingSymptoms?.particular) ? existingSymptoms.particular : [],
+      thermalReaction: existingSymptoms?.thermalReaction || null,
+      miasm: existingSymptoms?.miasm || null,
+      thirstPattern: existingSymptoms?.thirstPattern || null,
+      sleepPosition: existingSymptoms?.sleepPosition || null,
+      perspiration: existingSymptoms?.perspiration || null,
+      causation: existingSymptoms?.causation || null,
+      location: existingSymptoms?.location || null,
+      concomitants: existingSymptoms?.concomitants || null,
     };
 
     // Nothing new to look at — return existing as-is to keep panel stable.
@@ -238,8 +264,8 @@ You will receive an EXISTING symptom list. Return the FULL merged list:
 Your job: extract symptoms FROM THE PROVIDED Q&A (and lab text, if present) and categorize them into mental / physical / particular using Complete Repertory rubric format.
 
 ## ABSOLUTE GROUNDING RULE (HIGHEST PRIORITY)
-EVERY rubric you emit MUST be backed by a specific, identifiable phrase from the Q&A or the lab text. Before emitting any rubric, ask yourself: "What exact words from the patient (or doctor) make this true?" If you cannot point to a phrase, DO NOT emit the rubric.
-- Empty arrays are valid output. If the Q&A has no clear symptoms, return {"mental":[],"physical":[],"particular":[]}.
+EVERY rubric you emit MUST be backed by the clinical reality discussed in the Q&A or the lab text. If the doctor asks "Does your head hurt?" and the patient says "Yes", you MUST extract "Head - Pain".
+- Empty arrays are valid output. If the Q&A has no clear symptoms (e.g. general chit-chat), return {"mental":[],"physical":[],"particular":[]}.
 - If the patient said "I don't know" or "no", emit nothing for that topic.
 - DO NOT extrapolate from the chief complaint, mode, age, or gender.
 - DO NOT add "common" symptoms that "usually accompany" the stated complaint.
@@ -272,8 +298,27 @@ WRONG: Same idea twice → "Back - Pain" AND "Back - Pain, lower" (keep only the
 
 ## OUTPUT FORMAT (STRICT JSON)
 Return ONLY raw JSON — no markdown, no prose. Schema:
-{ "mental": [string], "physical": [string], "particular": [string] }
-If nothing extractable: { "mental": [], "physical": [], "particular": [] }`;
+{ 
+  "mental": [string], 
+  "physical": [string], 
+  "particular": [string],
+  "thermalReaction": "chilly" | "hot" | "ambithermal" | null,
+  "miasm": "psora" | "sycosis" | "syphilis" | "tubercular" | null,
+  "thirstPattern": "thirsty" | "thirstless" | "sips" | null,
+  "sleepPosition": "back" | "left" | "right" | "abdomen" | "knees" | null,
+  "perspiration": "profuse" | "scanty" | "offensive" | null,
+  "causation": "string or null",
+  "location": "string or null",
+  "concomitants": "string or null"
+}
+If nothing extractable: { "mental": [], "physical": [], "particular": [], "thermalReaction": null, "miasm": null, "thirstPattern": null, "sleepPosition": null, "perspiration": null, "causation": null, "location": null, "concomitants": null }
+
+IMPORTANT: Act as a Master Homeopath. Patients rarely state their miasm or thermal type directly. You MUST INFER these constitutional factors from the clinical picture:
+- thermalReaction: Infer from sensitivity to weather, need for covering, bathing preferences (chilly, hot, ambithermal).
+- miasm: Infer from pathology: psora (functional/itching), sycosis (overgrowth/warts), syphilis (destructive/ulcers/night agg), tubercular (wasting/changeable).
+- thirstPattern: Infer from drinking habits (thirsty, thirstless, sips).
+- sleepPosition / perspiration: Infer from habits.
+If there is enough clinical evidence in the Q&A, extract them! If the picture is completely unclear, leave them as null. Use EXACTLY the allowed string values. Do NOT assume or default them blindly without clinical hints.`;
 
     const dynamicInstructions = `
 ## MODE BUCKETING HINT (${mode.toUpperCase()})
@@ -293,7 +338,7 @@ ${JSON.stringify(existing, null, 2)}` : ''}
 TASK: Extract rubrics ONLY for abnormal lab values that are explicitly listed above. If a value isn't there, don't emit a rubric for it. If no abnormalities are listed, return empty arrays. Reply with ONLY the JSON.`
       : `${dynamicInstructions}
 THE ONLY SOURCE YOU ARE ALLOWED TO EXTRACT FROM is the conversation below.
-Do NOT add anything that is not literally in these two lines. Empty answer = empty arrays.
+Do NOT add anything that was not discussed in these two lines.
 
 Doctor's Question: "${question || ''}"
 Patient's Answer: "${answer || ''}"${labContext ? `
@@ -307,8 +352,8 @@ EXISTING SYMPTOMS (already on the panel — keep, only update if new Q&A adds ex
 ${JSON.stringify(existing, null, 2)}` : ''}
 
 Reminder before you answer:
-- Every rubric must trace back to a phrase in the Patient's Answer (or the lab text).
-- If the Patient's Answer is short or non-medical, MOST FIELDS should be empty arrays.
+- You MUST extract the clinical meaning confirmed by the patient. If the doctor asks about a symptom and the patient says "yes", extract the symptom from the doctor's question!
+- If the patient denies a symptom (e.g., says "no"), do NOT extract it.
 - Do NOT add mental symptoms unless emotional/mental content is mentioned.
 - Do NOT use the mode hint as a checklist — only as a placement guide for symptoms that ARE present.
 
@@ -323,7 +368,17 @@ Reply with ONLY the JSON object.`;
       useCache: false, // each Q&A pair is a unique extraction call
     });
 
-    const parsed = extractJson<{ mental?: string[]; physical?: string[]; particular?: string[] }>(response.content);
+    const parsed = extractJson<{ 
+      mental?: string[]; physical?: string[]; particular?: string[];
+      thermalReaction?: string | null;
+      miasm?: string | null;
+      thirstPattern?: string | null;
+      sleepPosition?: string | null;
+      perspiration?: string | null;
+      causation?: string | null;
+      location?: string | null;
+      concomitants?: string | null;
+    }>(response.content);
     if (!parsed) { sendSuccess(res, existing); return; }
 
     // ── Token-set subset dedup ──
@@ -374,6 +429,15 @@ Reply with ONLY the JSON object.`;
     const mergedPhysical   = mergeAndDedup(existing.physical,   Array.isArray(parsed.physical)   ? parsed.physical   : []);
     const mergedParticular = mergeAndDedup(existing.particular, Array.isArray(parsed.particular) ? parsed.particular : []);
 
+    const mergedThermalReaction = parsed.thermalReaction || existing.thermalReaction;
+    const mergedMiasm = parsed.miasm || existing.miasm;
+    const mergedThirstPattern = parsed.thirstPattern || existing.thirstPattern;
+    const mergedSleepPosition = parsed.sleepPosition || existing.sleepPosition;
+    const mergedPerspiration = parsed.perspiration || existing.perspiration;
+    const mergedCausation = parsed.causation || existing.causation;
+    const mergedLocation = parsed.location || existing.location;
+    const mergedConcomitants = parsed.concomitants || existing.concomitants;
+
     if (visitId) {
       mlTrainingLogger.logPhase(getTenant(req), visitId, {
         extractedSymptoms: { mental: mergedMental, physical: mergedPhysical, particular: mergedParticular }
@@ -384,6 +448,14 @@ Reply with ONLY the JSON object.`;
       mental: mergedMental,
       physical: mergedPhysical,
       particular: mergedParticular,
+      thermalReaction: mergedThermalReaction,
+      miasm: mergedMiasm,
+      thirstPattern: mergedThirstPattern,
+      sleepPosition: mergedSleepPosition,
+      perspiration: mergedPerspiration,
+      causation: mergedCausation,
+      location: mergedLocation,
+      concomitants: mergedConcomitants,
     });
   } catch (err: any) {
     logger.error({ err: err?.message, stack: err?.stack }, '[extract/symptoms] failed');
@@ -404,6 +476,54 @@ aiRouter.post('/case/summary', async (req: Request, res: Response, next: NextFun
     const result = await uc.generateSummary(getTenant(req), getUserId(req), req.body);
     sendSuccess(res, result);
   } catch (err) { next(err); }
+});
+
+// POST /api/ai/followup/summarize — Summarize a free-form follow-up conversation
+// transcript into a single concise clinical paragraph. Used by the medical-case
+// AI Follow-up drawer (recorded Dr/Patient conversation → analysed summary).
+aiRouter.post('/followup/summarize', async (req: Request, res: Response) => {
+  try {
+    const { transcript, patientAge, patientGender, chiefComplaint } = req.body ?? {};
+    const cleaned = String(transcript || '').trim();
+    if (!cleaned || cleaned.length < 20) {
+      sendSuccess(res, { summary: '' });
+      return;
+    }
+
+    const chain = getAiProviderChain();
+    const ctxBits = [
+      patientAge ? `Patient age: ${patientAge}` : '',
+      patientGender ? `Patient gender: ${patientGender}` : '',
+      chiefComplaint ? `Chief complaint: ${chiefComplaint}` : '',
+    ].filter(Boolean).join(' · ');
+
+    const response = await chain.complete({
+      systemPrompt: `You are a homeopathic clinical scribe summarising a follow-up consultation.
+Given a Doctor–Patient conversation transcript, provide a concise bulleted summary capturing:
+- How the patient is doing since the last visit (better / same / worse, % improvement if mentioned)
+- Current symptoms, new symptoms, or returning old symptoms
+- Modalities, mental/emotional state changes (only if mentioned)
+- Compliance with previous remedy & any side effects mentioned
+- Doctor's next plan if stated
+
+Rules:
+- Use clear bullet points for readability. Do NOT write a single dense paragraph.
+- Do NOT invent symptoms or facts not present in the transcript.
+- If the transcript has no clinical content, reply with exactly: "No clinical content to summarise."`,
+      userPrompt: `${ctxBits ? ctxBits + '\n\n' : ''}Transcript:\n"""\n${cleaned.slice(0, 12000)}\n"""\n\nWrite the follow-up bulleted summary now.`,
+      temperature: 0.2,
+      maxTokens: 600,
+    });
+
+    const summary = (response.content || '').trim();
+    sendSuccess(res, { summary });
+  } catch (err: any) {
+    logger.error({ err: err?.message }, '[followup/summarize] failed');
+    res.status(502).json({
+      success: false,
+      error: { code: 'AI_PROVIDER_FAILED', message: err?.message || 'AI providers unavailable.' },
+    });
+  }
 });
 
 // POST /api/ai/translate — Text translation
@@ -567,7 +687,7 @@ RULES:
    (c) 3 to 4 options per question (never fewer than 3, never more than 4).
    (d) Format every option as "A) ...", "B) ...", "C) ..." (capital letter + closing paren + space + answer text).
    (e) Each option text under 8 words. Plain English. No punctuation tricks.
-   (f) The set of options must COVER the realistic answer space (include an "Other / Both / Neither" choice if the answer might fall outside the listed three).
+   (f) NEVER use "Other", "Both", "All of the above", or "Neither" as options. Provide only specific, concrete choices.
    (g) Options must MATCH the question's question word:
        - "Where ..." → location options (Frontal, Temporal, Lower back, Right side …)
        - "When ..." → time options (Morning, 3-5 AM, After meals, At night …)
@@ -634,9 +754,7 @@ Output the JSON now. ${ccTrim ? `Anchor your questions to "${ccTrim}" and any ne
       // case-taking patterns — every patient should feel like a unique person,
       // not a checklist exercise.
       temperature: 0.7,
-      // 5 questions × (question + 4 options + 2 alternates) ≈ 250 tokens. 1500 leaves
-      // ~6× headroom for verbose chronic mode but trims credit cost vs. the old 4000.
-      maxTokens: 1500,
+      maxTokens: 4000,
       responseFormat: 'json',
       // Always fresh — no cache reuse across patients/visits.
       useCache: false,
@@ -880,7 +998,7 @@ OUTPUT FORMAT:
       maxTokens: 1000,
       responseFormat: 'json',
       useCache: false,
-      preferredProvider: 'groq'
+      preferredProvider: 'gemini'
     });
 
     const parsed = extractJson<{
