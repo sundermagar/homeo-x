@@ -64,6 +64,7 @@ export class AbdmGatewayService {
           clientSecret: config.clientSecret,
           grantType: 'client_credentials',
         }),
+        signal: AbortSignal.timeout(15000), // 15s timeout
       });
 
       if (!response.ok) {
@@ -81,7 +82,11 @@ export class AbdmGatewayService {
       logger.info('Obtained ABDM access token');
       return cachedToken.accessToken;
     } catch (err: any) {
-      logger.error({ err: err.message }, 'Failed to get ABDM access token');
+      if (err.name === 'TimeoutError' || err.code === 'ETIMEDOUT') {
+        logger.error('ABDM session request timed out');
+      } else {
+        logger.error({ err: err.message }, 'Failed to get ABDM access token');
+      }
       throw err;
     }
   }
@@ -94,29 +99,37 @@ export class AbdmGatewayService {
     const token = await this.getAccessToken();
     const reqId = requestId || crypto.randomUUID();
 
-    const response = await fetch(`${config.gatewayUrl}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'X-CM-ID': 'sbx', // 'sbx' for sandbox, 'abdm' for production
-      },
-      body: JSON.stringify({
-        requestId: reqId,
-        timestamp: new Date().toISOString(),
-        ...body,
-      }),
-    });
+    try {
+      const response = await fetch(`${config.gatewayUrl}${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-CM-ID': 'sbx', // 'sbx' for sandbox, 'abdm' for production
+        },
+        body: JSON.stringify({
+          requestId: reqId,
+          timestamp: new Date().toISOString(),
+          ...body,
+        }),
+        signal: AbortSignal.timeout(15000), // 15s timeout
+      });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      logger.error({ status: response.status, body: errorBody, path }, 'ABDM Gateway request failed');
-      throw new Error(`ABDM Gateway error (${response.status}): ${errorBody}`);
+      if (!response.ok) {
+        const errorBody = await response.text();
+        logger.error({ status: response.status, body: errorBody, path }, 'ABDM Gateway request failed');
+        throw new Error(`ABDM Gateway error (${response.status}): ${errorBody}`);
+      }
+
+      // Many ABDM APIs return 202 Accepted with empty body (async webhook pattern)
+      const text = await response.text();
+      return text ? JSON.parse(text) : { status: 'accepted' };
+    } catch (err: any) {
+      if (err.name === 'TimeoutError' || err.code === 'ETIMEDOUT') {
+        logger.error({ path }, 'ABDM Gateway request timed out');
+      }
+      throw err;
     }
-
-    // Many ABDM APIs return 202 Accepted with empty body (async webhook pattern)
-    const text = await response.text();
-    return text ? JSON.parse(text) : { status: 'accepted' };
   }
 
   // ─── M1: ABHA Management ────────────────────────────────────────────────
