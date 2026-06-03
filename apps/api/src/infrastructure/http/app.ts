@@ -57,6 +57,7 @@ import { videoCallRouter } from './routes/video-call.router.js';
 import { specialtiesRouter } from './routes/specialties.router.js';
 import { abhaRouter } from './routes/abha.router.js';
 import { hprRouter } from './routes/hpr.router.js';
+import { hfrRouter } from './routes/hfr.router.js';
 import { abhaWebhookRouter } from './routes/abha-webhook.router.js';
 import { setupTranscriptionGateway } from './gateways/transcription.gateway.js';
 import { setupVideoCallGateway } from './gateways/video-call.gateway.js';
@@ -177,6 +178,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // ABDM / ABHA Module
   app.use('/api/abha', authMiddleware, abhaRouter);
   app.use('/api/hpr', authMiddleware, hprRouter);
+  app.use('/api/hfr', authMiddleware, hfrRouter);
   // Roles & Permissions
   app.use('/api/roles', authMiddleware, rolesRouter);
   app.use('/api/permissions', authMiddleware, permissionsRouter);

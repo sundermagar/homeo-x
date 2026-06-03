@@ -29,6 +29,10 @@ export class FhirTransformerService {
         duration?: string;
         instructions?: string;
       }>;
+    },
+    custodianData?: {
+      id: string;
+      name: string;
     }
   ): Record<string, any> {
     const bundleId = uuidv4();
@@ -57,56 +61,67 @@ export class FhirTransformerService {
       entry: [] as any[],
     };
 
+    const organizationResourceId = uuidv4();
+
     // 1. Composition Resource (Must be first in a Document Bundle)
-    bundle.entry.push({
-      fullUrl: `urn:uuid:${compositionResourceId}`,
-      resource: {
-        resourceType: 'Composition',
-        id: compositionResourceId,
-        identifier: {
-          system: 'https://ndhm.in/phr',
-          value: compositionResourceId,
-        },
-        status: 'final',
-        type: {
-          coding: [
-            {
-              system: 'http://snomed.info/sct',
-              code: '440545006',
-              display: 'Prescription record',
-            },
-          ],
-        },
-        subject: {
-          reference: `urn:uuid:${patientResourceId}`,
-        },
-        encounter: {
-          reference: `urn:uuid:${encounterResourceId}`,
-        },
-        date: dateStr,
-        author: [
+    const compositionResource: any = {
+      resourceType: 'Composition',
+      id: compositionResourceId,
+      identifier: {
+        system: 'https://ndhm.in/phr',
+        value: compositionResourceId,
+      },
+      status: 'final',
+      type: {
+        coding: [
           {
-            reference: `urn:uuid:${practitionerResourceId}`,
-            display: practitionerData.name,
-          },
-        ],
-        title: 'Prescription',
-        section: [
-          {
-            title: 'Medications',
-            code: {
-              coding: [
-                {
-                  system: 'http://snomed.info/sct',
-                  code: '721912009',
-                  display: 'Medication summary document',
-                },
-              ],
-            },
-            entry: [] as any[],
+            system: 'http://snomed.info/sct',
+            code: '440545006',
+            display: 'Prescription record',
           },
         ],
       },
+      subject: {
+        reference: `urn:uuid:${patientResourceId}`,
+      },
+      encounter: {
+        reference: `urn:uuid:${encounterResourceId}`,
+      },
+      date: dateStr,
+      author: [
+        {
+          reference: `urn:uuid:${practitionerResourceId}`,
+          display: practitionerData.name,
+        },
+      ],
+      title: 'Prescription',
+      section: [
+        {
+          title: 'Medications',
+          code: {
+            coding: [
+              {
+                system: 'http://snomed.info/sct',
+                code: '721912009',
+                display: 'Medication summary document',
+              },
+            ],
+          },
+          entry: [] as any[],
+        },
+      ],
+    };
+
+    if (custodianData) {
+      compositionResource.custodian = {
+        reference: `urn:uuid:${organizationResourceId}`,
+        display: custodianData.name,
+      };
+    }
+
+    bundle.entry.push({
+      fullUrl: `urn:uuid:${compositionResourceId}`,
+      resource: compositionResource,
     });
 
     // 2. Patient Resource
@@ -225,6 +240,24 @@ export class FhirTransformerService {
       // Link it to the composition section
       bundle.entry[0].resource.section[0].entry.push({
         reference: `urn:uuid:${medReqId}`,
+      });
+    }
+
+    // 6. Organization Resource (if custodianData exists)
+    if (custodianData) {
+      bundle.entry.push({
+        fullUrl: `urn:uuid:${organizationResourceId}`,
+        resource: {
+          resourceType: 'Organization',
+          id: organizationResourceId,
+          identifier: [
+            {
+              system: 'https://ndhm.in/hfr',
+              value: custodianData.id,
+            },
+          ],
+          name: custodianData.name,
+        },
       });
     }
 

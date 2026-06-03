@@ -22,6 +22,8 @@ export const organizations = pgTable('organizations', {
   registration: text('registration').default(''),
   logo:         text('logo').default(''),
   timing:       text('timing').default(''),
+  hfrId:        text('hfr_id'),
+  hfrToken:     text('hfr_token'),
   deletedAt:    timestamp('deleted_at'),
   createdAt:    timestamp('created_at').defaultNow(),
   updatedAt:    timestamp('updated_at').defaultNow(),

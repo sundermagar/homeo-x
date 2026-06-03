@@ -46,6 +46,8 @@ export class OrganizationRepositoryPg implements OrganizationRepository {
         description: data.description ?? '',
         adminEmail: data.adminEmail ?? '',
         adminPassword: data.adminPassword ?? '',
+        hfrId: data.hfrId,
+        hfrToken: data.hfrToken,
       })
       .returning();
     return this.toDomain(row!);
@@ -88,6 +90,8 @@ export class OrganizationRepositoryPg implements OrganizationRepository {
       registration: row.registration ?? '',
       logo: row.logo ?? '',
       timing: row.timing ?? '',
+      hfrId: row.hfrId ?? null,
+      hfrToken: row.hfrToken ?? null,
       deletedAt: row.deletedAt?.toISOString() ?? null,
       createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
       updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
