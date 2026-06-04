@@ -52,7 +52,7 @@ export async function seedRbac(db: DbClient) {
     { id: 31, name: 'Manage Stocks', slug: 'STOCKS_WRITE', module: 'Inventory', displayName: 'Manage Stocks', description: 'Grants access to update medicine inventory and stock logs.' }
   ];
 
-  for (const p of permissions) {
+  await Promise.all(permissions.map(async (p) => {
     const existingById = await db.select().from(permissionsLegacy).where(eq(permissionsLegacy.id, p.id)).limit(1);
     const existingBySlug = await db.select().from(permissionsLegacy).where(eq(permissionsLegacy.slug, p.slug)).limit(1);
     
@@ -62,7 +62,7 @@ export async function seedRbac(db: DbClient) {
     } else {
       console.log(`  - Permission already exists (ID or Slug match): ${p.slug}`);
     }
-  }
+  }));
 
   // 2. Seed Roles
   const roles = [
@@ -73,7 +73,7 @@ export async function seedRbac(db: DbClient) {
     { id: 5, name: 'Account Manager', displayName: 'Billing Specialist', description: 'Access to financial records and billing.', parent: 2, dept: 1 }
   ];
 
-  for (const r of roles) {
+  await Promise.all(roles.map(async (r) => {
     const existingById = await db.select().from(rolesLegacy).where(eq(rolesLegacy.id, r.id)).limit(1);
     const existingByName = await db.select().from(rolesLegacy).where(eq(rolesLegacy.name, r.name)).limit(1);
     
@@ -83,7 +83,7 @@ export async function seedRbac(db: DbClient) {
     } else {
       console.log(`  - Role already exists (ID or Name match): ${r.name}`);
     }
-  }
+  }));
 
   // 3. Assign Default Permissions to Roles
   console.log('[Seed] Assigning default capabilities...');
@@ -100,7 +100,7 @@ export async function seedRbac(db: DbClient) {
     { roleId: 5, permissionId: 10 }, { roleId: 5, permissionId: 11 }, { roleId: 5, permissionId: 30 }
   ];
 
-  for (const a of assignments) {
+  await Promise.all(assignments.map(async (a) => {
     const existing = await db.select().from(permissionRoleLegacy).where(
       and(
         eq(permissionRoleLegacy.roleId, a.roleId),
@@ -111,7 +111,7 @@ export async function seedRbac(db: DbClient) {
     if (existing.length === 0) {
       await db.insert(permissionRoleLegacy).values(a);
     }
-  }
+  }));
 
   console.log('[Seed] RBAC seeding completed.');
 }
