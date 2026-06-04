@@ -49,9 +49,10 @@ export function createOrganizationRouter(): Router {
       const slug = result.name.toLowerCase().replace(/[^a-z0-9]/g, '');
       const schemaName = `tenant_${slug}`;
 
-      // ─── SYNCHRONOUS TASK: Provisioning & Email ───
-      // We await this so the tenant is fully provisioned before the user tries to login.
-      try {
+      // ─── BACKGROUND TASK: Provisioning & Email ───
+      // We do NOT await this. It runs in the background so the user gets an instant response.
+      void (async () => {
+        try {
         const { provisionTenant, migrateTenant, TenantRegistry, createDbClient, seedRbac } = await import('@mmc/database');
 
         let shouldProvision = true;
@@ -135,7 +136,6 @@ export function createOrganizationRouter(): Router {
         // Send Welcome Email
         if (req.body.sendWelcomeEmail && req.body.adminEmail && req.body.adminPassword) {
           try {
-            // Do not await email sending to save some time
             emailService.sendWelcomeCredentials(
               req.body.adminEmail,
               `${result.name} Admin`,
@@ -143,14 +143,13 @@ export function createOrganizationRouter(): Router {
               req.body.adminPassword,
               true
             ).catch(e => logger.error(e, 'Failed to send welcome email'));
-            logger.info({ adminEmail: req.body.adminEmail }, 'Welcome email queued');
-          } catch (emailErr: any) {
-            logger.error({ err: emailErr.message }, 'Failed to queue welcome email');
+          } catch (emailErr) {
+            logger.error({ err: emailErr }, 'Failed to trigger welcome email');
           }
         }
-      } catch (bgErr: any) {
-        logger.error({ err: bgErr.message, organizationName: result.name }, 'Fatal provisioning error');
-      }
+      })().catch(err => {
+        logger.error({ err: err.message }, 'Fatal background provisioning error');
+      });
     }
 
     res.status(201).json({ success: true, data: result });
