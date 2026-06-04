@@ -3,6 +3,7 @@ import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Upload, FileText, Map
 import { NumericInput } from '@/shared/components/NumericInput';
 import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
 import { useAuthStore } from '@/shared/stores/auth-store';
+import { useDepartments } from '@/features/settings/hooks/use-settings';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
@@ -174,6 +175,7 @@ function StaffModal({
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
   const { user } = useAuthStore();
+  const { data: depts = [] } = useDepartments();
   useEffect(() => {
     if (mode === 'edit' && staff) {
       const editForm = staffMemberToForm(staff);
@@ -384,14 +386,14 @@ function StaffModal({
                 <label className="plat-form-label">Department</label>
                 <select
                   className="plat-form-input"
-                  value={form.dept || 4}
+                  value={form.dept || ''}
                   onChange={(e) => updateForm('dept', Number(e.target.value))}
                   disabled={isLoading}
                 >
-                  <option value={1}>General Medicine</option>
-                  <option value={2}>Reception</option>
-                  <option value={3}>Logistics</option>
-                  <option value={4}>Homeopathy</option>
+                  <option value="">Select Department...</option>
+                  {depts.map((d: any) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
                 </select>
               </div>
               <div className="plat-form-group">

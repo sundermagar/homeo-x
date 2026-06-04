@@ -25,13 +25,21 @@ export class DispensaryRepositoryPg {
   constructor(private readonly db: DbClient) { }
 
   /**
-   * Get today's pending stickers.
-   * Matches legacy RefrencedetailsController::dailycollectionsticker()
+   * Helper to fetch stickers by lastval status
    */
-  async getPendingStickers(clinicId: number | null, date?: string): Promise<PendingStickerRow[]> {
-    const targetDate = date || new Date().toISOString().split('T')[0];
+  private async _getStickersByStatus(clinicId: number | null, lastvalValues: string[], date?: string): Promise<PendingStickerRow[]> {
+    let dateFilter = sql``;
+    if (date) {
+      dateFilter = sql`AND cp.dateval = ${date}`;
+    } else if (lastvalValues.includes('2')) {
+       // For dispensed, if no date is provided, default to today
+      dateFilter = sql`AND cp.dateval = ${new Date().toISOString().split('T')[0]}`;
+    }
 
-    // Note: In Postgres, aggregating JSON arrays needs to be careful with nulls, but we'll use json_agg
+    const lastvalCondition = lastvalValues.includes('0') 
+      ? sql`(cp.lastval = '0' OR cp.lastval IS NULL)`
+      : sql`cp.lastval IN ${lastvalValues}`;
+
     const rows = await this.db.execute(sql`
       SELECT 
         cp.rand_id,
@@ -56,9 +64,9 @@ export class DispensaryRepositoryPg {
       FROM case_potencies cp
       JOIN case_datas cd ON cd.regid = cp.regid
       LEFT JOIN courier_medicine cm ON cm.rand_id = cp.rand_id
-      WHERE cp.dateval = ${targetDate}
-        AND (cp.lastval = '0' OR cp.lastval IS NULL)
+      WHERE ${lastvalCondition}
         AND (cp.deleted_at IS NULL)
+        ${dateFilter}
         ${clinicId ? sql`AND (cd.clinic_id = ${clinicId} OR cd.clinic_id IS NULL)` : sql``}
       GROUP BY cp.rand_id, cp.regid, cd.first_name, cd.surname, cd.mobile1
       ORDER BY MAX(cp.created_at) DESC
@@ -79,12 +87,55 @@ export class DispensaryRepositoryPg {
   }
 
   /**
+   * Get today's pending stickers.
+   * Matches legacy RefrencedetailsController::dailycollectionsticker()
+   */
+  async getPendingStickers(clinicId: number | null, date?: string): Promise<PendingStickerRow[]> {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+
+    return this._getStickersByStatus(clinicId, ['0'], targetDate);
+  }
+
+  /**
+   * Get all data for the Dispensary Dashboard
+   */
+  async getDispensaryDashboard(clinicId: number | null): Promise<{ toPrepare: PendingStickerRow[], readyToHandover: PendingStickerRow[], dispensedToday: PendingStickerRow[], lowStock: any[] }> {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const [toPrepare, readyToHandover, dispensedToday, lowStockRows] = await Promise.all([
+      this._getStickersByStatus(clinicId, ['0']), // Prescriptions to prepare (all pending)
+      this._getStickersByStatus(clinicId, ['1']), // Ready to hand over
+      this._getStickersByStatus(clinicId, ['2'], today), // Dispensed today
+      this.db.execute(sql`SELECT name, quantity, category FROM stocks WHERE quantity <= 10 AND deleted_at IS NULL ORDER BY quantity ASC LIMIT 20`)
+    ]);
+
+    return {
+      toPrepare,
+      readyToHandover,
+      dispensedToday,
+      lowStock: lowStockRows
+    };
+  }
+
+  /**
    * Mark stickers as printed (lastval = 1)
    */
   async markStickersPrinted(randId: string): Promise<void> {
     await this.db.execute(sql`
       UPDATE case_potencies
       SET lastval = '1', updated_at = NOW()
+      WHERE rand_id = ${randId}
+    `);
+  }
+
+  /**
+   * Mark stickers as dispensed (lastval = 2)
+   */
+  async markStickersDispensed(randId: string): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    await this.db.execute(sql`
+      UPDATE case_potencies
+      SET lastval = '2', updated_at = NOW(), dateval = ${today}
       WHERE rand_id = ${randId}
     `);
   }

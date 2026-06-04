@@ -116,18 +116,27 @@ export function ClinicAdminDashboard() {
   const sublabel = period === 'day' ? 'TODAY' : period === 'week' ? 'WTD' : period === 'month' ? 'MTD' : 'YTD';
  
   return (
-    <div className="cad-root">
+    <div className="pp-page-container animate-fade-in">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="cad-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="cad-title">Overview</h1>
-          <p className="cad-subtitle">{weekLabel}</p>
+          <h1 className="pp-page-hero-title">Overview</h1>
+          <p className="pp-page-hero-sub">{weekLabel}</p>
         </div>
-        <div className="cad-period-tabs">
+        <div style={{ display: 'flex', gap: '4px', background: 'var(--pp-bg-subtle)', padding: '4px', borderRadius: '8px', border: '1px solid var(--pp-border)' }}>
           {(['day', 'week', 'month', 'year'] as Period[]).map(p => (
             <button
               key={p}
-              className={`cad-period-tab ${period === p ? 'active' : ''}`}
+              className={`btn-ghost ${period === p ? 'active' : ''}`}
+              style={{
+                padding: '4px 12px',
+                fontSize: '11px',
+                borderRadius: '6px',
+                background: period === p ? 'var(--pp-bg-surface)' : 'transparent',
+                color: period === p ? 'var(--pp-blue)' : 'var(--text-secondary)',
+                boxShadow: period === p ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                fontWeight: period === p ? 700 : 600,
+              }}
               onClick={() => setPeriod(p)}
             >
               {p.charAt(0).toUpperCase() + p.slice(1)}
@@ -137,7 +146,7 @@ export function ClinicAdminDashboard() {
       </div>
  
       {/* ── KPI Strip ───────────────────────────────────────────────────── */}
-      <div className="cad-kpi-strip">
+      <div className="pp-stat-grid" style={{ marginBottom: '24px' }}>
         <KPICard
           label="REVENUE"
           sublabel={sublabel}
@@ -415,8 +424,8 @@ export function ClinicAdminDashboard() {
                     <div 
                       key={q.id} 
                       className="cad-queue-item" 
-                      onClick={() => navigate(`/patients/${q.regid}`)}
-                      style={{ cursor: 'pointer' }}
+                      onClick={() => q.regid ? navigate(`/patients/${q.regid}`) : null}
+                      style={{ cursor: q.regid ? 'pointer' : 'default' }}
                     >
                       <div className="cad-queue-avatar">{q.patientName.charAt(0)}</div>
                       <div className="cad-queue-info">

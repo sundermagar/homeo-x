@@ -77,114 +77,115 @@ export default function PaymentsPage() {
   const manualCount     = filtered.filter(p => !p.orderId && !p.paymentId).length;
 
   return (
-    <div className="pp-page-container bill-page animate-fade-in">
+    <div className="pp-page-container animate-fade-in">
 
       {/* ─── Header ─── */}
-      <div className="bill-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="bill-header-title">
-            <Banknote size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
+          <h1 className="pp-page-hero-title">
+            <Banknote size={22} strokeWidth={1.8} />
             Payment Ledger
           </h1>
-          <p className="bill-header-sub">Transaction history, counter receipts and payment mode breakdown.</p>
+          <p className="pp-page-hero-sub">Transaction history, counter receipts and payment mode breakdown.</p>
         </div>
-        <div className="bill-header-actions">
-          <button className="bill-btn bill-btn-primary" id="btn-record-payment" onClick={() => setIsModalOpen(true)}>
-            <Plus size={14} strokeWidth={2} />
+        <div className="pp-page-hero-actions">
+          <button className="btn-primary" id="btn-record-payment" onClick={() => setIsModalOpen(true)}>
+            <Plus size={14} strokeWidth={1.6} />
             Record Payment
           </button>
         </div>
       </div>
 
       {/* ─── KPI Stats ─── */}
-      <div className="bill-stats-bar">
-        <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
-            <TrendingUp size={22} />
+      <div className="pp-stat-grid">
+        <div className="appt-stat-card">
+          <div className="appt-stat-icon-wrap" style={{ background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)' }}>
+            <TrendingUp size={18} />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="bill-stat-label">Total Collected</p>
-            <div className="bill-stat-value">₹{totalCollected.toLocaleString('en-IN')}</div>
-          </div>
-        </div>
-
-        <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
-            <Clock size={22} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="bill-stat-label">Pending Amount</p>
-            <div className="bill-stat-value">₹{totalPending.toLocaleString('en-IN')}</div>
+          <div>
+            <div className="appt-stat-label">Total Collected</div>
+            <div className="appt-stat-value">₹{totalCollected.toLocaleString('en-IN')}</div>
           </div>
         </div>
 
-        <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
-            <CheckCircle2 size={22} />
+        <div className="appt-stat-card">
+          <div className="appt-stat-icon-wrap" style={{ background: 'var(--pp-warning-bg)', color: 'var(--pp-warning-fg)' }}>
+            <Clock size={18} />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="bill-stat-label">Avg Ticket Size</p>
-            <div className="bill-stat-value">₹{avgTicket.toLocaleString('en-IN')}</div>
+          <div>
+            <div className="appt-stat-label">Pending Amount</div>
+            <div className="appt-stat-value">₹{totalPending.toLocaleString('en-IN')}</div>
           </div>
         </div>
 
-        <div className="bill-stat-card">
-          <div className="bill-stat-icon" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
-            <Wallet size={22} />
+        <div className="appt-stat-card">
+          <div className="appt-stat-icon-wrap" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
+            <CheckCircle2 size={18} />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="bill-stat-label">Counter / Manual</p>
-            <div className="bill-stat-value">{manualCount}</div>
+          <div>
+            <div className="appt-stat-label">Avg Ticket Size</div>
+            <div className="appt-stat-value">₹{avgTicket.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+
+        <div className="appt-stat-card">
+          <div className="appt-stat-icon-wrap" style={{ background: 'var(--pp-purple-tint)', color: 'var(--pp-purple)' }}>
+            <Wallet size={18} />
+          </div>
+          <div>
+            <div className="appt-stat-label">Counter / Manual</div>
+            <div className="appt-stat-value">{manualCount}</div>
           </div>
         </div>
       </div>
 
       {/* ─── Filters ─── */}
-      <div className="bill-filters" style={{ marginBottom: 'var(--pp-space-4)' }}>
-        <div className="bill-search-wrap">
-          <Search size={13} className="bill-search-icon" strokeWidth={2} />
+      <div className="pp-filter-card" style={{ marginBottom: '24px' }}>
+        <div className="pp-filter-search-wrap">
+          <Search size={14} strokeWidth={1.6} />
           <input
             id="payment-search-regid"
             type="text"
-            className="bill-filter-input bill-search-input"
-            style={{ width: '190px', fontFamily: 'var(--pp-font-mono)' }}
+            className="pp-filter-search-input"
             placeholder="Search Reg ID…"
             value={regidFilter}
             onChange={(e) => { setRegidFilter(e.target.value); setPage(1); }}
           />
         </div>
-        <input
-          type="date"
-          className="bill-filter-input"
-          style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.8rem' }}
-          value={fromDate}
-          onChange={e => setFromDate(e.target.value)}
-          title="From date"
-        />
-        <input
-          type="date"
-          className="bill-filter-input"
-          style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.8rem' }}
-          value={toDate}
-          onChange={e => setToDate(e.target.value)}
-          title="To date"
-        />
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input
+            type="date"
+            className="pp-input"
+            style={{ width: 'auto' }}
+            value={fromDate}
+            onChange={e => setFromDate(e.target.value)}
+            title="From date"
+          />
+          <input
+            type="date"
+            className="pp-input"
+            style={{ width: 'auto' }}
+            value={toDate}
+            onChange={e => setToDate(e.target.value)}
+            title="To date"
+          />
+        </div>
         {(fromDate || toDate || regidFilter) && (
           <button
-            className="bill-btn bill-btn-sm"
+            className="btn-secondary"
             onClick={() => { setFromDate(''); setToDate(''); setRegidFilter(''); setPage(1); }}
             title="Clear filters"
           >
-            <X size={12} strokeWidth={2.5} /> Clear
+            Clear
           </button>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--pp-text-3)', fontFamily: 'var(--pp-font-mono)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: '13px', color: 'var(--text-muted)' }}>
           {filtered.length} record{filtered.length !== 1 ? 's' : ''}
         </span>
       </div>
 
       {historyQuery.isLoading ? (
-        <TableSkeleton rows={10} columns={7} />
+        <TableSkeleton rows={10} cols={7} />
       ) : filtered.length === 0 ? (
         <EmptyState 
           icon={Banknote}
@@ -196,13 +197,13 @@ export default function PaymentsPage() {
           className="my-8"
         />
       ) : (
-        <div className="bill-card fade-in" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
-          <div className="bill-table-container">
-            <table className="bill-table">
+        <div className="appt-card">
+          <div className="pp-table-scroll">
+            <table className="pp-table">
               <thead>
                 <tr>
                   <th style={{ width: 60 }}>#</th>
-                  <th style={{ width: 130 }}>Date & Time</th>
+                  <th style={{ width: 130 }}>Date &amp; Time</th>
                   <th>Patient</th>
                   <th style={{ width: 130 }}>Amount</th>
                   <th style={{ width: 110 }}>Mode</th>

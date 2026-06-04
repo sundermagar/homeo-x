@@ -83,25 +83,50 @@ export class StaffRepositoryPg implements StaffRepository {
     const sortDir = (sortOrder === 'ASC' || sortOrder === 'DESC') ? sortOrder : (sortBy === 'name' ? 'ASC' : 'DESC');
 
     // We only select columns confirmed to exist in the legacy schema
-    const rows = await this.db.execute(sql`
-      SELECT ${colFragment}, u.hpr_id,
-             (CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = ${table} AND column_name = 'clinic_id') 
-                   THEN s.clinic_id ELSE NULL END) as clinic_id
-      FROM ${sql.identifier(table)} s
-      LEFT JOIN users u ON u.id = s.id
-      WHERE (s.deleted_at IS NULL OR s.deleted_at::text = '')
-      ${searchSafe ? sql`AND (s.name ILIKE ${searchSafe} OR s.email ILIKE ${searchSafe} OR s.mobile ILIKE ${searchSafe})` : sql``}
-      ${clinicId ? sql`AND s.clinic_id = ${clinicId}` : sql``}
-      ORDER BY s.${sql.identifier(sortCol)} ${sql.raw(sortDir)}
-      LIMIT ${limit} OFFSET ${offset}
-    `);
+    let rows;
+    let countResult;
 
-    const countResult = await this.db.execute(sql`
-      SELECT count(*)::int as count FROM ${sql.identifier(table)}
-      WHERE (deleted_at IS NULL OR deleted_at::text = '')
-      ${searchSafe ? sql`AND (name ILIKE ${searchSafe} OR email ILIKE ${searchSafe} OR mobile ILIKE ${searchSafe})` : sql``}
-      ${clinicId ? sql`AND clinic_id = ${clinicId}` : sql``}
-    `);
+    try {
+      // First try with clinic_id (for schemas that have it)
+      rows = await this.db.execute(sql`
+        SELECT ${colFragment}, u.hpr_id, s.clinic_id
+        FROM ${sql.identifier(table)} s
+        LEFT JOIN users u ON u.id = s.id
+        WHERE (s.deleted_at IS NULL OR s.deleted_at::text = '')
+        ${searchSafe ? sql`AND (s.name ILIKE ${searchSafe} OR s.email ILIKE ${searchSafe} OR s.mobile ILIKE ${searchSafe})` : sql``}
+        ${clinicId ? sql`AND s.clinic_id = ${clinicId}` : sql``}
+        ORDER BY s.${sql.identifier(sortCol)} ${sql.raw(sortDir)}
+        LIMIT ${limit} OFFSET ${offset}
+      `);
+
+      countResult = await this.db.execute(sql`
+        SELECT count(*)::int as count FROM ${sql.identifier(table)} s
+        WHERE (s.deleted_at IS NULL OR s.deleted_at::text = '')
+        ${searchSafe ? sql`AND (s.name ILIKE ${searchSafe} OR s.email ILIKE ${searchSafe} OR s.mobile ILIKE ${searchSafe})` : sql``}
+        ${clinicId ? sql`AND s.clinic_id = ${clinicId}` : sql``}
+      `);
+    } catch (err: any) {
+      // If clinic_id does not exist, fallback to querying without it
+      if (err.message && err.message.includes('clinic_id')) {
+        rows = await this.db.execute(sql`
+          SELECT ${colFragment}, u.hpr_id, NULL as clinic_id
+          FROM ${sql.identifier(table)} s
+          LEFT JOIN users u ON u.id = s.id
+          WHERE (s.deleted_at IS NULL OR s.deleted_at::text = '')
+          ${searchSafe ? sql`AND (s.name ILIKE ${searchSafe} OR s.email ILIKE ${searchSafe} OR s.mobile ILIKE ${searchSafe})` : sql``}
+          ORDER BY s.${sql.identifier(sortCol)} ${sql.raw(sortDir)}
+          LIMIT ${limit} OFFSET ${offset}
+        `);
+
+        countResult = await this.db.execute(sql`
+          SELECT count(*)::int as count FROM ${sql.identifier(table)} s
+          WHERE (s.deleted_at IS NULL OR s.deleted_at::text = '')
+          ${searchSafe ? sql`AND (s.name ILIKE ${searchSafe} OR s.email ILIKE ${searchSafe} OR s.mobile ILIKE ${searchSafe})` : sql``}
+        `);
+      } else {
+        throw err;
+      }
+    }
 
     return {
       data: (rows as any[]).map((r: any) => this.toSummary(r, category)),

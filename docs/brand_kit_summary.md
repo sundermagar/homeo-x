@@ -1,11 +1,11 @@
-# Paperplane Brand Kit v2.0 Summary
+#  Brand Kit v2.0 Summary
 
-This document captures the design system and brand identity guidelines for Paperplane (rebranded MMC).
+This document captures the design system and brand identity guidelines for  (rebranded MMC).
 
 ## 🎨 Colour System
 
 ### Primary Accent
-- **Paperplane Blue**: `#2563EB`
+- ** Blue**: `#2563EB`
   - Tint / Light Fill: `#EFF6FF`
   - Border / Ring: `#BFDBFE`
   - Hover: `#1D4ED8`

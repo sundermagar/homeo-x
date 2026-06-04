@@ -1,6 +1,6 @@
 /*
-  PAPERPLANE PLATFORM DESIGN SYSTEM v2.0 (MODERNIZED)
-  Source: Paperplane Brand Kit v2.0
+   PLATFORM DESIGN SYSTEM v2.0 (MODERNIZED)
+  Source:  Brand Kit v2.0
   Philosophy: Clinical Precision & High-Density Efficiency
 */
 :root {
@@ -8,6 +8,7 @@
   --pp-transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --pp-shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
 }
+
 /* ─── Layout & Page Surface ─── */
 .plat-page {
   padding: 0;
@@ -18,12 +19,14 @@
   color: var(--pp-ink);
   font-family: var(--pp-font-sans);
 }
+
 .plat-header {
   display: flex;
   flex-direction: column;
   gap: var(--pp-space-3);
   margin-bottom: var(--pp-space-6);
 }
+
 @media (min-width: 768px) {
   .plat-header {
     flex-direction: row;
@@ -31,6 +34,7 @@
     align-items: center;
   }
 }
+
 .plat-header-title {
   font-family: var(--pp-font-sans);
   font-size: 17px;
@@ -42,12 +46,14 @@
   gap: var(--pp-space-2);
   letter-spacing: -0.01em;
 }
+
 .plat-header-sub {
   font-size: 13px;
   color: var(--pp-text-3);
   margin-top: 2px;
   font-weight: 500;
 }
+
 /* ─── Statistics & Metrics ─── */
 .plat-stats-bar {
   display: grid;
@@ -55,6 +61,7 @@
   gap: var(--pp-space-4);
   margin-bottom: var(--pp-space-6);
 }
+
 .plat-stat-card {
   background: var(--bg-card);
   border: 1px solid var(--pp-warm-4);
@@ -67,11 +74,13 @@
   box-shadow: var(--pp-shadow-sm);
   transition: all var(--transition-normal);
 }
+
 .plat-stat-card:hover {
   transform: translateY(-1px);
   border-color: var(--pp-blue-border);
   box-shadow: var(--pp-shadow-md);
 }
+
 .plat-stat-label {
   font-size: 10px;
   /* Brand Kit v2.0: Section Labels */
@@ -80,6 +89,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
 .plat-stat-value {
   font-size: 22px;
   /* Brand Kit v2.0: KPI Values */
@@ -87,23 +97,29 @@
   font-family: var(--pp-font-sans);
   color: var(--pp-ink);
 }
+
 .plat-stat-value-primary {
   color: var(--pp-blue);
 }
+
 .plat-stat-value-success {
   color: var(--pp-success-fg);
 }
+
 .plat-stat-value-danger {
   color: var(--pp-danger-fg);
 }
+
 .plat-stat-value-warning {
   color: #d97706;
 }
+
 .plat-stat-subvalue {
   font-size: 11px;
   font-weight: 500;
   color: var(--pp-text-3);
 }
+
 /* ─── Search & Filters ─── */
 .plat-filters {
   display: flex;
@@ -112,11 +128,13 @@
   align-items: center;
   margin-bottom: var(--pp-space-4);
 }
+
 .plat-search-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
+
 .plat-search-icon {
   position: absolute;
   left: 11px;
@@ -124,9 +142,11 @@
   pointer-events: none;
   z-index: 1;
 }
+
 .plat-search-input {
   padding-left: 34px !important;
 }
+
 /* ─── Form Input Wrappers (Icons Inside Inputs) ─── */
 .plat-input-wrapper {
   position: relative;
@@ -134,6 +154,7 @@
   align-items: center;
   width: 100%;
 }
+
 .plat-input-icon {
   position: absolute;
   left: 12px;
@@ -142,14 +163,17 @@
   z-index: 1;
   transition: color var(--transition-fast);
 }
+
 .plat-input-wrapper:focus-within .plat-input-icon {
   color: var(--pp-blue);
 }
+
 .plat-input-wrapper .plat-form-input,
 .plat-input-wrapper .plat-form-select {
   padding-left: 36px;
   width: 100%;
 }
+
 .plat-form-input,
 .plat-form-select,
 .plat-filter-input {
@@ -165,22 +189,26 @@
   transition: border-color 0.15s, box-shadow 0.15s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
+
 .plat-form-input:hover,
 .plat-form-select:hover,
 .plat-filter-input:hover {
   border-color: var(--pp-blue-border);
 }
+
 .plat-form-input:focus,
 .plat-form-select:focus,
 .plat-filter-input:focus {
   border-color: var(--pp-blue);
   box-shadow: 0 0 0 3px var(--pp-blue-tint);
 }
+
 .plat-form-input::placeholder,
 .plat-filter-input::placeholder {
   color: var(--pp-text-4);
   font-size: 12.5px;
 }
+
 /* ─── Cards & Containers ─── */
 .plat-card {
   background: var(--bg-card);
@@ -189,6 +217,7 @@
   overflow: hidden;
   box-shadow: var(--pp-shadow-sm);
 }
+
 .plat-card-header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--pp-warm-4);
@@ -197,11 +226,13 @@
   justify-content: space-between;
   align-items: center;
 }
+
 .plat-card-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--pp-ink);
 }
+
 /* ─── Modern Tables (High Density) ─── */
 .plat-table-container {
   width: 100%;
@@ -210,10 +241,12 @@
   border: 1px solid var(--pp-warm-4);
   background: var(--bg-card);
 }
+
 .plat-table {
   width: 100%;
   border-collapse: collapse;
 }
+
 .plat-table th {
   text-align: left;
   font-size: 10px;
@@ -227,6 +260,7 @@
   border-bottom: 1px solid var(--pp-warm-4);
   white-space: nowrap;
 }
+
 .plat-table td {
   padding: 6px 14px;
   /* Natural density */
@@ -238,32 +272,39 @@
   vertical-align: middle;
   color: var(--pp-text-2);
 }
+
 .plat-table-row:hover td {
   background: var(--pp-warm-1);
 }
+
 .plat-table-row:last-child td {
   border-bottom: none;
 }
+
 /* ─── Actions Column Alignment ─── */
 .plat-table th:last-child,
 .plat-table td:last-child {
   text-align: center;
   width: 100px;
 }
+
 .plat-table td:last-child .plat-cell-val {
   display: flex;
   justify-content: center;
   align-items: center;
 }
-.plat-table td:last-child .plat-cell-val > div {
+
+.plat-table td:last-child .plat-cell-val>div {
   justify-content: center;
 }
+
 .plat-mono-data {
   font-family: var(--pp-font-mono);
   font-size: 12px;
   letter-spacing: -0.01em;
   color: var(--pp-ink);
 }
+
 /* ─── View Toggle System (High Density) ─── */
 .plat-view-toggle-group {
   display: inline-flex;
@@ -275,6 +316,7 @@
   height: 32px;
   align-items: center;
 }
+
 .plat-view-toggle-btn {
   padding: 0 12px;
   height: 26px;
@@ -292,15 +334,18 @@
   justify-content: center;
   gap: 6px;
 }
+
 .plat-view-toggle-btn:hover {
   color: var(--pp-ink);
   background: rgba(255, 255, 255, 0.4);
 }
+
 .plat-view-toggle-btn.is-active {
   background: var(--bg-card);
   color: var(--pp-blue);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
+
 /* ─── Buttons (Brand Kit v2.0) ─── */
 .plat-btn {
   display: inline-flex;
@@ -320,14 +365,17 @@
   white-space: nowrap;
   outline: none;
 }
+
 .plat-btn:hover:not(:disabled) {
   background: var(--pp-warm-1);
   border-color: var(--pp-warm-4);
   box-shadow: var(--pp-shadow-sm);
 }
+
 .plat-btn:focus-visible {
   box-shadow: 0 0 0 2px white, 0 0 0 4px var(--pp-blue-border);
 }
+
 .plat-btn-primary {
   background: var(--pp-blue);
   color: white;
@@ -335,6 +383,7 @@
   font-weight: 600;
   box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
 }
+
 .plat-btn-primary:hover:not(:disabled) {
   background: var(--pp-blue-hover);
   border-color: var(--pp-blue-hover);
@@ -342,6 +391,7 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
   transform: translateY(-1px);
 }
+
 /* ─── View Toggle System (High Density Designer) ─── */
 .plat-view-toggle-group {
   display: inline-flex;
@@ -354,6 +404,7 @@
   align-items: center;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
 }
+
 .plat-view-toggle-btn {
   padding: 0 16px;
   height: 32px;
@@ -371,50 +422,61 @@
   justify-content: center;
   gap: 8px;
 }
+
 .plat-view-toggle-btn:hover {
   color: var(--pp-ink);
   background: rgba(255, 255, 255, 0.5);
 }
+
 .plat-view-toggle-btn.is-active {
   background: var(--bg-card);
   color: var(--pp-blue);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
   transform: translateY(-0.5px);
 }
+
 .plat-view-toggle-btn.is-active lucide {
   color: var(--pp-blue);
 }
+
 .plat-btn-ghost {
   background: transparent;
   /* border-color: transparent; */
   color: var(--pp-text-3);
 }
+
 .plat-btn-ghost:hover:not(:disabled) {
   background: var(--pp-warm-2);
   color: var(--pp-ink);
 }
+
 .plat-btn-danger {
   color: var(--pp-danger-fg);
   border-color: var(--pp-warm-4);
 }
+
 .plat-btn-danger:hover:not(:disabled) {
   background: var(--pp-danger-bg);
   border-color: var(--pp-danger-fg);
   color: var(--pp-danger-fg);
 }
+
 .plat-btn-ghost-danger {
   background: transparent;
   border-color: transparent;
   color: var(--pp-danger-fg);
 }
+
 .plat-btn-ghost-danger:hover:not(:disabled) {
   background: var(--pp-danger-bg);
   color: var(--pp-danger-fg);
 }
+
 .plat-btn-sm {
   padding: 4px 10px;
   font-size: 11px;
 }
+
 .plat-btn-icon {
   padding: 0;
   width: 32px;
@@ -425,10 +487,12 @@
   justify-content: center;
   flex-shrink: 0;
 }
+
 .plat-btn-icon lucide {
   width: 14px;
   height: 14px;
 }
+
 /* ─── Badges & Status (Brand Kit v2.0) ─── */
 .plat-badge {
   display: inline-flex;
@@ -440,22 +504,27 @@
   font-weight: 600;
   text-transform: capitalize;
 }
+
 .plat-badge-success {
   background: var(--pp-success-bg);
   color: var(--pp-success-fg);
 }
+
 .plat-badge-danger {
   background: var(--pp-danger-bg);
   color: var(--pp-danger-fg);
 }
+
 .plat-badge-warning {
   background: var(--pp-warning-bg);
   color: var(--pp-warning-fg);
 }
+
 .plat-badge-info {
   background: var(--pp-blue-tint);
   color: var(--pp-blue);
 }
+
 /* ─── All Users Page Specifics ─── */
 .user-cell {
   display: flex;
@@ -569,6 +638,7 @@
   align-items: center;
   gap: 4px;
 }
+
 /* ─── Audit Logs Specifics ─── */
 .audit-list {
   display: flex;
@@ -671,6 +741,7 @@
   top: 20px;
   right: 20px;
 }
+
 /* ─── Modals ─── */
 .plat-modal-backdrop,
 .plat-modal-overlay {
@@ -684,6 +755,7 @@
   z-index: 1000;
   padding: 24px;
 }
+
 .plat-modal-content,
 .plat-modal {
   background: var(--bg-card);
@@ -697,16 +769,19 @@
   display: flex;
   flex-direction: column;
 }
+
 @keyframes platModalIn {
   from {
     opacity: 0;
     transform: translateY(10px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
+
 .plat-modal-header {
   padding: 16px 20px;
   border-bottom: 1px solid var(--pp-warm-4);
@@ -714,14 +789,17 @@
   justify-content: space-between;
   align-items: center;
 }
+
 .plat-modal-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--pp-ink);
 }
+
 .plat-modal-body {
   padding: 20px;
 }
+
 .plat-modal-footer {
   padding: 16px 20px;
   border-top: 1px solid var(--pp-warm-4);
@@ -729,6 +807,7 @@
   gap: 12px;
   justify-content: flex-end;
 }
+
 /* ─── Grid Form Layouts ─── */
 .plat-form-grid-multi {
   display: grid;
@@ -737,12 +816,14 @@
   margin-bottom: 8px;
   align-items: start;
 }
+
 .plat-form-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-height: 64px;
 }
+
 .plat-form-label {
   font-size: 10px;
   font-weight: 700;
@@ -751,12 +832,14 @@
   letter-spacing: 0.05em;
   margin-bottom: 2px;
 }
+
 .plat-form-error {
   font-size: 11px;
   color: var(--pp-danger-fg);
   font-weight: 500;
   margin-top: 2px;
 }
+
 .plat-error-banner {
   padding: 10px 14px;
   background: var(--pp-danger-bg);
@@ -767,6 +850,7 @@
   font-weight: 500;
   margin-bottom: 20px;
 }
+
 .plat-form-section {
   padding: 24px;
   background: var(--bg-card);
@@ -775,6 +859,7 @@
   margin-bottom: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
+
 .plat-form-section-title {
   font-size: 15px;
   font-weight: 600;
@@ -786,6 +871,7 @@
   align-items: center;
   gap: 8px;
 }
+
 .plat-form-section-title::before {
   content: '';
   width: 4px;
@@ -793,6 +879,7 @@
   background: var(--pp-blue);
   border-radius: 2px;
 }
+
 /* ─── File Upload styling ─── */
 .plat-file-input-wrapper {
   position: relative;
@@ -800,6 +887,7 @@
   align-items: center;
   margin-top: 4px;
 }
+
 .plat-file-input-wrapper input[type="file"] {
   position: absolute;
   top: 0;
@@ -809,6 +897,7 @@
   opacity: 0;
   cursor: pointer;
 }
+
 .plat-file-trigger {
   display: flex;
   align-items: center;
@@ -825,10 +914,12 @@
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .plat-file-trigger:hover {
   background-color: var(--pp-warm-2);
   border-color: var(--pp-blue);
 }
+
 .plat-file-preview {
   display: flex;
   align-items: center;
@@ -839,6 +930,7 @@
   border: 1px solid var(--pp-warm-3);
   border-radius: var(--pp-radius-sm);
 }
+
 .plat-file-preview-name {
   font-size: 11px;
   color: var(--pp-text-2);
@@ -847,6 +939,7 @@
   text-overflow: ellipsis;
   max-width: 180px;
 }
+
 .plat-file-preview-image {
   width: 32px;
   height: 32px;
@@ -854,14 +947,17 @@
   object-fit: cover;
   border: 1px solid var(--pp-warm-4);
 }
+
 /* ─── Mobile Responsiveness & Optimization (Brand Kit v2.0 Mobile) ─── */
 @media (max-width: 640px) {
+
   .plat-modal-backdrop,
   .plat-modal-overlay {
     padding: 12px;
     align-items: flex-end;
     /* Push to bottom on mobile for better thumb reach */
   }
+
   .plat-modal-content,
   .plat-modal {
     max-height: 95vh;
@@ -871,121 +967,149 @@
     /* Pull into padding for "bottom sheet" feel */
     width: 100%;
   }
+
   .plat-modal-header {
     padding: 12px 16px;
   }
+
   .plat-modal-body {
     padding: 16px;
   }
+
   .plat-modal-footer {
     padding: 12px 16px;
     flex-direction: column-reverse;
     /* Stack buttons, Save on top (reverse since row-reverse/end) */
     gap: 8px;
   }
+
   .plat-modal-footer .plat-btn {
     width: 100%;
     height: 40px;
     /* Larger hit area on mobile */
   }
+
   /* ─── Mobile Metric Optimization ─── */
   .plat-stats-bar {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     margin-bottom: 20px;
   }
+
   .plat-stat-card {
     padding: 10px 14px;
     gap: 2px;
   }
+
   .plat-stat-label {
     font-size: 9px;
     opacity: 0.8;
   }
+
   .plat-stat-value {
     font-size: 18px;
   }
+
   .plat-form-section {
     padding: 16px;
     margin-bottom: 16px;
   }
+
   .plat-form-section-title {
     font-size: 13px;
     margin-bottom: 16px;
   }
+
   /* Force single column and override spans */
   .plat-form-grid-multi {
     grid-template-columns: 1fr;
     gap: 12px;
   }
+
   .plat-form-grid-multi>* {
     grid-column: span 1 !important;
   }
+
   .plat-form-group {
     min-height: auto;
     margin-bottom: 4px;
   }
+
   .plat-header {
     margin-bottom: 16px;
     gap: 4px;
   }
+
   .plat-header-title {
     font-size: 15px;
   }
+
   .plat-header-sub {
     font-size: 11.5px;
     opacity: 0.9;
   }
 }
+
 /* Fix for horizontal scroll issues in tables on small screens */
 @media (max-width: 480px) {
   .plat-page {
     padding: 10px;
   }
+
   .plat-stats-bar {
     gap: 8px;
     margin-bottom: 16px;
   }
+
   .plat-filters {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
     margin-bottom: 12px;
   }
+
   .plat-search-wrap {
     max-width: none;
   }
+
   .plat-card-header {
     padding: 10px 14px;
     flex-wrap: wrap;
     gap: 12px;
   }
+
   .plat-card-title {
     font-size: 13px;
   }
+
   .hide-mobile {
     display: none !important;
   }
+
   .show-mobile {
     display: flex !important;
   }
 }
+
 .plat-card-header-actions {
   display: flex;
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
 }
+
 @media (min-width: 641px) {
   .show-mobile {
     display: none !important;
   }
 }
+
 /* ─── Practitioner Profile System (High-Density) ─── */
 .plat-profile-page {
   min-height: 100vh;
   background-color: var(--pp-warm-1);
 }
+
 .plat-profile-header {
   min-height: 70px;
   background: rgba(255, 255, 255, 0.85);
@@ -1000,28 +1124,33 @@
   padding: 12px 0;
   box-shadow: 0 4px 24px -6px rgba(0, 0, 0, 0.04);
 }
+
 .plat-profile-container {
   padding: 0 var(--pp-space-4);
   width: 100%;
 }
+
 .plat-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--pp-space-4);
   padding: var(--pp-space-4) 0;
 }
+
 @media (min-width: 768px) {
   .plat-grid {
     gap: var(--pp-space-6);
     padding: var(--pp-space-6) 0;
   }
 }
+
 @media (min-width: 1024px) {
   .plat-grid {
     grid-template-columns: 320px 1fr;
     align-items: start;
   }
 }
+
 .plat-profile-card {
   background: linear-gradient(160deg, #ffffff 0%, #fafafa 100%);
   border: 1px solid var(--pp-warm-3);
@@ -1032,27 +1161,32 @@
   box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.04), 0 12px 24px -12px rgba(0, 0, 0, 0.02);
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
 .plat-profile-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.08), 0 20px 48px -12px rgba(0, 0, 0, 0.04);
   border-color: var(--pp-blue-tint);
 }
+
 @media (min-width: 640px) {
   .plat-profile-card {
     padding: var(--pp-space-6);
   }
 }
+
 .plat-profile-title {
   font-size: 16px;
   font-weight: 800;
   color: var(--pp-ink);
   letter-spacing: -0.02em;
 }
+
 @media (min-width: 640px) {
   .plat-profile-title {
     font-size: 20px;
   }
 }
+
 .plat-profile-section-title {
   display: flex;
   align-items: center;
@@ -1064,12 +1198,14 @@
   letter-spacing: 0.05em;
   margin-bottom: var(--pp-space-4);
 }
+
 @media (min-width: 640px) {
   .plat-profile-section-title {
     font-size: 13px;
     margin-bottom: var(--pp-space-6);
   }
 }
+
 .plat-profile-label {
   font-size: 8px;
   font-weight: 700;
@@ -1079,26 +1215,31 @@
   display: block;
   margin-bottom: 2px;
 }
+
 @media (min-width: 640px) {
   .plat-profile-label {
     font-size: 10px;
     margin-bottom: 4px;
   }
 }
+
 .plat-profile-value {
   font-size: 12px;
   font-weight: 700;
   color: var(--pp-ink);
 }
+
 @media (min-width: 640px) {
   .plat-profile-value {
     font-size: 13px;
   }
 }
+
 .plat-profile-mono {
   font-family: var(--pp-font-mono);
   letter-spacing: -0.01em;
 }
+
 .plat-doc-item {
   display: flex;
   align-items: center;
@@ -1110,17 +1251,20 @@
   transition: all 0.25s ease;
   box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.02);
 }
+
 @media (min-width: 640px) {
   .plat-doc-item {
     padding: 10px 12px;
   }
 }
+
 .plat-doc-item:hover {
   background: var(--bg-card);
   border-color: var(--pp-blue);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
   transform: translateX(2px);
 }
+
 .plat-doc-icon {
   width: 24px;
   height: 24px;
@@ -1132,6 +1276,7 @@
   color: var(--pp-text-3);
   box-shadow: inset 0 0 0 1px var(--pp-warm-4);
 }
+
 @media (min-width: 640px) {
   .plat-doc-icon {
     width: 28px;
@@ -1139,23 +1284,28 @@
     border-radius: 8px;
   }
 }
+
 /* ─── Specialty Utilities ─── */
 .plat-capitalize {
   text-transform: capitalize;
 }
+
 .animate-fade-in {
   animation: plat-fadeIn 0.3s ease-out forwards;
 }
+
 @keyframes plat-fadeIn {
   from {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 /* ─── Empty States ─── */
 .plat-empty {
   display: flex;
@@ -1168,43 +1318,51 @@
   min-height: 200px;
   width: 100%;
 }
+
 .plat-empty-icon {
   margin-bottom: 16px;
   color: var(--pp-text-4);
   opacity: 0.6;
 }
+
 .plat-empty-text {
   font-size: 14px;
   font-weight: 500;
   color: var(--pp-text-3);
   margin: 0;
 }
+
 @keyframes floatAvatar {
   0% {
     transform: translateY(0) scale(1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
+
   50% {
     transform: translateY(-8px) scale(1.02);
     box-shadow: 0 16px 32px -8px rgba(37, 99, 235, 0.2);
   }
+
   100% {
     transform: translateY(0) scale(1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 }
+
 .anim-float-avatar {
   animation: floatAvatar 4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
   transform-origin: center center;
   transition: all 0.3s ease;
   will-change: transform, box-shadow;
 }
+
 .anim-float-avatar:hover {
   animation-play-state: paused;
   transform: scale(1.06) translateY(-4px);
   box-shadow: 0 20px 40px -8px rgba(37, 99, 235, 0.25);
   border-color: var(--pp-blue-tint) !important;
 }
+
 /* ─── Pagination ─── */
 .plat-pagination-center {
   display: flex;
@@ -1216,6 +1374,7 @@
   border: 1px solid var(--pp-warm-4);
   box-shadow: var(--pp-shadow-sm);
 }
+
 .plat-pagination-info {
   font-size: 12px;
   color: var(--pp-text-3);
@@ -1223,16 +1382,19 @@
   min-width: 100px;
   text-align: center;
 }
+
 .plat-pagination-info strong {
   color: var(--pp-ink);
   font-weight: 700;
 }
+
 /* ─── Pagination Pill (Premium v2.0) ─── */
 .plat-pagination-container {
   display: flex;
   justify-content: center;
   width: 100%;
 }
+
 .plat-pagination-pill {
   display: inline-flex;
   align-items: center;
@@ -1244,6 +1406,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   margin-top: 32px;
 }
+
 .plat-pagination-btn {
   height: 32px;
   padding: 0 16px;
@@ -1260,16 +1423,19 @@
   cursor: pointer;
   outline: none;
 }
+
 .plat-pagination-btn:hover:not(:disabled) {
   background: #f8fafc;
   color: #1e293b;
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
+
 .plat-pagination-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
+
 .plat-pagination-info {
   font-size: 13px;
   font-weight: 400;
@@ -1280,27 +1446,32 @@
   padding: 0 8px;
   user-select: none;
 }
+
 .plat-pagination-info b {
   color: #1e293b;
   font-weight: 700;
 }
+
 /* skeleton-box uses global background-position animation from index.css */
 .skeleton-box {
   display: inline-block;
   position: relative;
   border-radius: 4px;
 }
+
 .skeleton-text {
   height: 12px;
   width: 100%;
   margin-bottom: 8px;
   border-radius: 2px;
 }
+
 .skeleton-text.title {
   height: 24px;
   width: 40%;
   margin-bottom: 12px;
 }
+
 /* ─── Pagination (Unified v2.0) ────────────────────────────────────────────── */
 .plat-pagination-bar {
   display: flex;
@@ -1311,16 +1482,19 @@
   border-top: 1px solid var(--pp-warm-4);
   border-radius: 0 0 14px 14px;
 }
+
 .plat-pagination-info-wrap {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .plat-pagination-info {
   font-size: 13px;
   color: var(--text-muted);
   font-weight: 500;
 }
+
 .plat-pagination-limit {
   height: 32px;
   padding: 0 8px;
@@ -1332,11 +1506,13 @@
   outline: none;
   cursor: pointer;
 }
+
 .plat-pagination-controls {
   display: flex;
   align-items: center;
   gap: 6px;
 }
+
 .plat-pagination-btn,
 .plat-pagination-page {
   width: 32px;
@@ -1354,16 +1530,19 @@
   transition: all 0.2s ease;
   padding: 0;
 }
+
 .plat-pagination-btn:hover:not(:disabled),
 .plat-pagination-page:hover:not(.is-active) {
   background: #f8fafc;
   border-color: #cbd5e1;
   color: #334155;
 }
+
 .plat-pagination-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
 .plat-pagination-page.is-active {
   background: #334155;
   border-color: #334155;
@@ -1372,9 +1551,11 @@
   font-weight: 600;
   color: var(--pp-ink);
 }
+
 .dark .plat-checkbox-group {
   background: var(--pp-warm-3);
 }
+
 .dark .plat-checkbox-group:hover {
   background: var(--pp-warm-4);
   border-color: var(--pp-blue);

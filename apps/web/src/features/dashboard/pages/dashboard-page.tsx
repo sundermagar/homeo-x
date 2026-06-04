@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { Role } from '@mmc/types';
 // ── Lazy-loaded dashboard variants ──────────────────────────────────────────
@@ -59,6 +60,8 @@ export default function DashboardPage() {
     case Role.Receptionist:
       DashboardComponent = ReceptionistDashboard;
       break;
+    case Role.Dispensary:
+      return <Navigate to="/dispensary-dashboard" replace />;
     default:
       // Fallback to Admin Dashboard for other roles (Account, etc.)
       DashboardComponent = AdminDashboard;

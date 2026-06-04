@@ -168,7 +168,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: '/',
       label: 'Dashboard',
       icon: LayoutDashboard,
-      roles: ['SuperAdmin', ...ALL],
+      roles: ['SuperAdmin', ...ALL, 'Dispensary'],
     },
     {
       type: 'link',

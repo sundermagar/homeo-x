@@ -1,5 +1,5 @@
 /* 
-  Paperplane Design System v2.0 — MMC
+   Design System v2.0 — MMC
   Strategy: Mobile-first, CSS Variables, Vanilla CSS
   All patient module classes are defined here.
 */
@@ -110,7 +110,7 @@
   --font-size-sm: 0.875rem;
   --font-size-lg: 1.125rem;
 
-  /* ─── Shadows (Paperplane Clinical) ────────────────────────────────────────── */
+  /* ─── Shadows ( Clinical) ────────────────────────────────────────── */
   --pp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --pp-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
   --pp-shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.06);
@@ -460,12 +460,15 @@
 /* ─── Global Scrollbar Hiding ─── */
 /* Hide scrollbars everywhere while keeping scroll functionality */
 * {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
 }
 
 *::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
 html,
@@ -1979,7 +1982,7 @@ a {
   border-radius: var(--pp-radius-btn);
 }
 
-/* ─── Buttons (Paperplane v2.0) ─── */
+/* ─── Buttons ( v2.0) ─── */
 .pp-btn {
   display: inline-flex;
   align-items: center;

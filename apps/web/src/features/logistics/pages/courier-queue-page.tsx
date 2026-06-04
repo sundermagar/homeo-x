@@ -10,6 +10,8 @@ import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { NumericInput } from '@/shared/components/NumericInput';
+import { EmptyState } from '@/components/shared/empty-state';
+import { Drawer } from '@/shared/components/drawer';
 import './courier-queue-page.css';
 
 interface CourierEntry {
@@ -188,43 +190,55 @@ export function CourierQueuePage() {
   const assignedCount = queue.filter(e => e.isAssign === 1).length;
 
   return (
-    <div className="courier-queue-page">
+    <div className="pp-page-container animate-fade-in">
       {/* Header */}
-      <div className="courier-header">
-        <div className="courier-header-left">
-          <div>
-            <h1 className="courier-title">Dispatch Queue</h1>
-            <p className="courier-subtitle">Manage medicine dispatch and patient pickups</p>
-          </div>
+      <div className="pp-page-hero">
+        <div>
+          <h1 className="pp-page-hero-title">
+            <Truck size={22} strokeWidth={1.8} />
+            Dispatch Queue
+          </h1>
+          <p className="pp-page-hero-sub">Manage medicine dispatch and patient pickups</p>
         </div>
-        <div className="courier-header-right">
-          <div className="courier-stat courier-stat-pending">
-            <Clock size={14} />
-            <span>{pendingCount} Pending</span>
+        <div className="pp-page-hero-actions" style={{ display: 'flex', gap: '16px' }}>
+          <div className="appt-stat-card" style={{ padding: '8px 12px', background: 'var(--pp-warning-bg)', border: 'none', minWidth: 'auto' }}>
+            <div className="appt-stat-icon-wrap" style={{ width: 24, height: 24, background: 'rgba(0,0,0,0.1)', color: 'var(--pp-warning-fg)' }}>
+              <Clock size={12} />
+            </div>
+            <div>
+              <div className="appt-stat-value" style={{ fontSize: '14px', color: 'var(--pp-warning-fg)' }}>{pendingCount} Pending</div>
+            </div>
           </div>
-          <div className="courier-stat courier-stat-done">
-            <CheckCircle2 size={14} />
-            <span>{assignedCount} Assigned</span>
+          <div className="appt-stat-card" style={{ padding: '8px 12px', background: 'var(--pp-success-bg)', border: 'none', minWidth: 'auto' }}>
+            <div className="appt-stat-icon-wrap" style={{ width: 24, height: 24, background: 'rgba(0,0,0,0.1)', color: 'var(--pp-success-fg)' }}>
+              <CheckCircle2 size={12} />
+            </div>
+            <div>
+              <div className="appt-stat-value" style={{ fontSize: '14px', color: 'var(--pp-success-fg)' }}>{assignedCount} Assigned</div>
+            </div>
           </div>
         </div>
       </div>
 
       <div>
         {/* Controls */}
-        <div className="courier-controls">
-          <div className="courier-search">
-            <Search size={16} />
+        <div className="pp-filter-card" style={{ marginBottom: '24px' }}>
+          <div className="pp-filter-search-wrap">
+            <Search size={14} strokeWidth={1.6} />
             <input
               type="text"
+              className="pp-filter-search-input"
               placeholder="Search by name, regid, or remedy..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="courier-date-picker">
-            <Calendar size={16} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Calendar size={14} strokeWidth={1.6} className="text-secondary" />
             <input
               type="date"
+              className="pp-input"
+              style={{ width: 'auto' }}
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
             />
@@ -233,20 +247,20 @@ export function CourierQueuePage() {
 
         {/* Queue Content */}
         {isLoading ? (
-          <div className="courier-table-wrapper">
-            <TableSkeleton rows={8} columns={8} />
-          </div>
+          <TableSkeleton rows={8} cols={8} />
         ) : filteredQueue.length === 0 ? (
-          <div className="courier-empty">
-            <Package size={48} />
-            <h3>No entries for this date</h3>
-            <p>No dispatch entries found for {new Date(selectedDate as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-          </div>
+          <EmptyState 
+            icon={Package}
+            title="No entries for this date"
+            description={`No dispatch entries found for ${new Date(selectedDate as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}`}
+            variant="card"
+            className="my-8"
+          />
         ) : (
           <>
-            <div className="courier-table-wrapper">
-              <div className="courier-table-scroll">
-                <table className="courier-table">
+            <div className="appt-card">
+              <div className="pp-table-scroll">
+                <table className="pp-table">
                   <thead>
                     <tr>
                       <th>RegID</th>
@@ -263,57 +277,58 @@ export function CourierQueuePage() {
                     {filteredQueue
                       .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                       .map((entry) => (
-                      <tr key={entry.id} className={entry.isAssign === 1 ? 'assigned-row' : ''}>
-                        <td>
-                          <span className="regid-badge">#{entry.caseId}</span>
+                      <tr key={entry.id} className={entry.isAssign === 1 ? 'bg-green-50/30' : ''}>
+                        <td data-label="RegID">
+                          <span className="appt-cell-id">#{entry.caseId}</span>
                         </td>
-                        <td>
-                          <div className="patient-cell">
-                            <User size={14} />
+                        <td data-label="Patient Name">
+                          <div className="appt-cell-name flex items-center gap-1.5">
+                            <User size={12} className="text-secondary" />
                             <span>{entry.patientName || 'Unknown'}</span>
                           </div>
                         </td>
-                        <td>
-                          <div className="remedy-cell">
-                            {entry.remedy && <span className="remedy-tag">{entry.remedy}</span>}
-                            {entry.potency && <span className="potency-tag">{entry.potency}</span>}
-                            {entry.days && <span className="days-tag">{entry.days}d</span>}
+                        <td data-label="Remedy">
+                          <div className="flex flex-wrap gap-1.5">
+                            {entry.remedy && <span className="appt-badge appt-badge-done">{entry.remedy}</span>}
+                            {entry.potency && <span className="appt-badge appt-badge-done" style={{ opacity: 0.8 }}>{entry.potency}</span>}
+                            {entry.days && <span className="appt-badge appt-badge-absent">{entry.days}d</span>}
                           </div>
                         </td>
-                        <td>
-                          <span className={`type-badge type-${entry.postType.toLowerCase()}`}>
-                            {entry.postType === 'Courier' ? <Truck size={12} /> : <MapPin size={12} />}
+                        <td data-label="Type">
+                          <span className={`appt-badge ${entry.postType === 'Courier' ? 'appt-badge-wait' : 'appt-badge-done'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            {entry.postType === 'Courier' ? <Truck size={10} /> : <MapPin size={10} />}
                             {entry.postType}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Status">
                           {entry.isAssign === 1 ? (
-                            <span className="status-badge status-assigned">
-                              <CheckCircle2 size={12} /> Assigned
+                            <span className="appt-badge appt-badge-done" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <CheckCircle2 size={10} /> Assigned
                             </span>
                           ) : (
-                            <span className="status-badge status-pending">
-                              <Clock size={12} /> Pending
+                            <span className="appt-badge appt-badge-wait" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <Clock size={10} /> Pending
                             </span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="POD">
                           {entry.pcd ? (
-                            <span className="pcd-value">{entry.pcd}</span>
+                            <span className="appt-cell-phone font-mono">{entry.pcd}</span>
                           ) : (
-                            <span className="pcd-empty">—</span>
+                            <span className="text-secondary">—</span>
                           )}
                         </td>
-                        <td>
-                          <span className="date-cell">
+                        <td data-label="Date">
+                          <span className="appt-cell-phone">
                             {entry.createdAt ? new Date(entry.createdAt as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : entry.currentdate}
                           </span>
                         </td>
-                        <td>
-                          <div className="actions-cell">
+                        <td data-label="Actions">
+                          <div className="flex gap-2">
                             {entry.isAssign === 0 ? (
                               <button
-                                className="action-btn action-assign"
+                                className="btn-primary"
+                                style={{ padding: '4px 12px', fontSize: '11px', height: '28px' }}
                                 onClick={() => {
                                   setAssignModal(entry);
                                   setAssignPcd('');
@@ -329,10 +344,11 @@ export function CourierQueuePage() {
                               </span>
                             )}
                             <button
-                              className="action-btn action-history"
+                              className="btn-ghost"
+                              style={{ padding: '4px 8px', height: '28px' }}
                               onClick={() => handleOpenHistory(entry.caseId)}
                             >
-                              <History size={12} /> Previous
+                              <History size={14} strokeWidth={1.6} />
                             </button>
                           </div>
                         </td>
@@ -523,60 +539,80 @@ export function CourierQueuePage() {
         </div>
       )}
 
-      {/* ─── History Modal ─── */}
-      {historyModal && (
-        <div className="courier-modal-overlay courier-modal-center" onClick={() => setHistoryModal(null)}>
-          <div className="courier-modal courier-modal-wide" onClick={(e) => e.stopPropagation()}>
-            <div className="courier-modal-header">
-              <h3><History size={18} /> Previous Dispatch Records — #{historyModal.regid}</h3>
-              <button onClick={() => setHistoryModal(null)}><X size={18} /></button>
-            </div>
-            <div className="courier-modal-body">
-              {historyModal.entries.length === 0 ? (
-                <p className="history-empty">No previous courier records found.</p>
-              ) : (
-                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                  <table className="history-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>POD / Tracking</th>
-                        <th>Courier Company</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {historyModal.entries.map((e) => (
-                        <tr key={e.id}>
-                          <td>{e.createdAt ? new Date(e.createdAt as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : e.currentdate}</td>
-                          <td><span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{e.pcd || '—'}</span></td>
-                          <td>{e.courier || '—'}</td>
-                          <td>
-                            <span className={`type-badge type-${e.postType.toLowerCase()}`} style={{ padding: '2px 6px', fontSize: '0.65rem' }}>
-                              {e.postType}
-                            </span>
-                          </td>
-                          <td>
-                            <span style={{ color: e.isAssign === 1 ? '#22c55e' : 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600 }}>
-                              {e.isAssign === 1 ? '✓ Assigned' : 'Pending'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-            <div className="courier-modal-footer">
-              <button className="modal-btn modal-btn-cancel" onClick={() => setHistoryModal(null)}>
-                Close
-              </button>
-            </div>
+      {/* ─── History Drawer ─── */}
+      <Drawer
+        isOpen={!!historyModal}
+        onClose={() => setHistoryModal(null)}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <History size={18} /> Previous Dispatch Records
+            {historyModal && (
+              <span className="appt-badge appt-badge-done" style={{ marginLeft: 8 }}>
+                #{historyModal.regid}
+              </span>
+            )}
           </div>
+        }
+        maxWidth="600px"
+      >
+        <div style={{ padding: '0', background: 'var(--pp-bg-subtle)', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {historyModal?.entries.length === 0 ? (
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <Package size={32} style={{ opacity: 0.3, margin: '0 auto 12px' }} />
+              <p>No previous courier records found.</p>
+            </div>
+          ) : (
+            <div className="appt-card" style={{ margin: '16px', border: '1px solid var(--pp-border)', boxShadow: 'none' }}>
+              <div className="pp-table-scroll">
+                <table className="pp-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>POD / Tracking</th>
+                      <th>Courier</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historyModal?.entries.map((e) => (
+                      <tr key={e.id}>
+                        <td data-label="Date">
+                          <span className="appt-cell-phone">
+                            {e.createdAt ? new Date(e.createdAt as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : e.currentdate}
+                          </span>
+                        </td>
+                        <td data-label="POD / Tracking">
+                          <span className="appt-cell-phone font-mono">{e.pcd || '—'}</span>
+                        </td>
+                        <td data-label="Courier">
+                          <span className="text-secondary" style={{ fontSize: '13px' }}>{e.courier || '—'}</span>
+                        </td>
+                        <td data-label="Type">
+                          <span className={`appt-badge ${e.postType === 'Courier' ? 'appt-badge-wait' : 'appt-badge-done'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            {e.postType}
+                          </span>
+                        </td>
+                        <td data-label="Status">
+                          {e.isAssign === 1 ? (
+                            <span className="appt-badge appt-badge-done" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              ✓ Assigned
+                            </span>
+                          ) : (
+                            <span className="appt-badge appt-badge-wait" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </Drawer>
 
     </div>
   );

@@ -62,40 +62,41 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
   const currentTabMeta = TABS.find((t) => t.key === activeTab)!;
 
   return (
-    <div className="plat-page fade-in">
-
+    <div className="pp-page-container animate-fade-in">
 
       {/* Header */}
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <span style={{ fontSize: 20 }}>{currentTabMeta.icon}</span>
+          <h1 className="pp-page-hero-title">
+            <Users size={22} strokeWidth={1.8} />
             Staff &amp; Administration
           </h1>
-          <p className="plat-header-sub">Manage clinical practitioners, support staff, and system administrators.</p>
+          <p className="pp-page-hero-sub">Manage clinical practitioners, support staff, and system administrators.</p>
         </div>
-        <div className="plat-header-actions">
-          <div className="view-mode-tabs" style={{ display: 'inline-flex', border: '1px solid var(--border-main)', borderRadius: 12, overflow: 'hidden', background: 'var(--bg-card)' }}>
+        <div className="pp-page-hero-actions">
+          <div className="appt-segmented-toggle">
             <button
               type="button"
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => setViewMode('list')}
-              style={{ minWidth: 60, border: 'none', height: 40, background: viewMode === 'list' ? 'var(--bg-surface-2)' : 'transparent', color: viewMode === 'list' ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer' }}
+              title="List View"
             >
-              <List size={16} />
+              <List size={14} /> List
             </button>
             <button
               type="button"
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
-              style={{ minWidth: 60, border: 'none', height: 40, background: viewMode === 'grid' ? 'var(--bg-surface-2)' : 'transparent', color: viewMode === 'grid' ? 'var(--primary)' : 'var(--text-muted)', cursor: 'pointer' }}
+              title="Grid View"
             >
-              <Grid size={16} />
+              <Grid size={14} /> Grid
             </button>
           </div>
           <button
-            className="plat-btn plat-btn-primary"
+            className="btn-primary"
             onClick={() => navigate(`/staff/add?category=${activeTab}`)}
           >
-            <Plus size={14} />
+            <Plus size={14} strokeWidth={1.6} />
             Add {currentTabMeta.label.replace(/s$/, '')}
           </button>
         </div>
@@ -133,36 +134,30 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
       </div>
 
       {/* Filters */}
-      <div className="plat-filters">
-        <div className="flex gap-4 flex-1">
-          <div className="plat-search-wrap">
-            <Search className="plat-search-icon" size={14} />
-            <input
-              className="plat-form-input plat-search-input"
-              placeholder={`Search ${currentTabMeta.label.toLowerCase()}...`}
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-            />
-          </div>
+      <div className="pp-filter-card" style={{ marginBottom: '24px' }}>
+        <div className="pp-filter-search-wrap">
+          <Search size={14} strokeWidth={1.6} />
+          <input
+            className="pp-filter-search-input"
+            placeholder={`Search ${currentTabMeta.label.toLowerCase()}...`}
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
         </div>
-        <button
-          className="plat-btn plat-btn-ghost plat-btn-sm"
-          onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}
-        >
-          Reset
-        </button>
-      </div>
-
-      {/* Stats Summary */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{currentTabMeta.label} Registry</span>
-        <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>Showing {staff.length} of {data?.total || 0}</span>
+        {search && (
+          <button
+            className="btn-secondary"
+            onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {/* Content */}
-      <div className="plat-card">
+      <div className="appt-card">
         {isLoading ? (
-          <TableSkeleton rows={itemsPerPage} columns={6} />
+          <TableSkeleton rows={itemsPerPage} cols={6} />
         ) : staff.length === 0 ? (
           <EmptyState 
             icon={
@@ -179,8 +174,8 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
             className="my-8"
           />
         ) : viewMode === 'list' ? (
-          <div className="plat-table-container">
-            <table className="plat-table">
+          <div className="pp-table-scroll">
+            <table className="pp-table">
               <thead>
                 <tr>
                   <th style={{ width: 50 }}>#</th>
@@ -194,13 +189,13 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
               </thead>
               <tbody>
                 {staff.map((s: StaffSummary, idx: number) => (
-                  <tr key={s.id} className="plat-table-row">
-                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
-                      <div>{((page - 1) * itemsPerPage) + idx + 1}</div>
+                  <tr key={s.id}>
+                    <td data-label="#">
+                      <span className="appt-cell-id">{((page - 1) * itemsPerPage) + idx + 1}</span>
                     </td>
                     <td data-label="Profile">
                       <div className="plat-cell-val">
-                        <div className="plat-capitalize" style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--pp-ink)' }}>{s.name || 'Unknown'}</div>
+                        <div className="appt-cell-name">{s.name || 'Unknown'}</div>
                         <div style={{ fontSize: 10, color: s.gender === 'Female' ? '#db2777' : 'var(--pp-blue)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>
                           {s.gender || 'Not Specified'}
                         </div>
@@ -208,7 +203,7 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
                     </td>
                     <td data-label="Contact">
                       <div className="plat-cell-val">
-                        <div style={{ fontSize: 13, fontWeight: 600 }} className="plat-mono-data">{s.mobile || '—'}</div>
+                        <div className="appt-cell-phone font-mono">{s.mobile || '—'}</div>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{s.email || '—'}</div>
                       </div>
                     </td>
@@ -223,31 +218,27 @@ export default function StaffListPage({ defaultTab }: { defaultTab?: StaffCatego
                     )}
                     <td data-label="Role">
                       <div className="plat-cell-val">
-                        <div style={{ fontSize: 13, fontWeight: 500 }}>{s.designation || '—'}</div>
-                        <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginTop: '2px' }}>
+                        <div className="appt-cell-name font-medium text-[13px]">{s.designation || '—'}</div>
+                        <div className="appt-cell-phone flex items-center gap-1 mt-0.5">
                           <MapPin size={10} /> {s.city || 'Station N/A'}
                         </div>
                       </div>
                     </td>
                     <td data-label="Status">
                       <div className="plat-cell-val">
-                        <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
-                          {s.isActive ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                              <UserCheck size={10} /> Active
-                            </span>
-                          ) : 'Inactive'}
+                        <span className={s.isActive ? 'appt-badge appt-badge-done' : 'appt-badge appt-badge-absent'}>
+                          {s.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </div>
                     </td>
                     <td data-label="Actions">
                       <div className="plat-cell-val">
-                        <div className="flex justify-end gap-2" style={{ width: '100%' }}>
-                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => navigate(`/staff/${s.id}/edit?category=${activeTab}`)}>
-                            <Edit2 size={13} />
+                        <div className="flex gap-2">
+                          <button className="btn-ghost" style={{ padding: '6px' }} onClick={() => navigate(`/staff/${s.id}/edit?category=${activeTab}`)}>
+                            <Edit2 size={14} strokeWidth={1.6} />
                           </button>
-                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleDelete(s.id)}>
-                            <Trash2 size={13} />
+                          <button className="btn-ghost" style={{ padding: '6px', color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(s.id)}>
+                            <Trash2 size={14} strokeWidth={1.6} />
                           </button>
                         </div>
                       </div>

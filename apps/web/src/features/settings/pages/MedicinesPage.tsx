@@ -117,7 +117,7 @@ export default function MedicinesPage() {
   };
 
   return (
-    <div className="plat-page fade-in">
+    <div className="pp-page-container animate-fade-in">
 
       <div className="pp-page-hero">
         <div>
@@ -129,32 +129,38 @@ export default function MedicinesPage() {
         </div>
         <div className="pp-page-hero-actions">
           <button className="btn-primary" onClick={handleOpenCreate}>
-            <Plus size={14} /> Add Medicine
+            <Plus size={14} strokeWidth={1.6} /> Add Medicine
           </button>
         </div>
       </div>
 
-      <div className="pp-stat-grid">
-        <div className="pp-stat-card-enhanced" style={{ '--stat-accent': 'var(--pp-blue)' } as React.CSSProperties}>
-          <div className="pp-stat-icon"><Package size={16} /></div>
-          <div className="pp-stat-label">Total Catalog</div>
-          <div className="pp-stat-value is-primary">{medicines.length}</div>
+      <div className="pp-stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div className="appt-stat-card">
+          <div className="appt-stat-icon-wrap" style={{ background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}><Package size={18} /></div>
+          <div>
+            <div className="appt-stat-label">Total Catalog</div>
+            <div className="appt-stat-value">{medicines.length}</div>
+          </div>
         </div>
-        <div className="pp-stat-card-enhanced" style={{ '--stat-accent': 'var(--pp-warning-fg)' } as React.CSSProperties}>
-          <div className="pp-stat-icon" style={{ '--stat-icon-color': 'var(--pp-warning-fg)', '--stat-icon-bg': 'rgba(245,158,11,0.1)' } as React.CSSProperties}><AlertCircle size={16} /></div>
-          <div className="pp-stat-label">Low Stock Alerts</div>
-          <div className={`pp-stat-value ${lowStockCount > 0 ? 'is-warning' : ''}`}>{lowStockCount}</div>
+        <div className="appt-stat-card">
+          <div className="appt-stat-icon-wrap" style={{ background: 'var(--pp-warning-bg)', color: 'var(--pp-warning-fg)' }}><AlertCircle size={18} /></div>
+          <div>
+            <div className="appt-stat-label">Low Stock Alerts</div>
+            <div className="appt-stat-value">{lowStockCount}</div>
+          </div>
         </div>
-        <div className="pp-stat-card-enhanced" style={{ '--stat-accent': 'var(--pp-danger-fg)' } as React.CSSProperties}>
-          <div className="pp-stat-icon" style={{ '--stat-icon-color': 'var(--pp-danger-fg)', '--stat-icon-bg': 'rgba(220,38,38,0.08)' } as React.CSSProperties}><Trash2 size={16} /></div>
-          <div className="pp-stat-label">Depleted Stock</div>
-          <div className={`pp-stat-value ${outOfStockCount > 0 ? 'is-danger' : ''}`}>{outOfStockCount}</div>
+        <div className="appt-stat-card">
+          <div className="appt-stat-icon-wrap" style={{ background: 'var(--pp-danger-bg)', color: 'var(--pp-danger-fg)' }}><Trash2 size={18} /></div>
+          <div>
+            <div className="appt-stat-label">Depleted Stock</div>
+            <div className="appt-stat-value">{outOfStockCount}</div>
+          </div>
         </div>
       </div>
 
-      <div className="pp-filter-card">
+      <div className="pp-filter-card" style={{ marginBottom: '24px' }}>
         <div className="pp-filter-search-wrap">
-          <Search size={14} />
+          <Search size={14} strokeWidth={1.6} />
           <input
             className="pp-filter-search-input"
             placeholder="Search by name, disease indication, or category..."
@@ -167,9 +173,9 @@ export default function MedicinesPage() {
         )}
       </div>
 
-      <div>
+      <div className="appt-card">
         {isLoading ? (
-          <TableSkeleton rows={5} columns={6} />
+          <TableSkeleton rows={5} cols={6} />
         ) : filtered.length === 0 ? (
           <EmptyState 
             icon={Pill}
@@ -182,16 +188,16 @@ export default function MedicinesPage() {
           />
         ) : (
           <>
-          <div className="pp-table-container-enhanced">
+          <div className="pp-table-scroll">
             <table className="pp-table">
               <thead>
                 <tr>
-                  <th style={{ width: '60px', paddingLeft: '20px' }}>#</th>
-                  <th>Remedy & Indication</th>
-                  <th style={{ width: '200px' }}>Categorization</th>
-                  <th style={{ width: '160px' }}>Stock Status</th>
-                  <th style={{ width: '130px' }}>Unit Price</th>
-                  <th style={{ width: '120px', textAlign: 'right', paddingRight: '20px' }}>Action</th>
+                  <th>#</th>
+                  <th>Remedy &amp; Indication</th>
+                  <th>Categorization</th>
+                  <th>Stock Status</th>
+                  <th>Unit Price</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -202,16 +208,16 @@ export default function MedicinesPage() {
                   const isLowStock = stock > 0 && stock < 10;
 
                   return (
-                    <tr key={med.id} className="plat-table-row hover-row-premium">
-                      <td data-label="#" style={{ paddingLeft: '20px' }} className="color-muted font-mono text-[10px]">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                      <td data-label="Remedy & Indication" className="plat-table-cell">
+                    <tr key={med.id}>
+                      <td data-label="#"><span className="appt-cell-id">{(currentPage - 1) * itemsPerPage + idx + 1}</span></td>
+                      <td data-label="Remedy & Indication">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div className="med-avatar-icon" style={{ width: '32px', height: '32px', fontSize: '13px' }}>
+                          <div className="pat-avatar pat-avatar--sm">
                             {med.name?.[0]?.toUpperCase() || 'M'}
                           </div>
                           <div>
-                            <div className="font-bold text-[14px] color-main">{med.name}</div>
-                            <div className="text-[10px] color-muted mt-0.5 flex items-center gap-1.5 font-medium">
+                            <div className="appt-cell-name">{med.name}</div>
+                            <div className="appt-cell-phone flex items-center gap-1.5 font-medium">
                               <Info size={10} className="opacity-50" /> {med.disease || 'General Medical Remedy'}
                             </div>
                             {med.snomedLabel && (
@@ -222,40 +228,40 @@ export default function MedicinesPage() {
                           </div>
                         </div>
                       </td>
-                      <td data-label="Categorization" className="plat-table-cell">
+                      <td data-label="Categorization">
                         <div className="flex flex-wrap gap-1">
-                          {med.category && <span className="med-pill-badge category">{med.category}</span>}
-                          {med.type && <span className="med-pill-badge type">{med.type}</span>}
-                          <span className="med-pill-badge potency">{potencyName}</span>
+                          {med.category && <span className="appt-badge appt-badge-confirmed">{med.category}</span>}
+                          {med.type && <span className="appt-badge appt-badge-consultation">{med.type}</span>}
+                          <span className="appt-badge appt-badge-absent">{potencyName}</span>
                         </div>
                       </td>
-                      <td data-label="Stock Status" className="plat-table-cell">
+                      <td data-label="Stock Status">
                         <div className={`med-stock-wrap ${isOutOfStock ? 'depleted' : isLowStock ? 'low' : 'ok'}`} style={{ fontSize: '12px' }}>
-                          <Package size={12} />
+                          <Package size={12} strokeWidth={1.6} />
                           <span>{stock} Units</span>
                         </div>
                         <div className="mt-1">
                           {isOutOfStock ? (
-                            <span className="med-status-tag status-danger">Depleted</span>
+                            <span className="appt-badge appt-badge-cancelled">Depleted</span>
                           ) : isLowStock ? (
-                            <span className="med-status-tag status-warning">Low Inventory</span>
+                            <span className="appt-badge appt-badge-pending">Low Inventory</span>
                           ) : (
-                            <span className="med-status-tag status-success">Optimal</span>
+                            <span className="appt-badge appt-badge-done">Optimal</span>
                           )}
                         </div>
                       </td>
-                      <td data-label="Unit Price" className="plat-table-cell">
-                        <div className="med-price-tag" style={{ fontSize: '14px' }}>
-                          <IndianRupee size={11} /> {med.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
+                      <td data-label="Unit Price">
+                        <div className="med-price-tag" style={{ fontSize: '13px' }}>
+                          <IndianRupee size={11} strokeWidth={2} /> {med.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
                         </div>
                       </td>
-                      <td data-label="Action" style={{ textAlign: 'right', paddingRight: '20px' }}>
-                        <div className="med-action-cluster">
-                          <button className="med-btn-icon edit" onClick={() => handleOpenEdit(med)} title="Edit Medicine" style={{ width: '30px', height: '30px' }}>
-                            <Edit2 size={13} />
+                      <td data-label="Action">
+                        <div className="flex gap-2">
+                          <button className="btn-ghost" onClick={() => handleOpenEdit(med)} title="Edit Medicine" style={{ padding: '6px' }}>
+                            <Edit2 size={14} strokeWidth={1.6} />
                           </button>
-                          <button className="med-btn-icon remove" onClick={() => handleDelete(med.id, med.name)} title="Remove from Catalog" style={{ width: '30px', height: '30px' }}>
-                            <Trash2 size={13} />
+                          <button className="btn-ghost" onClick={() => handleDelete(med.id, med.name)} title="Remove from Catalog" style={{ padding: '6px', color: 'var(--pp-danger-fg)' }}>
+                            <Trash2 size={14} strokeWidth={1.6} />
                           </button>
                         </div>
                       </td>

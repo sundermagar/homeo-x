@@ -45,6 +45,28 @@ export function createLogisticsRouter(): Router {
     })
   );
 
+  // GET /api/logistics/dispensary-dashboard
+  router.get(
+    '/dispensary-dashboard',
+    asyncHandler(async (req: Request, res: Response) => {
+      const dispensaryRepo = new DispensaryRepositoryPg(req.tenantDb);
+      const clinicId = (req as any).user?.contextId || null;
+      const dashboardData = await dispensaryRepo.getDispensaryDashboard(clinicId);
+      res.json({ success: true, data: dashboardData });
+    })
+  );
+
+  // POST /api/logistics/stickers/dispense
+  router.post(
+    '/stickers/dispense',
+    asyncHandler(async (req: Request, res: Response) => {
+      const { randId } = req.body;
+      const dispensaryRepo = new DispensaryRepositoryPg(req.tenantDb);
+      await dispensaryRepo.markStickersDispensed(randId);
+      res.json({ success: true });
+    })
+  );
+
   // GET /api/logistics/pending
   router.get(
     '/pending',

@@ -1,7 +1,7 @@
 /* ─── Shared Dashboard Components (All Roles) ──────────────────────────────
    This design system defines the "Clinical Light" dashboard aesthetic.
    White cards, Slate-900 typography, subtle Slate-200 borders.
-   Refactored for Paperplane v2.0 Design Tokens.
+   Refactored for  v2.0 Design Tokens.
 ────────────────────────────────────────────────────────────────────────────── */
 
 .dash-root {
@@ -509,7 +509,7 @@
   margin-top: 6px;
   width: 8px;
   height: 8px;
-  box-shadow: 0 0 0 3px rgba(0,0,0,0.03);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.03);
 }
 
 .pp-icon-btn {
@@ -1276,7 +1276,8 @@ button.pp-link:hover {
 /* ─── Scroll Fix — Dash Scroll Area ─────────────────────────────────────── */
 
 .db-scroll {
-  overflow-y: scroll; /* Force scrollbar to always show */
+  overflow-y: scroll;
+  /* Force scrollbar to always show */
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
@@ -1286,13 +1287,16 @@ button.pp-link:hover {
   width: 5px;
   height: 5px;
 }
+
 .db-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .db-scroll::-webkit-scrollbar-thumb {
   background-color: var(--pp-warm-3);
   border-radius: 4px;
 }
+
 .db-scroll::-webkit-scrollbar-thumb:hover {
   background-color: var(--pp-warm-4);
 }
@@ -1355,10 +1359,26 @@ button.pp-link:hover {
   color: var(--pp-ink);
 }
 
-@keyframes rdFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rdFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes rdSlideUp {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Dual-card grid */
@@ -1428,9 +1448,18 @@ button.pp-link:hover {
   overflow-y: scroll;
 }
 
-.rd-compact-card-body::-webkit-scrollbar { width: 4px; }
-.rd-compact-card-body::-webkit-scrollbar-track { background: transparent; }
-.rd-compact-card-body::-webkit-scrollbar-thumb { background: var(--pp-warm-4); border-radius: 10px; }
+.rd-compact-card-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.rd-compact-card-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rd-compact-card-body::-webkit-scrollbar-thumb {
+  background: var(--pp-warm-4);
+  border-radius: 10px;
+}
 
 .rd-list-item {
   display: flex;
@@ -1441,8 +1470,13 @@ button.pp-link:hover {
   transition: background 0.15s;
 }
 
-.rd-list-item:last-child { border-bottom: none; }
-.rd-list-item:hover { background: var(--pp-warm-1); }
+.rd-list-item:last-child {
+  border-bottom: none;
+}
+
+.rd-list-item:hover {
+  background: var(--pp-warm-1);
+}
 
 .rd-list-avatar {
   width: 36px;
@@ -1456,7 +1490,10 @@ button.pp-link:hover {
   flex-shrink: 0;
 }
 
-.rd-list-info { flex: 1; min-width: 0; }
+.rd-list-info {
+  flex: 1;
+  min-width: 0;
+}
 
 .rd-list-name {
   font-size: 13px;
@@ -1574,11 +1611,30 @@ button.pp-link:hover {
 }
 
 /* Dark mode overrides */
-.dark .rd-compact-card { background: rgba(15, 23, 42, 0.6); border-color: rgba(255,255,255,0.05); }
-.dark .rd-compact-card-header { background: rgba(30, 41, 59, 0.3); border-bottom-color: rgba(255,255,255,0.05); }
-.dark .rd-list-item:hover { background: rgba(255,255,255,0.03); }
-.dark .rd-modal-content { background: #0f172a; border-color: rgba(255,255,255,0.1); }
-.dark .rd-modal-header { background: rgba(30, 41, 59, 0.3); border-bottom-color: rgba(255,255,255,0.05); }
+.dark .rd-compact-card {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .rd-compact-card-header {
+  background: rgba(30, 41, 59, 0.3);
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .rd-list-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark .rd-modal-content {
+  background: #0f172a;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .rd-modal-header {
+  background: rgba(30, 41, 59, 0.3);
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
 .rd-quick-action-btn {
   display: flex;
   flex-direction: column;
@@ -1591,11 +1647,12 @@ button.pp-link:hover {
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
+
 .rd-quick-action-btn:hover {
   background: #f1f5f9;
   border-color: #cbd5e1;
   transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
 }

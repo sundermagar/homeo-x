@@ -1,11 +1,11 @@
-# Paperplane Brand Identity & Design System (v1.0)
+#  Brand Identity & Design System (v1.0)
 
-This document serves as the "Agent Memory" for the Paperplane (Homeo-x) design system, extracted from the official brand kit.
+This document serves as the "Agent Memory" for the  (Homeo-x) design system, extracted from the official brand kit.
 
 ## 🎨 Core Design Tokens
 
 ### Colors
-- **Primary Accent**: `#2563EB` (Paperplane Blue)
+- **Primary Accent**: `#2563EB` ( Blue)
 - **Neutral Palette**:
     - **Page Background**: `#FAFAF8` (Warm 1)
     - **Surface 2**: `#F4F3F1`
