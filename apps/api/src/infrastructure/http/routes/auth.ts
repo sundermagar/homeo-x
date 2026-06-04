@@ -29,8 +29,13 @@ authRouter.post('/login', asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   // Primary attempt: search in the resolved tenant DB (normal staff/doctor login)
-  const tenantLoginUseCase = new LoginUseCase(getRepo(req));
-  const result = await tenantLoginUseCase.execute(email, password);
+  let result: any = { success: false, error: 'Database error' };
+  try {
+    const tenantLoginUseCase = new LoginUseCase(getRepo(req));
+    result = await tenantLoginUseCase.execute(email, password);
+  } catch (tenantErr: any) {
+    console.log(`[Auth] Tenant login threw error: ${tenantErr.message}`);
+  }
 
   if (result.success) {
     sendSuccess(res, result.data);
