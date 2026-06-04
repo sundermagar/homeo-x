@@ -68,7 +68,7 @@ export class UserRepositoryPG implements UserRepository {
       sql`SELECT u.*, o.name as clinic_name 
           FROM users u 
           LEFT JOIN public.organizations o ON o.id = u.context_id 
-          WHERE u.email = ${email} AND u.deleted_at IS NULL 
+          WHERE LOWER(u.email) = LOWER(${email}) AND (u.deleted_at IS NULL OR u.deleted_at::text = '') 
           LIMIT 1`
     );
     const row = (rows as any[])[0];
@@ -77,7 +77,7 @@ export class UserRepositoryPG implements UserRepository {
 
   async getUserPassword(email: string): Promise<string | null> {
     const rows = await this.db.execute(
-      sql`SELECT password FROM users WHERE email = ${email} AND deleted_at IS NULL LIMIT 1`
+      sql`SELECT password FROM users WHERE LOWER(email) = LOWER(${email}) AND (deleted_at IS NULL OR deleted_at::text = '') LIMIT 1`
     );
     const row = (rows as any[])[0] as any;
     return row?.password || null;

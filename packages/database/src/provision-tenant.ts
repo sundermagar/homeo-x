@@ -472,7 +472,9 @@ const TABLES: Array<{ name: string; ddl: string }> = [
   "consultation_fee" text,
   "token_no" integer,
   "duration_minutes" integer,
-  
+  "cancellation_reason" text,
+  "call_status" text,
+  "call_date" text
 )`,
   },
   {
@@ -588,7 +590,9 @@ END $$`,
   "custom_title" varchar(255),
   "created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
   "updated_at" timestamp DEFAULT CURRENT_TIMESTAMP,
-  "deleted_at" timestamp
+  "deleted_at" timestamp,
+  "call_status" text,
+  "call_date" text
 )`,
   },
   {
@@ -3202,7 +3206,9 @@ END $$`,
   "remember_token" text,
   "created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
   "updated_at" timestamp DEFAULT CURRENT_TIMESTAMP,
-  "deleted_at" timestamp
+  "deleted_at" timestamp,
+  "hpr_id" text,
+  "hpr_token" text
 )`,
   },
   {
@@ -3305,6 +3311,16 @@ END $$`,
   "created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
   "updated_at" timestamp DEFAULT CURRENT_TIMESTAMP,
   "deleted_at" timestamp
+)`,
+  },
+  {
+    name: 'call_statuses',
+    ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."call_statuses" (
+  "id" serial PRIMARY KEY,
+  "name" varchar(100) NOT NULL,
+  "is_active" boolean DEFAULT true,
+  "created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" timestamp DEFAULT CURRENT_TIMESTAMP
 )`,
   },
   {

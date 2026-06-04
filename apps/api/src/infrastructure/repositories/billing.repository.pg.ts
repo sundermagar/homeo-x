@@ -166,7 +166,7 @@ export class BillingRepositoryPg implements BillingRepository {
           ln.notes
         FROM PatientBills pb
         JOIN case_datas p ON pb.regid = p.regid
-        LEFT JOIN doctors d ON (d.id = pb.doctor_id OR d.id::text = p.assitant_doctor OR d.id::text = p.assistant_doctor)
+        LEFT JOIN doctors d ON (d.id = pb.doctor_id OR d.id::text = p.assitant_doctor)
         LEFT JOIN LatestNotes ln ON ln.regid = p.regid
         WHERE (p.deleted_at IS NULL OR p.deleted_at::text = '')
           ${clinicId ? sql`AND (p.clinic_id = ${clinicId} OR p.clinic_id IS NULL OR p.clinic_id = 0 OR p.clinic_id = 1)` : sql``}
