@@ -147,9 +147,10 @@ export function createOrganizationRouter(): Router {
             logger.error({ err: emailErr }, 'Failed to trigger welcome email');
           }
         }
-      })().catch(err => {
-        logger.error({ err: err.message }, 'Fatal background provisioning error');
-      });
+        } catch (bgErr: any) {
+          logger.error({ err: bgErr.message }, 'Fatal provisioning error');
+        }
+      })();
     }
 
     res.status(201).json({ success: true, data: result });
