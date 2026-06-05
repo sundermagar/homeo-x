@@ -27,6 +27,7 @@ export interface Organization {
   deletedAt?:   string | null;
   createdAt:    string;
   updatedAt:    string;
+  status:       string;
 }
 
 /** Account managers — one per clinic admin. Password is never returned from the API. */
@@ -71,7 +72,7 @@ export interface CreateOrganizationInput {
   hfrToken?:    string;
 }
 
-export type UpdateOrganizationInput = Partial<CreateOrganizationInput>;
+export type UpdateOrganizationInput = Partial<CreateOrganizationInput> & { status?: string };
 
 export interface CreateAccountInput {
   name:        string;

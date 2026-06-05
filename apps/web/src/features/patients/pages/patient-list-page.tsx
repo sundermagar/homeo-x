@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePatients, useDeletePatient, usePatientFormMeta } from '../hooks/use-patients';
 import {
   Search, Plus, List as ListIcon, Grid, Edit2, MapPin, Calendar,
@@ -111,7 +111,17 @@ export default function PatientListPage() {
   const [drawerRegid, setDrawerRegid] = useState<number | null>(null);
   const [assignPkgPatient, setAssignPkgPatient] = useState<{ regid: number; name: string } | null>(null);
   const [interceptPatient, setInterceptPatient] = useState<{ regid: number; name: string } | null>(null);
-  // Removed unregistered filters
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('add') === 'true') {
+      setIsDrawerOpen(true);
+      setDrawerRegid(null);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('add');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const user = useAuthStore(s => s.user);
   const token = useAuthStore(s => s.token);

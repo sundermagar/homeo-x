@@ -153,7 +153,7 @@ export function AppRouter() {
 
               {/* ─── Patient Module ─── */}
               <Route path="/patients" element={<PatientListPage />} />
-              <Route path="/patients/add" element={<PatientFormPage />} />
+              <Route path="/patients/add" element={<Navigate to="/patients?add=true" replace />} />
               <Route path="/patients/:regid" element={<PatientDetailPage />} />
               <Route path="/patients/:regid/edit" element={<PatientFormPage />} />
               <Route path="/patients/queue" element={<PatientQueuePage />} />

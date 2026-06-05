@@ -99,7 +99,7 @@ function buildCommands(
     // ── Quick Actions ────────────────────────────────────────────────────────
     action(
       'action-new-patient', 'Add New Patient', 'Create a new patient record',
-      <Plus size={16} />, ALL, '/patients/add',
+      <Plus size={16} />, ALL, '/patients?add=true',
       ['new', 'create', 'patient', 'add']
     ),
     action(

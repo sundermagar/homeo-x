@@ -63,6 +63,17 @@ export function useDeleteOrganization() {
   });
 }
 
+export function useToggleOrganizationStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: 'active' | 'suspended' }) => {
+      const { data } = await apiClient.put<{ success: boolean; data: Organization }>(`/organizations/${id}/status`, { status });
+      return data.data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: [QUERY_KEY] }),
+  });
+}
+
 export function useVerifyHfr() {
   const qc = useQueryClient();
   return useMutation({

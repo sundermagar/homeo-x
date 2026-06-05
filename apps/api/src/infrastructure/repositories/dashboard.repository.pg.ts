@@ -1132,8 +1132,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const [orgs] = await (this.db as any).execute(sql`
         SELECT 
           count(*)::int as total,
-          count(*) FILTER (WHERE deleted_at IS NULL)::int as active,
+          count(*) FILTER (WHERE deleted_at IS NULL AND status = 'active')::int as active,
           count(*) FILTER (WHERE deleted_at IS NOT NULL)::int as deleted,
+          count(*) FILTER (WHERE deleted_at IS NULL AND status = 'suspended')::int as suspended,
           count(*) FILTER (WHERE created_at >= NOW() - interval '30 days')::int as latest
         FROM public.organizations
       `) as any[];
@@ -1149,6 +1150,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const totalClinics = orgs?.total || 0;
       const activeClinics = orgs?.active || 0;
       const deletedClinics = orgs?.deleted || 0;
+      const suspendedCount = orgs?.suspended || 0;
       const newClinics = orgs?.latest || 0;
       const staffCount = users?.count || 0;
       const adminCount = users?.admin_count || 0;
@@ -1166,7 +1168,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         totalClinics,
         activeClinics,
         deletedClinics,
-        suspendedClinics: 0, // Logic to be defined
+        suspendedClinics: suspendedCount,
         trialClinics: 0,     // Logic to be defined
         newClinicsLast30Days: newClinics,
         totalStaff: staffCount,

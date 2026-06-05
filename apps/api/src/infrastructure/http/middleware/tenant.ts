@@ -38,9 +38,19 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
       res.status(400).json({ success: false, error: 'Unknown tenant' });
       return;
     }
+    if (!fallback.isActive) {
+      console.timeEnd('Middleware_Tenant');
+      res.status(403).json({ success: false, error: 'This clinic has been suspended.' });
+      return;
+    }
     req.tenantSlug = fallback.slug;
     req.tenantDb = createDbClient(process.env.DATABASE_URL!, fallback.schemaName);
   } else {
+    if (!tenant.isActive) {
+      console.timeEnd('Middleware_Tenant');
+      res.status(403).json({ success: false, error: 'This clinic has been suspended.' });
+      return;
+    }
     req.tenantSlug = tenant.slug;
     req.tenantDb = createDbClient(process.env.DATABASE_URL!, tenant.schemaName);
   }

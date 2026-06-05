@@ -15,7 +15,7 @@ interface DashboardHeaderProps {
 const ROUTE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
   '/patients': 'Patients',
-  '/patients/add': 'New Patient',
+  '/patients?add=true': 'New Patient',
   '/appointments': 'Appointments',
   '/appointments/calendar': 'Calendar',
   '/appointments/queue': 'Token Queue',

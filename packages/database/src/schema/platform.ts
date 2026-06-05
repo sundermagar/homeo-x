@@ -27,6 +27,7 @@ export const organizations = pgTable('organizations', {
   deletedAt:    timestamp('deleted_at'),
   createdAt:    timestamp('created_at').defaultNow(),
   updatedAt:    timestamp('updated_at').defaultNow(),
+  status:       text('status').default('active').notNull(),
 });
 
 /**

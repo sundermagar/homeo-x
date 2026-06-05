@@ -81,11 +81,12 @@ export class TenantRegistry {
       `);
       const existingSchemas = new Set((schemaRows as any[]).map((r: any) => r.schema_name));
       
-      const orgs = await db.execute(sql`SELECT name, city FROM organizations WHERE deleted_at IS NULL`);
+      const orgs = await db.execute(sql`SELECT name, city, status FROM organizations WHERE deleted_at IS NULL`);
       
       for (const org of orgs) {
         const slug = org.name.toLowerCase().replace(/[^a-z0-9]/g, '');
         const schemaName = `tenant_${slug}`;
+        const isActive = org.status === 'active';
         
         if (existingSchemas.has(schemaName)) {
           // Exact match: org name generates a slug that matches an existing schema
@@ -94,7 +95,7 @@ export class TenantRegistry {
               slug,
               schemaName,
               displayName: org.name,
-              isActive: true
+              isActive
             });
           }
         } else {
@@ -115,7 +116,7 @@ export class TenantRegistry {
               slug,
               schemaName: matchedSchema,
               displayName: org.name,
-              isActive: true
+              isActive
             });
           } else {
             // Register with the expected schema name anyway (it may be provisioned later)
@@ -124,7 +125,7 @@ export class TenantRegistry {
                 slug,
                 schemaName,
                 displayName: org.name,
-                isActive: true
+                isActive
               });
             }
           }

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Building2, Plus, X, RefreshCw, Edit2, Trash2 } from 'lucide-react';
+import { Building2, Plus, X, RefreshCw, Edit2, Trash2, Power, PowerOff } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useOrganizations, useCreateOrganization, useDeleteOrganization, useUpdateOrganization } from '../hooks/use-organizations';
+import { useOrganizations, useCreateOrganization, useDeleteOrganization, useUpdateOrganization, useToggleOrganizationStatus } from '../hooks/use-organizations';
 import type { CreateOrganizationInput } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/platform.css';
@@ -22,6 +22,7 @@ export default function ClinicsPage() {
   const createOrg = useCreateOrganization();
   const deleteOrg = useDeleteOrganization();
   const updateOrg = useUpdateOrganization();
+  const toggleStatus = useToggleOrganizationStatus();
   const {
     currentPage,
     setCurrentPage,
@@ -98,6 +99,19 @@ export default function ClinicsPage() {
       alert(`Failed to delete clinic: ${err?.response?.data?.error || err.message || 'Unknown error'}`);
     }
   };
+
+  const handleToggleStatus = async (org: any) => {
+    const isSuspending = org.status === 'active';
+    const action = isSuspending ? 'suspend' : 'reactivate';
+    if (!window.confirm(`Are you sure you want to ${action} "${org.name}"?`)) return;
+
+    try {
+      await toggleStatus.mutateAsync({ id: org.id, status: isSuspending ? 'suspended' : 'active' });
+    } catch (err: any) {
+      alert(`Failed to ${action} clinic: ${err?.response?.data?.error || err.message}`);
+    }
+  };
+
   const set = (key: string, val: any) =>
     setForm(prev => ({ ...prev, [key]: val }));
   const activeCities = new Set(orgs.map(o => o.city).filter(Boolean)).size;
@@ -170,7 +184,12 @@ export default function ClinicsPage() {
                       </td>
                       <td data-label="Clinic Name">
                         <div className="plat-cell-val">
-                          <div className="plat-capitalize" style={{ fontWeight: 600 }}>{org.name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="plat-capitalize" style={{ fontWeight: 600 }}>{org.name}</div>
+                            {org.status === 'suspended' && (
+                              <span style={{ fontSize: '0.65rem', background: '#fee2e2', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>SUSPENDED</span>
+                            )}
+                          </div>
                           {org.description && (
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
                               {org.description}
@@ -239,6 +258,14 @@ export default function ClinicsPage() {
                       <td data-label="Action">
                         <div className="plat-cell-val">
                           <div className="flex justify-end gap-2" style={{ width: '100%' }}>
+                            <button
+                              className="plat-btn plat-btn-icon plat-btn-ghost"
+                              style={{ width: 36, height: 36, borderRadius: 10, color: org.status === 'suspended' ? '#10b981' : '#f59e0b' }}
+                              onClick={() => handleToggleStatus(org)}
+                              title={org.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                            >
+                              {org.status === 'suspended' ? <Power size={13} /> : <PowerOff size={13} />}
+                            </button>
                             <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(org)} title="Edit">
                               <Edit2 size={13} />
                             </button>

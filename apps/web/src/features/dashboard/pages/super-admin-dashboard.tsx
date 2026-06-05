@@ -89,49 +89,49 @@ export function SuperAdminDashboard() {
         
         <div className="sa-metric-grid-5">
           <MetricCard 
-            label="Total Clinics" 
+            label="TOTAL CLINICS" 
             value={clinicCount} 
             icon={<Building2 size={24} />} 
-            iconBg="#f3f4f6" 
-            iconColor="#6b7280" 
+            iconBg="rgba(99, 102, 241, 0.15)" 
+            iconColor="#6366f1" 
           />
           <MetricCard 
-            label="Active" 
+            label="ACTIVE" 
             value={activeCount} 
             icon={<CheckCircle2 size={24} />} 
-            iconBg="#f0fdf4" 
+            iconBg="rgba(34, 197, 94, 0.15)" 
             iconColor="#22c55e" 
           />
           <MetricCard 
-            label="Suspended" 
+            label="SUSPENDED" 
             value={stats?.suspendedClinics ?? 0} 
             icon={<AlertTriangle size={24} />} 
-            iconBg="#fff1f2" 
-            iconColor="#f43f5e" 
+            iconBg="rgba(239, 68, 68, 0.15)" 
+            iconColor="#ef4444" 
           />
           <MetricCard 
-            label="Trial" 
+            label="TRIAL" 
             value={stats?.trialClinics ?? 0} 
             icon={<Clock size={24} />} 
-            iconBg="#fffbeb" 
-            iconColor="#f59e0b" 
+            iconBg="rgba(234, 179, 8, 0.15)" 
+            iconColor="#eab308" 
           />
           <MetricCard 
-            label="Deleted" 
+            label="DELETED" 
             value={deletedCount} 
             icon={<Trash2 size={24} />} 
-            iconBg="#f9fafb" 
-            iconColor="#9ca3af" 
+            iconBg="rgba(100, 116, 139, 0.15)" 
+            iconColor="#64748b" 
           />
         </div>
 
         <div className="sa-wide-card">
-          <div className="sa-wide-icon-box">
+          <div className="sa-wide-icon-box" style={{ background: '#334155', color: '#38bdf8' }}>
             <UserCheck size={28} />
           </div>
-          <div>
-            <div className="sa-metric-label" style={{ fontSize: '13px' }}>New Clinics (Last 30 Days)</div>
-            <div className="sa-metric-value" style={{ fontSize: '32px' }}>{newCount}</div>
+          <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div className="sa-metric-label" style={{ fontSize: '11px', color: '#94a3b8' }}>NEW CLINICS (LAST 30 DAYS)</div>
+            <div className="sa-metric-value" style={{ fontSize: '32px', color: '#fff' }}>{newCount}</div>
           </div>
         </div>
       </section>
@@ -144,31 +144,31 @@ export function SuperAdminDashboard() {
 
         <div className="sa-usage-grid">
           <UsageCard 
-            label="Total Users" 
+            label="TOTAL USERS" 
             value={staffCount} 
-            icon={<Users size={20} />} 
-            iconBg="#f5f3ff" 
-            iconColor="#8b5cf6" 
+            icon={<Users size={24} />} 
+            iconBg="rgba(168, 85, 247, 0.15)" 
+            iconColor="#a855f7" 
           />
           <UsageCard 
-            label="Total Patients" 
+            label="TOTAL PATIENTS" 
             value={patientCount} 
-            icon={<UserCheck size={20} />} 
-            iconBg="#eff6ff" 
+            icon={<UserCheck size={24} />} 
+            iconBg="rgba(59, 130, 246, 0.15)" 
             iconColor="#3b82f6" 
           />
           <UsageCard 
-            label="Total Cases" 
+            label="TOTAL CASES" 
             value={consultationCount} 
-            icon={<FileText size={20} />} 
-            iconBg="#fff7ed" 
+            icon={<FileText size={24} />} 
+            iconBg="rgba(249, 115, 22, 0.15)" 
             iconColor="#f97316" 
           />
           <UsageCard 
-            label="Total Prescriptions" 
+            label="TOTAL PRESCRIPTIONS" 
             value={prescriptionCount} 
-            icon={<Package size={20} />} 
-            iconBg="#fdf2f8" 
+            icon={<Package size={24} />} 
+            iconBg="rgba(236, 72, 153, 0.15)" 
             iconColor="#ec4899" 
           />
         </div>

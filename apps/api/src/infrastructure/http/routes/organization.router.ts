@@ -5,6 +5,7 @@ import { createOrganizationSchema, updateOrganizationSchema } from '@mmc/validat
 import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
 import { createLogger } from '../../../shared/logger.js';
 import { sql } from 'drizzle-orm';
+import { TenantRegistry } from '@mmc/database';
 import bcrypt from 'bcryptjs';
 import {
   ListOrganizationsUseCase,
@@ -226,6 +227,38 @@ export function createOrganizationRouter(): Router {
       const id = parseInt(req.params['id'] as string, 10);
       const result = await new UpdateOrganizationUseCase(repo).execute(id, req.body);
       res.json({ success: true, data: result });
+    }),
+  );
+
+  // PUT /api/organizations/:id/status — Suspend or Reactivate organization
+  router.put(
+    '/:id/status',
+    asyncHandler(async (req: Request, res: Response) => {
+      const repo = new OrganizationRepositoryPg(req.publicDb);
+      const id = parseInt(req.params['id'] as string, 10);
+      const { status } = req.body;
+      
+      if (!status || !['active', 'suspended'].includes(status)) {
+        res.status(400).json({ success: false, error: 'Invalid status provided.' });
+        return;
+      }
+
+      const org = await repo.findById(id);
+      if (!org) {
+        res.status(404).json({ success: false, error: 'Organization not found' });
+        return;
+      }
+
+      const updated = await new UpdateOrganizationUseCase(repo).execute(id, { status });
+
+      // Dynamically update TenantRegistry cache
+      const slug = org.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const tenantConfig = TenantRegistry.resolve(slug);
+      if (tenantConfig) {
+        tenantConfig.isActive = status === 'active';
+      }
+
+      res.json({ success: true, data: updated, message: `Clinic ${status === 'active' ? 'reactivated' : 'suspended'} successfully` });
     }),
   );
 

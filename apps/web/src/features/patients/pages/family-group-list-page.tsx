@@ -98,7 +98,7 @@ export default function FamilyGroupListPage() {
           title={debouncedSearch ? "No matches found" : "No family groups"}
           description={debouncedSearch ? `No family units matching "${debouncedSearch}" were found.` : "Organize your patients into family units to track clinical histories together."}
           actionLabel={debouncedSearch ? "Clear Search" : "Register Patient"}
-          onAction={debouncedSearch ? () => handleSearchChange('') : () => navigate('/patients/add')}
+          onAction={debouncedSearch ? () => handleSearchChange('') : () => navigate('/patients?add=true')}
           variant="card"
           className="my-8"
         />
