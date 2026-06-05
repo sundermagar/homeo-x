@@ -151,6 +151,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const userRole = normalizeRole((user as any)?.type || (user as any)?.role);
+  const isSuperAdmin = userRole === 'SuperAdmin';
+
   const { data: unreadResponse } = useQuery({
     queryKey: ['courier-unread-count'],
     queryFn: async () => {
@@ -158,9 +161,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       return data.data as { count: number };
     },
     refetchInterval: 5 * 60_000, // 5 min — remote DB is slow
-    enabled: !!user
+    // SuperAdmin has no courier tenant context — skip this query to avoid a pending XHR
+    enabled: !!user && !isSuperAdmin,
   });
   const unreadCount = unreadResponse?.count || 0;
+
 
   const NAV_STRUCTURE: NavItem[] = [
     {
@@ -402,7 +407,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const effectiveCollapsed = sidebarCollapsed && !isMobile;
 
-  const userRole = normalizeRole((user as any)?.type || (user as any)?.role);
 
   const visibleNav = NAV_STRUCTURE.filter(item => {
     if (item.type === 'link') {

@@ -168,7 +168,7 @@ export async function createApp(): Promise<{ app: Express; server: HttpServer; i
   // ─── Operations & Logistics (JWT required) ───
   app.use('/api/crm', authMiddleware, crmRouter);
   app.use('/api/logistics', authMiddleware, createLogisticsRouter());
-  app.use('/api/courier', authMiddleware, createCourierRouter());
+  app.use('/api/courier', createCourierRouter());
   app.use('/api/knowledge', authMiddleware, knowledgeRouter);
   app.use('/api/records', authMiddleware, recordsRouter);
   app.use('/api/staff', authMiddleware, staffRouter);

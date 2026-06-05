@@ -232,14 +232,20 @@ export class CourierRepositoryPg {
    * Get count of unread courier entries (for notification badge).
    */
   async getUnreadCount(): Promise<number> {
-    const [row] = await this.db.execute(sql`
-      SELECT COUNT(*) as count FROM courier_medicine 
-      WHERE read_type = 'unread' 
-        AND post_type IN ('Courier', 'Pickup')
-        AND (deleted_at IS NULL OR deleted_at = '')
-    `) as any[];
-    return row?.count || 0;
+    try {
+      const [row] = await this.db.execute(sql`
+        SELECT COUNT(*) as count FROM courier_medicine 
+        WHERE read_type = 'unread' 
+          AND post_type IN ('Courier', 'Pickup')
+          AND (deleted_at IS NULL OR deleted_at = '')
+      `) as any[];
+      return Number(row?.count) || 0;
+    } catch {
+      // Table may not exist in this tenant schema (e.g. SuperAdmin on demo schema)
+      return 0;
+    }
   }
+
 
   /**
    * Delete a courier_medicine entry.
