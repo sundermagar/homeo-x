@@ -137,7 +137,8 @@ export default function ClinicsPage() {
       <div className="pp-stat-grid">
         {[
           { label: 'Total Clinics', value: orgs.length, cls: 'is-primary' },
-          { label: 'Active', value: orgs.filter(o => !o.deletedAt).length, cls: 'is-success' },
+          { label: 'Active', value: orgs.filter(o => o.status === 'active' && !o.deletedAt).length, cls: 'is-success' },
+          { label: 'Suspended', value: orgs.filter(o => o.status === 'suspended' && !o.deletedAt).length, cls: 'is-danger' },
           { label: 'Cities', value: activeCities, cls: '' },
         ].map(stat => (
           <div key={stat.label} className="pp-stat-card-enhanced">
