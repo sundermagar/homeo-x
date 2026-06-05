@@ -11,7 +11,7 @@ import type { CreateBillInput, ListBillsQuery } from '@mmc/validation';
  * Uses Drizzle ORM with schema-per-tenant (search_path set at connection level).
  */
 export class BillingRepositoryPg implements BillingRepository {
-  constructor(private readonly db: DbClient) {}
+  constructor(private readonly db: DbClient) { }
 
   async findById(id: number): Promise<Bill | null> {
     const [row] = await this.db.select().from(bills).where(eq(bills.id, id)).limit(1);
@@ -25,7 +25,7 @@ export class BillingRepositoryPg implements BillingRepository {
     // Build where conditions
     const conditions = [isNull(bills.deletedAt)];
     if (regid) conditions.push(eq(bills.regid, regid));
-    
+
     // Filter by clinicId on patients table safely
     if (clinicId) {
       conditions.push(
@@ -42,7 +42,7 @@ export class BillingRepositoryPg implements BillingRepository {
       conditions.push(eq(bills.billDate, date));
     }
     const where = and(...conditions);
-    
+
     console.log('[BillingRepositoryPg.findAll] params:', params, 'start:', date ? new Date(date) : null, 'end:', date ? (() => { const e = new Date(date); e.setDate(e.getDate() + 1); return e; })() : null);
 
     try {
@@ -281,11 +281,11 @@ export class BillingRepositoryPg implements BillingRepository {
     if (existing) {
       const newBalance = amount - (existing.received ?? 0);
       const [row] = await this.db.update(bills)
-        .set({ 
-          charges: amount, 
-          balance: newBalance, 
+        .set({
+          charges: amount,
+          balance: newBalance,
           customTitle: newName,
-          updatedAt: new Date() 
+          updatedAt: new Date()
         })
         .where(eq(bills.id, existing.id))
         .returning();

@@ -55,7 +55,7 @@ export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Pr
       group.totalCharges += chargeAmount;
       group.totalReceived += bill.received || 0;
       group.totalBalance += bill.balance || 0;
-      
+
       const t = (bill.treatment || bill.billType || '') as string;
       if (t === 'Additional') {
         group.additionalCharge += chargeAmount;
@@ -250,12 +250,12 @@ export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Pr
             </div>
             <div className="bill-form-group">
               <label className="bill-form-label">Amount Received (₹)</label>
-              <input 
-                type="number" 
-                className="bill-form-input" 
-                style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }} 
-                value={receiveAmount} 
-                onChange={e => setReceiveAmount(Number(e.target.value))} 
+              <input
+                type="number"
+                className="bill-form-input"
+                style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }}
+                value={receiveAmount}
+                onChange={e => setReceiveAmount(Number(e.target.value))}
               />
             </div>
             <div className="bill-form-group" style={{ marginTop: 16 }}>
@@ -298,10 +298,10 @@ export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Pr
                 </button>
               </div>
             </div>
-            <button 
-              className="bill-btn bill-btn-primary" 
-              style={{ width: '100%', marginTop: 24, height: 48, borderRadius: 14, fontSize: '0.95rem' }} 
-              onClick={handleReceiveGroupPayment} 
+            <button
+              className="bill-btn bill-btn-primary"
+              style={{ width: '100%', marginTop: 24, height: 48, borderRadius: 14, fontSize: '0.95rem' }}
+              onClick={handleReceiveGroupPayment}
               disabled={recordPayment.isPending || receiveAmount <= 0}
             >
               Confirm Payment (₹{receiveAmount})

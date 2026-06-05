@@ -1203,8 +1203,9 @@ END $$`,
     name: 'case_vaccins',
     ddl: `CREATE TABLE IF NOT EXISTS "{{SCHEMA}}"."case_vaccins" (
   "id" serial PRIMARY KEY,
-  "reg_id" integer,
+  "regid" integer,
   "vaccinee_id" integer,
+  "notes" text,
   "created_at" timestamp,
   "updated_at" timestamp,
   "deleted_at" timestamp

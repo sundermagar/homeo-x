@@ -115,7 +115,7 @@ export function createOrganizationRouter(): Router {
         // We do NOT await this. It runs in the background so the user gets an instant response.
         void (async () => {
           try {
-            const { provisionTenant, migrateTenant, createDbClient, seedRbac } =
+            const { provisionTenant, migrateTenant, createDbClient, seedRbac, copyTenantBaseData } =
               await import('@mmc/database');
 
             if (shouldProvision) {
@@ -129,6 +129,9 @@ export function createOrganizationRouter(): Router {
               // Create admin in tenant schema
               try {
                 const tenantDb = createDbClient(dbUrl, schemaName);
+
+                // Copy baseline configuration data from demo
+                await copyTenantBaseData(dbUrl, schemaName);
 
                 // Ensure permissions exist before adding users/staff
                 await seedRbac(tenantDb);

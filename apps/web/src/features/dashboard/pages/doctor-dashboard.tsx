@@ -561,11 +561,11 @@ const IntelligenceItem = memo(function IntelligenceItem({ color, text }: any) {
 
 const BillingItem = memo(function BillingItem({ patient, id, amount, status, onView }: any) {
   return (
-    <div 
-      className="dash-list-item" 
-      style={{ 
-        alignItems: 'center', 
-        padding: '12px 14px', 
+    <div
+      className="dash-list-item"
+      style={{
+        alignItems: 'center',
+        padding: '12px 14px',
         borderRadius: '12px',
         backgroundColor: '#f8fafc',
         border: '1px solid #e2e8f0',
@@ -585,10 +585,10 @@ const BillingItem = memo(function BillingItem({ patient, id, amount, status, onV
         e.currentTarget.style.boxShadow = 'none';
       }}
     >
-      <div style={{ 
-        width: 36, height: 36, borderRadius: '10px', 
-        background: '#e0f2fe', display: 'flex', alignItems: 'center', 
-        justifyContent: 'center', color: '#0284c7', fontWeight: 800, fontSize: 14, marginRight: 12 
+      <div style={{
+        width: 36, height: 36, borderRadius: '10px',
+        background: '#e0f2fe', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', color: '#0284c7', fontWeight: 800, fontSize: 14, marginRight: 12
       }}>
         {patient.charAt(0).toUpperCase()}
       </div>

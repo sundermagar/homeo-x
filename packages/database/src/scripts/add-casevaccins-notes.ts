@@ -26,10 +26,22 @@ async function main() {
   for (const { schema_name } of schemas) {
     try {
       await sql.unsafe(`
-        ALTER TABLE "${schema_name}".case_vaccins
-          ADD COLUMN IF NOT EXISTS notes text;
+        DO $$
+        BEGIN
+          -- Add notes column if missing
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = '${schema_name}' AND table_name = 'case_vaccins' AND column_name = 'notes') THEN
+            ALTER TABLE "${schema_name}".case_vaccins ADD COLUMN notes text;
+          END IF;
+
+          -- Rename reg_id to regid if reg_id exists and regid does not
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = '${schema_name}' AND table_name = 'case_vaccins' AND column_name = 'reg_id') THEN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = '${schema_name}' AND table_name = 'case_vaccins' AND column_name = 'regid') THEN
+              ALTER TABLE "${schema_name}".case_vaccins RENAME COLUMN reg_id TO regid;
+            END IF;
+          END IF;
+        END $$;
       `);
-      console.log(`  ✅ ${schema_name}: case_vaccins notes added`);
+      console.log(`  ✅ ${schema_name}: case_vaccins schema verified (notes and regid)`);
     } catch (e: any) {
       console.warn(`  ⚠️  ${schema_name}: ${e.message}`);
     }

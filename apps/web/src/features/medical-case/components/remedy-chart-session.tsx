@@ -101,6 +101,8 @@ export function RemedyChartSession({
 
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
+  const canViewBilling = useAuthStore(s => s.user?.permissions?.canViewBilling ?? true);
+
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
@@ -346,7 +348,7 @@ export function RemedyChartSession({
                       <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                         <Calendar size={13} style={{ color: 'var(--pp-blue)' }} /> Days:
                       </label>
-                      {selectedDayCharge && selectedDayCharge.regularCharges != null && (
+                      {canViewBilling && selectedDayCharge && selectedDayCharge.regularCharges != null && (
                         <div style={{ 
                           display: 'inline-flex', 
                           alignItems: 'center', 

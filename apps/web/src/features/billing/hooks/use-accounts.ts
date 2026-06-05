@@ -126,14 +126,12 @@ export function useDeleteAdditionalCharge() {
 // ─── Day Charges Hooks ─────────────────────────────────────────────────────────
 
 export function useDayCharges() {
-  const canViewBilling = useAuthStore(s => s.user?.permissions?.canViewBilling ?? true);
   return useQuery({
     queryKey: ['day-charges'],
     queryFn: async () => {
       const { data } = await apiClient.get<{ success: boolean; data: DayCharge[] }>('/day-charges');
       return data.data ?? [];
     },
-    enabled: canViewBilling,
   });
 }
 
