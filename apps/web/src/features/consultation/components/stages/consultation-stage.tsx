@@ -37,6 +37,10 @@ interface ConsultationStageProps {
   categorizedSymptoms: CategorizedSymptoms;
   onSymptomsExtracted: (symptoms: CategorizedSymptoms) => void;
   onAnalyseSymptoms?: () => void; // used by bottom bar, kept in interface
+  /** When set, appended to the transcript as a DOCTOR line (e.g. an attached lab summary). */
+  injectText?: string | null;
+  onInjectConsumed?: () => void;
+  stopRecordingSignal?: number;
 }
 
 const MODE_CONFIG: Record<ConsultationMode, { icon: React.ReactNode; label: string; color: string; bg: string; border: string; desc: string }> = {
@@ -73,6 +77,9 @@ export function ConsultationStage({
   categorizedSymptoms,
   onSymptomsExtracted,
   onAnalyseSymptoms: _onAnalyseSymptoms,
+  injectText,
+  onInjectConsumed,
+  stopRecordingSignal,
 }: ConsultationStageProps) {
 
   const [segments, setSegments] = useState<TranscriptSegmentLocal[]>([]);
@@ -342,7 +349,11 @@ export function ConsultationStage({
     setIsListeningForAnswer(false);
   }, [binaryTranscriber]);
 
-
+  useEffect(() => {
+    if (stopRecordingSignal && stopRecordingSignal > 0) {
+      handleStopRecording();
+    }
+  }, [stopRecordingSignal, handleStopRecording]);
   // --- Mode-specific question generation ---
   const modeQuestions = useModeQuestions();
   const [suggestedQuestions, setSuggestedQuestions] = useState<any[]>([]);
@@ -590,6 +601,32 @@ export function ConsultationStage({
     injectAnswerRef.current = injectAnswer;
   }, [injectAnswer]);
 
+  // Append externally-provided text (e.g. an attached lab summary) into the live transcript
+  // as a DOCTOR line, so it's visible in the panel and included in the conversation.
+  useEffect(() => {
+    const text = (injectText || '').trim();
+    if (!text) return;
+    const segment: TranscriptSegmentLocal = {
+      sequenceNumber: nextSeqRef.current++,
+      text,
+      translatedText: text,
+      speaker: 'DOCTOR',
+      confidence: 1.0,
+      startTimeMs: 0,
+      endTimeMs: 0,
+      isFinal: true,
+      timestamp: Date.now(),
+    };
+    setSegments((prev) => {
+      const updated = [...prev, segment];
+      const fullText = updated.map((s) => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.translatedText || s.text}`).join('\n');
+      setTimeout(() => onTranscriptUpdate?.(fullText), 0);
+      return updated;
+    });
+    onInjectConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [injectText]);
+
   // Remove a symptom from categorized symptoms
   const handleRemoveSymptom = useCallback((category: 'mental' | 'physical' | 'particular', index: number) => {
     const updated = { ...categorizedSymptoms };
@@ -614,24 +651,11 @@ export function ConsultationStage({
 
 
   return (
-    <div className="space-y-6 pp-fade-in relative">
+    <div className="flex-1 min-h-0 flex flex-col pp-fade-in relative">
 
 
 
-      {/* 2. Header row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold text-[#0F0F0E] tracking-tight">Clinical Consultation</h2>
-          <p className="text-sm font-medium text-[#4A4A47]">Holistic Analysis & Symptom Extraction</p>
-        </div>
-        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#EFF6FF] border border-[#BFDBFE] text-xs font-bold text-[#2563EB] tracking-wider uppercase w-fit">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3B82F6] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#2563EB]"></span>
-          </span>
-          {CALL_MODE_LABELS[callMode]}
-        </span>
-      </div>
+
 
       {/* GNM Progress Status (if available) */}
       {/* 
@@ -651,10 +675,10 @@ export function ConsultationStage({
       */}
 
       {/* 4. Full-width layout */}
-      <div className="w-full">
+      <div className="flex-1 min-h-0 flex flex-col">
 
         {/* chat-wrap */}
-        <div className="space-y-4 w-full">
+        <div className="flex-1 min-h-0 flex flex-col">
 
           {/* Call interface panel (AICaptureModule + CallInterfacePanel) */}
           <AICaptureModule
@@ -714,7 +738,7 @@ export function ConsultationStage({
               );
             }}
           >
-            {({ AttachLabButton, uploadStatus, uploadedLabs: _uploadedLabs }) => {
+            {({ uploadedLabs: _uploadedLabs }) => {
               return (
                 <CallInterfacePanel
                   callMode={callMode}
@@ -762,10 +786,10 @@ export function ConsultationStage({
                           {isListeningForAnswer ? "Patient Speaking" : "Doctor Speaking"}
                         </button>
                       )}
-                      {AttachLabButton}
+                      {/* Lab upload moved to the sidebar (Labs tab) — this duplicate is removed to avoid
+                          double parse-lab-report + symptom-extraction credit usage. */}
                     </div>
                   }
-                  transcriptBottomActions={uploadStatus}
                 />
               );
             }}

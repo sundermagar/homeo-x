@@ -70,7 +70,9 @@ export function useParseLabReport() {
         mimeType: file.type,
         base64,
       });
-      return body?.parsedText || body as string;
+      // Always return a string. When parsedText is empty the API still returns
+      // an object ({ parsedText: '', parseError }); never leak that object out.
+      return typeof body === 'string' ? body : (body?.parsedText ?? '');
     },
   });
 }

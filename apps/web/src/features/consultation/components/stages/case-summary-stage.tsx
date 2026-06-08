@@ -53,7 +53,7 @@ export function CaseSummaryStage({
               <Loader2 className="h-3 w-3 animate-spin" /> Generating
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-[4px] bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-[4px] bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE]">
               <CheckCircle2 className="h-3 w-3" /> Generated
             </span>
           )}

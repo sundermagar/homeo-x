@@ -8,7 +8,7 @@ import { usePatient } from '../../features/patients/hooks/use-patients';
 import { useConsultationState } from './hooks/use-consultation-state';
 import { ConsultationSkeleton } from './components/consultation-skeleton';
 import { useVideoService } from '../../hooks/use-video-service';
-import { HomeopathyConsultationLayout } from './layouts/homeopathy-consultation-layout';
+import { HomeopathyConsultationLayoutV2 } from './layouts/homeopathy-consultation-layout-v2';
 import { useAppointment } from '../../features/appointments/hooks/use-appointments';
 import type { Visit } from '../../types/visit';
 import type { Patient } from '../../types/patient';
@@ -34,7 +34,7 @@ export default function ConsultationModePage() {
   // We only wait if NEITHER is ready and they are still loading.
   const isCoreDataReady = !!visit || !!appointment;
   const isCoreLoading = !isCoreDataReady && (isVisitLoading || isApptLoading);
-  
+
   if (isCoreLoading || (patientIdToFetch && isPatientLoading)) {
     return <ConsultationSkeleton />;
   }
@@ -46,9 +46,9 @@ export default function ConsultationModePage() {
     status: appointment?.status === 'Waitlist' ? 'CHECKED_IN' : 'IN_PROGRESS',
     specialty: 'Homeopathy',
     chiefComplaint: appointment?.notes || '',
-    patient: { 
-      firstName: appointment?.patientName ? appointment.patientName.split(' ')[0] : 'Patient', 
-      lastName: appointment?.patientName ? appointment.patientName.split(' ').slice(1).join(' ') : '' 
+    patient: {
+      firstName: appointment?.patientName ? appointment.patientName.split(' ')[0] : 'Patient',
+      lastName: appointment?.patientName ? appointment.patientName.split(' ').slice(1).join(' ') : ''
     },
     vitals: (appointment as any)?.vitals || null,
   } as unknown as Visit);
@@ -95,7 +95,7 @@ function ConsultationModeInner({
   const [, setInitError] = useState(false);
 
   const isStarted = visit.status === 'IN_PROGRESS' || visit.status === 'COMPLETED';
-  
+
   // 1. Always fetch summary if IN_PROGRESS or COMPLETED
   const { data: summary, isError: summaryError, isPending: summaryPending } = useConsultationSummary(
     isStarted ? visitId : undefined
@@ -157,7 +157,7 @@ function ConsultationModeInner({
 
   // ─── Dispatch strictly restricted to Homeopathy Layout ───
   return (
-    <HomeopathyConsultationLayout
+    <HomeopathyConsultationLayoutV2
       visitId={visitId}
       visit={visit}
       patient={patient}
