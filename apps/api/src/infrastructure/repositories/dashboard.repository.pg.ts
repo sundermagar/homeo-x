@@ -430,6 +430,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             q.manual_name,
             'Practitioner'
           ) as doctor_name,
+          q.a_booking_date as booking_date,
+          q.a_visit_type as visit_type,
+          pkg.package_name,
+          pkg.package_expiry,
           v.systolic_bp,
           v.diastolic_bp,
           v.weight_kg,
@@ -453,7 +457,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             COALESCE(a.booking_time, '') as booking_time,
             COALESCE(a.id, tw.appointment_id) as visit_id,
             a.notes,
-            a.phone as a_phone
+            a.phone as a_phone,
+            a.booking_date as a_booking_date,
+            a.visit_type as a_visit_type
           FROM today_waitlist tw
           LEFT JOIN appointments a ON a.id = tw.appointment_id
 
@@ -472,7 +478,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.booking_time,
             a.id as visit_id,
             a.notes,
-            a.phone as a_phone
+            a.phone as a_phone,
+            a.booking_date as a_booking_date,
+            a.visit_type as a_visit_type
           FROM appointments a
           WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL OR a.clinic_id = 0 OR a.clinic_id = 1)
@@ -488,6 +496,14 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           FROM vitals
           ORDER BY visit_id, recorded_at DESC
         ) v ON v.visit_id = q.visit_id
+        LEFT JOIN (
+          SELECT DISTINCT ON (regid)
+            regid, package_id, expiry_date as package_expiry, pl.name as package_name
+          FROM patient_packages pp
+          LEFT JOIN package_plans pl ON pp.package_id = pl.id
+          WHERE pp.status = 'Active' AND (pp.deleted_at IS NULL OR pp.deleted_at::text = '')
+          ORDER BY regid, pp.id DESC
+        ) pkg ON pkg.regid = COALESCE(p.regid, p.id, q.patient_id)
         ORDER BY q.token_no ASC NULLS LAST, q.id ASC
       `);
 
@@ -513,6 +529,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         doctorName: r.doctor_name,
         doctorId: r.doctor_id,
         bookingTime: r.booking_time || '',
+        bookingDate: r.booking_date,
+        visitType: r.visit_type,
+        packageName: r.package_name,
+        packageExpiry: r.package_expiry,
         tokenNo: r.token_no,
         status: r.status,
         phone: r.phone || '',

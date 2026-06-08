@@ -35,6 +35,7 @@ export const createPatientSchema = z.object({
   referredById: z.string().optional(),
   assistantDoctor: z.string().optional(),
   consultationFee: z.coerce.number().optional(),
+  registrationFee: z.coerce.number().optional(),
   courierOutstation: z.boolean().optional().default(false),
   unregisteredId: z.coerce.number().optional(),
 });

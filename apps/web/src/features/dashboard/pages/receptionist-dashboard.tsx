@@ -22,7 +22,8 @@ import {
   ChevronRight,
   CheckCircle2,
   Send,
-  MessageSquare
+  MessageSquare,
+  User
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -32,9 +33,11 @@ import { useUpdateStatus, useIssueToken, useAddToWaitlist } from '../../appointm
 import { Pagination } from '@/components/shared/pagination';
 import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import { PatientFormDrawer } from '../../patients/components/patient-form-drawer';
+import { AppointmentFormDrawer } from '../../appointments/components/appointment-form-drawer';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import { ReportUploadModal } from '../components/ReportUploadModal';
 import { PatientBillingDrawer } from '../../billing/components/PatientBillingDrawer';
+import { useBills } from '../../billing/hooks/use-billing';
 import { apiClient } from '@/infrastructure/api-client';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { toast } from '@/hooks/use-toast';
@@ -72,6 +75,7 @@ export function ReceptionistDashboard() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isPatientDrawerOpen, setIsPatientDrawerOpen] = useState(false);
+  const [isApptDrawerOpen, setIsApptDrawerOpen] = useState(false);
   const [billingDrawerTarget, setBillingDrawerTarget] = useState<{ regid: number; name: string } | null>(null);
 
   const { data: followups = [], isLoading: followupsLoading } = useQuery({
@@ -224,6 +228,12 @@ export function ReceptionistDashboard() {
     };
   }, [openMenuId]);
 
+
+
+  const todayAppts = dashData?.queue ? [...dashData.queue].sort((a: any, b: any) => (b.id || 0) - (a.id || 0)) : [];
+  const birthdays = dashData?.birthdays || [];
+  const kpis = dashData?.kpis;
+
   // Fetch today's new patients
   const { data: todayPatients } = useQuery({
     queryKey: ['patients-today'],
@@ -235,9 +245,12 @@ export function ReceptionistDashboard() {
     refetchInterval: 10000,
   });
 
-  const todayAppts = dashData?.queue ? [...dashData.queue].sort((a: any, b: any) => (b.id || 0) - (a.id || 0)) : [];
-  const birthdays = dashData?.birthdays || [];
-  const kpis = dashData?.kpis;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const billsQuery = useBills({ page: 1, date: todayStr, limit: 1000 });
+
+  const getPatientBills = (regid: number) => {
+    return billsQuery.data?.data?.filter((b: any) => b.regid === regid) || [];
+  };
 
   const totalPages = Math.ceil(todayAppts.length / pageSize);
   const startIndex = (page - 1) * pageSize;
@@ -311,28 +324,64 @@ export function ReceptionistDashboard() {
   const validBirthdays = birthdays.filter((b: BirthdayPatient) => b.mobile1 || b.phone);
   const allBirthdaysSelected = validBirthdays.length > 0 && selectedBirthdays.size === validBirthdays.length;
 
+  const awaitingPaymentCount = billsQuery.data?.data?.filter((b: any) => (b.balance || 0) > 0).length || 0;
+
   return (
     <div className="dash-root">
-      {/* ── 1. KPI Strip ─────────────────────────────────────────────── */}
-      <div className="dash-kpi-strip">
-        <KPIItem label="Today Intake" value={kpis?.newPatientsCount || 0} trend={`${todayPatients?.length || 0} registered`} color="var(--pp-success-fg)" />
-        <KPIItem label="Waitlist" value={todayAppts.filter(a => a.status === 'Waitlist').length} trend="Active queue" color="#d97706" />
-        <KPIItem label="Collection" value={fmt(kpis?.todaysCollection || 0)} trend="Today" color="var(--pp-success-fg)" />
-        <KPIItem label="Completed" value={todayAppts.filter(a => a.status === 'Completed').length} trend="Visits done" color="var(--pp-blue)" />
+      <div className="dash-kpi-strip" style={{ gap: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        <KPIItem label="Booked today" value={todayAppts.length} />
+        <KPIItem label="In waiting room" value={todayAppts.filter(a => a.status === 'Waitlist').length} />
+        <KPIItem label="Awaiting payment" value={awaitingPaymentCount} isHighlight={true} />
+        <KPIItem label="Collected (my till)" value={fmt(kpis?.todaysCollection || 0)} />
       </div>
 
-      {/* ── 2. TOP ROW: Quick Operations + New Patients + Today's Appointments ── */}
-      <div className="rd-triple-grid">
-        {/* Quick Operations */}
-        <div className="dash-sidebar-card">
-          <h3 className="dash-section-title">Quick Operations</h3>
-          <div className="db-scroll" style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '280px', paddingRight: 4 }}>
-            <OpLink icon={<Search size={15} />} label="Registry Lookup" path="/patients" />
-            <OpLink icon={<Phone size={15} />} label="Confirm Appointments" path="/appointments" />
-            <OpLink icon={<CreditCard size={15} />} label="Process Payments" path="/billing" />
-            <OpLink icon={<Bell size={15} />} label="Follow-up Dues" path="/medical-cases/followups" />
+      {/* ── 2. QUICK OPERATIONS (Horizontal) ─────────────────────────── */}
+      <div className="rd-quick-ops-grid">
+        {/* Book Appointment */}
+        <button 
+          onClick={() => setIsApptDrawerOpen(true)}
+          className="rd-quick-op-btn primary"
+        >
+          <div className="rd-quick-op-icon-wrapper">
+            <Plus size={20} color="white" />
           </div>
-        </div>
+          <div>
+            <div className="rd-quick-op-title">Book appointment</div>
+            <div className="rd-quick-op-subtitle">search mobile / ID → token</div>
+          </div>
+        </button>
+
+        {/* New Patient */}
+        <button 
+          onClick={() => setIsPatientDrawerOpen(true)}
+          className="rd-quick-op-btn secondary"
+        >
+          <div className="rd-quick-op-icon-wrapper">
+            <UserPlus size={20} />
+          </div>
+          <div>
+            <div className="rd-quick-op-title">New patient</div>
+            <div className="rd-quick-op-subtitle">register + family</div>
+          </div>
+        </button>
+
+        {/* Collect Dues */}
+        <button 
+          onClick={() => navigate('/billing')}
+          className="rd-quick-op-btn secondary"
+        >
+          <div className="rd-quick-op-icon-wrapper">
+            <CreditCard size={20} />
+          </div>
+          <div>
+            <div className="rd-quick-op-title">Collect dues</div>
+            <div className="rd-quick-op-subtitle">outstanding balances</div>
+          </div>
+        </button>
+      </div>
+
+      {/* ── 3. MIDDLE ROW: New Patients + Finance Queue ── */}
+      <div className="rd-dual-grid">
 
         {/* Today's New Patients */}
         <div className="rd-compact-card">
@@ -351,7 +400,7 @@ export function ReceptionistDashboard() {
               <span className="dash-badge badge-success">{todayPatients?.length || 0}</span>
             </div>
           </div>
-          <div className="rd-compact-card-body db-scroll" style={{ maxHeight: '280px', paddingRight: 4 }}>
+          <div className="rd-compact-card-body db-scroll" style={{ paddingRight: 4 }}>
             {!todayPatients?.length ? (
               <div className="rd-empty">No new registrations today</div>
             ) : (
@@ -381,105 +430,91 @@ export function ReceptionistDashboard() {
           </div>
         </div>
 
-        {/* Today's Appointments */}
+        {/* Finance Queue */}
         <div className="rd-compact-card">
           <div className="rd-compact-card-header">
             <div className="rd-compact-card-title">
-              <Calendar size={14} style={{ color: 'var(--pp-blue)' }} /> Today's Appointments
+              <CreditCard size={14} style={{ color: 'var(--pp-blue)' }} /> Finance
             </div>
             <span className="dash-badge badge-primary">{todayAppts.length}</span>
           </div>
-          <div className="rd-compact-card-body db-scroll" style={{ maxHeight: '280px', paddingRight: 4, paddingBottom: 12 }}>
+          <div className="rd-compact-card-body db-scroll" style={{ paddingRight: 4, paddingBottom: 12 }}>
             {todayAppts.length === 0 ? (
               <div className="rd-empty">No appointments today</div>
             ) : (
               todayAppts.map((a: any, i: number) => {
-                const statusColor =
-                  a.status === 'Completed' ? 'var(--pp-blue)' :
-                    a.status === 'Consultation' ? 'var(--pp-success-fg)' :
-                      a.status === 'Waitlist' ? '#d97706' :
-                        'var(--text-muted)';
-
-                const statusBg =
-                  a.status === 'Completed' ? 'rgba(59, 130, 246, 0.1)' :
-                    a.status === 'Consultation' ? 'rgba(16, 185, 129, 0.1)' :
-                      a.status === 'Waitlist' ? 'rgba(217, 119, 6, 0.1)' :
-                        'var(--pp-warm-2)';
+                const patientBills = getPatientBills(a.patientId || a.regid);
+                const hasBills = patientBills.length > 0;
+                const totalBalance = patientBills.reduce((acc: number, b: any) => acc + (b.balance || 0), 0);
+                const isPaid = hasBills && totalBalance === 0;
+                const billStatusText = hasBills ? (isPaid ? 'Paid ✓' : `₹${totalBalance} due`) : 'Verify Fee';
+                const billColor = hasBills ? (isPaid ? 'var(--pp-success-fg)' : '#c2410c') : 'var(--text-muted)';
+                const billBg = hasBills ? (isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(194, 65, 12, 0.1)') : 'var(--bg-surface-2)';
 
                 return (
-                  <div key={i} className="rd-list-item" style={{ position: 'relative', overflow: 'visible', alignItems: 'center' }}>
-                    <div className="rd-list-avatar" style={{ background: statusBg, color: statusColor, fontSize: 11, fontWeight: 800 }}>
-                      {a.tokenNo ? `T${a.tokenNo}` : (a.patientName?.charAt(0) || 'U')}
-                    </div>
-                    <div className="rd-list-info" style={{ flex: 1 }}>
-                      <div className="rd-list-name">
-                        {a.patientName || 'Unknown Patient'}
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <div className="appt-grid-card-minimal animate-fade-in" style={{ padding: '10px 12px', gap: '8px', display: 'flex', flexDirection: 'column' }}>
+                      {/* Top Row: Token & Name */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--pp-success-fg)', fontSize: 11, fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
+                            {a.tokenNo ? `#${a.tokenNo}` : (a.patientName?.charAt(0) || 'U')}
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>{a.patientName || 'Unknown Patient'}</span>
+                        </div>
+                        <div style={{ background: 'var(--bg-surface-2)', padding: '2px 6px', borderRadius: 4, fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--pp-font-mono)' }}>
+                          MRN-{String(a.patientId || a.regid || '000').padStart(5, '0')}
+                        </div>
                       </div>
-                      <div className="rd-list-sub" style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
-                        <span style={{
-                          fontSize: 9,
-                          fontWeight: 800,
-                          padding: '2px 6px',
-                          borderRadius: 4,
-                          background: statusBg,
-                          color: statusColor,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.04em'
-                        }}>
-                          {a.status}
-                        </span>
-                        <span style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: 10 }}>{a.bookingTime || 'N/A'}</span>
-                      </div>
-                    </div>
 
-                    <div className="appt-kebab-wrap" style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                      <button
-                        className="appt-kebab-btn"
-                        onClick={(e) => { e.stopPropagation(); toggleMenu(`today-appt-${a.id}`, e.currentTarget); }}
-                        style={{ padding: 6, background: 'var(--bg-surface-1)', border: '1px solid var(--pp-warm-1)', borderRadius: 6, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        <MoreVertical size={16} style={{ color: 'var(--text-muted)' }} />
-                      </button>
-                      {openMenuId === `today-appt-${a.id}` && menuPos && createPortal(
-                        <div
-                          ref={menuRef}
-                          className="appt-kebab-menu"
-                          style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999, width: 150 }}
+                      {/* Middle Row: Doctor, Badges & Action Button */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(59, 130, 246, 0.08)', color: 'var(--pp-blue)', padding: '2px 6px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
+                            <User size={10} /> {a.doctorName || 'No Doctor'}
+                          </div>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', background: billBg, color: billColor, padding: '2px 6px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
+                            {billStatusText}
+                          </div>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                            {a.visitType || 'Follow-up'}
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={() => setBillingDrawerTarget({ regid: a.patientId || a.regid, name: a.patientName })}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            fontSize: 11,
+                            background: totalBalance > 0 ? '#c2410c' : (hasBills ? 'var(--bg-surface-2)' : 'var(--pp-blue)'),
+                            color: totalBalance > 0 ? 'white' : (hasBills ? 'var(--text-main)' : 'white'),
+                            border: totalBalance > 0 ? 'none' : (hasBills ? '1px solid var(--border-main)' : 'none'),
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            whiteSpace: 'nowrap'
+                          }}
                         >
-                          {(a.status === 'Pending' || a.status === 'Scheduled') && (
-                            <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleConfirm(a); setOpenMenuId(null); setMenuPos(null); }} disabled={updateStatus.isPending}>
-                              <CheckCircle2 size={14} /> Confirm
-                            </button>
+                          {totalBalance > 0 ? (
+                            <>
+                              <CreditCard size={11} /> Collect ₹{totalBalance}
+                            </>
+                          ) : hasBills ? (
+                            <>
+                              <Eye size={11} /> View Bill
+                            </>
+                          ) : (
+                            <>
+                              <Plus size={11} /> Open
+                            </>
                           )}
-                          {!a.tokenNo && a.status !== 'Completed' && (
-                            <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { handleIssueToken(a); setOpenMenuId(null); setMenuPos(null); }} disabled={issueToken.isPending}>
-                              <Ticket size={14} /> Token
-                            </button>
-                          )}
-
-                          <div className="appt-kebab-divider" />
-                          <button
-                            className="appt-kebab-item"
-                            style={{ color: (a.patientId || a.regid) ? 'var(--pp-purple)' : 'var(--text-muted)', cursor: (a.patientId || a.regid) ? 'pointer' : 'not-allowed' }}
-                            onClick={() => {
-                              if (a.patientId || a.regid) {
-                                setVitalsTarget({ visitId: a.visitId || a.id, regid: a.patientId || a.regid });
-                              } else {
-                                toast({ description: 'Vitals not supported for unregistered patients', variant: 'error' });
-                              }
-                              setOpenMenuId(null);
-                              setMenuPos(null);
-                            }}
-                            disabled={!(a.patientId || a.regid)}
-                          >
-                            <Activity size={14} /> Vitals
-                          </button>
-                          <button className="appt-kebab-item" style={{ color: '#25D366' }} onClick={() => { handleApptWhatsApp(a); setOpenMenuId(null); setMenuPos(null); }}>
-                            <MessageCircle size={14} /> WhatsApp
-                          </button>
-                        </div>,
-                        document.body
-                      )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -489,105 +524,140 @@ export function ReceptionistDashboard() {
         </div>
       </div>
 
-      {/* ── 4. BOTTOM ROW: Today's Followup + Birthday List ────────────── */}
-      <div className="rd-dual-grid" style={{ gridTemplateColumns: '2fr 1fr' }}>
-        {/* Today's Followup (Table) */}
+      {/* ── 4. BOTTOM ROW: Today's Appointments + Birthday List ────────────── */}
+      <div className="rd-bottom-row-grid">
+        {/* Today's Appointments (Table) */}
         <div className="dash-card">
           <div className="dash-card-header">
             <h3 className="dash-section-title">
-              <Calendar size={16} style={{ marginRight: 8, color: 'var(--pp-blue)' }} /> Today's Followup
+              <Calendar size={16} style={{ marginRight: 8, color: 'var(--pp-blue)' }} /> Today's Appointments
             </h3>
-            <span className="dash-badge badge-primary">{followups.length} TOTAL</span>
+            <span className="dash-badge badge-primary">{todayAppts.length} TOTAL</span>
           </div>
 
           <div className="rd-table-wrap">
-            <div className="pp-table-container db-scroll" style={{ maxHeight: '360px', overflowY: 'auto' }}>
+            <div className="pp-table-container db-scroll" style={{ overflowY: 'auto' }}>
               <table className="pp-table">
                 <thead>
                   <tr>
-                    <th>REG ID</th>
+                    <th>TOKEN</th>
                     <th>PATIENT</th>
-                    <th>NEXT DATE</th>
+                    <th>DOCTOR</th>
+                    <th>DATE & TIME</th>
+                    <th>TYPE</th>
+                    <th>PACKAGE</th>
                     <th>STATUS</th>
                     <th style={{ textAlign: 'center' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {followups.map((f: any, i: number) => {
-                    const isMissed = f.visitType === 'Missed';
+                  {todayAppts.map((appt: any, i: number) => {
                     return (
-                      <tr key={i} className="hover-row">
-                        <td style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600, color: 'var(--text-muted)' }}>
-                          #{f.patientId || f.unregisteredPatientId || '-'}
+                      <tr key={i} className="pp-hover-row">
+                        <td data-label="TOKEN">
+                          {appt.tokenNo
+                            ? <span className="appt-cell-token" style={{ color: 'var(--pp-blue)', fontWeight: 600 }}>T{appt.tokenNo}</span>
+                            : <span className="appt-cell-slash">—</span>}
                         </td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div className="dash-avatar">{f.patientName?.charAt(0) || 'U'}</div>
-                            <div>
-                              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{f.patientName || 'Unknown Patient'}</div>
-                              <div className="text-label" style={{ fontSize: 10 }}>{f.phone || 'No Contact'}</div>
-                            </div>
-                          </div>
+                        <td data-label="PATIENT">
+                          {appt.patientId || appt.regid ? (
+                            <Link to={`/medical-cases/${appt.patientId || appt.regid}`} className="appt-cell-name pp-clickable-name" style={{ textDecoration: 'none', color: 'var(--pp-blue)' }}>
+                              {appt.patientName || 'Unknown Patient'}
+                            </Link>
+                          ) : (
+                            <div className="appt-cell-name">{appt.patientName || 'Unknown Patient'}</div>
+                          )}
+                          <div className="text-label" style={{ fontSize: 11 }}>{appt.phone || 'No Contact'}</div>
                         </td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-main)' }}>
-                            <Calendar size={13} style={{ color: 'var(--text-muted)' }} />
-                            {f.bookingDate ? new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}
-                          </div>
+                        <td data-label="DOCTOR">
+                          {(appt.doctorName || '').trim() ? (
+                            <span className="appt-doctor-badge"><User size={11} strokeWidth={1.6} />{appt.doctorName}</span>
+                          ) : (
+                            <span className="appt-cell-slash">—</span>
+                          )}
                         </td>
-                        <td>
-                          <span className={`dash-badge badge-${isMissed ? 'danger' : 'success'}`}>
-                            {f.visitType}
+                        <td data-label="DATE & TIME">
+                          <div className="appt-cell-name">{appt.bookingDate || '—'}</div>
+                          {appt.bookingTime && <div className="appt-cell-phone">{appt.bookingTime}</div>}
+                        </td>
+                        <td data-label="TYPE" className="appt-cell-muted">{(appt.visitType || '').trim() || '—'}</td>
+                        <td data-label="PACKAGE">
+                          {appt.packageName ? (
+                            <span className="appt-metadata-badge appt-metadata-package" title={`Expires: ${appt.packageExpiry ?? 'N/A'}`}>
+                              {appt.packageName}
+                            </span>
+                          ) : (
+                            <span className="appt-cell-slash">—</span>
+                          )}
+                        </td>
+                        <td data-label="STATUS">
+                          <span style={{ 
+                            background: appt.status === 'Completed' ? 'rgba(16, 185, 129, 0.1)' : appt.status === 'Consultation' ? 'rgba(139, 92, 246, 0.1)' : appt.status === 'Waitlist' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(251, 146, 60, 0.1)', 
+                            color: appt.status === 'Completed' ? 'var(--pp-success-fg)' : appt.status === 'Consultation' ? 'var(--pp-purple)' : appt.status === 'Waitlist' ? 'var(--pp-blue)' : '#f97316',
+                            fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px' 
+                          }}>
+                            {appt.status || 'Scheduled'}
                           </span>
                         </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <td>
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
                             <button
                               className="dash-action-btn"
-                              style={{ background: '#f0fdf4', color: 'var(--pp-success-fg)', borderColor: '#bbf7d0' }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const phone = f.phone?.replace(/\D/g, '');
-                                if (!phone) { toast({ description: "No mobile number", variant: "error" }); return; }
-                                const finalPhone = phone.length === 10 ? `91${phone}` : phone;
-                                sendText.mutate({ phone: finalPhone, message: `Dear ${f.patientName},\n\nThis is a friendly reminder for your upcoming follow-up appointment.\n\nPlease let us know if you need to reschedule.\n\nRegards,\nMMC HomeoTech` },
-                                  {
-                                    onSuccess: () => {
-                                      toast({ description: '✅ Reminder sent!', variant: 'success' });
-                                      apiClient.post('/appointments/followups/status', {
-                                        id: f.id,
-                                        visitType: f.visitType,
-                                        callStatus: 'WhatsApp Sent',
-                                        actionDate: new Date().toISOString().split('T')[0]
-                                      });
-                                    }
-                                  });
+                                handleApptWhatsApp(appt);
                               }}
                               title="Send WhatsApp"
                             >
                               <MessageSquare size={13} />
                             </button>
                             <button
-                              className="dash-view-btn"
+                              className="appt-kebab-btn"
+                              title="Actions"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (f.patientId) navigate(`/medical-cases/${f.patientId}`);
-                                else toast({ description: 'Cannot view unregistered patient', variant: 'error' });
+                                toggleMenu(appt.id, e.currentTarget as HTMLButtonElement);
                               }}
-                              disabled={!f.patientId}
-                              style={{ opacity: !f.patientId ? 0.5 : 1, cursor: !f.patientId ? 'not-allowed' : 'pointer' }}
                             >
-                              View
+                              <MoreVertical size={15} strokeWidth={2} />
                             </button>
                           </div>
+                          {openMenuId === appt.id && menuPos && createPortal(
+                            <div
+                              ref={menuRef}
+                              className="appt-kebab-menu"
+                              style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}
+                            >
+                              <button
+                                className="appt-kebab-item"
+                                onClick={() => { 
+                                  setOpenMenuId(null); 
+                                  if (appt.patientId || appt.regid) navigate(`/medical-cases/${appt.patientId || appt.regid}`);
+                                  else toast({ description: 'Cannot view patient details', variant: 'error' });
+                                }}
+                              >
+                                <User size={13} strokeWidth={1.6} /> View Profile
+                              </button>
+                              <button
+                                className="appt-kebab-item"
+                                onClick={() => { 
+                                  setOpenMenuId(null); 
+                                  setBillingDrawerTarget({ regid: appt.patientId || appt.regid, name: appt.patientName }); 
+                                }}
+                              >
+                                <CreditCard size={13} strokeWidth={1.6} /> Open Billing
+                              </button>
+                            </div>,
+                            document.body
+                          )}
                         </td>
                       </tr>
                     );
                   })}
-                  {followups.length === 0 && (
+                  {todayAppts.length === 0 && (
                     <tr>
                       <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        <p className="text-small">{followupsLoading ? 'Loading...' : 'No followups found today.'}</p>
+                        <p className="text-small">{isLoading ? 'Loading...' : 'No appointments found today.'}</p>
                       </td>
                     </tr>
                   )}
@@ -710,6 +780,12 @@ export function ReceptionistDashboard() {
         onSuccess={() => setIsPatientDrawerOpen(false)}
       />
 
+      <AppointmentFormDrawer
+        isOpen={isApptDrawerOpen}
+        onClose={() => setIsApptDrawerOpen(false)}
+        onSuccess={() => setIsApptDrawerOpen(false)}
+      />
+
       {vitalsTarget && (
         <VitalsFormModal
           initialData={null}
@@ -739,15 +815,23 @@ export function ReceptionistDashboard() {
   );
 }
 
-function KPIItem({ label, value, trend, color }: any) {
+function KPIItem({ label, value, isHighlight }: { label: string, value: string | number, isHighlight?: boolean }) {
   return (
-    <div className="dash-kpi-item">
-      <span className="dash-kpi-label">{label}</span>
-      <div className="dash-kpi-value-row">
-        <span className="dash-kpi-value">{value}</span>
+    <div style={{
+      background: isHighlight ? 'linear-gradient(135deg, var(--bg-card) 60%, rgba(234, 88, 12, 0.05) 100%)' : 'var(--bg-card)',
+      border: isHighlight ? '1px solid rgba(234, 88, 12, 0.3)' : '1px solid var(--border-main)',
+      borderRadius: '12px',
+      padding: '20px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+    }}>
+      <div style={{ fontSize: '28px', fontWeight: 700, color: isHighlight ? '#c2410c' : 'var(--text-main)', marginBottom: '4px' }}>
+        {value}
       </div>
-      <div className="dash-kpi-trend" style={{ color }}>
-        {trend}
+      <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+        {label}
       </div>
     </div>
   );
