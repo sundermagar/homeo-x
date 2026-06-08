@@ -226,7 +226,7 @@ export function RemedyChartSession({
   };
 
   const handlePrintRow = (rx: PrescriptionRow) => {
-    const token = localStorage.getItem('token');
+    const token = useAuthStore.getState().token;
     const dateParam = rx.created_at || (rx as any).createdAt || rx.dateval;
     const queryStr = dateParam ? `&date=${encodeURIComponent(new Date(dateParam).toISOString())}` : '';
     

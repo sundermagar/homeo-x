@@ -4,6 +4,7 @@ import {
   Loader2, CalendarPlus, AlertCircle, MessageSquare
 } from 'lucide-react';
 import { useDoctors } from '@/features/appointments/hooks/use-doctors';
+import { useAvailableSlots } from '@/features/appointments/hooks/use-appointments';
 import { apiClient } from '@/infrastructure/api-client';
 
 interface FollowupSchedulerProps {
@@ -32,6 +33,11 @@ export function FollowupScheduler({
     notes: 'Follow-up visit',
     visitType: 'Follow-up'
   });
+
+  const { data: slots = [] } = useAvailableSlots(
+    form.doctorId ? Number(form.doctorId) : undefined, 
+    form.bookingDate || undefined
+  );
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,12 +119,14 @@ export function FollowupScheduler({
               value={form.bookingTime}
               onChange={e => setForm(f => ({ ...f, bookingTime: e.target.value }))}
             >
-              {[
-                '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-                '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM',
-                '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM',
-                '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM'
-              ].map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="">Select Time</option>
+              {slots
+                .filter((s: any) => !s.isPast || s.booked || s.time === form.bookingTime)
+                .map((s: any) => (
+                  <option key={s.time} value={s.time} disabled={s.booked || s.isPast}>
+                    {s.time} {s.booked ? '(Booked)' : ''}
+                  </option>
+                ))}
             </select>
           </div>
 

@@ -174,7 +174,7 @@ export default function AppointmentListPage() {
     const s = AppointmentStatus;
     switch (currentStatus) {
       case s.Pending:
-      case s.Scheduled:
+      case s.Rescheduled:
         return [s.Confirmed, s.Arrived, s.Cancelled, s.Absent];
       case s.Confirmed:
         return [s.Arrived, s.Consultation, s.Cancelled, s.Absent];
@@ -291,7 +291,13 @@ export default function AppointmentListPage() {
                   <tr key={a.id}>
                     <td data-label="#"><span className="appt-cell-id">#{a.id}</span></td>
                     <td data-label="PATIENT">
-                      <div className="appt-cell-name">{formatName(a.patientNameFromCase || a.patientName) || '—'}</div>
+                      {a.patientId ? (
+                        <Link to={`/medical-cases/${a.patientId}`} className="appt-cell-name pp-clickable-name" style={{ textDecoration: 'none', color: 'var(--pp-blue)' }}>
+                          {formatName(a.patientNameFromCase || a.patientName) || '—'}
+                        </Link>
+                      ) : (
+                        <div className="appt-cell-name">{formatName(a.patientNameFromCase || a.patientName) || '—'}</div>
+                      )}
                       {a.phone && <div className="appt-cell-phone">{a.phone}</div>}
                     </td>
                     <td data-label="DOCTOR">
@@ -390,7 +396,13 @@ export default function AppointmentListPage() {
                     {(a.patientNameFromCase?.[0] || a.patientName?.[0] || '?').toUpperCase()}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div className="appt-grid-card-patient">{formatName(a.patientNameFromCase || a.patientName) || '—'}</div>
+                    {a.patientId ? (
+                      <Link to={`/medical-cases/${a.patientId}`} className="appt-grid-card-patient pp-clickable-name" style={{ textDecoration: 'none', color: 'var(--pp-blue)', display: 'block' }}>
+                        {formatName(a.patientNameFromCase || a.patientName) || '—'}
+                      </Link>
+                    ) : (
+                      <div className="appt-grid-card-patient">{formatName(a.patientNameFromCase || a.patientName) || '—'}</div>
+                    )}
                     <div className="appt-grid-card-phone">{a.phone ?? 'No phone'}</div>
                   </div>
                   <StatusBadge status={a.status} size="sm" />

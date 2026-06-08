@@ -91,12 +91,15 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
       setForm({
         patientId: String(editAppointment.patientId ?? ''),
         patientName: editAppointment.patientName ?? '',
+        gender: 'M',
+        dateOfBirth: '',
+        city: '',
         phone: editAppointment.phone ?? '',
         doctorId: String(editAppointment.doctorId ?? ''),
         bookingDate: editAppointment.bookingDate ?? '',
         bookingTime: editAppointment.bookingTime ?? '',
         visitType: (editAppointment.visitType as VisitType) ?? VisitType.New,
-        consultationFee: editAppointment.consultationFee ?? '',
+        consultationFee: String(editAppointment.consultationFee ?? ''),
         notes: editAppointment.notes ?? '',
       });
       setSearchStatus('found');
@@ -314,7 +317,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   doctorName: (doc?.name) || 'N/A',
                   bookingDate: form.bookingDate || today,
                   bookingTime: form.bookingTime || '',
-                  consultationFee: form.consultationFee || '0',
+                  consultationFee: String(form.consultationFee || 0),
                   visitType: form.visitType,
                   tokenNo: bookingResult.tokenNo ?? undefined,
                   notes: form.notes,

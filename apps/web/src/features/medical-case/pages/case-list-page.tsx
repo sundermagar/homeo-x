@@ -41,7 +41,7 @@ export default function MedicalCaseListPage() {
         </div>
         <div className="pp-page-hero-actions">
           <button
-            onClick={() => navigate('/patients/new')}
+            onClick={() => navigate('/patients?add=true')}
             className="btn-primary"
           >
             <Plus size={16} strokeWidth={1.6} /> New Case
@@ -117,7 +117,7 @@ export default function MedicalCaseListPage() {
                       title={search ? "No cases found" : "No clinical cases"}
                       description={search ? `We couldn't find any clinical case matching "${search}".` : "Your clinical registry is currently empty. Cases will appear here as patients are registered and visits are recorded."}
                       actionLabel={search ? "Clear Search" : "New Case"}
-                      onAction={search ? () => setSearch('') : () => navigate('/patients/new')}
+                      onAction={search ? () => setSearch('') : () => navigate('/patients?add=true')}
                       variant="card"
                       className="my-8"
                     />
@@ -212,7 +212,7 @@ export default function MedicalCaseListPage() {
                 title={search ? "No matches found" : "No clinical records"}
                 description={search ? `No records matching "${search}" were found.` : "The clinical registry is currently empty."}
                 actionLabel={search ? "Clear Search" : "New Case"}
-                onAction={search ? () => setSearch('') : () => navigate('/patients/new')}
+                onAction={search ? () => setSearch('') : () => navigate('/patients?add=true')}
                 variant="card"
                 className="my-8"
               />
