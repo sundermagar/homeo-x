@@ -527,15 +527,6 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   onChange={e => set('consultationFee', e.target.value)}
                   style={{ flex: 1 }}
                 />
-                {searchStatus === 'not-found' && !editAppointment && (
-                  <NumericInput
-                    className="appt-form-input"
-                    placeholder="Reg. Fee"
-                    value={form.registrationFee}
-                    onChange={e => set('registrationFee', e.target.value)}
-                    style={{ flex: 1 }}
-                  />
-                )}
               </div>
             </div>
           </div>

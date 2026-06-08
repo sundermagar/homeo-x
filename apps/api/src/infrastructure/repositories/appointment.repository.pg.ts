@@ -497,7 +497,57 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
           }
         }
       } catch (err) {
-        console.error('Failed to parse timing config', err);
+        // If it's not JSON, try parsing legacy string like "11:00 AM - 8:00 PM, Sunday Closed"
+        const match = timingConfigStr.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))\s*-\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
+        if (match) {
+          const start = match[1]!;
+          const end = match[2]!;
+          let y, m, dNum;
+          if (date.includes('-')) {
+             [y, m, dNum] = date.split('-');
+          } else if (date.includes('/')) {
+             [dNum, m, y] = date.split('/');
+          }
+          let isClosed = false;
+          if (y && m && dNum) {
+            const dObj = new Date(Number(y), Number(m) - 1, Number(dNum));
+            const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const dayName = weekdays[dObj.getDay()];
+            const closedRegex = new RegExp(`${dayName}\\s*Closed`, 'i');
+            if (closedRegex.test(timingConfigStr)) {
+              isClosed = true;
+            }
+          }
+          if (!isClosed) {
+            slotsList = generateTimeSlots(start, end, 15);
+          }
+        } else {
+          console.error('Failed to parse timing config', err);
+        }
+      }
+    }
+
+    if (slotsList.length === 0) {
+      let isClosed = false;
+      try {
+        const config = JSON.parse(timingConfigStr || '{}');
+        if (config.schedule) {
+          let y, m, dNum;
+          if (date.includes('-')) { [y, m, dNum] = date.split('-'); }
+          else if (date.includes('/')) { [dNum, m, y] = date.split('/'); }
+          if (y && m && dNum) {
+            const dObj = new Date(Number(y), Number(m) - 1, Number(dNum));
+            const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dObj.getDay()];
+            if (dayName && config.schedule[dayName] && !config.schedule[dayName].isOpen) {
+              isClosed = true;
+            }
+          }
+        }
+      } catch (e) {}
+
+      if (!isClosed) {
+        const fallbackSlotDuration = timingConfigStr ? (JSON.parse(timingConfigStr).slotDuration || 15) : 15;
+        slotsList = generateTimeSlots('09:00 AM', '08:00 PM', fallbackSlotDuration);
       }
     }
 

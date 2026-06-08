@@ -390,6 +390,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         OR a.booking_date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
       )`;
 
+      try {
       const result = await this.db.execute(sql`
         WITH today_waitlist AS (
           SELECT
@@ -442,7 +443,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           v.pulse_rate,
           v.respiratory_rate,
           v.oxygen_saturation,
-          v.notes as vital_notes
+          v.notes as vital_notes,
+          rx.first_medication as rx_medication,
+          rx.status as rx_status
         FROM (
           SELECT
             tw.wl_id,
@@ -504,9 +507,16 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           WHERE pp.status = 'Active' AND (pp.deleted_at IS NULL OR pp.deleted_at::text = '')
           ORDER BY regid, pp.id DESC
         ) pkg ON pkg.regid = COALESCE(p.regid, p.id, q.patient_id)
+        LEFT JOIN (
+          SELECT DISTINCT ON (p.consultation_id)
+            p.consultation_id,
+            'Completed' as status,
+            p.remedy as first_medication
+          FROM prescriptions p
+          ORDER BY p.consultation_id, p.id DESC
+        ) rx ON rx.consultation_id::text = q.visit_id::text
         ORDER BY q.token_no ASC NULLS LAST, q.id ASC
       `);
-
       const allRows = result as any[];
 
       allRows.sort((a, b) => {
@@ -539,6 +549,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         isUrgent: false,
         age: undefined,
         gender: undefined,
+        rxMedication: r.rx_medication ? r.rx_medication.trim() : undefined,
+        rxStatus: r.rx_status,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
         visitId: r.visit_id,
@@ -559,6 +571,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           notes: r.vital_notes
         } : undefined,
       }));
+      } catch (err: any) {
+        console.error('[Dashboard] getTodayQueue failed:', err.message, err.stack);
+        return [];
+      }
     });
   }
 

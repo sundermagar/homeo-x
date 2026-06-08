@@ -27,6 +27,7 @@ import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal
 import { PatientBillingDrawer } from '../../billing/components/PatientBillingDrawer';
 import type { QueueItem, IntelligenceInsight, RecentTransaction, SimpleReminder } from '@mmc/types';
 import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
+import { PatientQuickChartDrawer } from '../components/patient-quick-chart-drawer';
 import './role-dashboards.css';
 
 function getWlId(item: QueueItem): number | undefined {
@@ -57,6 +58,7 @@ export function DoctorDashboard() {
   // Tracks the appointment ID of the patient we most recently called into consultation
   const [activePatientId, setActivePatientId] = useState<number | null>(null);
   const [billingDrawerRegid, setBillingDrawerRegid] = useState<{ regid: number; patientName: string } | null>(null);
+  const [showQuickChart, setShowQuickChart] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -226,279 +228,234 @@ export function DoctorDashboard() {
     }
   };
 
+  const handleCallNextPatient = async () => {
+    const nextPatient = todayAppts.find((a) => a.status === 'Waitlist');
+    if (!nextPatient) return;
+
+    const wlId = getWlId(nextPatient);
+    setActivePatientId(nextPatient.id);
+    setConsultationStartedAt(Date.now());
+    setConsultDuration('00:00');
+
+    // Optimistically update React Query cache to reflect the UI instantly
+    qc.setQueryData(dashboardKeys.detail('day'), (old: any) => {
+      if (!old?.queue) return old;
+      const newQueue = old.queue.map((q: QueueItem) => {
+        if (q.id === nextPatient.id) return { ...q, status: 'Consultation' };
+        return q;
+      });
+      return { ...old, queue: newQueue };
+    });
+
+    try {
+      if (wlId) {
+        await queueMgmt.callNext.mutateAsync(wlId);
+      } else {
+        await updateStatus.mutateAsync({ id: nextPatient.id, status: 'Consultation' });
+      }
+      qc.invalidateQueries({ queryKey: dashboardKeys.all });
+      qc.invalidateQueries({ queryKey: apptKeys.all });
+    } catch (err) {
+      console.error('Call next failed', err);
+    }
+  };
+
   if (isLoading) {
     return <DashboardSkeleton />;
   }
 
   return (
-    <div className="dash-root doctor-dashboard-panel">
-      {/* 1. KPI Strip */}
-      <div className="dash-kpi-strip">
-        {(() => {
-          const visitsCount = todayAppts.length;
-          const waitingCount = todayAppts.filter(a => a.status === 'Waitlist').length;
-          const completedCount = todayAppts.filter(a => a.status === 'Completed').length;
-          const fmtTrend = (v: number | string | undefined) => {
-            const n = Number(v ?? 0);
-            const sign = n > 0 ? '+' : '';
-            return `${sign}${n}% vs prev`;
-          };
-          const trendColor = (v: number | string | undefined) =>
-            Number(v ?? 0) > 0 ? 'var(--pp-success-fg)' : Number(v ?? 0) < 0 ? 'var(--pp-danger-fg)' : 'var(--pp-muted-fg)';
-          return (
+    <div className="dash-root dd-v2-grid">
+      {/* Top Row: Active Consultation & Timeline */}
+      <div className="dd-v2-top-row">
+        
+        {/* Active Consultation Card (Green) */}
+        <div className="dd-active-green">
+          {activeConsultation ? (
             <>
-              <KPIItem
-                label="Daily Visits"
-                value={visitsCount}
-                trend={fmtTrend(kpis?.casesTrend)}
-                color={trendColor(kpis?.casesTrend)}
-              />
-              <KPIItem
-                label="Collection"
-                value={fmt(kpis?.todaysCollection || 0)}
-                trend={fmtTrend(kpis?.revenueTrend)}
-                color={trendColor(kpis?.revenueTrend)}
-              />
-              <KPIItem
-                label="Waiting"
-                value={`${waitingCount}/${visitsCount || 0}`}
-                trend={completedCount > 0 ? `${completedCount} completed` : 'No visits done'}
-                color={waitingCount > 0 ? 'var(--pp-warn-fg, #f59e0b)' : 'var(--pp-success-fg)'}
-              />
-              <KPIItem
-                label="Avg Wait"
-                value={`${kpis?.avgWaitTime || 0}m`}
-                trend={fmtTrend(kpis?.avgWaitTimeTrend)}
-                color={trendColor(kpis?.avgWaitTimeTrend)}
-              />
+              <div className="dd-active-green-header">
+                IN YOUR ROOM · TOKEN #{activeConsultation.tokenNo || '—'}
+              </div>
+              <div className="dd-active-green-title">
+                {activeConsultation.patientName}
+                <span className="dd-active-green-badge">FEE PAID ✓</span>
+              </div>
+              <div className="dd-active-green-meta">
+                {activeConsultation.age || '—'} Yrs {activeConsultation.gender?.charAt(0) || ''} · MRN-{activeConsultation.regid} · New case
+              </div>
+              <div className="dd-active-green-box">
+                <strong>Chief complaint:</strong> {activeConsultation.notes || 'Routine checkup. Documented symptoms pending triage.'}
+              </div>
+              <div className="dd-active-green-actions">
+                <button className="dd-btn-start" onClick={() => handleStartConsultation(activeConsultation)}>
+                  <Zap size={16} /> Start consultation
+                </button>
+                <button className="dd-btn-chart" onClick={() => setShowQuickChart(true)}>
+                  Open chart
+                </button>
+              </div>
             </>
-          );
-        })()}
-      </div>
-
-      <div className="dash-grid">
-        {/* 2. Left Column: Workspace & Queue */}
-        <div className="dash-main-col">
-          {/* Active Consultation HUD */}
-          <div className="dd-active-head-up">
-            <div className="dd-hud-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: '#15803d' }}>
-                <div className="dash-pulse-dot" />
-                ACTIVE CONSULTATION
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>
-                DURATION <span style={{ color: '#0f172a', fontFamily: 'var(--pp-font-mono)', fontSize: 13 }}>{consultDuration}</span>
-              </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.8 }}>
+              <Activity size={32} style={{ marginBottom: 16 }} />
+              <div className="dd-active-green-title">No Active Patient</div>
+              <div className="dd-active-green-meta">Room is currently empty</div>
             </div>
+          )}
+        </div>
 
-            <div className="dd-hud-body">
-              {activeConsultation ? (
-                <>
-                  <div className="dd-patient-profile">
-                    <h2 className="dd-patient-name-big">{activeConsultation.patientName}</h2>
-                    <p className="dd-patient-meta">
-                      — · {activeConsultation.age || '—'} yrs · General · {user?.name || 'Practitioner'} · PT-{activeConsultation.regid}
-                    </p>
-
-                    <div className="dd-vitals-strip" onClick={() => setShowVitalsModal(true)} style={{ cursor: 'pointer' }}>
-                      <VitalItem icon={<Heart size={12} />} label="BP" value={activeConsultation.vitals?.bp || '--'} color="var(--pp-danger-fg)" />
-                      <VitalItem icon={<Scale size={12} />} label="Weight" value={activeConsultation.vitals?.weight ? `${activeConsultation.vitals.weight} kg` : '--'} color="var(--pp-blue)" />
-                      <VitalItem icon={<Thermometer size={12} />} label="Temp" value={activeConsultation.vitals?.temp ? `${activeConsultation.vitals.temp}°F` : '--'} color="#f59e0b" />
-                    </div>
-
-                    <div className="dd-hud-actions">
-                      <button className="btn-primary" onClick={() => handleStartConsultation(activeConsultation)}>
-                        <Zap size={14} fill="currentColor" /> Start Consultation
-                      </button>
-                      <button className="btn-skip" onClick={() => handleSkip(activeConsultation)}>Skip</button>
-
-                      <div className="dash-dropdown-container" ref={moreMenuRef}>
-                        <button className="btn-more" onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}>
-                          <MoreHorizontal size={18} />
-                        </button>
-                        {isMoreMenuOpen && (
-                          <div className="dash-dropdown-menu" onClick={(e) => e.stopPropagation()}>
-                            <button className="dash-dropdown-item" onClick={() => handleReschedule(activeConsultation)}>
-                              <Calendar size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Reschedule
-                            </button>
-                            <button className="dash-dropdown-item danger" onClick={() => handleMarkAbsent(activeConsultation)}>
-                              <XCircle size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Mark Absent
-                            </button>
-                            <button className="dash-dropdown-item danger" onClick={() => handleCancel(activeConsultation)}>
-                              <XCircle size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Cancel Appointment
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="dd-clinical-notes">
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--pp-blue)', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.05em' }}>Chief Complaints</div>
-                    <p>{activeConsultation.notes || 'Routine checkup. Documented symptoms pending triage.'}</p>
-                  </div>
-                </>
-              ) : (
-                <div style={{ gridColumn: '1 / -1', padding: '48px 0', textAlign: 'center', color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
-                  <Activity size={32} />
-                  <p className="text-small">No patient currently being seen.</p>
-                  {todayAppts.filter(a => a.status === 'Waitlist').length > 0 && (
-                    <button className="btn-primary" onClick={() => handleStartConsultation(todayAppts.find(a => a.status === 'Waitlist')!)}>Call next patient</button>
-                  )}
-                </div>
-              )}
+        {/* Timeline Queue (Today) */}
+        <div className="dd-timeline-card">
+          <div className="dd-timeline-header">
+            <div className="dd-timeline-title">Today</div>
+            <div className="dd-timeline-meta">
+              {todayAppts.length} · {todayAppts.filter(a => a.status === 'Waitlist').length} LEFT
             </div>
           </div>
+          <div className="dd-timeline-list db-scroll">
+            {todayAppts.length > 0 ? (
+              todayAppts.map((a, idx) => {
+                let dotClass = '';
+                let statusText = '';
+                if (a.status === 'Completed') { dotClass = 'seen'; statusText = 'Seen'; }
+                else if (a.status === 'Waitlist' || a.status === 'Consultation') { dotClass = 'ready'; statusText = 'Ready'; }
+                else { dotClass = 'booked'; statusText = `${a.bookingTime || 'Scheduled'} · booked`; }
 
-          {/* Patient Queue Tabs */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <h3 className="dash-section-title">Patient queue</h3>
-              <div style={{ display: 'flex', gap: 20 }}>
-                <button className={`dash-tab-btn ${queueFilter === 'ALL' ? 'active' : ''}`} onClick={() => setQueueFilter('ALL')}>All</button>
-                <button className={`dash-tab-btn ${queueFilter === 'WAITING' ? 'active' : ''}`} onClick={() => setQueueFilter('WAITING')}>Waiting</button>
-                <button className={`dash-tab-btn ${queueFilter === 'DONE' ? 'active' : ''}`} onClick={() => setQueueFilter('DONE')}>Done</button>
-              </div>
-            </div>
-            <div className="dash-card-body" style={{ padding: '0 8px' }}>
-              <div className="dash-queue-scroll">
-                {filteredAppts.length > 0 ? (
-                  filteredAppts.map((a, idx) => {
-                    const isExpanded = expandedId === a.id;
-                    return (
-                      <div key={`${a.id}-${idx}`}>
-                        <div
-                          className={`dash-row ${isExpanded ? 'active' : ''}`}
-                          onClick={() => setExpandedId(isExpanded ? null : a.id)}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-                            <div className="dash-avatar">
-                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
-                              <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · {a.wlId ? 'Waitlist' : 'Token'} {a.wlId ? `W${a.tokenNo}` : (a.tokenNo || '—')}</div>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            {a.status === 'Waitlist' && (
-                              <button
-                                className="dash-view-btn"
-                                title="Start Consultation"
-                                onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
-                              >
-                                Call
-                              </button>
-                            )}
-                            <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}>
-                              {a.status || 'Waitlist'}
-                            </span>
-                          </div>
-                        </div>
+                const isBold = a.status === 'Waitlist' || a.status === 'Consultation';
 
-                        <div className={`dash-row-details ${isExpanded ? 'expanded' : ''}`}>
-                          <div className="details-inner">
-                            <div className="dd-details-grid">
-                              <div>
-                                <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Clinical Notes</div>
-                                <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
-                                  {a.notes || 'Routine follow-up. No specific symptoms recorded at registration.'}
-                                </div>
-                              </div>
-                              <div className="dd-details-right">
-                                <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Patient Info</div>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PT-{a.regid}</div>
-                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                                  {a.age || '--'} Yrs · {a.gender || '--'}
-                                </div>
-                                <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                                  <button className="pp-link" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid}`); }}>View Profile</button>
-                                  {(a.status === 'Waitlist' || a.status === 'Consultation') && (
-                                    <button
-                                      className="pp-link"
-                                      style={{ color: 'var(--pp-blue)' }}
-                                      onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
-                                    >
-                                      {a.status === 'Consultation' ? 'Enter Consult' : 'Start Consult'}
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div style={{ padding: '48px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                    <Users size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
-                    <p className="text-small" style={{ margin: 0 }}>{queueFilter === 'ALL' ? 'Queue view is empty today.' : `No patients in '${queueFilter.toLowerCase()}' status.`}</p>
+                return (
+                  <div 
+                    key={`${a.id}-${idx}`} 
+                    className="dd-timeline-item"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleStartConsultation(a)}
+                  >
+                    <div className="dd-timeline-time">{a.bookingTime || '—'}</div>
+                    <div className={`dd-timeline-dot ${dotClass}`} />
+                    <div className="dd-timeline-content">
+                      <div className={`dd-timeline-name ${isBold ? 'bold' : ''}`}>{a.patientName}</div>
+                      <div className="dd-timeline-status">{statusText}</div>
+                    </div>
                   </div>
-                )}
+                );
+              })
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: 13 }}>
+                No appointments today
               </div>
-            </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Middle Row: Quick Actions */}
+      <div className="dd-v2-actions-row">
+        <div 
+          className="dd-action-card primary" 
+          onClick={handleCallNextPatient}
+        >
+          <div className="dd-action-icon">
+            <Zap size={20} />
+          </div>
+          <div className="dd-action-info">
+            <div className="dd-action-title">Start consultation</div>
+            <div className="dd-action-subtitle">next in queue</div>
           </div>
         </div>
 
-        {/* 3. Right Column: Intelligence & Timeline */}
-        <aside className="dash-sidebar">
-          {/* Intelligence Hub */}
-          {showIntelligence && (
-            <div className="dash-sidebar-card">
-              <div className="dash-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span>Intelligence Hub</span>
-                <button
-                  className="pp-icon-btn"
-                  title="Dismiss Intelligence"
-                  style={{ width: 24, height: 24, padding: 0 }}
-                  onClick={() => setShowIntelligence(false)}
-                >
-                  <X size={20} strokeWidth={1.6} />
-                </button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {dashData?.intelligenceInsights?.length ? (dashData.intelligenceInsights as IntelligenceInsight[]).map((insight, idx) => (
-                  <IntelligenceItem key={idx} color={insight.color} text={insight.text} />
-                )) : (
-                  <IntelligenceItem color="#22c55e" text="Clinic is running smoothly. Monitoring vital metrics..." />
-                )}
-              </div>
-            </div>
-          )}
-
-
-          {/* Recent Billing */}
-          <div className="dash-sidebar-card">
-            <div className="dash-section-title">Recent transactions</div>
-            <div className="dash-list">
-              {dashData?.recentTransactions?.length ? (
-                (dashData.recentTransactions as RecentTransaction[]).map((tx) => (
-                  <BillingItem
-                    key={tx.id}
-                    patient={tx.patientName}
-                    id={tx.invoiceNo}
-                    amount={tx.amount.toLocaleString()}
-                    status={tx.status}
-                    onView={() => {
-                      if (tx.regid) {
-                        setBillingDrawerRegid({ regid: tx.regid, patientName: tx.patientName });
-                      } else {
-                        navigate('/billing');
-                      }
-                    }}
-                  />
-                ))
-              ) : (
-                <div style={{ padding: '24px 0', textAlign: 'center', color: '#94a3b8' }}>
-                  <p className="text-small">No recent transactions.</p>
-                </div>
-              )}
-            </div>
+        <div 
+          className="dd-action-card"
+          onClick={() => navigate('/clinical/ai-analysis')}
+        >
+          <div className="dd-action-icon">
+            <BrainCircuit size={20} />
           </div>
-        </aside>
+          <div className="dd-action-info">
+            <div className="dd-action-title">AI Analysis</div>
+            <div className="dd-action-subtitle">smart insights</div>
+          </div>
+        </div>
+
+        <div 
+          className="dd-action-card"
+          onClick={() => navigate(activeConsultation?.regid ? `/patients/${activeConsultation.regid}` : '/patients')}
+        >
+          <div className="dd-action-icon">
+            <Activity size={20} />
+          </div>
+          <div className="dd-action-info">
+            <div className="dd-action-title">Patient History</div>
+            <div className="dd-action-subtitle">clinical records</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Row: Lists */}
+      <div className="dd-v2-bottom-row">
+        
+        {/* Your Patients */}
+        <div className="dd-list-card">
+          <div className="dd-list-header">
+            <div className="dd-timeline-title">Your patients</div>
+            <div className="dd-timeline-meta">ASSIGNED TO YOU</div>
+          </div>
+          <div>
+            {todayAppts.filter(a => a.doctorId === user?.id || !a.doctorId).length > 0 ? (
+              todayAppts.filter(a => a.doctorId === user?.id || !a.doctorId).slice(0, 5).map(a => {
+                const initials = (a.patientName || '').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+                return (
+                  <div key={a.id} className="dd-list-item">
+                    <div className="dd-list-avatar blue">{initials}</div>
+                    <div className="dd-list-info">
+                      <div className="dd-list-name">{a.patientName}</div>
+                      <div className="dd-list-sub">MRN-{a.regid} · {a.notes || 'Routine checkup'}</div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ color: '#94a3b8', fontSize: 13, padding: 16 }}>No patients assigned</div>
+            )}
+          </div>
+        </div>
+
+        {/* Prescriptions Downstream */}
+        <div className="dd-list-card">
+          <div className="dd-list-header">
+            <div className="dd-timeline-title">Prescriptions downstream</div>
+            <div className="dd-timeline-meta">HANDOFF</div>
+          </div>
+          <div>
+            {todayAppts.filter(a => a.status === 'Completed').length > 0 ? (
+              todayAppts.filter(a => a.status === 'Completed').slice(0, 5).map(a => {
+                const hasRx = !!a.rxMedication;
+                const pillText = hasRx ? a.rxMedication : 'reception billing';
+                const pillClass = hasRx ? 'blue' : 'orange';
+                const statusPill = hasRx ? (a.rxStatus || 'settled') : '';
+
+                return (
+                  <div key={a.id} className="dd-list-item">
+                    <div className="dd-list-avatar blue" style={{ width: 32, height: 32, fontSize: 12 }}>
+                      #{a.tokenNo || '—'}
+                    </div>
+                    <div className="dd-list-info">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <div className="dd-list-name">{a.patientName}</div>
+                        {statusPill && <div className={`dd-list-pill blue`}>{statusPill}</div>}
+                      </div>
+                      <div>
+                        <span className={`dd-list-pill ${pillClass}`}>{pillText}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ color: '#94a3b8', fontSize: 13, padding: 16 }}>No downstream prescriptions</div>
+            )}
+          </div>
+        </div>
+
       </div>
 
       {showVitalsModal && activeConsultation && (
@@ -520,6 +477,18 @@ export function DoctorDashboard() {
           patientName={billingDrawerRegid.patientName}
           isOpen={true}
           onClose={() => setBillingDrawerRegid(null)}
+        />
+      )}
+
+      {showQuickChart && activeConsultation && (
+        <PatientQuickChartDrawer
+          isOpen={showQuickChart}
+          onClose={() => setShowQuickChart(false)}
+          patient={activeConsultation}
+          onAddVitals={() => {
+            setShowQuickChart(false);
+            setShowVitalsModal(true);
+          }}
         />
       )}
     </div>

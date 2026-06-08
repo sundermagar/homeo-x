@@ -162,20 +162,20 @@ appointmentsRouter.get('/availability', asyncHandler(async (req, res) => {
 
   const getAppts = new GetAppointmentUseCase(getRepo(req));
   let clinicId = (req as any).user?.contextId;
-  if (!clinicId || (req as any).user?.role === 'SuperAdmin') {
-    const orgRepo = new OrganizationRepositoryPg(req.publicDb);
+  const orgRepo = new OrganizationRepositoryPg(req.publicDb);
+  let org = clinicId ? await orgRepo.findById(Number(clinicId)) : null;
+
+  if (!org || (req as any).user?.role === 'SuperAdmin') {
     const orgs = await orgRepo.findAll();
     if (orgs && orgs.length > 0) {
-      clinicId = orgs[0]?.id;
+      org = orgs[0] ?? null;
+      clinicId = org?.id;
     }
   }
+
   let timingConfigStr = '';
-  if (clinicId) {
-    const orgRepo = new OrganizationRepositoryPg(req.publicDb);
-    const org = await orgRepo.findById(Number(clinicId));
-    if (org?.timing) {
-      timingConfigStr = org.timing;
-    }
+  if (org?.timing) {
+    timingConfigStr = org.timing;
   }
 
   const result = await getAppts.getAvailability(Number(doctor_id), date, timingConfigStr);
