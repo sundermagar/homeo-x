@@ -141,7 +141,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           mobile: schema.patients.mobile1,
           gender: schema.patients.gender,
           address: schema.patients.address,
-          dateOfBirth: schema.patients.dateOfBirth,
+          dateOfBirth: sql<string>`COALESCE(${schema.patients.dob}::text, ${schema.patients.dateOfBirth})`,
           city: schema.patients.city,
           state: schema.patients.state,
         })
@@ -172,9 +172,9 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           mobile: patient.mobile1,
           gender: patient.gender,
           address: patient.address,
-          dateOfBirth: patient.dateOfBirth,
+          dateOfBirth: patient.dob || patient.dateOfBirth || '',
           city: patient.city,
-          state: patient.state,
+          state: patient.state, 
         };
       }
 
@@ -208,7 +208,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           email: schema.patients.email,
           gender: schema.patients.gender,
           address: schema.patients.address,
-          dateOfBirth: schema.patients.dateOfBirth,
+          dateOfBirth: sql<string>`COALESCE(${schema.patients.dob}::text, ${schema.patients.dateOfBirth})`,
           city: schema.patients.city,
           state: schema.patients.state,
           doctorName: sql<string>`COALESCE(
@@ -244,7 +244,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             email: schema.patients.email,
             gender: schema.patients.gender,
             address: schema.patients.address,
-            dateOfBirth: schema.patients.dateOfBirth,
+            dateOfBirth: sql<string>`COALESCE(${schema.patients.dob}::text, ${schema.patients.dateOfBirth})`,
             city: schema.patients.city,
             state: schema.patients.state,
             referedBy: schema.patients.referedBy,
@@ -274,7 +274,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           email: patient.email,
           gender: patient.gender,
           address: patient.address,
-          dateOfBirth: patient.dateOfBirth,
+          dateOfBirth: patient.dateOfBirth, // Already COALESCE'd in the select above
           city: patient.city,
           state: patient.state,
           doctorName: patient.doctorName || '—',

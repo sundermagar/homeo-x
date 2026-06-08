@@ -50,6 +50,11 @@ const mmcStorage = {
     try {
       const parsed = JSON.parse(value);
       const remember = parsed?.state?.rememberMe ?? false;
+      const role = parsed?.state?.user?.type || parsed?.state?.user?.role;
+      if (role) {
+        localStorage.setItem('mmc-last-role', role.toLowerCase());
+      }
+      
       if (remember) {
         localStorage.setItem(name, value);
         sessionStorage.removeItem(name);

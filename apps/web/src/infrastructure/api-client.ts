@@ -72,6 +72,9 @@ function describeAxiosError(error: any): { title: string; description?: string }
   return { title, description: serverMsg };
 }
 
+// Prevent multiple 401 redirects in case of concurrent requests
+let isRedirecting = false;
+
 // Handle Response errors
 apiClient.interceptors.response.use(
   (res) => res,
@@ -81,10 +84,21 @@ apiClient.interceptors.response.use(
 
     // 401 Unauthorized → token expired or invalid → force logout (no toast, redirect tells the story).
     if (status === 401) {
-      const { logout } = useAuthStore.getState();
-      logout();
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+      if (!isRedirecting) {
+        isRedirecting = true;
+        const { user, logout } = useAuthStore.getState();
+        const rawRole = ((user as any)?.type || (user as any)?.role || '').toLowerCase();
+        const isPatient = rawRole === 'patient' || (typeof window !== 'undefined' && window.location.pathname.startsWith('/portal'));
+        
+        logout();
+        
+        if (typeof window !== 'undefined') {
+          if (isPatient) {
+            window.location.href = '/portal';
+          } else {
+            window.location.href = '/login';
+          }
+        }
       }
       return Promise.reject(error);
     }

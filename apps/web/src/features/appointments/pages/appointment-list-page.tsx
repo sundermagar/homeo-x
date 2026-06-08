@@ -16,12 +16,14 @@ import {
   Stethoscope,
   Activity,
   Tag,
-  User,
   Printer,
-  RefreshCw,
   CalendarDays,
+  ArrowLeft,
+  User,
+  Video,
+  Phone,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AppointmentStatus, Role } from '@mmc/types';
 import type { Appointment } from '@mmc/types';
 import {
@@ -49,6 +51,7 @@ const formatName = (name?: string | null) => {
 };
 
 export default function AppointmentListPage() {
+  const navigate = useNavigate();
   const today = new Date().toISOString().split('T')[0] || '';
   const user = useAuthStore((s) => s.user);
   const isPatient = user?.type === Role.Patient;
@@ -218,16 +221,38 @@ export default function AppointmentListPage() {
     <div className="pp-page-container appt-page animate-fade-in">
       {/* Hero Header */}
       <div className="pp-page-hero">
-        <div>
-          <h1 className="pp-page-hero-title">
-            <CalendarDays size={22} strokeWidth={1.8} />
-            {isPatient ? 'My Bookings' : 'Appointments'}
-          </h1>
-          <p className="pp-page-hero-sub">
-            {isPatient
-              ? 'View and manage your scheduled consultations'
-              : `${totalEntries} appointment${totalEntries !== 1 ? 's' : ''} managed`}
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {isPatient && (
+            <Link 
+              to="/portal/select-track"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--pp-bg-hover)',
+                color: 'var(--pp-text-1)',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={e => e.currentTarget.style.background = '#e2e8f0'}
+              onMouseOut={e => e.currentTarget.style.background = 'var(--pp-bg-hover)'}
+            >
+              <ArrowLeft size={20} strokeWidth={2} />
+            </Link>
+          )}
+          <div>
+            <h1 className="pp-page-hero-title">
+              <CalendarDays size={22} strokeWidth={1.8} />
+              {isPatient ? 'My Bookings' : 'Appointments'}
+            </h1>
+            <p className="pp-page-hero-sub">
+              {isPatient
+                ? 'View and manage your scheduled consultations'
+                : `${totalEntries} appointment${totalEntries !== 1 ? 's' : ''} managed`}
+            </p>
+          </div>
         </div>
         <div className="pp-page-hero-actions">
           <div className="appt-segmented-toggle">
@@ -454,8 +479,19 @@ export default function AppointmentListPage() {
                       )}
                     </td>
                     <td data-label="ACTIONS">
-                      {/* ── Kebab trigger ── */}
-                      {(!isPatient || (
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {isPatient && a.status === AppointmentStatus.Consultation && (
+                          <button
+                            className="btn-primary"
+                            style={{ padding: '4px 10px', fontSize: '12px', height: 'auto', borderRadius: '4px' }}
+                            onClick={() => navigate(`/meet/${a.id}?mode=${a.visitType?.toLowerCase().includes('audio') ? 'AUDIO' : 'VIDEO'}`)}
+                          >
+                            {a.visitType?.toLowerCase().includes('audio') ? <Phone size={12} style={{ marginRight: '4px' }} /> : <Video size={12} style={{ marginRight: '4px' }} />}
+                            {a.visitType?.toLowerCase().includes('audio') ? 'Join Audio' : 'Join Call'}
+                          </button>
+                        )}
+                        {/* ── Kebab trigger ── */}
+                        {(!isPatient || (
                         a.status !== AppointmentStatus.Cancelled &&
                         a.status !== AppointmentStatus.Done &&
                         a.status !== AppointmentStatus.Absent
@@ -575,6 +611,7 @@ export default function AppointmentListPage() {
                           </div>,
                           document.body,
                         )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -666,16 +703,28 @@ export default function AppointmentListPage() {
                     </>
                   )}
                   {isPatient ? (
-                    a.status !== AppointmentStatus.Cancelled &&
-                    a.status !== AppointmentStatus.Done &&
-                    a.status !== AppointmentStatus.Absent && (
-                      <button
-                        className="appt-btn-minimal danger-text-only"
-                        onClick={() => handleStatusChange(a.id, AppointmentStatus.Cancelled)}
-                      >
-                        Cancel
-                      </button>
-                    )
+                    <>
+                      {a.status === AppointmentStatus.Consultation && (
+                        <button
+                          className="appt-btn-minimal"
+                          style={{ background: 'var(--pp-blue)', color: 'white', border: 'none', flex: 1 }}
+                          onClick={() => navigate(`/meet/${a.id}?mode=${a.visitType?.toLowerCase().includes('audio') ? 'AUDIO' : 'VIDEO'}`)}
+                        >
+                          {a.visitType?.toLowerCase().includes('audio') ? <Phone size={14} /> : <Video size={14} />}
+                          {a.visitType?.toLowerCase().includes('audio') ? 'Join Audio' : 'Join Call'}
+                        </button>
+                      )}
+                      {a.status !== AppointmentStatus.Cancelled &&
+                      a.status !== AppointmentStatus.Done &&
+                      a.status !== AppointmentStatus.Absent && (
+                        <button
+                          className="appt-btn-minimal danger-text-only"
+                          onClick={() => handleStatusChange(a.id, AppointmentStatus.Cancelled)}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </>
                   ) : confirmDel === a.id ? (
                     <div style={{ display: 'flex', gap: 6, flex: 1 }}>
                       <button

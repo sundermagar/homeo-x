@@ -1133,7 +1133,7 @@ export default function TokenQueuePage() {
                                         if (!a.patientId) {
                                           toast({
                                             description:
-                                              'यह पेशेंट रजिस्टर नहीं है, सबसे पहले इसको ऐड करो (This patient is not registered, please add them first)',
+                                              'This patient is not registered yet. Please add them to the system first.',
                                             variant: 'error',
                                           });
                                           return;

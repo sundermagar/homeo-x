@@ -118,7 +118,7 @@ export function HomeopathyConsultationLayout({
     // If Audio or Video mode, start the call first
     if (callMode === 'AUDIO' || callMode === 'VIDEO') {
       try {
-        const result = await videoCallToken.mutateAsync({ visitId, role: 'host' });
+        const result = await videoCallToken.mutateAsync({ visitId, role: 'host', mode: callMode });
         const rawLink = result.patientJoinLink;
         const dynamicLink = rawLink?.includes('?')
           ? `${rawLink}&mode=${callMode.toLowerCase()}`

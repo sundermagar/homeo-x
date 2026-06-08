@@ -63,6 +63,8 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5173,
+    strictPort: true,
     allowedHosts: [
       'frying-deviancy-rocklike.ngrok-free.dev',
       'triumphantly-coloristic-lan.ngrok-free.dev',

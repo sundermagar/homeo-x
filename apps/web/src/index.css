@@ -458,6 +458,7 @@ body {
   overflow-x: hidden;
   margin: 0;
   padding: 0;
+  overscroll-behavior: none;
 }
 
 body {
@@ -695,11 +696,6 @@ a {
 .dark .appt-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
-
-
-
-/* Responsive Stacking for Mobile */
-/* Legacy Card Stacking Media Queries Removed - Enforcing Horizontal Table Layout */
 
 /* ──────────────────────────────────────────────────────────────────────────── */
 /* FORM INPUTS                                                                   */

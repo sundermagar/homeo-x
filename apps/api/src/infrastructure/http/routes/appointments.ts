@@ -57,6 +57,11 @@ const smsGateway = createSmsGateway();
 export const appointmentsRouter: Router = Router();
 
 const getRepo = (req: any) => new AppointmentRepositoryPG(req.tenantDb);
+const getWaUc = (req: any) => {
+  const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
+  const waGateway = new WhatsAppCloudGateway(waRepo);
+  return new SendWhatsAppTemplateUseCase(waGateway as any, waRepo);
+};
 
 // Apply auth to all routes
 appointmentsRouter.use(authMiddleware);
@@ -78,6 +83,20 @@ appointmentsRouter.get(
     if ((req.user as any)?.type === 'Patient') {
       patientId = (req.user as any).id;
       patientRegId = (req.user as any).regid;
+      
+      if (patientRegId === undefined || patientRegId === null) {
+        const { patients } = await import('@mmc/database/schema');
+        const { eq } = await import('drizzle-orm');
+        const [patient] = await req.tenantDb!
+          .select({ regid: patients.regid })
+          .from(patients)
+          .where(eq(patients.id, patientId))
+          .limit(1);
+          
+        if (patient && patient.regid) {
+          patientRegId = patient.regid;
+        }
+      }
     }
 
     const clinicId = (req as any).user?.contextId;
@@ -228,11 +247,8 @@ appointmentsRouter.post(
     const commRepo = new CommunicationRepositoryPG(req.tenantDb);
     const patientRepo = new PatientRepositoryPg(req.tenantDb);
     const notifRepo = new NotificationsRepositoryPg(req.tenantDb);
-    const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
-    const waGateway = new WhatsAppCloudGateway(waRepo);
-
+    const waUc = getWaUc(req);
     const smsUc = new SendSmsUseCase(commRepo, smsGateway);
-    const waUc = new SendWhatsAppTemplateUseCase(waGateway as any, waRepo);
 
     const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo, notifRepo, waUc);
     const clinicId = (req as any).user?.contextId;
@@ -251,6 +267,7 @@ appointmentsRouter.put(
     const manageAppt = new ManageAppointmentUseCase(
       getRepo(req),
       new NotificationsRepositoryPg(req.tenantDb),
+      getWaUc(req)
     );
     await manageAppt.update(Number(req.params.id), req.body);
     sendSuccess(res, undefined, 'Appointment updated');
@@ -264,6 +281,7 @@ appointmentsRouter.delete(
     const manageAppt = new ManageAppointmentUseCase(
       getRepo(req),
       new NotificationsRepositoryPg(req.tenantDb),
+      getWaUc(req)
     );
     await manageAppt.delete(Number(req.params.id));
     sendSuccess(res, undefined, 'Appointment deleted');
@@ -279,6 +297,7 @@ appointmentsRouter.post(
     const manageAppt = new ManageAppointmentUseCase(
       getRepo(req),
       new NotificationsRepositoryPg(req.tenantDb),
+      getWaUc(req)
     );
     await manageAppt.updateStatus(Number(req.params.id), status, cancellationReason);
     DashboardRepositoryPg.clearQueueCache();
@@ -293,6 +312,7 @@ appointmentsRouter.post(
     const manageAppt = new ManageAppointmentUseCase(
       getRepo(req),
       new NotificationsRepositoryPg(req.tenantDb),
+      getWaUc(req)
     );
     const result = await manageAppt.issueToken(Number(req.params.id));
 
@@ -389,6 +409,7 @@ appointmentsRouter.post(
     const manageAppt = new ManageAppointmentUseCase(
       getRepo(req),
       new NotificationsRepositoryPg(req.tenantDb),
+      getWaUc(req)
     );
     await manageAppt.reschedule(Number(req.params.id), date, time);
     sendSuccess(res, undefined, 'Appointment rescheduled');

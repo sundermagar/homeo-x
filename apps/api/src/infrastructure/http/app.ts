@@ -62,6 +62,7 @@ import { getAiProviderChain } from '../ai/ai-provider-chain.js';
 import { createTerminologyRouter } from './routes/terminology.router.js';
 import { createNotificationsRouter } from './routes/notifications.router.js';
 import { followUpRouter } from './routes/follow-up.router.js';
+import { portalRouter } from './routes/portal.router.js';
 import { whatsappRouter } from './routes/whatsapp.js';
 import { whatsappWidgetRouter } from './routes/whatsapp-widget.js';
 import {
@@ -165,6 +166,9 @@ export async function createApp(): Promise<{
   app.use('/api/expenses', createExpensesRouter());
   app.use('/api/charges', createChargesRouter());
   app.use('/api/follow-ups', followUpRouter);
+
+  // Patient Portal (public — phone lookup + auto-login)
+  app.use('/api/portal', portalRouter);
 
   // Our modules — Platform (JWT required)
   app.use('/api/organizations', authMiddleware, createOrganizationRouter());

@@ -4,6 +4,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 import { createLogger } from '../../../shared/logger.js';
 import { AccessToken } from 'livekit-server-sdk';
+import { sql } from 'drizzle-orm';
 
 const logger = createLogger('video-call-router');
 export const videoCallRouter: Router = Router();
@@ -20,8 +21,22 @@ const LIVEKIT_URL =
 // POST /api/video-call/token
 videoCallRouter.post('/token', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { visitId, role = 'host' } = req.body;
+    const { visitId, role = 'host', mode } = req.body;
     if (!visitId) throw new Error('Missing visitId');
+
+    // Sync mode (AUDIO/VIDEO) to database so the patient portal gets the correct default
+    if (mode && (req as any).tenantDb) {
+      try {
+        const visitType = mode.toUpperCase() === 'AUDIO' ? 'AUDIO' : 'VIDEO';
+        await (req as any).tenantDb.execute(sql`
+          UPDATE appointments 
+          SET visit_type = ${visitType}, updated_at = NOW() 
+          WHERE id = ${visitId}
+        `);
+      } catch (err) {
+        logger.warn({ visitId, err: (err as any)?.message }, 'Failed to sync call mode to appointment');
+      }
+    }
 
     const uid = getUserId(req);
     const roomName = `visit-${visitId}`;

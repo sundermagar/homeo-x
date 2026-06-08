@@ -188,6 +188,7 @@ export function PatientFormDrawer({
           referredById: undefined,
           notes: '',
           password: '',
+          sendWelcomeEmail: false,
         });
       } else if (unregisteredPatient) {
         setRefSearch('');
@@ -214,7 +215,11 @@ export function PatientFormDrawer({
           firstName,
           surname,
           phone: unregisteredPatient.phone || '',
-          gender: (unregisteredPatient.gender || 'M') as any,
+          gender: (
+            unregisteredPatient.gender === 'Male' ? 'M' :
+            unregisteredPatient.gender === 'Female' ? 'F' :
+            unregisteredPatient.gender || 'M'
+          ) as any,
           email: unregisteredPatient.email || '',
           // Pre-fill appointment info if available
           assistantDoctor: latestAppt?.doctorId ? String(latestAppt.doctorId) : '',
@@ -250,7 +255,7 @@ export function PatientFormDrawer({
       // Auto-update consultation fee when doctor is selected
       if (name === 'assistantDoctor') {
         if (!value) {
-          next.consultationFee = undefined;
+          next.consultationFee = 0;
         } else {
           const doc = meta?.doctors?.find((d) => String(d.id) === value);
           if (doc) {
@@ -301,7 +306,11 @@ export function PatientFormDrawer({
     setErrors([]);
     try {
       if (isEdit) {
-        await updateMutation.mutateAsync({ regid: Number(regid), ...form });
+        await updateMutation.mutateAsync({ 
+          regid: Number(regid), 
+          ...form,
+          referredById: form.referredById ? String(form.referredById) : undefined 
+        });
         onSuccess?.();
         onClose();
       } else {

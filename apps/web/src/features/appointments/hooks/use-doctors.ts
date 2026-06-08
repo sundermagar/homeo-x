@@ -9,13 +9,14 @@ export const doctorKeys = {
 
 let socket: any = null;
 
-export function useDoctors() {
+export function useDoctors(isPortal = false) {
   const qc = useQueryClient();
 
   const query = useQuery({
-    queryKey: doctorKeys.all,
+    queryKey: [...doctorKeys.all, isPortal],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: any[] }>('/doctors');
+      const endpoint = isPortal ? '/portal/doctors' : '/doctors';
+      const { data } = await apiClient.get<{ success: boolean; data: any[] }>(endpoint);
       return data.data ?? [];
     },
     staleTime: 5 * 60 * 1000,

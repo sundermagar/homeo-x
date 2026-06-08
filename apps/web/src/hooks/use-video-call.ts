@@ -18,7 +18,7 @@ export interface VideoCallToken {
  */
 export function useVideoCallToken() {
   return useMutation({
-    mutationFn: (data: { visitId: string; role?: 'host' | 'audience' }) =>
+    mutationFn: (data: { visitId: string; role?: 'host' | 'audience'; mode?: string }) =>
       api.post<VideoCallToken>(API.VIDEO_CALL.TOKEN, data),
   });
 }

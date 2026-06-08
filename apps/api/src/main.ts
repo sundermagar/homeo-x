@@ -57,6 +57,7 @@ async function listenWithFallback(
 }
 
 import { initBirthdayWishesCron } from './domains/communications/crons/birthday-wishes.cron.js';
+import { initMedicineReminderCron } from './domains/communications/crons/medicine-reminder.cron.js';
 
 async function bootstrap() {
   // Log startup config (non-sensitive)
@@ -109,6 +110,9 @@ async function bootstrap() {
 
     // Initialize birthday wishes cron
     initBirthdayWishesCron(appConfig.database.url);
+
+    // Initialize daily medicine reminders cron (8:00 AM)
+    initMedicineReminderCron(appConfig.database.url);
   }
 
   // ─── Global Process Error Handlers ───

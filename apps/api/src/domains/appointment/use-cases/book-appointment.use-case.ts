@@ -6,6 +6,7 @@ import type { SendSmsUseCase } from '../../communication/use-cases/send-sms.use-
 import type { SendWhatsAppTemplateUseCase } from '../../communication/use-cases/send-whatsapp-template.use-case.js';
 import { triggerNotification } from '../../../infrastructure/http/notification-trigger.js';
 import type { NotificationsRepository } from '../../communication/ports/notifications.repository.js';
+// jwt and appConfig imports removed — WhatsApp trigger moved to ManageAppointmentUseCase
 
 import { createLogger } from '../../../shared/logger.js';
 
@@ -52,20 +53,6 @@ export class BookAppointmentUseCase {
       }).catch(() => {});
     }
     */
-
-    if (this.whatsapp && dto.phone && dto.patientName && dto.clinicId) {
-      // Find the first active WhatsApp channel for this clinic
-      this.whatsapp
-        .sendAppointmentConfirmation({
-          clinicId: dto.clinicId,
-          phone: dto.phone,
-          patientName: dto.patientName,
-          date: dto.bookingDate,
-          time: dto.bookingTime ?? '',
-          clinicName: 'MMC Clinic',
-        })
-        .catch((err) => logger.warn(`WhatsApp confirmation skipped: ${err.message}`));
-    }
 
     if (this.notifRepo && dto.doctorId) {
       // Doctors row id may not align with users row id for legacy data — resolve to a real user id.

@@ -36,7 +36,7 @@ export function createDbClient(databaseUrl: string, tenantSchema?: string): DbCl
     keep_alive: 60,
   };
 
-  let finalUrl = databaseUrl;
+  let finalUrl = databaseUrl || '';
   if (tenantSchema) {
     // IMPORTANT: Only set the tenant schema in search_path — do NOT include 'public'.
     // Including 'public' causes cross-tenant data leakage: when a table doesn't exist

@@ -3,6 +3,7 @@ import type { AppointmentRepository } from '../../domains/appointment/ports/appo
 import type { PatientRepository } from '../../domains/patient/ports/patient.repository.js';
 import type { SendSmsUseCase } from '../../domains/communication/use-cases/send-sms.use-case.js';
 import { SyncTemplatesUseCase } from '../../domains/whatsapp/use-cases/sync-templates.use-case.js';
+import { SendWhatsAppTemplateUseCase } from '../../domains/communication/use-cases/send-whatsapp-template.use-case.js';
 import type { WhatsAppRepository } from '../../domains/whatsapp/ports/whatsapp.repository.js';
 import type { WhatsAppGateway } from '../../domains/whatsapp/ports/whatsapp-gateway.js';
 
@@ -69,21 +70,25 @@ export class JobScheduler {
         status: 'Scheduled',
       });
 
+      const waUseCase = (this.waGateway && this.waRepo) ? new SendWhatsAppTemplateUseCase(this.waGateway, this.waRepo) : null;
+
       for (const appt of res.data) {
         if (appt.phone && appt.patientName) {
-          // DECOMMISSIONED: SMS session moved to WhatsApp
-          /*
-          await this.smsUseCase.sendAppointmentReminder({
-            phone: appt.phone,
-            patientName: appt.patientName,
-            date: dateStr || '',
-            time: appt.bookingTime || '',
-            clinicName: 'MMC Clinic'
-          });
-          */
-          logger.info(
-            `[Job] Reminder (SMS) skipped for ${appt.patientName} (${appt.phone}) — decommissioning in progress`,
-          );
+          if (waUseCase) {
+            await waUseCase.sendAppointmentReminder({
+              clinicId: appt.clinicId || 1,
+              phone: appt.phone,
+              patientName: appt.patientName,
+              date: dateStr || '',
+              time: appt.bookingTime || '',
+              clinicName: 'MMC Clinic'
+            });
+            logger.info(`[Job] Reminder (WhatsApp) sent to ${appt.patientName} (${appt.phone})`);
+          } else {
+            logger.info(
+              `[Job] Reminder skipped for ${appt.patientName} (${appt.phone}) — WhatsApp Gateway not configured`,
+            );
+          }
         }
       }
     } catch (err: any) {

@@ -29,6 +29,7 @@ export function useAppointments(
     search?: string;
     page?: number;
     limit?: number;
+    refetchInterval?: number | false;
   } = {},
 ) {
   return useQuery({
@@ -53,6 +54,7 @@ export function useAppointments(
       };
     },
     staleTime: 30_000,
+    refetchInterval: filters.refetchInterval,
   });
 }
 
@@ -85,12 +87,14 @@ export function useTodayAppointments(doctorId?: number) {
 }
 
 // ─── Available Slots ──────────────────────────────────────────────────────────
-export function useAvailableSlots(doctorId: number | undefined, date: string | undefined) {
+export function useAvailableSlots(doctorId: number | undefined, date: string | undefined, isPortal = false) {
   return useQuery({
-    queryKey: apptKeys.slots(doctorId!, date!),
+    queryKey: [...apptKeys.slots(doctorId!, date!), isPortal],
     queryFn: async () => {
+      const endpoint = isPortal ? '/portal/slots' : '/appointments/availability';
+      const queryParam = isPortal ? 'doctorId' : 'doctor_id';
       const res = await apiClient.get<{ success: boolean; data: AvailabilitySlot[] }>(
-        `/appointments/availability?doctor_id=${doctorId}&date=${date}`,
+        `${endpoint}?${queryParam}=${doctorId}&date=${date}`,
       );
       return res.data.data;
     },
@@ -112,10 +116,13 @@ export function useWaitlist(date: string, doctorId?: number) {
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
-export function useCreateAppointment() {
+export function useCreateAppointment(isPortal = false) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: CreateAppointmentDto) => apiClient.post('/appointments', dto),
+    mutationFn: (dto: CreateAppointmentDto) => {
+      const endpoint = isPortal ? '/portal/appointments' : '/appointments';
+      return apiClient.post(endpoint, dto);
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
   });
 }

@@ -2,8 +2,9 @@ import React, { useRef, useState } from 'react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { useMyMedicalRecords, useManageClinicalRecords } from '@/features/medical-case/hooks/use-medical-cases';
 import { useApi } from '@/shared/hooks/use-api';
-import { Upload, FileText, Calendar, Activity, Camera, Volume2, Eye, Loader2, Trash2 } from 'lucide-react';
+import { Upload, FileText, Calendar, Activity, Camera, Volume2, Eye, Loader2, Trash2, ArrowLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { EmptyState } from '@/components/shared/empty-state';
 import '@/features/appointments/styles/appointments.css';
@@ -34,13 +35,13 @@ const getImageUrl = (path: string) => {
 
   return path.startsWith('/') ? path : '/' + path;
 };
-
 export default function ReportsPage() {
+  const { user } = useAuthStore();
+  const isPatient = user?.type === 'Patient' || (user as any)?.role === 'patient';
   const { data: records, isLoading } = useMyMedicalRecords();
   const api = useApi();
   const { saveInvestigation, saveImage, deleteRecord, deleteImage } = useManageClinicalRecords();
   const [isUploading, setIsUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'reports' | 'media'>('reports');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Media upload state
@@ -49,6 +50,11 @@ export default function ReportsPage() {
 
   // Deletion state
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // Comparison state
+  const [isComparingMode, setIsComparingMode] = useState(false);
+  const [selectedForComparison, setSelectedForComparison] = useState<any[]>([]);
+  const [showComparisonView, setShowComparisonView] = useState(false);
 
   const handleDeleteReport = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this report?')) return;
@@ -93,6 +99,32 @@ export default function ReportsPage() {
 
   const investigations = records?.investigations || [];
   const images = records?.images || [];
+
+  const unifiedReports = [
+    ...investigations.map((inv: any) => ({ ...inv, _source: 'investigation', _unifiedId: `inv-${inv.id}` })),
+    ...images.map((img: any) => ({
+      id: img.id,
+      _source: 'image',
+      _unifiedId: `img-${img.id}`,
+      type: img.description || 'Clinical Evidence',
+      investDate: img.createdAt || img.recordedAt || img.created_at,
+      attachmentUrl: img.picture || img.picturePath || img.picture_path,
+      summary: 'Uploaded by clinic',
+      data: {}
+    }))
+  ].sort((a, b) => new Date(b.investDate || 0).getTime() - new Date(a.investDate || 0).getTime());
+
+  const toggleCompareSelect = (inv: any) => {
+    if (selectedForComparison.find(i => i._unifiedId === inv._unifiedId)) {
+      setSelectedForComparison(prev => prev.filter(i => i._unifiedId !== inv._unifiedId));
+    } else {
+      if (selectedForComparison.length < 2) {
+        setSelectedForComparison(prev => [...prev, inv]);
+      } else {
+        toast({ title: 'Limit Reached', description: 'You can only compare 2 reports at a time.', variant: 'error' });
+      }
+    }
+  };
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -212,77 +244,108 @@ export default function ReportsPage() {
     <div className="pp-page-container appt-page animate-fade-in">
       {/* Hero Header */}
       <div className="pp-page-hero">
-        <div>
-          <h1 className="pp-page-hero-title">
-            <Activity size={22} strokeWidth={1.8} />
-            {activeTab === 'reports' ? 'My Reports' : 'My Clinical Media'}
-          </h1>
-          <p className="pp-page-hero-sub">
-            {activeTab === 'reports' 
-              ? 'View and upload your lab reports and investigations.' 
-              : 'View and upload clinical evidence, images, and audio/video records.'}
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {isPatient && (
+            <Link 
+              to="/portal/select-track"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--pp-bg-hover)',
+                color: 'var(--pp-text-1)',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={e => e.currentTarget.style.background = '#e2e8f0'}
+              onMouseOut={e => e.currentTarget.style.background = 'var(--pp-bg-hover)'}
+            >
+              <ArrowLeft size={18} />
+            </Link>
+          )}
+          <div>
+            <h1 className="pp-page-title">My Reports</h1>
+            <p className="pp-page-subtitle">
+              View and upload your lab reports, investigations, and clinical evidence.
+            </p>
+          </div>
         </div>
-        <div className="pp-page-hero-actions">
-          {activeTab === 'reports' ? (
-            <>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept=".pdf,image/*"
-              />
-              <button 
-                className="btn-primary flex items-center gap-2"
-                onClick={handleUploadClick} 
-                disabled={isUploading}
-              >
-                <Upload size={14} strokeWidth={1.6} />
-                {isUploading ? 'Uploading...' : 'Upload Report'}
-              </button>
-            </>
-          ) : (
-            <>
-              <input
-                type="file"
-                ref={mediaFileInputRef}
-                onChange={handleMediaFileChange}
-                className="hidden"
-                accept="image/*,video/*,audio/*,application/pdf"
-              />
-              <button 
-                className="btn-primary flex items-center gap-2"
-                onClick={() => mediaFileInputRef.current?.click()} 
-                disabled={isUploadingMedia}
-              >
-                <Upload size={14} strokeWidth={1.6} />
-                {isUploadingMedia ? 'Uploading...' : 'Upload Media'}
-              </button>
-            </>
+        <div className="flex items-center gap-3">
+          {unifiedReports.length > 0 && (
+            <button 
+              className={`appt-btn ${isComparingMode ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+              onClick={() => {
+                if (isComparingMode) {
+                  setIsComparingMode(false);
+                  setShowComparisonView(false);
+                  setSelectedForComparison([]);
+                } else {
+                  setIsComparingMode(true);
+                }
+              }}
+              style={{ border: '1px solid' }}
+            >
+              {showComparisonView ? 'Close Comparison' : isComparingMode ? 'Cancel Comparison' : 'Compare Reports'}
+            </button>
+          )}
+          {!isComparingMode && !showComparisonView && (
+            <button 
+              className="appt-btn appt-btn-primary flex items-center gap-2"
+              onClick={handleUploadClick}
+              disabled={isUploading}
+            >
+              {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
+              Upload Report
+            </button>
+          )}
+          {isComparingMode && !showComparisonView && (
+            <button 
+              className="appt-btn appt-btn-primary flex items-center gap-2"
+              disabled={selectedForComparison.length !== 2}
+              onClick={() => setShowComparisonView(true)}
+            >
+              <Eye size={18} />
+              View Side-by-Side
+            </button>
           )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="appt-tabs mb-6">
-        <button
-          className={`appt-tab ${activeTab === 'reports' ? 'active' : ''}`}
-          onClick={() => setActiveTab('reports')}
-        >
-          Reports
-        </button>
-        <button
-          className={`appt-tab ${activeTab === 'media' ? 'active' : ''}`}
-          onClick={() => setActiveTab('media')}
-        >
-          Media
-        </button>
-      </div>
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        style={{ display: 'none' }} 
+        accept=".pdf,image/*" 
+      />
 
-      {/* Reports Tab Content */}
-      {activeTab === 'reports' && (
-        investigations.length === 0 ? (
+      <div className="pp-page-content">
+        {showComparisonView ? (
+          <div className="comparison-viewer animate-fade-in" style={{ height: '70vh', display: 'flex', gap: '20px', marginTop: '20px' }}>
+            {selectedForComparison.map((inv, idx) => {
+              const mediaType = getMediaType(inv.attachmentUrl || '');
+              return (
+                <div key={inv._unifiedId} style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', background: '#fff' }}>
+                  <div style={{ padding: '12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{inv.type || 'Clinical Document'}</span>
+                    <span style={{ fontSize: '13px', color: '#64748b' }}>
+                      {inv.investDate ? format(new Date(inv.investDate), 'dd MMM yyyy') : 'Unknown Date'}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, background: '#f1f5f9', position: 'relative' }}>
+                    {mediaType === 'image' ? (
+                      <img src={inv.attachmentUrl} alt="Report" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <iframe src={inv.attachmentUrl} style={{ width: '100%', height: '100%', border: 'none' }} title={`report-${idx}`} />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : unifiedReports.length === 0 ? (
           <EmptyState
             icon={FileText}
             title="No reports found"
@@ -294,20 +357,35 @@ export default function ReportsPage() {
           />
         ) : (
           <div className="appt-card-grid">
-            {investigations.map((inv: any) => (
-              <div key={inv.id} className="appt-grid-card-minimal animate-fade-in">
-                {/* Card Header */}
-                <div className="flex items-center justify-between">
+            {unifiedReports.map((inv: any) => {
+              const isSelected = selectedForComparison.some(i => i._unifiedId === inv._unifiedId);
+              const resolvedUrl = inv.attachmentUrl ? getImageUrl(inv.attachmentUrl) : '';
+              return (
+                <div 
+                  key={inv._unifiedId} 
+                  className={`appt-grid-card-minimal animate-fade-in flex flex-col ${isComparingMode ? 'cursor-pointer hover:border-primary/50' : ''}`}
+                  style={{
+                    border: isSelected ? '3px solid var(--pp-primary)' : '1px solid var(--border)',
+                    boxShadow: isSelected ? '0 0 0 4px var(--pp-primary-tint)' : '0 4px 20px -2px rgba(0,0,0,0.02)',
+                    background: isSelected ? 'var(--pp-primary-tint, #f0fdf4)' : '#fff',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onClick={() => {
+                    if (isComparingMode) toggleCompareSelect(inv);
+                  }}
+                >
+                  {/* Card Header */}
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                      <Activity size={20} />
+                      {inv._source === 'image' ? <Camera size={20} /> : <Activity size={20} />}
                     </div>
                     <div>
                       <div className="font-bold text-base text-foreground">
-                        {inv.type || 'Investigation'}
+                        {inv.type || 'Clinical Document'}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Report ID: #{inv.id}
+                        {inv._source === 'image' ? 'Media File' : 'Report'}
                       </div>
                     </div>
                   </div>
@@ -318,7 +396,7 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Card Body */}
-                <div className="appt-grid-card-body-minimal">
+                <div className="appt-grid-card-body-minimal flex-grow">
                   {inv.summary && (
                     <div className="text-sm text-foreground/80 leading-relaxed py-1 mb-2">
                       <span className="font-bold text-[10px] text-muted-foreground uppercase tracking-widest block mb-1">
@@ -335,168 +413,60 @@ export default function ReportsPage() {
                         <span className="value text-right">{renderDetailValue(val)}</span>
                       </div>
                     ))
-                  ) : (
-                    Object.keys(inv)
-                      .filter((k) => !['id', 'regid', 'createdAt', 'updatedAt', 'deletedAt', 'type', 'dateval', 'investDate', 'attachmentUrl', 'summary', 'data', 'visitId', 'visitid'].includes(k))
-                      .slice(0, 4)
-                      .map((k) => (
-                        <div key={k} className="appt-grid-detail-item">
-                          <span className="label capitalize">{k.replace(/_/g, ' ')}</span>
-                          <span className="value text-right">{renderDetailValue(inv[k])}</span>
-                        </div>
-                      ))
-                  )}
+                  ) : null}
 
-                  {inv.visitId && (
-                    <div className="appt-grid-detail-item">
-                      <span className="label">Visit ID</span>
-                      <span className="value">#{inv.visitId}</span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Card Actions */}
-                <div className="appt-grid-card-actions-minimal mt-auto flex gap-2 w-full">
-                  {inv.attachmentUrl && (
-                    <button 
-                      className="appt-btn flex-1 flex items-center justify-center gap-2"
-                      onClick={() => window.open(inv.attachmentUrl, '_blank')}
-                    >
-                      <FileText size={14} />
-                      View
-                    </button>
-                  )}
-                  <button 
-                    className="appt-btn appt-btn-danger flex-1 flex items-center justify-center gap-2"
-                    onClick={() => handleDeleteReport(inv.id)}
-                    disabled={deletingId === inv.id}
-                  >
-                    <Trash2 size={14} />
-                    {deletingId === inv.id ? 'Deleting...' : 'Delete'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
-
-      {/* Media Tab Content */}
-      {activeTab === 'media' && (
-        images.length === 0 ? (
-          <EmptyState
-            icon={Camera}
-            title="No media files found"
-            description="You haven't uploaded any clinical media yet, and your doctor hasn't shared any with you."
-            actionLabel={isUploadingMedia ? 'Uploading...' : 'Upload your first media'}
-            onAction={() => mediaFileInputRef.current?.click()}
-            variant="card"
-            className="my-8"
-          />
-        ) : (
-          <div className="appt-card-grid">
-            {images.map((img: any) => {
-              const imagePath = img.picture || img.picturePath || img.picture_path;
-              const timestamp = img.createdAt || img.created_at || img.recordedAt || img.recorded_at;
-              const resolvedUrl = imagePath ? getImageUrl(imagePath) : '';
-              const mediaType = getMediaType(imagePath || '');
-
-              return (
-                <div key={img.id} className="appt-grid-card-minimal animate-fade-in flex flex-col">
-                  {/* Media Preview Container */}
-                  <div className="relative rounded-xl overflow-hidden bg-muted/40 border border-border/50 flex items-center justify-center w-full aspect-video mb-4">
-                    {resolvedUrl ? (
-                      <>
-                        {mediaType === 'image' && (
-                          <div className="w-full h-full relative group cursor-pointer" onClick={() => window.open(resolvedUrl, '_blank')}>
-                            <img
-                              src={resolvedUrl}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                              alt={img.description || 'Clinical Media'}
-                            />
-                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                              <Eye size={20} />
-                            </div>
-                          </div>
-                        )}
-                        {mediaType === 'video' && (
-                          <video
-                            src={resolvedUrl}
-                            controls
-                            className="w-full h-full object-contain bg-black"
-                          />
-                        )}
-                        {mediaType === 'audio' && (
-                          <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-primary/5">
-                            <Volume2 size={32} className="text-primary mb-2 animate-pulse" />
-                            <audio src={resolvedUrl} controls className="w-full max-w-[240px]" />
-                          </div>
-                        )}
-                        {mediaType === 'pdf' && (
-                          <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-muted/60">
-                            <FileText size={32} className="text-destructive mb-2" />
-                            <span className="text-xs font-semibold mb-2 text-foreground">PDF Document</span>
-                            <button
-                              onClick={() => window.open(resolvedUrl, '_blank')}
-                              className="appt-btn flex items-center gap-1.5 text-xs py-1 px-3"
-                            >
-                              <FileText size={12} />
-                              View PDF
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="text-center text-muted-foreground p-4">
-                        <Camera size={24} className="mx-auto mb-1.5 opacity-40" />
-                        <div className="text-xs">Media unavailable</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Card Header & Description */}
-                  <div className="flex flex-col flex-grow">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded">
-                        {mediaType}
-                      </span>
-                      <div className="flex items-center text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full border border-border/40">
-                        <Calendar size={12} className="mr-1 text-primary" />
-                        {timestamp ? format(new Date(timestamp), 'dd MMM yyyy') : 'Unknown'}
-                      </div>
-                    </div>
-
-                    <p className="text-sm font-medium text-foreground leading-relaxed mb-4">
-                      {img.description || 'Clinical Evidence'}
-                    </p>
-
-                    {/* Card Actions */}
-                    <div className="appt-grid-card-actions-minimal mt-auto flex gap-2 w-full">
-                      {resolvedUrl && (
-                        <button 
-                          className="appt-btn flex-grow flex items-center justify-center gap-2"
-                          onClick={() => window.open(resolvedUrl, '_blank')}
-                        >
-                          <Eye size={14} />
-                          View
-                        </button>
-                      )}
+                {!isComparingMode && (
+                  <div className="appt-grid-card-actions-minimal mt-auto flex gap-2 w-full pt-4">
+                    {resolvedUrl && (
                       <button 
-                        className="appt-btn appt-btn-danger flex-grow flex items-center justify-center gap-2"
-                        onClick={() => handleDeleteMedia(img.id)}
-                        disabled={deletingId === img.id}
+                        className="appt-btn flex-1 flex items-center justify-center gap-2"
+                        onClick={(e) => { e.stopPropagation(); window.open(resolvedUrl, '_blank'); }}
                       >
-                        <Trash2 size={14} />
-                        {deletingId === img.id ? 'Deleting...' : 'Delete'}
+                        <FileText size={14} />
+                        View
                       </button>
+                    )}
+                    <button 
+                      className="appt-btn appt-btn-danger flex-1 flex items-center justify-center gap-2"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (inv._source === 'image') {
+                          handleDeleteMedia(inv.id);
+                        } else {
+                          handleDeleteReport(inv.id);
+                        }
+                      }}
+                      disabled={deletingId === inv.id}
+                    >
+                      <Trash2 size={14} />
+                      {deletingId === inv.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                )}
+                
+                {isComparingMode && (
+                  <div className="mt-auto pt-4 flex justify-center">
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '50%', 
+                      border: `2px solid ${isSelected ? 'var(--pp-primary)' : '#cbd5e1'}`,
+                      background: isSelected ? 'var(--pp-primary)' : '#f8fafc',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer'
+                    }}>
+                      {isSelected && <div style={{ width: '12px', height: '12px', background: '#fff', borderRadius: '50%' }} />}
                     </div>
                   </div>
+                )}
                 </div>
               );
             })}
           </div>
-        )
-      )}
+        )}
+      </div>
     </div>
   );
 }

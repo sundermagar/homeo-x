@@ -27,6 +27,7 @@ export interface AuthTokenPayload {
   roleName: string;
   clinicName?: string;
   regid?: number;
+  phone?: string;
 }
 
 export interface Permission {

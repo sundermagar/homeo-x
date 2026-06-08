@@ -1,14 +1,18 @@
 import React from 'react';
 import { useMyMedicalRecords } from '@/features/medical-case/hooks/use-medical-cases';
-import { Pill, Calendar, Clock, RotateCw, AlertCircle } from 'lucide-react';
+import { Pill, Calendar, Clock, RotateCw, AlertCircle, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 import { EmptyState } from '@/components/shared/empty-state';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import '@/features/appointments/styles/appointments.css';
 
 export default function PrescriptionsPage() {
   const { data: records, isLoading } = useMyMedicalRecords();
-
   const prescriptions = records?.prescriptions || [];
+  
+  const { user } = useAuthStore();
+  const isPatient = user?.type === 'Patient' || (user as any)?.role === 'patient';
 
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground">Loading your prescriptions...</div>;
@@ -18,14 +22,36 @@ export default function PrescriptionsPage() {
     <div className="pp-page-container appt-page animate-fade-in">
       {/* Hero Header */}
       <div className="pp-page-hero">
-        <div>
-          <h1 className="pp-page-hero-title">
-            <Pill size={22} strokeWidth={1.8} />
-            My Prescriptions
-          </h1>
-          <p className="pp-page-hero-sub">
-            View your prescribed homeopathic remedies and instructions.
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {isPatient && (
+            <Link 
+              to="/portal/select-track"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--pp-bg-hover)',
+                color: 'var(--pp-text-1)',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={e => e.currentTarget.style.background = '#e2e8f0'}
+              onMouseOut={e => e.currentTarget.style.background = 'var(--pp-bg-hover)'}
+            >
+              <ArrowLeft size={20} strokeWidth={2} />
+            </Link>
+          )}
+          <div>
+            <h1 className="pp-page-hero-title">
+              <Pill size={22} strokeWidth={1.8} />
+              My Prescriptions
+            </h1>
+            <p className="pp-page-hero-sub">
+              View your prescribed homeopathic remedies and instructions.
+            </p>
+          </div>
         </div>
       </div>
 

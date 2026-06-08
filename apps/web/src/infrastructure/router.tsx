@@ -18,6 +18,7 @@ const Loading = () => (
 
 // Common Feature Modules
 const LoginPage = lazy(() => import('@/features/auth/pages/login-page'));
+const PatientPortalEntry = lazy(() => import('@/features/auth/pages/patient-portal-entry'));
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/dashboard-page'));
 // Multi-stage consultation flow (Patient info → Conversation → Totality → Repertory → Prescription)
 const ConsultationPage = lazy(() => import('@/features/consultation/consultation-mode-page'));
@@ -32,6 +33,8 @@ const PatientReportsPage = lazy(() => import('@/features/patients/pages/reports-
 const PrescriptionsPage = lazy(() => import('@/features/patients/pages/prescriptions-page'));
 const FollowUpPage = lazy(() => import('@/features/patients/pages/follow-up-page'));
 const NewConsultationPage = lazy(() => import('@/features/consultation/pages/new-consultation-page'));
+const PatientTrackSelection = lazy(() => import('@/features/dashboard/pages/patient-track-selection'));
+const NewCaseLanding = lazy(() => import('@/features/dashboard/pages/new-case-landing'));
 
 // Appointments
 const AppointmentListPage = lazy(
@@ -142,6 +145,7 @@ const CourierQueuePage = lazy(() =>
 // Clinical Hub
 const ClinicalHubPage = lazy(() => import('@/features/clinical-hub/pages/clinical-hub-page'));
 const PatientMeetPage = lazy(() => import('@/features/consultation/patient-meet-page'));
+const PublicVitalsForm = lazy(() => import('@/features/medical-case/pages/public-vitals-form'));
 // Legal & Compliance
 const PrivacyPolicyPage = lazy(() => import('@/features/legal/pages/privacy-policy-page'));
 const TermsOfServicePage = lazy(() => import('@/features/legal/pages/terms-of-service-page'));
@@ -154,8 +158,14 @@ export function AppRouter() {
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/meet/:roomId" element={<PatientMeetPage />} />
+          <Route path="/vitals" element={<PublicVitalsForm />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+
+          {/* Patient Portal (separate entry flow — isolated from /login) */}
+          <Route path="/portal" element={<PatientPortalEntry />} />
+          <Route path="/portal/select-track" element={<PatientTrackSelection />} />
+          <Route path="/portal/new-case" element={<NewCaseLanding />} />
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
