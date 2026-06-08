@@ -24,29 +24,6 @@ import {
   Loader2,
   IndianRupee,
 } from 'lucide-react';
-
-/** A custom, premium Circle-A icon indicating "Additional Charge" or "Add" */
-function AdditionalChargeIcon({ size = 14, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 8l-3.5 8" />
-      <path d="M12 8l3.5 8" />
-      <path d="M9.5 13.5h5" />
-    </svg>
-  );
-}
 import { useManageClinicalRecords } from '../hooks/use-medical-cases';
 import {
   useAlphabetIndex,
@@ -134,8 +111,6 @@ export function RemedyChartSession({
     typeof window !== 'undefined' ? window.innerWidth : 1200,
   );
 
-  const canViewBilling = useAuthStore(s => s.user?.permissions?.canViewBilling ?? true);
-
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
@@ -217,7 +192,7 @@ export function RemedyChartSession({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleRepeat = async () => {
+  const handleRepeat = () => {
     if (!history || history.length === 0) return alert('No previous prescription to repeat.');
     if (isRxToday) {
       setShowRepeatWarning(true);
@@ -235,18 +210,7 @@ export function RemedyChartSession({
       instructions: lastRx.prescription || lastRx.notes || '',
       notes: lastRx.notes || '',
     });
-
-    if (!lastValidRx) {
-       // Fallback to the first one that is from a previous date
-       lastValidRx = history.find(rx => {
-         const dateVal = rx.created_at || (rx as any).createdAt || rx.dateval;
-         return dateVal && new Date(dateVal).toDateString() !== new Date().toDateString();
-       });
-    }
-
-    if (!lastValidRx) lastValidRx = history[0];
-
-    await repeatRx(lastValidRx);
+    setActiveTab('rx');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -393,7 +357,7 @@ export function RemedyChartSession({
       {(activeTab === 'rx' || activeTab === null) && (
         <div>
           {/* Inline Form - Only visible when Rx tab is active */}
-          {activeTab === 'rx' && isSelectedDateToday && (
+          {activeTab === 'rx' && (
             <>
               <div
                 style={{
@@ -493,8 +457,6 @@ export function RemedyChartSession({
                       </span>
                     )}
                   </div>
-                ) : (
-                  <div style={{ gridColumn: 'span 1' }} />
                 )}
                 <div
                   style={{
@@ -698,7 +660,7 @@ export function RemedyChartSession({
                               onSelectDate?.(rx.created_at || rx.createdAt || rx.dateval)
                             }
                           >
-                            <td data-label="Date" style={{ padding: '8px 6px' }}>
+                            <td data-label="Date">
                               {idx === 0 ? (
                                 <div
                                   style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}
@@ -826,7 +788,7 @@ export function RemedyChartSession({
                                 )}
                               </div>
                             </td>
-                            <td data-label="Actions" style={{ textAlign: 'right', padding: '8px 6px' }}>
+                            <td data-label="Actions" style={{ textAlign: 'right' }}>
                               <div className="mc-table-actions">
                                 <div className="mc-desktop-actions">
                                   {(() => {

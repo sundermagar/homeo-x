@@ -86,7 +86,6 @@ import { AssignPackageModal } from '../../packages/components/assign-package-mod
 import { VitalsFormModal } from '../components/vitals-form-modal';
 import { FinalizeConsultationModal } from '../components/finalize-consultation-modal';
 import { FollowupScheduler } from '../components/followup-scheduler';
-import { AiFollowupTranscriptPanel } from '../components/ai-followup-transcript-panel';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
 import { getSocket } from '@/infrastructure/socket';
@@ -109,7 +108,7 @@ import { generatePrescriptionHtml } from '@/lib/print-templates';
 import type { PrescriptionPrintData } from '@/lib/print-templates';
 import { getClinicLetterhead, getDoctorLetterhead } from '@/lib/clinic-letterhead';
 import { useOrganizations } from '../../platform/hooks/use-organizations';
-import { usePdfSettings } from '../../settings/hooks/use-settings';
+import { usePdfSettings, useMedicines } from '../../settings/hooks/use-settings';
 import '../styles/medical-case.css';
 export function useTableGrouping(data: any[], dateField: string = 'createdAt') {
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
@@ -243,10 +242,6 @@ export function AutoSaveNoteArea({
     delay: 1500,
   });
 
-  const handleBlur = () => {
-    forceSave();
-  };
-
   return (
     <div className="mc-followup-editor">
       <textarea
@@ -377,6 +372,7 @@ export default function MedicalCaseDetailPage() {
   const medicalCase = fullData?.medicalCase;
   const visitId = medicalCase?.id;
   const { data: dayCharges = [] } = useDayCharges();
+  const { data: medicines = [] } = useMedicines();
 
   const formatName = useCallback((name?: string | null) => {
     if (!name) return '';
@@ -483,7 +479,6 @@ export default function MedicalCaseDetailPage() {
 
   // Diagnosis State
   const [showDiagnosisDrawer, setShowDiagnosisDrawer] = useState(false);
-  const [isDirectEdit, setIsDirectEdit] = useState(false);
   const [editingDiagnosisRecord, setEditingDiagnosisRecord] = useState<any>(null);
   const [diagForm, setDiagForm] = useState({
     diagnosis: '',
@@ -510,11 +505,6 @@ export default function MedicalCaseDetailPage() {
   const [scannedMedicationRows, setScannedMedicationRows] = useState<MedicationRow[]>([
     { medicine: '', frequency: 'Once', days: '', issue: '' },
   ]);
-  const [isScannedPrescription, setIsScannedPrescription] = useState(false);
-  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
-  const [isSavingScannedPrescription, setIsSavingScannedPrescription] = useState(false);
-  const [aiDetectingIdx, setAiDetectingIdx] = useState<number | null>(null);
-
 
   const handlePrescriptionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -538,7 +528,6 @@ export default function MedicalCaseDetailPage() {
               }))
             : [{ medicine: '', frequency: 'Once', days: '', issue: '' }],
         );
-        setIsScannedPrescription(true);
         setShowPrescriptionPreview(true);
       }
     } catch (err) {
@@ -561,7 +550,6 @@ export default function MedicalCaseDetailPage() {
 
   const handleSaveScannedPrescription = async () => {
     if (!scannedPrescription) return;
-    setIsSavingScannedPrescription(true);
     try {
       if (scannedPrescription.diagnosis.trim()) {
         await updateDiagnosis.mutateAsync({
@@ -574,8 +562,8 @@ export default function MedicalCaseDetailPage() {
       );
       const soapDate = displayDate ? displayDate.toISOString() : new Date().toISOString();
 
-      await saveNote.mutateAsync({
-        id: currentVisitHomeoDetail?.id,
+      await saveSoap.mutateAsync({
+        id: currentVisitSoap?.id,
         regid: Number(regid),
         visitId: currentVisitId || visitId,
         subjective: scannedPrescription.complaint,
@@ -586,39 +574,15 @@ export default function MedicalCaseDetailPage() {
         createdAt: soapDate,
       });
 
-      if (!currentVisitHomeoDetail) {
-        setSelectedDate(noteDate);
+      if (!currentVisitSoap) {
+        setSelectedDate(soapDate);
       }
 
       setShowPrescriptionPreview(false);
       setScannedPrescription(null);
     } catch (err) {
       console.error(err);
-    } finally {
-      setIsSavingScannedPrescription(false);
     }
-  };
-
-  const handleEditHomeoDetails = () => {
-    let payload = { diagnosis: '', complaint: '', investigation: '', medications: [] };
-    if (currentVisitHomeoDetail?.notes) {
-      try {
-         payload = JSON.parse(currentVisitHomeoDetail.notes);
-      } catch (e) {}
-    }
-    
-    setScannedPrescription({
-      diagnosis: payload.diagnosis || '',
-      complaint: payload.complaint || '',
-      investigation: payload.investigation || '',
-    });
-    setScannedMedicationRows(
-      payload.medications && payload.medications.length > 0 
-        ? payload.medications 
-        : [{ medicine: '', frequency: 'Once', days: '', issue: '' }]
-    );
-    setIsScannedPrescription(false);
-    setShowPrescriptionPreview(true);
   };
 
   const updateScannedMedicationRow = (index: number, field: keyof MedicationRow, value: string) => {
@@ -648,26 +612,7 @@ export default function MedicalCaseDetailPage() {
     });
   };
 
-  const detectScannedMedicineIssue = async (index: number, medicineName: string) => {
-    if (!medicineName.trim()) return;
-    setAiDetectingIdx(index);
-    try {
-      const res = await apiClient.post<{ success: boolean; data: { issue: string; provider?: string } }>(
-        '/medical-cases/ai-detect-medicine-issue',
-        { medicine: medicineName.trim() }
-      );
-      const detected = res.data?.data?.issue;
-      if (detected) {
-        updateScannedMedicationRow(index, 'issue', detected);
-      }
-    } catch (err) {
-      console.warn('AI medicine detection failed:', err);
-    } finally {
-      setAiDetectingIdx(null);
-    }
-  };
-
-  const handleOpenDiagnosis = (record?: any, forceDirectEdit?: boolean) => {
+  const handleOpenDiagnosis = (record?: any) => {
     // Priority: 1. Passed record (from table), 2. Current visit record (from sidebar context)
     const activeRecord = record || currentVisitSoap;
 
@@ -685,7 +630,7 @@ export default function MedicalCaseDetailPage() {
         initialMeds = [{ medicine: objectiveStr, frequency: 'Once', days: '', issue: '' }];
       }
     }
-    setScannedMedicationRows(initialMeds);
+    setMedicationRows(initialMeds);
 
     if (activeRecord) {
       setDiagForm({
@@ -694,7 +639,7 @@ export default function MedicalCaseDetailPage() {
         medication: activeRecord.plan || '',
         medicationTaking: activeRecord.objective || '',
       });
-      setEditingDiagnosisRecord(record);
+      setEditingDiagnosisRecord(activeRecord);
     } else {
       // New record for today
       setDiagForm({
@@ -705,12 +650,6 @@ export default function MedicalCaseDetailPage() {
       });
       setEditingDiagnosisRecord(null);
     }
-
-    const direct = forceDirectEdit !== undefined 
-      ? forceDirectEdit 
-      : (record !== undefined && record !== null);
-
-    setIsDirectEdit(direct);
     setShowDiagnosisDrawer(true);
   };
 
@@ -763,7 +702,6 @@ export default function MedicalCaseDetailPage() {
   const handleSaveDiagnosis = async () => {
     try {
       const finalRecordId = editingDiagnosisRecord?.id;
-      let effectiveVisitId = currentVisitId || visitId;
 
       if (diagForm.diagnosis.trim()) {
         await updateDiagnosis.mutateAsync({
@@ -778,11 +716,11 @@ export default function MedicalCaseDetailPage() {
       await saveSoap.mutateAsync({
         id: finalRecordId,
         regid: Number(regid),
-        visitId: effectiveVisitId,
+        visitId: currentVisitId || visitId,
         subjective: diagForm.complaint,
-        objective: '',
+        objective: serializedMeds,
         assessment: diagForm.diagnosis,
-        plan: '',
+        plan: diagForm.medication,
         dateval: soapDate,
         createdAt: soapDate,
       });
@@ -790,17 +728,6 @@ export default function MedicalCaseDetailPage() {
       // If it's a new diagnosis, switch view to exactly the saved date so it shows up immediately
       if (!editingDiagnosisRecord) {
         setSelectedDate(soapDate);
-        
-        if (diagForm.diagnosis && diagForm.diagnosis.trim()) {
-           const newSummary = `AI Follow Up Summary:\n${diagForm.diagnosis.trim()}`;
-           setFollowUpNote(prev => {
-             const separator = prev.trim() ? '\n\n' : '';
-             const updated = prev + separator + newSummary;
-             // Fire and forget save so it persists immediately
-             handleSaveNote(updated).catch(e => console.warn('Auto-save follow up note failed', e));
-             return updated;
-           });
-        }
       }
 
       setShowDiagnosisDrawer(false);
@@ -901,19 +828,6 @@ export default function MedicalCaseDetailPage() {
 
   const displayDate = selectedDate ? new Date(selectedDate) : defaultEncounterDate;
 
-  // Persist manual medicine charge override in localStorage
-  React.useEffect(() => {
-    if (regid && displayDate) {
-      const key = `med_override_${regid}_${toClinicDateString(displayDate)}`;
-      const stored = localStorage.getItem(key);
-      if (stored !== null) {
-        setPendingCharge(Number(stored));
-      } else {
-        setPendingCharge(0);
-      }
-    }
-  }, [regid, displayDate, toClinicDateString]);
-
   const activeNote = React.useMemo(() => {
     if (!displayDate) return null;
     const displayStr = toClinicDateString(displayDate);
@@ -925,63 +839,10 @@ export default function MedicalCaseDetailPage() {
     );
   }, [followupNotes, displayDate, toClinicDateString]);
 
-  const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
-
-  const currentVisitSoaps = useMemo(() => {
-    const soap = fullData?.soap || [];
-    if (!displayDate || !soap.length) return [];
-    return filterByDate(soap, displayDate);
-  }, [displayDate, fullData?.soap, filterByDate]);
-
-  const currentVisitSoap = currentVisitSoaps[0] || null;
-
-  const homeoDetailNotes = useMemo(() => {
-    return (notes || []).filter((n: any) =>
-      n.notesType === 'HomeoDetails' || n.noteType === 'HomeoDetails' || n.notes_type === 'HomeoDetails'
-    ).sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime());
-  }, [notes]);
-
-  const currentVisitHomeoDetails = useMemo(() => {
-    if (!displayDate || !homeoDetailNotes.length) return [];
-    return filterByDate(homeoDetailNotes, displayDate);
-  }, [displayDate, homeoDetailNotes, filterByDate]);
-
-  const currentVisitHomeoDetail = currentVisitHomeoDetails[0] || null;
-
-  const currentVisitPrescriptions = useMemo(() => {
-    if (!displayDate) return [];
-    const fromHistory = prescriptionsHistory || [];
-    const fromFull = fullData?.prescriptions || [];
-    const all = [...fromHistory, ...fromFull];
-    return filterByDate(all, displayDate);
-  }, [displayDate, prescriptionsHistory, fullData?.prescriptions, filterByDate]);
-
-  const currentVisitId = useMemo(() => {
-    // Attempt to extract visit ID from any clinical record on the currently viewed date
-    const rx = currentVisitPrescriptions?.[0];
-    const soap = currentVisitSoaps?.[0];
-
-    // Check various common field names for visit IDs
-    const idFromRx = rx ? (rx.visitId ?? rx.visit_id ?? rx.consultationId ?? rx.consultation_id) : null;
-    const idFromSoap = soap ? (soap.visitId ?? soap.visit_id) : null;
-
-    // Priority: 1. ID from today's prescriptions, 2. ID from today's SOAP notes, 3. The global active case ID
-    return idFromRx ?? idFromSoap ?? medicalCase?.id;
-  }, [currentVisitPrescriptions, currentVisitSoaps, medicalCase?.id]);
-
-  const lastEncounterDateRef = React.useRef<string | null>(null);
-  const lastSavedOrLoadedValueRef = React.useRef<string>('');
-
-  // Sync followUpNote with activeNote when activeNote changes, but only when switching encounter dates or when not dirty
+  // Sync followUpNote with activeNote when activeNote changes
   React.useEffect(() => {
-    const dateStr = displayDate ? toClinicDateString(displayDate) : 'none';
-    const newNotes = activeNote?.notes || '';
-    if (lastEncounterDateRef.current !== dateStr || followUpNote === lastSavedOrLoadedValueRef.current) {
-      setFollowUpNote(newNotes);
-      lastSavedOrLoadedValueRef.current = newNotes;
-      lastEncounterDateRef.current = dateStr;
-    }
-  }, [activeNote, displayDate, toClinicDateString, followUpNote]);
+    setFollowUpNote(activeNote?.notes || '');
+  }, [activeNote]);
 
   const appendNote = (text: string) => {
     setFollowUpNote((prev) => {
@@ -1034,35 +895,15 @@ export default function MedicalCaseDetailPage() {
   }, [displayDate, summary?.bills, toClinicDateString]);
 
   const billingValues = useMemo(() => {
-    const isCompleted = medicalCase?.status === 'Completed';
-
     // 1. Calculate additional charges for the selected displayDate
     const additional = (() => {
-      let sumAssigned = 0;
-      if (displayDate && fullData?.additionalCharges) {
-        const displayStr = toClinicDateString(displayDate);
-        sumAssigned = fullData.additionalCharges
-          .filter((ac: any) => toClinicDateString(ac.createdAt) === displayStr)
-          .reduce((sum: number, ac: any) => sum + ((Number(ac.price ?? ac.additionalPrice ?? ac.amount) || 0) * (Number(ac.quantity ?? ac.additionalQuantity) || 1)), 0);
-      }
-
-      let sumManual = 0;
-      if (displayDate && summary?.bills) {
-        const displayStr = toClinicDateString(displayDate);
-        sumManual = summary.bills
-          .filter(b => {
-            const d = b.billDate || b.createdAt;
-            return toClinicDateString(d) === displayStr && (b.billType as string) === 'Additional';
-          })
-          .reduce((sum: number, b: any) => sum + (Number(b.charges) || 0), 0);
-      }
-
-      // If the case is completed or a manual bill was generated, the manual bill is the source of truth for invoices
-      if (isCompleted && sumManual > 0) {
-        return sumManual;
-      }
-      
-      return Math.max(sumAssigned, sumManual);
+      if (!displayDate || !fullData?.additionalCharges) return 0;
+      const displayStr = toClinicDateString(displayDate);
+      return fullData.additionalCharges
+        .filter((ac: any) => {
+          return toClinicDateString(ac.createdAt) === displayStr;
+        })
+        .reduce((sum: number, ac: any) => sum + (Number(ac.amount) || 0), 0);
     })();
 
     // 2. Fetch all bills for the selected displayDate to sum received amount
@@ -1091,6 +932,8 @@ export default function MedicalCaseDetailPage() {
       )
       .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
 
+    const isCompleted = medicalCase?.status === 'Completed';
+
     // 3. Dynamic Medicine Days Charge (e.g. 600 for 3 days of medicine)
     const rawEffectiveDaysCharge = (() => {
       if (pendingCharge > 0) return pendingCharge;
@@ -1112,7 +955,7 @@ export default function MedicalCaseDetailPage() {
       return match ? Number(match.regularCharges) || 0 : 0;
     })();
 
-    const hasActivePackage = !!fullData?.activePackage || !!activePackage;
+    const hasActivePackage = !!fullData?.activePackage;
 
     // Waive medicine charges if covered by package and session isn't completed yet
     const effectiveDaysCharge =
@@ -1120,66 +963,22 @@ export default function MedicalCaseDetailPage() {
         ? 0
         : rawEffectiveDaysCharge;
 
-    // Sum of all explicit Registration bills
-    const registrationBillSum = dayBills
-      .filter(b => b.billType === 'Registration')
-      .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
-
     // 4. Registration Charge (shown as "Registration Charge" row in UI)
+    // It must strictly be the base consultation/registration fee without dynamic medicine day charges.
     const originalRegular = medicalCase?.consultationFee || 0;
-    
     const regular = (() => {
-      // If the session is active, the registration charge IS the consultation fee.
-      // We must return this so it syncs correctly to the backend pending-bills.
-      if (!isCompleted) {
-        return originalRegular;
-      }
-      
-      // If completed, we show what was actually finalized.
-      // In the new system, we have explicit Registration bills.
-      if (registrationBillSum > 0) {
-        return registrationBillSum;
-      }
-      
-      // Legacy fallback: unified Consultation bill where we extract registration
-      return Math.max(0, savedRegularBillsSum - effectiveDaysCharge);
-    })();
-
-    // Sum of all package bills currently saved in the database for today
-    const savedPackageBill = dayBills.find(b => b.treatment?.startsWith('Package:'));
-    const savedPackageBillsSum = savedPackageBill ? (Number(savedPackageBill.charges) || 0) : 0;
-    const savedPackageName = savedPackageBill?.treatment ? savedPackageBill.treatment.replace('Package: ', '') : '';
-
-    const isPurchaseDate = (() => {
-      if (!displayDate) return false;
-      const displayStr = toClinicDateString(displayDate);
-      if (!!savedPackageBill) return true;
-
-      const activePkg = fullData?.activePackage || activePackage;
-      if (activePkg?.startDate) {
-        return activePkg.startDate === displayStr;
-      }
-      return false;
-    })();
-
-    const originalPackagePrice = (() => {
       if (isCompleted) {
-        return savedPackageBillsSum;
+        // If completed, the savedRegularBillsSum already includes the finalized day charge.
+        // We subtract it to show only the base consultation/registration fee in this row.
+        return Math.max(0, savedRegularBillsSum - effectiveDaysCharge);
       }
-      return hasActivePackage ? (Number(fullData?.activePackage?.packagePrice ?? activePackage?.packagePrice) || 0) : 0;
+      // Otherwise (active session), it is the saved bills sum (like registration fee) + doctor fee.
+      const baseFee = originalRegular;
+      return savedRegularBillsSum + baseFee;
     })();
 
-    const packagePrice = isPurchaseDate ? originalPackagePrice : 0;
-
-    const activePackageName = (() => {
-      if (isCompleted) {
-        return savedPackageName;
-      }
-      return fullData?.activePackage?.packageName ?? activePackage?.packageName;
-    })();
-
-    // 5. Total Bill Amount = Registration Charge (regular) + Medicine Days Charge + Additional Charges + Package Price
-    const currentTotal = regular + effectiveDaysCharge + additional + packagePrice;
+    // 5. Total Bill Amount = Registration Charge (regular) + Medicine Days Charge + Additional Charges
+    const currentTotal = regular + effectiveDaysCharge + additional;
     const currentBalance = currentTotal - currentPaid;
 
     return {
@@ -1201,74 +1000,11 @@ export default function MedicalCaseDetailPage() {
     pendingCharge,
     displayDate,
     fullData?.additionalCharges,
-    fullData?.activePackage,
-    activePackage,
     prescriptionsHistory,
     prescriptionsFromFull,
     dayCharges,
     toClinicDateString,
   ]);
-
-  // Sync dynamic charges to database as official bills
-  const previousSyncRef = React.useRef({ regid: '', date: '', regular: -1, daysCharge: -1 });
-
-  React.useEffect(() => {
-    if (!regid || !displayDate || !billingValues) {
-      console.log('[SYNC] Skipping - missing:', { regid: !!regid, displayDate: !!displayDate, billingValues: !!billingValues });
-      return;
-    }
-    const dateStr = toClinicDateString(displayDate);
-    if (!dateStr) {
-      console.log('[SYNC] Skipping - no dateStr from displayDate:', displayDate);
-      return;
-    }
-
-    const currentSync = {
-      regid: regid,
-      date: dateStr,
-      regular: billingValues.regular,
-      daysCharge: billingValues.daysCharge
-    };
-
-    const prev = previousSyncRef.current;
-    const changed = (
-      prev.regid !== currentSync.regid ||
-      prev.date !== currentSync.date ||
-      prev.regular !== currentSync.regular ||
-      prev.daysCharge !== currentSync.daysCharge
-    );
-
-    console.log('[SYNC] Check:', { currentSync, prev, changed });
-
-    if (changed) {
-      previousSyncRef.current = currentSync;
-      
-      if (currentSync.regular >= 0 || currentSync.daysCharge >= 0) {
-        console.log('[SYNC] Sending POST /accounts/pending-bills:', {
-          regid: Number(regid),
-          dateval: dateStr,
-          regular: currentSync.regular,
-          daysCharge: currentSync.daysCharge
-        });
-        apiClient.post('/accounts/pending-bills', {
-          regid: Number(regid),
-          dateval: dateStr,
-          regular: currentSync.regular,
-          daysCharge: currentSync.daysCharge
-        }).then(res => {
-          console.log('[SYNC] SUCCESS:', res.data);
-        }).catch(err => {
-          console.error('[SYNC] FAILED:', err?.response?.data || err?.message || err);
-        });
-      }
-    }
-  }, [regid, displayDate, billingValues, toClinicDateString]);
-
-  useEffect(() => {
-    if (regid) {
-      apiClient.get('/accounts/cleanup-duplicates').catch(() => {});
-    }
-  }, [regid]);
 
   // ─── Derived from fullData (safe after query completes) ───
   const fullVitals = fullData?.vitals;
@@ -1297,6 +1033,7 @@ export default function MedicalCaseDetailPage() {
     if (months > 0) return `${months} Month${months > 1 ? 's' : ''}`;
     return `${Math.max(days, 1)} Day${days > 1 ? 's' : ''}`;
   }, [medicalCase?.dateOfBirth, medicalCase?.dob]);
+  const isToday = displayDate && displayDate.toDateString() === new Date().toDateString();
 
   const currentVisitSoaps = useMemo(() => {
     const soap = fullData?.soap || [];
@@ -1560,113 +1297,6 @@ export default function MedicalCaseDetailPage() {
                 ? `${activePackage.packageName} (${activePackage.status})`
                 : 'No active plan'}
             </button>
-
-            {/* ABHA Health ID Chip */}
-            {abhaStatus?.isLinked ? (
-              <div 
-                className="profile-status-chip active" 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '6px',
-                  background: 'rgba(34, 197, 94, 0.15)',
-                  borderColor: 'rgba(34, 197, 94, 0.3)',
-                  color: '#4ade80',
-                  paddingRight: '6px',
-                  position: 'relative',
-                  zIndex: 20,
-                  pointerEvents: 'auto'
-                }}
-              >
-                <ShieldCheck size={12} />
-                <span>ABHA: {abhaStatus.abhaId}</span>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('🟢 FETCH HISTORY CLICKED! isHistoryDrawerOpen will be set to true');
-                    setIsHistoryDrawerOpen(true);
-                    console.log('🟢 setIsHistoryDrawerOpen(true) called');
-                  }}
-                  title="Fetch External History"
-                  style={{
-                    background: 'rgba(99, 102, 241, 0.2)',
-                    border: 'none',
-                    color: '#818cf8',
-                    cursor: 'pointer',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    marginLeft: '4px',
-                    position: 'relative',
-                    zIndex: 50,
-                    pointerEvents: 'auto'
-                  }}
-                >
-                  Fetch History
-                </button>
-                <button
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!confirm('Remove ABHA link from this patient?')) return;
-                    try {
-                      await abhaUnlinkMutation.mutateAsync();
-                      toast({ title: 'ABHA Unlinked', description: 'ABHA ID removed from patient profile', variant: 'success' });
-                    } catch (err: any) {
-                      toast({ title: 'Failed', description: err.message, variant: 'error' });
-                    }
-                  }}
-                  disabled={abhaUnlinkMutation.isPending}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#f87171',
-                    cursor: 'pointer',
-                    padding: '2px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s',
-                    position: 'relative',
-                    zIndex: 50,
-                    pointerEvents: 'auto'
-                  }}
-                  title="Unlink ABHA ID"
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.2)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                >
-                  <Unlink size={12} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAbhaModal(true)}
-                className="profile-status-chip"
-                style={{
-                  background: 'rgba(59, 130, 246, 0.15)',
-                  borderColor: 'rgba(59, 130, 246, 0.3)',
-                  color: '#60a5fa',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)';
-                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
-                }}
-              >
-                <Link2 size={12} />
-                <span>Link ABHA</span>
-              </button>
-            )}
           </div>
 
           <div className="profile-actions">
@@ -1709,7 +1339,6 @@ export default function MedicalCaseDetailPage() {
               <Phone size={14} /> {medicalCase.mobile || medicalCase.phone || '—'}
             </div>
           </div>
-
           <div className="profile-info-cell">
             <label>DOCTOR</label>
             <div className="info-with-icon">
@@ -1991,10 +1620,15 @@ export default function MedicalCaseDetailPage() {
                             setShowBillingModal(true);
                           }}
                           style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 140px 40px',
-                            padding: '10px 16px',
-                            borderBottom: idx === rows.length - 1 ? 'none' : '1px solid #f1f5f9',
+                            width: '28px',
+                            height: '28px',
+                            padding: '0',
+                            background: '#fff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            color: '#64748b',
+                            display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
@@ -2035,29 +1669,6 @@ export default function MedicalCaseDetailPage() {
                     <Share2 size={16} /> Share Payment Receipt
                   </button>
                 </div>
-                {billingValues.received > 0 && (
-                  <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={() => setShowReceiptModal(true)}
-                      style={{
-                        padding: '6px 14px',
-                        fontSize: '13px',
-                        background: '#2563EB',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: '0 2px 4px -1px rgba(37, 99, 235, 0.2)'
-                      }}
-                    >
-                      <Share2 size={14} /> Share Payment Receipt
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -3479,38 +3090,7 @@ export default function MedicalCaseDetailPage() {
           displayDate={displayDate || undefined}
           rxWorkflow={rxWorkflow}
           visitId={medicalCase.id}
-          pendingBalance={billingValues.balance}
-          receivedAmount={billingValues.received}
-          currentMedicineCharge={billingValues.daysCharge}
-          onUpdateMedicineCharge={(val) => {
-            setPendingCharge(val);
-            if (regid && displayDate) {
-              const key = `med_override_${regid}_${toClinicDateString(displayDate)}`;
-              if (val > 0) {
-                localStorage.setItem(key, String(val));
-              } else {
-                localStorage.removeItem(key);
-              }
-            }
-          }}
           onClose={() => setShowBillingModal(false)}
-        />
-      )}
-      {showAbhaModal && (
-        <AbhaLinkingModal
-          isOpen={showAbhaModal}
-          onClose={() => setShowAbhaModal(false)}
-          regid={Number(regid)}
-          patientName={medicalCase.patientName || ''}
-        />
-      )}
-      {/* ABHA Medical History Drawer */}
-      {abhaStatus?.isLinked && (
-        <AbhaMedicalHistoryDrawer
-          isOpen={isHistoryDrawerOpen}
-          onClose={() => setIsHistoryDrawerOpen(false)}
-          abhaId={abhaStatus.abhaId || ''}
-          patientName={formatName(medicalCase?.patientName) || 'Unknown Patient'}
         />
       )}
     </div>
@@ -3519,9 +3099,9 @@ export default function MedicalCaseDetailPage() {
 
 function MedicalCasePageSkeleton() {
   return (
-    <div className="mc-detail-container animate-fade-in" style={{ padding: '12px' }}>
+    <div className="mc-detail-container animate-fade-in" style={{ padding: '24px' }}>
       {/* ─── Redesigned Header Card Skeleton ─── */}
-      <div className="patient-profile-card">
+      <div className="patient-profile-card" style={{ minHeight: '160px', opacity: 0.7 }}>
         <div className="profile-top-row">
           <div className="profile-identity">
             <div
@@ -3538,8 +3118,6 @@ function MedicalCasePageSkeleton() {
                 style={{ width: '100px', height: '14px' }}
               />
             </div>
-            <div className="skeleton-box" style={{ width: '130px', height: '24px', borderRadius: '100px' }} />
-            <div className="skeleton-box" style={{ width: '100px', height: '24px', borderRadius: '100px' }} />
           </div>
           <div className="profile-actions">
             <div
@@ -3838,9 +3416,10 @@ function VaccineView({
         </div>
       </div>
 
+      {/* Table */}
       <div className="pp-card pp-table-scroll" style={{ padding: 0 }}>
         <div className="mc-table-container">
-          <table className="mc-data-table">
+          <table className="pp-table mc-responsive-table">
             <thead>
               <tr>
                 <th style={{ width: '40px' }}>#</th>
@@ -4677,7 +4256,7 @@ function VitalsView({
                 ({vitals.length})
               </span>
             </div>
-            <table className="mc-data-table" style={{ marginBottom: 0 }}>
+            <table className="pp-table" style={{ marginBottom: 0 }}>
               <thead>
                 <tr>
                   <th>Date</th>
@@ -5071,8 +4650,7 @@ function LabsView({
 
   const handleSave = async (copyToFollowup = false) => {
     try {
-      const { investDate: dataDate, attachmentUrl, summary, id: _ignoreId, ...actualData } = labData;
-      const investDate = dataDate || new Date().toISOString().split('T')[0];
+      const investDate = new Date().toISOString().split('T')[0];
       await saveInvestigation.mutateAsync({
         id: editingInv?.id,
         regid,
@@ -5083,7 +4661,7 @@ function LabsView({
       });
 
       if (copyToFollowup) {
-        const findingsSummary = Object.entries(actualData)
+        const summary = Object.entries(labData)
           .filter(([_, v]) => v)
           .map(([k, v]) => `${k.toUpperCase()}: ${v}`)
           .join(', ');
@@ -5177,7 +4755,7 @@ function LabsView({
         }
         setActiveType('Specific');
         setLabData({
-          investDate: (displayDate ? new Date(displayDate).toISOString().split('T')[0] : null) || new Date().toISOString().split('T')[0],
+          investDate: new Date().toISOString().split('T')[0],
           attachmentUrl: data.data?.attachmentUrl || '',
           summary: '',
         });
@@ -5188,7 +4766,7 @@ function LabsView({
         setActiveType(type || 'Specific');
         setLabData({
           ...(parsedData || {}),
-          investDate: (displayDate ? new Date(displayDate).toISOString().split('T')[0] : null) || date || new Date().toISOString().split('T')[0],
+          investDate: date || new Date().toISOString().split('T')[0],
           attachmentUrl: data.data.attachmentUrl,
           summary: summary || '',
         });
@@ -6671,7 +6249,7 @@ function MediaView({
               ({images.length})
             </span>
           </div>
-          <table className="mc-data-table" style={{ marginBottom: 0 }}>
+          <table className="pp-table" style={{ marginBottom: 0 }}>
             <thead>
               <tr>
                 <th style={{ width: '80px' }}>Preview</th>
@@ -7218,115 +6796,6 @@ const renderMedicationTakingHistory = (objectiveVal: string) => {
   );
 };
 
-interface HomeoDetailsSnapshotWidgetProps {
-  currentHomeoDetail: any;
-  isToday: boolean;
-  isPendingScan: boolean;
-  onTriggerScan: () => void;
-  onEditAssessment: () => void;
-  prescriptionFileInputRef: React.RefObject<HTMLInputElement | null>;
-  handlePrescriptionFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-const HomeoDetailsSnapshotWidget = React.memo(({
-  currentHomeoDetail,
-  isToday,
-  isPendingScan,
-  onTriggerScan,
-  onEditAssessment,
-  prescriptionFileInputRef,
-  handlePrescriptionFileChange
-}: HomeoDetailsSnapshotWidgetProps) => {
-  const data = React.useMemo(() => {
-    if (!currentHomeoDetail?.notes) return null;
-    try {
-      return JSON.parse(currentHomeoDetail.notes);
-    } catch {
-      return null;
-    }
-  }, [currentHomeoDetail]);
-
-  return (
-    <div className="mc-side-card" style={{ marginBottom: '16px' }}>
-      <div className="mc-side-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>Homeo details</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isToday && (
-            <>
-              <input
-                type="file"
-                ref={prescriptionFileInputRef}
-                onChange={handlePrescriptionFileChange}
-                style={{ display: 'none' }}
-                accept="image/*"
-              />
-              <button
-                onClick={onTriggerScan}
-                disabled={isPendingScan}
-                style={{
-                  background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
-                  color: '#7c3aed',
-                  border: '1px solid #c4b5fd',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  cursor: isPendingScan ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  boxShadow: '0 1px 2px rgba(124, 58, 237, 0.05)',
-                  transition: 'all 0.2s ease',
-                  opacity: isPendingScan ? 0.7 : 1
-                }}
-                title="AI Scan Handwritten Prescription"
-              >
-                {isPendingScan ? (
-                  <Loader2 size={12} className="animate-spin text-purple-600" />
-                ) : (
-                  <BrainCircuit size={12} className="text-purple-600" />
-                )}
-                <span>AI Scan</span>
-              </button>
-              <div
-                onClick={onEditAssessment}
-                style={{ color: '#7c3aed', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                title="Edit Assessment"
-              >
-                <Edit size={14} />
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-      <div className="mc-side-card-body custom-scrollbar" style={{ padding: '16px', maxHeight: '400px', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Diagnosis</div>
-            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.diagnosis || '—'}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Complaint Intensity</div>
-            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.complaint || '—'}</div>
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b', marginBottom: '4px' }}>Medication Taking</div>
-            <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
-              {data?.medications && data.medications.length > 0 
-                ? renderMedicationTakingSnapshot(JSON.stringify(data.medications)) 
-                : '—'}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>Investigation</div>
-            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{data?.investigation || '—'}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
 function DiagnosisView({
   regid,
   visitId,
@@ -7433,7 +6902,7 @@ function DiagnosisView({
           Clinical Assessments
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-
+          {/* Main tab 'Add Diagnosis' button removed as requested. User uses sidebar button instead. */}
         </div>
       </div>
 
@@ -7441,34 +6910,11 @@ function DiagnosisView({
       {!soapRecords ? (
         <TableSkeleton rows={5} cols={5} />
       ) : soapRecords.length === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-          <EmptyState
-            icon={Sparkles}
-            title="No AI Follow up recorded yet"
-            description="Start a new AI Follow up to record and analyse the conversation with this patient."
-          />
-          {onAddRecord && (
-            <button
-              onClick={onAddRecord}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                borderRadius: '10px',
-                border: 'none',
-                background: 'var(--pp-blue)',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)',
-              }}
-            >
-              <Sparkles size={16} /> Start AI Follow up
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon={Sparkles}
+          title="No AI Follow up recorded yet"
+          description="Use the AI Follow up button in the sidebar to start recording clinical findings for this patient."
+        />
       ) : (
         <>
           <div
@@ -7505,11 +6951,13 @@ function DiagnosisView({
                 ({soapRecords.length})
               </span>
             </div>
-            <table className="mc-data-table" style={{ marginBottom: 0 }}>
+            <table className="pp-table" style={{ marginBottom: 0 }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
                 <tr>
                   <th style={{ width: '120px' }}>Date</th>
-                  <th>Summary</th>
+                  <th style={{ width: '220px' }}>Diagnosis</th>
+                  <th>Complaints (S)</th>
+                  <th>Plan (P)</th>
                   <th style={{ width: '100px', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
@@ -7586,26 +7034,22 @@ function DiagnosisView({
                                   <Copy size={14} />
                                 </button>
                               )}
-                              {isTodayRecord(record) && (
-                                <>
-                                  <button
-                                    className="btn-ghost"
-                                    style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
-                                    title="Edit"
-                                    onClick={() => onEditRecord?.(record)}
-                                  >
-                                    <Edit size={14} />
-                                  </button>
-                                  <button
-                                    className="btn-ghost"
-                                    style={{ color: '#dc2626', padding: '4px 8px' }}
-                                    title="Delete"
-                                    onClick={() => handleDelete(record.id)}
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </>
-                              )}
+                              <button
+                                className="btn-ghost"
+                                style={{ color: 'var(--pp-blue)', padding: '4px 8px' }}
+                                title="Edit"
+                                onClick={() => onEditRecord?.(record)}
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                className="btn-ghost"
+                                style={{ color: '#dc2626', padding: '4px 8px' }}
+                                title="Delete"
+                                onClick={() => handleDelete(record.id)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </div>
                           </td>
                         </tr>

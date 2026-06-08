@@ -1,5 +1,4 @@
-import { useState, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { useLocation } from 'react-router-dom';
 import {
@@ -30,7 +29,6 @@ import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
-import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 
 export function ReportsPage() {
@@ -123,7 +121,9 @@ function CaseMonthWiseTab({
   onExport: (filename: string, headers: string[], data: unknown[]) => void;
 }) {
   const [page, setPage] = useState(1);
-  const itemsPerPage = 12;
+  const itemsPerPage = 10;
+  const year = new Date().getFullYear();
+  const { data, isLoading } = useCaseMonthWise(`${year}-01`, `${year}-12`);
 
   if (isLoading)
     return (
@@ -139,57 +139,10 @@ function CaseMonthWiseTab({
 
   const paginatedData = (data ?? []).slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  if (isLoading) return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <TableSkeleton rows={10} columns={13} />
-    </div>
-  );
-
-  const columns = [
-    'Date', 'No. of Cases', 'No. of Followup', 'Total Collection',
-    'Cash', 'Cheque', 'Online', 'Product Charges', 'Card', 'Referral/Coupon',
-    'Total Expenses', 'Total Cash Deposit', 'Total Bank Deposit', 'Cash in Hand'
-  ];
-  const fields = [
-    'displaydate', 'new_cases', 'followups', 'collection',
-    'cash', 'cheque', 'online', 'product_charges', 'card', 'coupon',
-    'expenses', 'cash_deposit', 'bank_deposit', 'cash_in_hand'
-  ];
-
   return (
     <div className="plat-card">
-      {selectedProductMonth && (
-        <ProductPaymentModal
-          monthKey={selectedProductMonth}
-          onClose={() => setSelectedProductMonth(null)}
-        />
-      )}
-      <div className="plat-card-header" style={{ flexWrap: 'wrap', gap: '16px' }}>
-        <div className="plat-filters" style={{ marginBottom: 0 }}>
-          <div className="plat-form-group" style={{ minHeight: 'auto' }}>
-            <label className="plat-form-label">From Date</label>
-            <input
-              type="month"
-              className="plat-filter-input"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              style={{ width: '150px' }}
-            />
-          </div>
-          <div className="plat-form-group" style={{ minHeight: 'auto' }}>
-            <label className="plat-form-label">To Date</label>
-            <input
-              type="month"
-              className="plat-filter-input"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              style={{ width: '150px' }}
-            />
-          </div>
-          <button className="plat-btn plat-btn-primary" onClick={handleSubmit} style={{ alignSelf: 'flex-end' }}>
-            Submit
-          </button>
-        </div>
+      <div className="plat-card-header">
+        <h3>Monthly Financial Outline ({year})</h3>
         <button
           className="plat-btn plat-btn-sm"
           onClick={() =>
@@ -212,40 +165,26 @@ function CaseMonthWiseTab({
           <Download size={14} /> Export CSV
         </button>
       </div>
-
       <div className="plat-table-container">
         <table className="plat-table">
           <thead>
             <tr>
-              {columns.map((col, i) => (
-                <th key={i} style={{ textAlign: 'center' }}>{col}</th>
-              ))}
+              <th>Month</th>
+              <th style={{ textAlign: 'right' }}>Case Load</th>
+              <th style={{ textAlign: 'right' }}>Gross Collection</th>
+              <th style={{ textAlign: 'right' }}>Cash / Digital</th>
+              <th style={{ textAlign: 'right' }}>Operational Exp.</th>
             </tr>
           </thead>
           <tbody>
             {paginatedData.map((row, i) => {
               const r = row as unknown as Record<string, unknown>;
-              const cashInHand = Number(r['cash_in_hand'] ?? 0);
-              const productCharges = Number(r['product_charges'] ?? 0);
-
-              // We need the raw year/month key, which is usually displaydate if formatted as "Mon YYYY"
-              // However, since it might be "Jan 2026", we convert it back to "2026-01" for the API
-              // Assuming displaydate comes as "Jan 2026" or similar, we can map it to YYYY-MM
-              let monthKey = '';
-              const dateStr = String(r['displaydate'] ?? '');
-              const parts = dateStr.split('-'); // legacy format was "Jan-2025" or similar
-              if (parts.length === 2) {
-                const monthMap: Record<string, string> = { 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12' };
-                const m = (parts[0] ? monthMap[parts[0]] : undefined) || '01';
-                monthKey = `${parts[1]}-${m}`;
-              } else {
-                monthKey = dateStr; // fallback
-              }
-
+              const collection = Number(r['collection'] ?? 0);
+              const expenses = Number(r['expenses'] ?? 0);
               return (
                 <tr key={i} className="plat-table-row">
-                  <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--pp-blue)' }}>
-                    {dateStr}
+                  <td data-label="Month" style={{ fontWeight: 800, color: 'var(--pp-blue)' }}>
+                    <div>{String(r['displaydate'] ?? '')}</div>
                   </td>
                   <td data-label="CASE LOAD" style={{ textAlign: 'right' }}>
                     <div className="plat-cell-val">
@@ -308,11 +247,11 @@ function CaseMonthWiseTab({
             })}
             {(!data || data.length === 0) && (
               <tr>
-                <td colSpan={14}>
+                <td colSpan={5}>
                   <EmptyState
                     icon={Activity}
                     title="No financial records found"
-                    description={`There are no case or collection records recorded for the year ${currentYear}.`}
+                    description={`There are no case or collection records recorded for the year ${year}.`}
                     variant="card"
                     className="my-8"
                   />
@@ -341,12 +280,18 @@ function MonthWiseDueTab({
 }) {
   const year = new Date().getFullYear();
   const { data: summary, isLoading } = useMonthWiseDues(year);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
+  const { data: details, isLoading: isDetailsLoading } = useDueDetails(year, selectedMonth ?? 0);
+  const sendWa = useSendWhatsApp();
+  const [showDuesModal, setShowDuesModal] = useState(false);
+  const [duePatient, setDuePatient] = useState<any>(null);
+  const [dueMessage, setDueMessage] = useState('');
 
-  if (isLoading) return <TableSkeleton rows={10} columns={10} />;
+  if (isLoading) return <TableSkeleton rows={10} columns={4} />;
 
-  const paginatedData = (summary ?? []).slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  const paginatedDetails = (details ?? []).slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   const openDueWhatsApp = (patient: any) => {
     setDuePatient(patient);
@@ -356,19 +301,12 @@ function MonthWiseDueTab({
     setShowDuesModal(true);
   };
 
-  const columns = [
-    'Month', 'Total Dues', 'Informed', 'Cured', 'Left Uncured',
-    'Reg only', 'Discontinued', 'Pickup', 'Courier', 'Reserve Medicine'
-  ];
-  const fields = [
-    'month_name', 'total_due', 'informed', 'cured', 'left_uncured',
-    'reg_only', 'discontinued', 'pickup', 'courier', 'reserve_medicine'
-  ];
-
-  const exportData = (summary ?? []).map(s => ({
-    ...s,
-    month_name: `${monthNames[Number(s.month) - 1]}-${year}`
-  }));
+  const sendDueMessage = async () => {
+    if (!duePatient?.mobile1 || !dueMessage.trim()) return;
+    await sendWa.mutateAsync({ phone: String(duePatient.mobile1), message: dueMessage });
+    setShowDuesModal(false);
+    alert('WhatsApp message sent!');
+  };
 
   return (
     <div
@@ -439,12 +377,6 @@ function MonthWiseDueTab({
             />
           )}
         </div>
-        <button
-          className="plat-btn plat-btn-sm"
-          onClick={() => onExport('Monthly_Dues', fields, exportData)}
-        >
-          <Download size={14} /> Export CSV
-        </button>
       </div>
 
       {/* Detail Panel */}
@@ -732,15 +664,7 @@ function MonthWiseDueTab({
             </div>
           </div>
         </div>
-        <Pagination
-          currentPage={page}
-          totalPages={Math.ceil((summary ?? []).length / itemsPerPage)}
-          pageSize={itemsPerPage}
-          totalItems={(summary ?? []).length}
-          onPageChange={setPage}
-          onPageSizeChange={() => { }}
-        />
-      </div>
+      )}
     </div>
   );
 }
@@ -1253,81 +1177,11 @@ function ReferencesTab({
 }) {
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
-
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [appliedFrom, setAppliedFrom] = useState<Date | undefined>(undefined);
-  const [appliedTo, setAppliedTo] = useState<Date | undefined>(undefined);
-
-  const handleSubmit = () => {
-    setAppliedFrom(fromDate ? new Date(fromDate) : undefined);
-    setAppliedTo(toDate ? new Date(toDate) : undefined);
-    setPage(1);
-  };
-
-  const handleClear = () => {
-    setSearch('');
-    setFromDate('');
-    setToDate('');
-    setAppliedFrom(undefined);
-    setAppliedTo(undefined);
-    setPage(1);
-  };
-
-  const { data, isLoading } = useReferenceListing(appliedFrom, appliedTo);
-  const { data: allReferrals } = useReferrals();
-  const [search, setSearch] = useState('');
-  const [selectedRef, setSelectedRef] = useState<string | null>(null);
-
-  const { data: detailsData, isLoading: isDetailsLoading } = useReferenceDetails(selectedRef ?? undefined, appliedFrom, appliedTo);
-
-  const mergedData = useMemo(() => {
-    const apiData = data || [];
-    const settingsRefs = allReferrals || [];
-
-    const dataMap = new Map();
-
-    // 1. Add API data (which has patient counts and revenue)
-    apiData.forEach((row: any) => {
-      dataMap.set(String(row.reference ?? 'Direct').toLowerCase(), {
-        reference: String(row.reference ?? 'Direct'),
-        count: row.count || 0,
-        totalcollection: row.totalcollection || 0
-      });
-    });
-
-    // 2. Add active settings referrals that aren't in the API data yet (0 patients)
-    settingsRefs.forEach((r: any) => {
-      if (r.isActive && r.name) {
-        const key = String(r.name).toLowerCase();
-        if (!dataMap.has(key)) {
-          dataMap.set(key, {
-            reference: r.name,
-            count: 0,
-            totalcollection: 0
-          });
-        }
-      }
-    });
-
-    // 3. Ensure 'Direct' always exists as it's a default
-    if (!dataMap.has('direct')) {
-      dataMap.set('direct', { reference: 'Direct', count: 0, totalcollection: 0 });
-    }
-
-    // 4. Convert back to array and sort (count DESC, then revenue DESC)
-    return Array.from(dataMap.values()).sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
-      return b.totalcollection - a.totalcollection;
-    });
-  }, [data, allReferrals]);
+  const { data, isLoading } = useReferenceListing();
 
   if (isLoading) return <TableSkeleton rows={10} columns={3} />;
 
-  const filteredData = mergedData.filter((row: any) =>
-    String(row.reference ?? 'Direct').toLowerCase().includes(search.toLowerCase())
-  );
-  const paginatedData = filteredData.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  const paginatedData = (data ?? []).slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   return (
     <div className="plat-card">
@@ -1384,141 +1238,19 @@ function ReferencesTab({
             ))}
             {(!data || data.length === 0) && (
               <tr>
-                <th style={{ paddingLeft: 24 }}>Source / Referral</th>
-                <th style={{ textAlign: 'center' }}>Patients Brought</th>
-                <th style={{ textAlign: 'right', paddingRight: 24 }}>Revenue Generated</th>
+                <td colSpan={3}>
+                  <EmptyState
+                    icon={Users}
+                    title="No references found"
+                    description="No patient acquisitions or referral sources have been recorded in the current dataset."
+                    variant="card"
+                    className="my-8"
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {paginatedData.map((row: any, i: number) => (
-                <tr key={i} onClick={() => setSelectedRef(String(row.reference ?? 'Direct'))} style={{ cursor: 'pointer' }}>
-                  <td data-label="SOURCE" style={{ fontWeight: 700, color: 'var(--pp-ink)', paddingLeft: 24 }}>
-                    <div>{String(row.reference ?? '—')}</div>
-                  </td>
-                  <td data-label="PATIENTS" style={{ textAlign: 'center' }}>
-                    <div className="plat-cell-val" style={{ justifyContent: 'center' }}>
-                      <span style={{
-                        background: 'var(--pp-warm-1)',
-                        padding: '4px 12px',
-                        borderRadius: '100px',
-                        fontWeight: 700,
-                        fontSize: '0.85rem'
-                      }}>
-                        {String(row.count ?? 0)}
-                      </span>
-                    </div>
-                  </td>
-                  <td data-label="REVENUE" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-success-fg)', paddingRight: 24 }}>
-                    <div className="plat-cell-val" style={{ justifyContent: 'flex-end' }}>
-                      ₹{Number(row.totalcollection ?? 0).toLocaleString()}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {(!mergedData || mergedData.length === 0) && (
-                <tr>
-                  <td colSpan={3}>
-                    <EmptyState
-                      icon={Users}
-                      title="No references found"
-                      description="No patient acquisitions or referral sources have been recorded in the current dataset."
-                      variant="card"
-                      className="my-8"
-                    />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {mergedData.length > itemsPerPage && (
-          <Pagination
-            currentPage={page}
-            totalPages={Math.ceil(mergedData.length / itemsPerPage)}
-            pageSize={itemsPerPage}
-            totalItems={mergedData.length}
-            onPageChange={setPage}
-            onPageSizeChange={() => { }}
-          />
-        )}
-
-        <Drawer
-          isOpen={!!selectedRef}
-          onClose={() => setSelectedRef(null)}
-          maxWidth="750px"
-          title={
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b' }}>Payment Details</span>
-              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>
-                Referral Source: <strong style={{ color: '#3b82f6' }}>{selectedRef}</strong>
-              </span>
-            </div>
-          }
-        >
-          <div style={{ overflowY: 'auto', flex: 1, padding: '24px', background: 'white' }}>
-            {isDetailsLoading ? (
-              <TableSkeleton rows={5} columns={5} />
-            ) : (
-              <div className="plat-table-container" style={{ margin: 0, borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <table className="plat-table">
-                  <thead>
-                    <tr>
-                      <th style={{ background: '#f8fafc' }}>RegID</th>
-                      <th style={{ background: '#f8fafc' }}>Date</th>
-                      <th style={{ background: '#f8fafc' }}>Patient Name</th>
-                      <th style={{ background: '#f8fafc' }}>Payment Method</th>
-                      <th style={{ background: '#f8fafc', textAlign: 'right' }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detailsData && detailsData.length > 0 ? detailsData.map((d: any, idx: number) => (
-                      <tr key={idx} className="plat-table-row">
-                        <td data-label="RegID" style={{ fontWeight: 700, color: '#475569' }}>#{d.regid}</td>
-                        <td data-label="Date" style={{ color: '#64748b', fontWeight: 600 }}>
-                          {d.date ? format(new Date(d.date), 'dd MMM yyyy') : '—'}
-                        </td>
-                        <td data-label="Name" style={{ fontWeight: 600, color: '#1e293b' }}>
-                          {d.first_name} {d.surname}
-                        </td>
-                        <td data-label="Payment Method">
-                          {d.payment_method ? (
-                            <span style={{
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              background: d.payment_method.toLowerCase() === 'cash' ? '#dcfce7' : '#e0e7ff',
-                              color: d.payment_method.toLowerCase() === 'cash' ? '#166534' : '#3730a3',
-                              border: `1px solid ${d.payment_method.toLowerCase() === 'cash' ? '#bbf7d0' : '#c7d2fe'}`
-                            }}>
-                              {d.payment_method}
-                            </span>
-                          ) : (
-                            <span style={{ color: '#94a3b8' }}>—</span>
-                          )}
-                        </td>
-                        <td data-label="Amount" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--pp-success-fg)' }}>
-                          ₹{Number(d.amount ?? 0).toLocaleString()}
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={5} style={{ padding: '40px 20px' }}>
-                          <EmptyState
-                            icon={Users}
-                            title="No payments recorded"
-                            description={`No payment history found for patients referred via ${selectedRef}.`}
-                            variant="default"
-                          />
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
             )}
-          </div>
-        </Drawer>
+          </tbody>
+        </table>
       </div>
       {(data ?? []).length > itemsPerPage && (
         <Pagination

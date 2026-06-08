@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Brain, Heart, Search, Star, AlertTriangle, ArrowRight, Activity, ChevronRight, X, Plus, Zap, Thermometer, Dna, Droplets, Moon, Droplet, MapPin, Layers, Stethoscope, ChevronDown } from 'lucide-react';
+import { Brain, Heart, Search, Plus, X } from 'lucide-react';
 import type { GnmAnalysis, CategorizedSymptoms } from '../../../../types/ai';
 import type { ScoredRemedy } from '../../../../types/ai';
 
@@ -23,12 +23,6 @@ interface TotalityStageProps {
   onSleepPositionChange?: (val: string) => void;
   perspiration?: string;
   onPerspirationChange?: (val: string) => void;
-  causation?: string;
-  onCausationChange?: (val: string) => void;
-  location?: string;
-  onLocationChange?: (val: string) => void;
-  concomitants?: string;
-  onConcomitantsChange?: (val: string) => void;
   doctorNotes?: string;
   onDoctorNotesChange?: (val: string) => void;
 }
@@ -53,12 +47,6 @@ export function TotalityStage({
   onSleepPositionChange,
   perspiration: parentPerspiration,
   onPerspirationChange,
-  causation: parentCausation,
-  onCausationChange,
-  location: parentLocation,
-  onLocationChange,
-  concomitants: parentConcomitants,
-  onConcomitantsChange,
   doctorNotes: parentDoctorNotes,
   onDoctorNotesChange,
 }: TotalityStageProps) {
@@ -81,12 +69,6 @@ export function TotalityStage({
   const setSleepPosition = (val: string) => onSleepPositionChange?.(val);
   const perspiration = parentPerspiration || '';
   const setPerspiration = (val: string) => onPerspirationChange?.(val);
-  const causation = parentCausation || '';
-  const setCausation = (val: string) => onCausationChange?.(val);
-  const location = parentLocation || '';
-  const setLocation = (val: string) => onLocationChange?.(val);
-  const concomitants = parentConcomitants || '';
-  const setConcomitants = (val: string) => onConcomitantsChange?.(val);
   const doctorNotes = parentDoctorNotes || '';
   const setDoctorNotes = (val: string) => onDoctorNotesChange?.(val);
 
@@ -278,8 +260,7 @@ export function TotalityStage({
         <h3 className="text-[14px] font-bold text-[#0F0F0E] mb-5 flex items-center gap-2">
           <div className="w-1.5 h-5 rounded-full bg-[#2563EB]" /> Constitutional Factors
         </h3>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
           {/* Thermal Reaction */}
           <div>
             <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
@@ -296,7 +277,6 @@ export function TotalityStage({
               <option value="ambithermal">Ambithermal</option>
             </select>
           </div>
-
           {/* Dominant Miasm */}
           <div>
             <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
@@ -314,72 +294,7 @@ export function TotalityStage({
               <option value="tubercular">Tubercular</option>
             </select>
           </div>
-
           {/* Thirst Pattern */}
-          <div className="relative group">
-            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
-              <Droplets className="w-3 h-3 text-[#2563EB]" /> Thirst
-            </label>
-            <div className="relative">
-              <select
-                value={thirstPattern}
-                onChange={(e) => setThirstPattern(e.target.value)}
-                className="w-full text-[13px] font-semibold text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] pl-3 pr-8 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all appearance-none cursor-pointer hover:border-[#BFDBFE]"
-              >
-                <option value="">Select...</option>
-                <option value="thirsty">Thirsty (large qtys)</option>
-                <option value="thirstless">Thirstless</option>
-                <option value="sips">Small sips</option>
-              </select>
-              <ChevronDown className="w-4 h-4 text-[#888786] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-[#2563EB] transition-colors" />
-            </div>
-          </div>
-
-          {/* Sleep Position */}
-          <div className="relative group">
-            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
-              <Moon className="w-3 h-3 text-[#2563EB]" /> Sleep
-            </label>
-            <div className="relative">
-              <select
-                value={sleepPosition}
-                onChange={(e) => setSleepPosition(e.target.value)}
-                className="w-full text-[13px] font-semibold text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] pl-3 pr-8 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all appearance-none cursor-pointer hover:border-[#BFDBFE]"
-              >
-                <option value="">Select...</option>
-                <option value="back">On back</option>
-                <option value="left">Left side</option>
-                <option value="right">Right side</option>
-                <option value="abdomen">On abdomen</option>
-                <option value="knees">Knee-chest</option>
-              </select>
-              <ChevronDown className="w-4 h-4 text-[#888786] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-[#2563EB] transition-colors" />
-            </div>
-          </div>
-          
-          {/* Perspiration */}
-          <div className="relative group">
-            <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
-              <Droplet className="w-3 h-3 text-[#2563EB]" /> Perspiration
-            </label>
-            <div className="relative">
-              <select
-                value={perspiration}
-                onChange={(e) => setPerspiration(e.target.value)}
-                className="w-full text-[13px] font-semibold text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] pl-3 pr-8 py-2 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all appearance-none cursor-pointer hover:border-[#BFDBFE]"
-              >
-                <option value="">Select...</option>
-                <option value="profuse">Profuse</option>
-                <option value="scanty">Scanty</option>
-                <option value="offensive">Offensive</option>
-                <option value="staining">Staining</option>
-                <option value="head">On head only</option>
-              </select>
-              <ChevronDown className="w-4 h-4 text-[#888786] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-[#2563EB] transition-colors" />
-            </div>
-          </div>
-
-          {/* Causation */}
           <div>
             <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
               Thirst Pattern
@@ -442,11 +357,11 @@ export function TotalityStage({
               type="text"
               value={doctorNotes}
               onChange={(e) => setDoctorNotes(e.target.value)}
-              placeholder="Add any additional observations or doctor notes..."
-              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2.5 rounded-lg focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all placeholder:text-[#888786]"
+              placeholder="Additional observations..."
+              className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-2 rounded-md focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] outline-none transition-all placeholder:text-[#888786]"
             />
           </div>
-
+        </div>
       </div>
 
       {/* ═══ GNM Analysis (if present) ═══ */}

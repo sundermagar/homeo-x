@@ -19,7 +19,6 @@ import {
   useAvailableSlots,
 } from '../hooks/use-appointments';
 import { useDoctors } from '../hooks/use-doctors';
-import { useCreatePatient } from '@/features/patients/hooks/use-patients';
 import { useOrganizations } from '@/features/platform/hooks/use-organizations';
 import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -48,15 +47,12 @@ interface Props {
   editAppointment?: Appointment | null;
   onClose: () => void;
   onSuccess?: () => void;
-  onCancel?: () => void;
+  onCancel?: () => void; // Added onCancel support for drawer
 }
 
 const EMPTY_FORM = {
   patientId: '',
   patientName: '',
-  gender: 'M',
-  dateOfBirth: '',
-  city: '',
   phone: '',
   doctorId: '',
   bookingDate: new Date().toISOString().split('T')[0],
@@ -89,7 +85,6 @@ export function AppointmentForm({
 
   const createMutation = useCreateAppointment();
   const updateMutation = useUpdateAppointment();
-  const createPatientMutation = useCreatePatient();
   const { data: slots = [] } = useAvailableSlots(
     form.doctorId ? Number(form.doctorId) : undefined,
     form.bookingDate || undefined,
@@ -132,18 +127,14 @@ export function AppointmentForm({
       setForm({
         patientId: String(editAppointment.patientId ?? ''),
         patientName: editAppointment.patientName ?? '',
-        gender: 'M',
-        dateOfBirth: '',
-        city: '',
         phone: editAppointment.phone ?? '',
         doctorId: String(editAppointment.doctorId ?? ''),
         bookingDate: editAppointment.bookingDate ?? '',
         bookingTime: editAppointment.bookingTime ?? '',
         visitType: (editAppointment.visitType as VisitType) ?? VisitType.New,
-        consultationFee: String(editAppointment.consultationFee ?? ''),
+        consultationFee: editAppointment.consultationFee ?? '',
         notes: editAppointment.notes ?? '',
       });
-      setSearchStatus('found');
     }
   }, [editAppointment]);
 
@@ -172,7 +163,10 @@ export function AppointmentForm({
     }));
   };
 
-  const set = (key: keyof typeof form, val: string) => setForm(f => ({ ...f, [key]: val }));
+  // Debounced lookup for suggestions
+  useEffect(() => {
+    // Only search if user is actively typing in a field
+    if (!activeSearchField) return;
 
     const value =
       activeSearchField === 'name'
@@ -204,18 +198,17 @@ export function AppointmentForm({
       setSuggestions([]);
       setShowSuggestions(false);
     }
+  }, [form.patientName, form.patientId, form.phone, activeSearchField]);
 
   const selectSuggestion = (p: any) => {
     setForm((f) => ({
       ...f,
       patientId: String(p.regid ?? p.id ?? f.patientId),
+      phone: p.mobile1 ?? p.phone ?? f.phone,
       patientName: p.fullName || `${p.firstName ?? ''} ${p.surname ?? ''}`.trim() || f.patientName,
-      doctorId: previousDoctorId,
-      consultationFee: previousFee,
-      visitType: VisitType.FollowUp,
     }));
-    setSearchStatus('found');
-    setSearchResults([]);
+    setShowSuggestions(false);
+    setActiveSearchField(null);
   };
 
   const set = (key: keyof typeof form, val: string) => setForm((f) => ({ ...f, [key]: val }));
@@ -241,69 +234,34 @@ export function AppointmentForm({
       return;
     }
 
+    // Ensure date is in YYYY-MM-DD format for the backend
     let normalizedDate = form.bookingDate;
     if (normalizedDate && normalizedDate.includes('/')) {
       const parts = normalizedDate.split('/');
       if (parts.length === 3 && parts[0] && parts[1] && parts[2] && parts[2].length === 4) {
+        // DD/MM/YYYY -> YYYY-MM-DD
         normalizedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
       }
     }
 
+    const dto: CreateAppointmentDto = {
+      patientId: form.patientId ? Number(form.patientId) : undefined,
+      patientName: form.patientName || undefined,
+      phone: form.phone || undefined,
+      doctorId: form.doctorId ? Number(form.doctorId) : undefined,
+      bookingDate: normalizedDate,
+      bookingTime: form.bookingTime || undefined,
+      visitType: form.visitType as any,
+      consultationFee: form.consultationFee ? Number(form.consultationFee) : 0,
+      notes: form.notes || '',
+    };
+
     try {
       if (editAppointment) {
-        const dto: CreateAppointmentDto = {
-          patientId: form.patientId ? Number(form.patientId) : undefined,
-          patientName: form.patientName || undefined,
-          phone: form.phone || undefined,
-          doctorId: form.doctorId ? Number(form.doctorId) : undefined,
-          bookingDate: normalizedDate,
-          bookingTime: form.bookingTime || undefined,
-          visitType: form.visitType as any,
-          consultationFee: form.consultationFee ? Number(form.consultationFee) : 0,
-          notes: form.notes || '',
-        };
         await updateMutation.mutateAsync({ id: editAppointment.id, dto });
         onSuccess?.();
         onClose();
       } else {
-        let finalPatientId = form.patientId ? Number(form.patientId) : undefined;
-        let unregisteredPatientId = undefined;
-
-        // If it's a completely new patient without an ID, register them now
-        if (form.visitType === VisitType.New && !finalPatientId) {
-            const nameParts = form.patientName.trim().split(' ');
-            const firstName = nameParts[0];
-            const surname = nameParts.slice(1).join(' ') || '.';
-
-            try {
-                const newPatient = await createPatientMutation.mutateAsync({
-                    title: form.gender === 'F' ? 'Mrs.' : 'Mr.',
-                    firstName,
-                    surname,
-                    gender: form.gender as 'M'|'F'|'Other',
-                    phone: form.phone,
-                    dateOfBirth: form.dateOfBirth,
-                    city: form.city,
-                });
-                finalPatientId = newPatient.regid;
-            } catch (err: any) {
-                setError(err.response?.data?.message || 'Failed to register patient');
-                return;
-            }
-        }
-
-        const dto: CreateAppointmentDto = {
-          patientId: finalPatientId,
-          patientName: form.patientName || undefined,
-          phone: form.phone || undefined,
-          doctorId: form.doctorId ? Number(form.doctorId) : undefined,
-          bookingDate: normalizedDate,
-          bookingTime: form.bookingTime || undefined,
-          visitType: form.visitType as any,
-          consultationFee: form.consultationFee ? Number(form.consultationFee) : 0,
-          notes: form.notes || '',
-        };
-
         const result = await createMutation.mutateAsync(dto);
         const created = result?.data ?? result;
         const doc = doctors.find((d: Doctor) => String(d.id) === form.doctorId);
@@ -339,6 +297,7 @@ export function AppointmentForm({
   const selectedDoctorInactive =
     !!form.doctorId && doctors.some((d: Doctor) => String(d.id) === form.doctorId && d.isActive === false);
 
+  // If booking was successful, show the success panel
   if (bookingResult) {
     return (
       <div className="appt-success-panel animate-fade-in">
@@ -409,8 +368,8 @@ export function AppointmentForm({
       <div className={`appt-form-row ${isPatientRole ? 'appt-form-row-1' : 'appt-form-row-2'}`}>
         <div className="appt-form-group">
           <label className="appt-form-label">
-            <Phone size={13} strokeWidth={1.6} />
-            Mobile Number
+            <Stethoscope size={13} strokeWidth={1.6} />
+            Practitioner
           </label>
           <select
             className={`appt-form-select${selectedDoctorInactive ? ' appt-select-offline' : ''}`}

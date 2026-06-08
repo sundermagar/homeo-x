@@ -1467,9 +1467,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             if (m) m.revenue += r.revenue || 0;
           }
         } catch (e) {
-          continue;
+          return;
         }
-      }
+      }));
 
       return months.map((m) => ({ month: m.month, revenue: m.revenue }));
     });

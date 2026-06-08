@@ -12,21 +12,21 @@ import {
 } from 'lucide-react';
 
 import type { VideoCallState, CallMode } from '../components/consultation-header';
+import { PatientInfoStage } from '../components/stages/patient-info-stage';
 import { ConsultationStage } from '../components/stages/consultation-stage';
-import { CaseSummaryStage } from '../components/stages/case-summary-stage';
-import { PrescriptionStage } from '../components/stages/remedy-rx-stage';
-import { FinalizeRxStage } from '../components/stages/finalize-rx-stage';
-import { LabReportsStage } from '../components/stages/lab-reports-stage';
+import { TotalityStage } from '../components/stages/totality-stage';
+import { RepertoryStage } from '../components/stages/repertory-stage';
 import type { RemedyRxRow } from '../components/stages/repertory-stage';
 import { ClinicalDirectionSelector } from '../components/clinical-direction-selector';
+import { ConsultationBottomBar } from '../components/consultation-bottom-bar';
 import { Button } from '../../../components/ui/button';
 import { PrintPrescriptionButton } from '../../../components/print/print-prescription-button';
 import { useScribingSession, useHomeopathyConsult } from '../../../hooks/use-scribing';
 import { useVideoCallToken } from '../../../hooks/use-video-call';
-import { useExtractRubrics, useRepertorizeScore, useAnalyzeCase, useSuggestSoap } from '../../../hooks/use-repertorization';
+import { useExtractRubrics, useRepertorizeScore } from '../../../hooks/use-repertorization';
 import { toast } from '../../../hooks/use-toast';
 import { ROUTES } from '../../../lib/constants';
-import { calculateAge } from '../../../lib/format';
+import { formatName, calculateAge } from '../../../lib/format';
 import { cn } from '../../../lib/cn';
 import type { UseConsultationStateReturn, ConsultStage } from '../hooks/use-consultation-state';
 import type { UiHints } from '../../../types/consultation';
@@ -58,9 +58,6 @@ export function HomeopathyConsultationLayout({
   const qc = useQueryClient();
   const [callMode, setCallMode] = useState<CallMode>('IN_PERSON');
   const [isVideoPaused, setIsVideoPaused] = useState(true);
-  // Gates the live chat behind a Start click so mic permission is requested in a user gesture.
-  const [started, setStarted] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Click-handler for both "Next Patient" buttons — invalidates the dashboard,
   // queue, waitlist, appointments, and visit caches so the doctor sees fresh
@@ -86,7 +83,6 @@ export function HomeopathyConsultationLayout({
   // Reset local layout state when navigating to a new patient
   useEffect(() => {
     setCallMode('IN_PERSON');
-    setStarted(false);
   }, [visitId]);
 
   const { data: scribingSession } = useScribingSession(visitId);
@@ -155,61 +151,13 @@ export function HomeopathyConsultationLayout({
         });
       }
     }
-    setStarted(true);
+    state.setConsultStage('CONSULTATION');
     setIsVideoPaused(false);
   }, [callMode, visitId, videoCallToken, onStartVideoCall, state, setIsVideoPaused]);
-
-  // ── Pick consultation modality from the sidebar (In-person / Audio / Video) ──
-  const handleSelectModality = useCallback(async (mode: CallMode) => {
-    setCallMode(mode);
-    if (mode === 'IN_PERSON') {
-      // End any active call when switching back to in-person
-      if (videoCallState) {
-        try { video?.leave?.(); } catch { /* ignore */ }
-        onStartVideoCall(null as any);
-      }
-      return;
-    }
-    // Audio / Video: request mic permission (user gesture) then start the call
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((t) => t.stop());
-    } catch {
-      toast({ title: 'Microphone access denied', description: 'Allow microphone access to start the call.', variant: 'error' });
-      return;
-    }
-    try {
-      const result = await videoCallToken.mutateAsync({ visitId, role: 'host' });
-      const rawLink = result.patientJoinLink;
-      const dynamicLink = rawLink?.includes('?')
-        ? `${rawLink}&mode=${mode.toLowerCase()}`
-        : `${rawLink}?mode=${mode.toLowerCase()}`;
-      const patientJoinLink = dynamicLink?.startsWith('http')
-        ? dynamicLink
-        : `${window.location.origin.includes('localhost')
-          ? `https://${import.meta.env['VITE_FRONTEND_URL'] || 'frying-deviancy-rocklike.ngrok-free.dev'}`
-          : window.location.origin}${dynamicLink || `/meet/${visitId}?mode=${mode.toLowerCase()}`}`;
-      onStartVideoCall({
-        appId: result.appId, channel: result.channel, token: result.token, uid: result.uid, visitId, patientJoinLink,
-      });
-      setIsVideoPaused(false);
-      toast({ title: 'Call started', description: `Share the patient link to connect. Mode: ${mode}`, variant: 'success' });
-    } catch (err) {
-      toast({ title: 'Failed to start call', description: err instanceof Error ? err.message : 'Unknown error', variant: 'error' });
-    }
-  }, [videoCallState, video, onStartVideoCall, videoCallToken, visitId]);
-
-  const handleLeaveCall = useCallback(() => {
-    try { video?.leave?.(); } catch { /* ignore */ }
-    onStartVideoCall(null as any);
-    setCallMode('IN_PERSON');
-  }, [video, onStartVideoCall]);
 
   // ─── Backend repertorization hooks ───
   const extractRubrics = useExtractRubrics();
   const repertorizeScore = useRepertorizeScore();
-  const analyzeCase = useAnalyzeCase();
-  const suggestSoap = useSuggestSoap();
   const homeopathyConsult = useHomeopathyConsult();
 
   // ── Follow-up AI Assessment (skips totality + repertory) ──
@@ -239,10 +187,9 @@ export function HomeopathyConsultationLayout({
       // The follow-up handler in use-consultation-state will auto-populate
       // SOAP, advice, prescription based on the REPEAT/CHANGE/ADVICE_ONLY decision.
       state.handleHomeopathyConsultGenerated(result);
-      state.setCaseSummary(result.caseSummary || (result as any)?.prescriptionDraft?.consultationSummary || '');
 
-      // Navigate to the summary stage (follow-up assessment view)
-      state.setConsultStage('SUMMARY');
+      // Navigate to REPERTORY stage to show the populated prescription
+      state.setConsultStage('REPERTORY');
     } catch (error) {
       console.error('Follow-up assessment failed:', error);
       toast({
@@ -253,7 +200,7 @@ export function HomeopathyConsultationLayout({
     }
   }, [state, visit, patient, visitId, homeopathyConsult]);
 
-  const handleAnalyzeConversation = useCallback(async () => {
+  const handleRepertorize = useCallback(async () => {
     // For follow-up mode, use the dedicated follow-up pipeline
     if (state.consultationMode === 'followup') {
       return handleFollowUpAssessment();
@@ -280,115 +227,27 @@ export function HomeopathyConsultationLayout({
         ...symptoms.particular.map((s) => `Doctor: Patient complains of ${s}`),
       ].join('\n');
 
-      // Step 2: Suggest SOAP
-      const soap = await suggestSoap.mutateAsync({
-        transcript: state.ongoingTranscript,
-        chiefComplaint: visit.chiefComplaint,
-        patientAge: state.patientAge,
-        patientGender: patient?.gender,
-      });
-
-      // Update UI State for Review
-      if (extraction) {
-        state.setCategorizedSymptoms({
-          mental: extraction.mentalState || [],
-          physical: extraction.generalSymptoms || [],
-          particular: extraction.physicalSymptoms || [],
-        });
-        if (extraction.thermalReaction) state.setThermalReaction(String(extraction.thermalReaction).toLowerCase());
-        if (extraction.miasm) state.setMiasm(String(extraction.miasm).toLowerCase());
-        if (extraction.thirstPattern) state.setThirstPattern(String(extraction.thirstPattern).toLowerCase());
-        if (extraction.causation) state.setCausation(Array.isArray(extraction.causation) ? extraction.causation.join(', ') : String(extraction.causation));
-      }
-
-      if (soap) {
-        state.setSoapData({
-          subjective: soap.subjective || '',
-          objective: soap.objective || '',
-          assessment: soap.assessment || '',
-          plan: soap.plan || '',
-          advice: soap.advice || '',
-          clinicalSummary: '',
-        });
-        state.setCaseSummary(soap.subjective || '');
-      }
-
-      // Navigate to the summary page for doctor review
-      state.setConsultStage('SUMMARY');
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      toast({ title: 'Analysis failed', description: 'Please try again.', variant: 'error' });
-    }
-  }, [state, visit, patient, visitId, analyzeCase, suggestSoap, handleFollowUpAssessment]);
-
-  const handleExtractSummaryRubrics = useCallback(async (nextStage: 'LAB_REPORTS' | 'PRESCRIPTION' = 'PRESCRIPTION') => {
-    try {
-      const symptoms = state.categorizedSymptoms;
-      // Extract Rubrics from reviewed symptoms
-      const rubricsData = await extractRubrics.mutateAsync({
-        chiefComplaint: visit.chiefComplaint,
-        subjective: state.soapData.subjective,
-        assessment: state.soapData.assessment,
-        mentalSymptoms: symptoms.mental,
-        generalSymptoms: symptoms.physical,
-        particularSymptoms: symptoms.particular,
-        thermalReaction: state.thermalReaction,
-        consultationMode: state.consultationMode,
-      });
-
-      if (rubricsData?.suggestedRubrics?.length) {
-        state.setSuggestedRubrics(prev => {
-          // Merge avoiding duplicates by ID
-          const existingIds = new Set((prev || []).map(r => r.rubricId));
-          const newRubrics = rubricsData.suggestedRubrics.filter(r => !existingIds.has(r.rubricId));
-          return [...(prev || []), ...newRubrics];
-        });
-      }
-
-      const mergedRubrics = [...(state.suggestedRubrics || []), ...(rubricsData?.suggestedRubrics || [])];
-
-      if (nextStage === 'LAB_REPORTS') {
-        state.setConsultStage('LAB_REPORTS');
-      } else {
-        handleScoreRemedies(mergedRubrics);
-      }
-    } catch (error) {
-      console.error('Rubric extraction failed:', error);
-      toast({ title: 'Rubric extraction failed', description: 'Proceeding to next stage anyway.', variant: 'error' });
-      if (nextStage === 'LAB_REPORTS') {
-        state.setConsultStage('LAB_REPORTS');
-      } else {
-        handleScoreRemedies(state.suggestedRubrics);
-      }
-    }
-  }, [state, visit, extractRubrics]);
-
-  const handleScoreRemedies = useCallback(async (rubricsToUse?: any[]) => {
-    try {
-      const activeRubrics = rubricsToUse || state.suggestedRubrics;
-      // Score Remedies from all collected rubrics (summary + lab reports)
-      if (activeRubrics && activeRubrics.length > 0) {
-        const scoreData = await repertorizeScore.mutateAsync({
-          selectedRubrics: activeRubrics.map(r => ({
-            rubricId: r.rubricId,
-            description: r.description,
-            category: r.category,
-            importance: r.importance,
-          })),
+      // Awaited — SOAP MUST be populated before the user lands on REPERTORY. Otherwise
+      // a user who clicks Approve & Next fast gets an empty prescription PDF.
+      let soapPopulated = false;
+      try {
+        const result: any = await homeopathyConsult.mutateAsync({
+          transcript: state.ongoingTranscript || symptomTranscript,
+          visitId,
+          patientAge: state.patientAge,
+          patientGender: patient?.gender,
           thermalReaction: state.thermalReaction,
           miasm: state.miasm,
           thirstPattern: state.thirstPattern,
           sleepPosition: state.sleepPosition,
           perspiration: state.perspiration,
           doctorNotes: state.doctorNotes,
-        } as any);
+          consultationMode: state.consultationMode,
+        });
 
-        if (scoreData?.scoredRemedies?.length) {
-          state.setScoredRemedies(scoreData.scoredRemedies);
-          state.setSoapData(prev => ({
-            ...prev,
-            plan: 'Prescription based on totality of symptoms, lab reports, and repertorization.',
-          }));
+        // Set the unified backend results to state
+        if (result?.rubricsResult?.suggestedRubrics?.length) {
+          state.setSuggestedRubrics(result.rubricsResult.suggestedRubrics);
         }
         if (result?.remedyScores?.scoredRemedies?.length) {
           state.setScoredRemedies(result.remedyScores.scoredRemedies);
@@ -462,10 +321,11 @@ export function HomeopathyConsultationLayout({
         });
       }
 
-      state.setConsultStage('PRESCRIPTION');
+      // Navigate to remedy page AFTER SOAP is populated
+      state.setConsultStage('REPERTORY');
     } catch (error) {
       console.error('Prescribing failed:', error);
-      toast({ title: 'Remedy generation failed', description: 'Please try again.', variant: 'error' });
+      toast({ title: 'Prescribing failed', description: 'Please try again.', variant: 'error' });
     }
   }, [
     state,
@@ -481,25 +341,11 @@ export function HomeopathyConsultationLayout({
   // ─── Render current stage content ───
   const renderStageContent = () => {
     switch (state.consultStage) {
-      case 'CONVERSATION':
+      case 'PATIENT_INFO':
         return (
-          <ConsultationStage
-            visitId={visitId}
+          <PatientInfoStage
             visit={visit}
             patient={patient}
-            patientAge={state.patientAge}
-            sttLanguage={state.sttLanguage}
-            onSoapGenerated={state.handleSoapGenerated}
-            onHomeopathyConsultGenerated={state.handleHomeopathyConsultGenerated}
-            onVoiceUsed={state.handleVoiceUsed}
-            onTranscriptUpdate={state.setOngoingTranscript}
-            videoCallState={videoCallState}
-            onStartVideoCall={onStartVideoCall}
-            callMode={callMode}
-            video={video}
-            isVideoPaused={isVideoPaused}
-            onPauseToggle={setIsVideoPaused}
-            gnmAnalysis={state.gnmAnalysis}
             consultationMode={state.consultationMode}
             onConsultationModeChange={state.setConsultationMode}
             callMode={callMode}
@@ -597,37 +443,7 @@ export function HomeopathyConsultationLayout({
           />
         );
 
-      case 'SUMMARY':
-        return (
-          <CaseSummaryStage
-            caseSummary={state.caseSummary || state.soapData.subjective || state.soapData.clinicalSummary}
-            onCaseSummaryChange={state.setCaseSummary}
-            categorizedSymptoms={state.categorizedSymptoms}
-            thermalReaction={state.thermalReaction}
-            miasm={state.miasm}
-            thirstPattern={state.thirstPattern}
-            causation={state.causation}
-            isGenerating={extractRubrics.isPending}
-            onRegenerate={() => { }}
-          />
-        );
-
-      case 'LAB_REPORTS':
-        return (
-          <LabReportsStage
-            visitId={visitId}
-            onAnalysisComplete={(rubrics) => {
-              state.setSuggestedRubrics(prev => {
-                const existingIds = new Set((prev || []).map(r => r.rubricId));
-                const newRubrics = rubrics.filter(r => !existingIds.has(r.rubricId));
-                return [...(prev || []), ...newRubrics];
-              });
-            }}
-            onNextStage={() => handleScoreRemedies()}
-          />
-        );
-
-      case 'PRESCRIPTION':
+      case 'REPERTORY':
         // Follow-up mode: show assessment summary instead of remedy cards
         if (state.consultationMode === 'followup') {
           const decisionStyles = {
@@ -769,9 +585,10 @@ export function HomeopathyConsultationLayout({
           );
         }
 
-        // Standard mode: remedy (from summary or by disease) + editable Rx
+        // Standard mode: show repertory grid
         return (
-          <PrescriptionStage
+          <RepertoryStage
+            selectedRubrics={state.suggestedRubrics}
             scoredRemedies={state.scoredRemedies}
             onApplyAllRemedies={async (rows: RemedyRxRow[], advice: string, followUp: string) => {
               // Map the UI rows to the CreatePrescriptionItemInput format
@@ -843,55 +660,6 @@ export function HomeopathyConsultationLayout({
   const typeLabel = { IN_PERSON: 'In-Person', AUDIO: 'Audio Call', VIDEO: 'Video Call' }[callMode];
   const typeIcon = { IN_PERSON: '🏥', AUDIO: '📞', VIDEO: '📹' }[callMode];
 
-  // ── Bottom-bar helpers ──
-  const isBusy = state.isCompleting || homeopathyConsult.isPending || analyzeCase.isPending || suggestSoap.isPending || extractRubrics.isPending || repertorizeScore.isPending || isTransitioning;
-
-  const completeLabel =
-    state.consultStage === 'CONVERSATION'
-      ? (state.consultationMode === 'followup' ? 'Run Follow-Up Assessment →' : 'End & Analyse →')
-      : state.consultStage === 'SUMMARY'
-        ? (state.consultationMode === 'followup' ? 'Complete' : 'Analyse Case Summary →')
-        : state.consultStage === 'LAB_REPORTS'
-          ? 'Proceed to Remedy →'
-          : state.consultStage === 'PRESCRIPTION'
-            ? 'Review Prescription →'
-            : 'Approve & Complete';
-
-  const doComplete = () => {
-    if (state.consultStage === 'CONVERSATION') {
-      handleAnalyzeConversation();
-    } else if (state.consultStage === 'SUMMARY') {
-      if (state.consultationMode === 'followup') state.handleComplete();
-      else handleExtractSummaryRubrics(); // This extracts rubrics and moves to LAB_REPORTS
-    } else if (state.consultStage === 'LAB_REPORTS') {
-      handleScoreRemedies(state.suggestedRubrics); // This scores collected rubrics and moves to PRESCRIPTION
-    } else if (state.consultStage === 'PRESCRIPTION') {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        state.setConsultStage('FINALIZE_RX');
-        setIsTransitioning(false);
-      }, 300);
-    } else if (state.consultStage === 'FINALIZE_RX') {
-      const { rows, advice, followUp } = repertoryDataRef.current;
-      if (rows.length > 0) {
-        const rxItems = rows.map((r) => ({
-          medicationName: r.remedyName, genericName: '', dosage: r.potency,
-          frequency: r.frequency, duration: r.duration, route: 'Globules', instructions: r.instruction,
-        }));
-        state.handleCompleteWithData(rxItems, advice, followUp);
-      } else {
-        state.handleComplete();
-      }
-    }
-  };
-
-  const doBack = () => {
-    if (state.consultStage === 'SUMMARY') state.setConsultStage('CONVERSATION');
-    else if (state.consultStage === 'LAB_REPORTS') state.setConsultStage('SUMMARY');
-    else if (state.consultStage === 'PRESCRIPTION') state.setConsultStage('LAB_REPORTS');
-    else if (state.consultStage === 'FINALIZE_RX') state.setConsultStage('PRESCRIPTION');
-  };
-
   return (
     <div className="flex flex-col lg:flex-row h-[100dvh] w-full overflow-hidden bg-[#FAFAF8]">
       {/* ═══ SIDEBAR ═══ */}
@@ -918,9 +686,6 @@ export function HomeopathyConsultationLayout({
               {typeIcon} {typeLabel}
             </span>
           </div>
-          <button onClick={handleNextPatient} className="lg:hidden text-[12px] font-bold text-[#4A4A47] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-1.5 rounded-md flex items-center gap-1 shadow-sm">
-            <ChevronLeft className="h-3.5 w-3.5" /> Queue
-          </button>
         </div>
 
         {/* Step Navigation */}
@@ -965,84 +730,19 @@ export function HomeopathyConsultationLayout({
               ? visit.chiefComplaint.slice(0, 50) + (visit.chiefComplaint.length > 50 ? '...' : '')
               : 'No chief complaint'}
           </div>
-
-          {/* Modality / call type */}
-          <div className="px-4 lg:px-5 py-3 lg:py-4 border-b border-[#E3E2DF] shrink-0">
-            <div className="text-[10px] font-bold text-[#888786] uppercase tracking-widest mb-2">Consultation</div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {([['IN_PERSON', 'In-person'], ['AUDIO', 'Audio'], ['VIDEO', 'Video']] as const).map(([m, label]) => (
-                <button
-                  key={m}
-                  onClick={() => handleSelectModality(m as CallMode)}
-                  className={cn(
-                    'flex flex-col items-center gap-1 py-2 rounded-lg border text-[11px] font-bold transition-colors',
-                    callMode === m ? 'bg-[#2563EB] text-white border-[#2563EB]' : 'bg-white text-[#4A4A47] border-[#E3E2DF] hover:border-[#BFDBFE] hover:text-[#2563EB]',
-                  )}
-                >
-                  {m === 'IN_PERSON' ? <Monitor className="h-4 w-4" /> : m === 'AUDIO' ? <Phone className="h-4 w-4" /> : <Video className="h-4 w-4" />}
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Workflow nav */}
-          <nav className="px-3 py-3 flex flex-row lg:flex-col gap-1 border-b border-[#E3E2DF] shrink-0 overflow-x-auto">
-            <div className="hidden lg:block text-[10px] font-bold text-[#888786] uppercase tracking-widest px-2 mb-1">Workflow</div>
-            {STEPS.map((step, i) => {
-              const isActive = step.key === state.consultStage;
-              const isDone = i < currentStepIdx;
-              return (
-                <button
-                  key={step.key}
-                  onClick={() => state.setConsultStage(step.key)}
-                  className={cn(
-                    'flex-none lg:w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-200 whitespace-nowrap text-left',
-                    isActive && 'bg-[#EFF6FF] text-[#2563EB]',
-                    isDone && 'text-[#16A34A]',
-                    !isActive && !isDone && 'text-[#4A4A47] hover:bg-[#F4F3F1]',
-                  )}
-                >
-                  <div className={cn(
-                    'w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all duration-200',
-                    isActive && 'bg-[#2563EB] text-white',
-                    isDone && 'bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]',
-                    !isActive && !isDone && 'bg-[#F4F3F1] text-[#888786] border border-[#E3E2DF]',
-                  )}>
-                    {isDone ? <CheckCircle2 className="h-3 w-3" /> : i + 1}
-                  </div>
-                  {step.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Chief complaint — flows naturally under workflow */}
-          {visit.chiefComplaint && (
-            <div className="hidden lg:block px-4 py-4 shrink-0">
-              <div className="text-[10px] font-bold text-[#888786] uppercase tracking-widest mb-1.5 px-1">Chief complaint</div>
-              <div className="text-[12px] text-[#4A4A47] leading-snug bg-[#FAFAF8] p-2.5 rounded-lg border border-[#E3E2DF]">
-                {visit.chiefComplaint.slice(0, 80)}{visit.chiefComplaint.length > 80 ? '…' : ''}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Back to Queue — always pinned at sidebar bottom */}
-        <div className="hidden lg:block px-5 py-4 border-t border-[#E3E2DF] shrink-0 mt-auto bg-white">
           <button
             onClick={handleNextPatient}
-            className="w-full text-[12px] font-bold text-[#4A4A47] border border-[#E3E2DF] bg-white rounded-md py-2 hover:bg-[#F4F3F1] transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+            className="mt-2 w-full text-[11px] font-bold text-[#4A4A47] border border-[#E3E2DF] bg-white rounded-md py-1.5 hover:bg-[#F4F3F1] transition-colors"
           >
-            <ChevronLeft className="h-3.5 w-3.5" /> Back to Queue
+            ← Back to Queue
           </button>
         </div>
       </aside>
 
       {/* ═══ MAIN CONTENT ═══ */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full">
-          <div className={cn('w-full max-w-full px-4 lg:px-8 py-5 pb-8', state.consultStage === 'CONVERSATION' && 'min-h-full flex flex-col')}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full">
+          <div className="max-w-[1200px] mx-auto px-4 lg:px-5 py-5 pb-8">
             {renderStageContent()}
           </div>
         </div>

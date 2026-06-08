@@ -216,3 +216,10 @@ export const {
   useUpdate: useUpdatePackagePeriod,
   useRemove: useDeletePackagePeriod,
 } = packagePeriodHooks;
+
+export const {
+  useList: useCallStatuses,
+  useCreate: useCreateCallStatus,
+  useUpdate: useUpdateCallStatus,
+  useRemove: useDeleteCallStatus,
+} = callStatusHooks;

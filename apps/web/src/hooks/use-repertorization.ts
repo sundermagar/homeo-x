@@ -19,6 +19,13 @@ export function useExtractRubrics() {
   });
 }
 
+export function useExtractDiseaseRubrics() {
+  return useMutation({
+    mutationFn: (input: { disease: string }) =>
+      api.post<any>(API.AI.DISEASE_RUBRICS, input),
+  });
+}
+
 export function useRepertorizeScore() {
   return useMutation({
     mutationFn: (input: RepertorizeScoreInput) =>

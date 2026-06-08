@@ -21,8 +21,6 @@ import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { NumericInput } from '@/shared/components/NumericInput';
-import { EmptyState } from '@/components/shared/empty-state';
-import { Drawer } from '@/shared/components/drawer';
 import './courier-queue-page.css';
 
 interface CourierEntry {
@@ -75,15 +73,11 @@ export function CourierQueuePage() {
   const [assignPcd, setAssignPcd] = useState('');
   const [assignCourier, setAssignCourier] = useState('');
   const [assignPickup, setAssignPickup] = useState(false);
-  const [assignSendWhatsapp, setAssignSendWhatsapp] = useState(true);
 
   const { data: queue = [], isLoading } = useQuery({
-    queryKey: ['courier-queue', selectedDate, debouncedSearch],
+    queryKey: ['courier-queue', selectedDate],
     queryFn: async () => {
-      const url = debouncedSearch
-        ? `/courier/queue?search=${encodeURIComponent(debouncedSearch)}`
-        : `/courier/queue?date=${selectedDate}`;
-      const { data } = await apiClient.get(url);
+      const { data } = await apiClient.get(`/courier/queue?date=${selectedDate}`);
       return data.data as CourierEntry[];
     },
   });
@@ -103,7 +97,7 @@ export function CourierQueuePage() {
       queryClient.invalidateQueries({ queryKey: ['courier-queue'] });
 
       // Auto-send WhatsApp on assign
-      if (assignSendWhatsapp && assignModal?.phone && (variables.pcd || variables.pickup)) {
+      if (assignModal?.phone && (variables.pcd || variables.pickup)) {
         const phone = assignModal.phone.replace(/\D/g, '');
         const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
 
@@ -196,55 +190,43 @@ export function CourierQueuePage() {
   const assignedCount = queue.filter((e) => e.isAssign === 1).length;
 
   return (
-    <div className="pp-page-container animate-fade-in">
+    <div className="courier-queue-page">
       {/* Header */}
-      <div className="pp-page-hero">
-        <div>
-          <h1 className="pp-page-hero-title">
-            <Truck size={22} strokeWidth={1.8} />
-            Dispatch Queue
-          </h1>
-          <p className="pp-page-hero-sub">Manage medicine dispatch and patient pickups</p>
-        </div>
-        <div className="pp-page-hero-actions" style={{ display: 'flex', gap: '16px' }}>
-          <div className="appt-stat-card" style={{ padding: '8px 12px', background: 'var(--pp-warning-bg)', border: 'none', minWidth: 'auto' }}>
-            <div className="appt-stat-icon-wrap" style={{ width: 24, height: 24, background: 'rgba(0,0,0,0.1)', color: 'var(--pp-warning-fg)' }}>
-              <Clock size={12} />
-            </div>
-            <div>
-              <div className="appt-stat-value" style={{ fontSize: '14px', color: 'var(--pp-warning-fg)' }}>{pendingCount} Pending</div>
-            </div>
+      <div className="courier-header">
+        <div className="courier-header-left">
+          <div>
+            <h1 className="courier-title">Dispatch Queue</h1>
+            <p className="courier-subtitle">Manage medicine dispatch and patient pickups</p>
           </div>
-          <div className="appt-stat-card" style={{ padding: '8px 12px', background: 'var(--pp-success-bg)', border: 'none', minWidth: 'auto' }}>
-            <div className="appt-stat-icon-wrap" style={{ width: 24, height: 24, background: 'rgba(0,0,0,0.1)', color: 'var(--pp-success-fg)' }}>
-              <CheckCircle2 size={12} />
-            </div>
-            <div>
-              <div className="appt-stat-value" style={{ fontSize: '14px', color: 'var(--pp-success-fg)' }}>{assignedCount} Assigned</div>
-            </div>
+        </div>
+        <div className="courier-header-right">
+          <div className="courier-stat courier-stat-pending">
+            <Clock size={14} />
+            <span>{pendingCount} Pending</span>
+          </div>
+          <div className="courier-stat courier-stat-done">
+            <CheckCircle2 size={14} />
+            <span>{assignedCount} Assigned</span>
           </div>
         </div>
       </div>
 
       <div>
         {/* Controls */}
-        <div className="pp-filter-card" style={{ marginBottom: '24px' }}>
-          <div className="pp-filter-search-wrap">
-            <Search size={14} strokeWidth={1.6} />
+        <div className="courier-controls">
+          <div className="courier-search">
+            <Search size={16} />
             <input
               type="text"
-              className="pp-filter-search-input"
               placeholder="Search by name, regid, or remedy..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={14} strokeWidth={1.6} className="text-secondary" />
+          <div className="courier-date-picker">
+            <Calendar size={16} />
             <input
               type="date"
-              className="pp-input"
-              style={{ width: 'auto' }}
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
             />
@@ -253,7 +235,9 @@ export function CourierQueuePage() {
 
         {/* Queue Content */}
         {isLoading ? (
-          <TableSkeleton rows={8} cols={8} />
+          <div className="courier-table-wrapper">
+            <TableSkeleton rows={8} columns={8} />
+          </div>
         ) : filteredQueue.length === 0 ? (
           <div className="courier-empty">
             <Package size={48} />
@@ -269,9 +253,9 @@ export function CourierQueuePage() {
           </div>
         ) : (
           <>
-            <div className="appt-card">
-              <div className="pp-table-scroll">
-                <table className="pp-table">
+            <div className="courier-table-wrapper">
+              <div className="courier-table-scroll">
+                <table className="courier-table">
                   <thead>
                     <tr>
                       <th>RegID</th>
@@ -685,65 +669,6 @@ export function CourierQueuePage() {
               </button>
             </div>
           </div>
-        }
-        maxWidth="600px"
-      >
-        <div style={{ padding: '0', background: 'var(--pp-bg-subtle)', flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {historyModal?.entries.length === 0 ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <Package size={32} style={{ opacity: 0.3, margin: '0 auto 12px' }} />
-              <p>No previous courier records found.</p>
-            </div>
-          ) : (
-            <div className="appt-card" style={{ margin: '16px', border: '1px solid var(--pp-border)', boxShadow: 'none' }}>
-              <div className="pp-table-scroll">
-                <table className="pp-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>POD / Tracking</th>
-                      <th>Courier</th>
-                      <th>Type</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historyModal?.entries.map((e) => (
-                      <tr key={e.id}>
-                        <td data-label="Date">
-                          <span className="appt-cell-phone">
-                            {e.createdAt ? new Date(e.createdAt as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : e.currentdate}
-                          </span>
-                        </td>
-                        <td data-label="POD / Tracking">
-                          <span className="appt-cell-phone font-mono">{e.pcd || '—'}</span>
-                        </td>
-                        <td data-label="Courier">
-                          <span className="text-secondary" style={{ fontSize: '13px' }}>{e.courier || '—'}</span>
-                        </td>
-                        <td data-label="Type">
-                          <span className={`appt-badge ${e.postType === 'Courier' ? 'appt-badge-wait' : 'appt-badge-done'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            {e.postType}
-                          </span>
-                        </td>
-                        <td data-label="Status">
-                          {e.isAssign === 1 ? (
-                            <span className="appt-badge appt-badge-done" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              ✓ Assigned
-                            </span>
-                          ) : (
-                            <span className="appt-badge appt-badge-wait" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              Pending
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

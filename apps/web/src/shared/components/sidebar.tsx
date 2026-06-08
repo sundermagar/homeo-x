@@ -53,7 +53,6 @@ import {
   PlusCircle,
   BrainCircuit,
   BellDot,
-  PhoneCall,
   type LucideIcon,
   Truck,
   CreditCard,
@@ -159,9 +158,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const userRole = normalizeRole((user as any)?.type || (user as any)?.role);
-  const isSuperAdmin = userRole === 'SuperAdmin';
-
   const { data: unreadResponse } = useQuery({
     queryKey: ['courier-unread-count'],
     queryFn: async () => {
@@ -172,7 +168,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     enabled: !!user,
   });
   const unreadCount = unreadResponse?.count || 0;
-
 
   const NAV_STRUCTURE: NavItem[] = [
     {
@@ -227,11 +222,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       },
     },
     {
-      type: 'link',
-      path: '/appointments',
-      label: 'Appointments',
-      icon: CalendarClock,
-      roles: ALL,
+      type: 'group',
+      group: {
+        id: 'appointments',
+        label: 'Appointments',
+        icon: CalendarClock,
+        roles: ALL,
+        children: [
+          { path: '/appointments', label: 'List View', icon: CalendarClock },
+          { path: '/appointments/calendar', label: 'Calendar', icon: Calendar },
+          { path: '/appointments/queue', label: 'Token Queue', icon: Ticket },
+        ],
+      },
     },
     {
       type: 'group',
@@ -242,7 +244,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         roles: CLINICAL,
         children: [
           { path: '/vitals-check', label: 'Height & Weight Check', icon: Scale },
-          { path: '/clinical/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
+          // { path: '/medical-cases', label: 'Medical Cases', icon: Stethoscope },
+          // { path: '/ai-remedy-chart', label: 'Materia Medica', icon: BookOpen },
+          // { path: '/ai-analysis', label: 'AI Analysis', icon: BrainCircuit },
+          { path: '/clinical/remedy-chart', label: 'Remedy Chart', icon: Activity },
           { path: '/medical-cases/followups', label: 'Follow-up Dues', icon: BellDot },
         ],
       },
@@ -253,10 +258,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'memberships',
         label: 'Memberships',
         icon: Package,
-        roles: [...ADMIN, 'Receptionist'],
+        roles: ADMIN,
         children: [
-          { path: '/packages', label: 'Package Plans', icon: Layers, roles: ADMIN },
-          { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck, roles: [...ADMIN, 'Receptionist'] },
+          { path: '/packages', label: 'Package Plans', icon: Layers },
+          { path: '/packages/tracking', label: 'Tracking', icon: CalendarCheck },
         ],
       },
     },
@@ -285,16 +290,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         icon: MessageCircle,
         roles: ALL,
         children: [
-          { path: '/communications/whatsapp/overview', label: 'Overview', icon: LayoutDashboard, roles: ADMIN },
+          { path: '/communications/whatsapp/overview', label: 'Dashboard', icon: LayoutDashboard },
           { path: '/communications/whatsapp/inbox', label: 'Team Inbox', icon: MessageSquare },
           { path: '/communications/whatsapp/contacts', label: 'Contacts', icon: Users },
-          { path: '/communications/whatsapp/campaigns', label: 'Campaigns', icon: Send, roles: ADMIN },
-          { path: '/communications/whatsapp/templates', label: 'Templates', icon: FileText, roles: ADMIN },
-          { path: '/communications/whatsapp/automations', label: 'Automations', icon: Zap, roles: ADMIN },
-          { path: '/communications/whatsapp/chatbots', label: 'AI Chatbot', icon: Bot, roles: ADMIN },
-          { path: '/communications/whatsapp/analytics', label: 'Analytics', icon: BarChart2, roles: ADMIN },
-          { path: '/communications/whatsapp/widget-builder', label: 'Widget Builder', icon: Bot, roles: ADMIN },
-          { path: '/communications/whatsapp/channels', label: 'WABA Channels', icon: Globe, roles: ADMIN },
+          { path: '/communications/whatsapp/campaigns', label: 'Campaigns', icon: Send },
+          { path: '/communications/whatsapp/templates', label: 'Templates', icon: FileText },
+          { path: '/communications/whatsapp/automations', label: 'Automations', icon: Zap },
+          { path: '/communications/whatsapp/chatbots', label: 'AI Chatbot', icon: Bot },
+          { path: '/communications/whatsapp/analytics', label: 'Analytics', icon: BarChart2 },
+          { path: '/communications/whatsapp/widget-builder', label: 'Widget Builder', icon: Bot },
+          { path: '/communications/whatsapp/channels', label: 'WABA Channels', icon: Globe },
         ],
       },
     },
@@ -304,17 +309,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'analytics',
         label: 'Analytics',
         icon: PieChart,
-        roles: CLINICAL,
+        roles: ADMIN,
         defaultPath: '/analytics',
         children: [
-          { path: '/analytics', label: 'Overview', icon: BarChart2 },
+          { path: '/analytics', label: 'Dashboard', icon: BarChart2 },
           {
             path: '/analytics/reports',
             label: 'Reports',
             icon: PieChart,
             children: [
-              { path: '/analytics/reports/monthly-report', label: 'Monthly Report', icon: Activity },
-              { path: '/analytics/reports/monthly-dues', label: 'Monthly Dues', icon: CreditCard },
+              { path: '/analytics/reports/financial', label: 'Financial Grid', icon: Activity },
+              { path: '/analytics/reports/dues', label: 'Outstanding Dues', icon: CreditCard },
               { path: '/analytics/reports/birthdays', label: 'Birthday List', icon: Gift },
               { path: '/analytics/reports/references', label: 'Referrals & Sources', icon: Users },
             ],
@@ -330,7 +335,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'finance',
         label: 'Finance',
         icon: Receipt,
-        roles: ALL,
+        roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Receptionist'],
         children: [
           {
             path: '/billing',
@@ -344,17 +349,26 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               { path: '/billing/expenses', label: 'Expenses', icon: DollarSign },
             ],
           },
-          { path: '/payments', label: 'Payment Ledger', icon: Banknote, roles: ALL },
-          { path: '/settings/expenses', label: 'Expense Categories', icon: Wallet, roles: ADMIN },
+          { path: '/payments', label: 'Payment Ledger', icon: Banknote },
+          { path: '/settings/expenses', label: 'Expense Categories', icon: Wallet },
         ],
       },
     },
     {
-      type: 'link',
-      path: '/platform/staff',
-      label: 'Staff Management',
-      icon: Users,
-      roles: ['Admin', 'Clinicadmin']
+      type: 'group',
+      group: {
+        id: 'staff-management',
+        label: 'Staff Management',
+        icon: Users,
+        roles: ['SuperAdmin', 'Admin', 'Clinicadmin'],
+        children: [
+          { path: '/platform/doctors', label: 'Doctors', icon: Stethoscope },
+          { path: '/platform/employees', label: 'Employees', icon: User },
+          { path: '/platform/receptionists', label: 'Receptionists', icon: Phone },
+          { path: '/platform/clinicadmins', label: 'Clinic Admins', icon: Shield },
+          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
+        ],
+      },
     },
     {
       type: 'group',
@@ -362,10 +376,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'platform-admin',
         label: 'Platform Admin',
         icon: Globe,
-        roles: ['Admin'],
+        roles: ['SuperAdmin', 'Admin'],
         children: [
           { path: '/platform/clinics', label: 'Clinics', icon: Building2 },
-          { path: '/platform/accounts', label: 'Users', icon: UserCog },
+          { path: '/platform/accounts', label: 'Clinic Accounts', icon: UserCog },
         ],
       },
     },
@@ -375,12 +389,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         id: 'operations-hub',
         label: 'Operations Hub',
         icon: Briefcase,
-        roles: [...ALL, 'Dispensary'],
+        roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor', 'Receptionist'],
         children: [
-          { path: '/dispensary', label: 'Stickers Workspace', icon: StickyNote, roles: ['SuperAdmin', 'Admin', 'Clinicadmin', 'Dispensary'] },
-          { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck, roles: [...ALL, 'Dispensary'] },
-          { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users, roles: ADMIN },
-          { path: '/operations?tab=knowledge', label: 'Knowledge Base', icon: BookOpen, roles: ADMIN },
+          { path: '/courier-queue', label: 'Dispatch Queue', icon: Truck },
+          { path: '/operations?tab=logistics', label: 'Logistics Tracking', icon: Layers },
+          { path: '/operations?tab=crm', label: 'Lead CRM & Promos', icon: Users },
+          { path: '/operations?tab=knowledge', label: 'Knowledge Base', icon: BookOpen },
         ],
       },
     },
@@ -392,7 +406,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         icon: Settings,
         roles: ADMIN,
         children: [
-          { path: '/settings/timings', label: 'Clinic Timings', icon: Clock },
           { path: '/settings/departments', label: 'Departments', icon: Layers },
           { path: '/settings/medicines', label: 'Medicine Catalog', icon: Pill },
           { path: '/settings/stocks', label: 'Stock Management', icon: Package },
@@ -403,12 +416,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           { path: '/settings/dispensaries', label: 'Dispensaries', icon: Hospital },
           { path: '/settings/referrals', label: 'Referral Sources', icon: UserPlus },
           { path: '/settings/stickers', label: 'Medicine Stickers', icon: StickyNote },
-          { path: '/settings/call-statuses', label: 'Call Statuses', icon: PhoneCall },
           { path: '/settings/cms', label: 'Content (CMS)', icon: Globe },
           { path: '/settings/pdf', label: 'PDF & Reports', icon: FileText },
           { path: '/settings/faqs', label: 'Help & FAQs', icon: HelpCircle },
+          { path: '/settings/staff', label: 'Staff Management', icon: UserCircle },
           { path: '/settings/vaccines', label: 'Vaccines', icon: Shield },
-          { path: '/settings/roles', label: 'Roles & Access', icon: UserCheck },
         ],
       },
     },
@@ -423,6 +435,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const effectiveCollapsed = sidebarCollapsed && !isMobile;
 
+  const userRole = normalizeRole((user as any)?.type || (user as any)?.role);
 
   const visibleNav = NAV_STRUCTURE.filter((item) => {
     if (item.type === 'link') {
@@ -583,32 +596,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="sidebar-nav">
           {visibleNav.map((item) => {
             if (item.type === 'link') {
-              const TopIcon = item.icon;
+              const Icon = item.icon;
               return (
                 <NavLink
                   key={item.path}
                   to={item.path}
                   end={item.path === '/'}
-                  className={({ isActive }) => `sidebar-top-link ${isActive ? 'active' : ''}`}
+                  className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}
                   onClick={handleNavClick}
-                  style={{ 
-                    fontSize: effectiveCollapsed ? 'inherit' : '0.7rem', 
-                    fontWeight: effectiveCollapsed ? 'normal' : 700, 
-                    letterSpacing: effectiveCollapsed ? 'normal' : '0.08em', 
-                    textTransform: effectiveCollapsed ? 'none' : 'uppercase', 
-                    color: effectiveCollapsed ? 'inherit' : '#64748b', 
-                    padding: effectiveCollapsed ? '10px 16px' : '8px 16px',
-                    textDecoration: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: effectiveCollapsed ? 'center' : 'flex-start',
-                    marginTop: '16px',
-                    marginBottom: '8px',
-                    position: 'relative',
-                    outline: 'none'
-                  }}
                 >
-                  {effectiveCollapsed && <TopIcon className="sidebar-child-icon" strokeWidth={1.8} style={{ margin: 0 }} />}
+                  <Icon className="sidebar-item-icon" strokeWidth={1.8} />
                   {!effectiveCollapsed && <span>{item.label}</span>}
                   {effectiveCollapsed && <span className="sidebar-hover-label">{item.label}</span>}
                   {item.badge !== undefined && item.badge > 0 && !effectiveCollapsed && (
@@ -652,7 +649,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <div className="sidebar-group-children-inner">
                     {group.children.map((child) => renderNavChild(child))}
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -683,17 +680,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <span className="sidebar-hover-label">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
               )}
             </button>
-            <button 
-              className="sidebar-action-btn" 
-              onClick={logout} 
-              title="Sign Out"
-              style={{
-                background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-              }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = '#fee2e2' }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent' }}
-            >
-              <LogOut size={16} strokeWidth={1.5} />
+
+            <button className="logout-btn" onClick={logout}>
+              <LogOut size={16} strokeWidth={2} />
+              {effectiveCollapsed && <span className="sidebar-hover-label">Logout</span>}
             </button>
           </div>
         </div>
