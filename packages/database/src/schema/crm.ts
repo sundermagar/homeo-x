@@ -1,6 +1,4 @@
-import {
-  pgTable, serial, integer, varchar, text, timestamp, decimal
-} from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, varchar, text, timestamp, decimal } from 'drizzle-orm/pg-core';
 
 // ─── Leads (matches legacy `leads` table exactly) ─────────────────────────────
 export const leads = pgTable('leads', {
@@ -23,7 +21,7 @@ export const leads = pgTable('leads', {
 export const leadFollowups = pgTable('lead_followups', {
   id: serial('id').primaryKey(),
   leadId: integer('lead_id'),
-  name: text('name'),        // notes/description
+  name: text('name'), // notes/description
   task: varchar('task', { length: 255 }),
   taskstatus: varchar('taskstatus', { length: 100 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),

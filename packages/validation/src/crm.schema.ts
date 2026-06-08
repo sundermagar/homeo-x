@@ -16,8 +16,8 @@ export const updateLeadSchema = createLeadSchema.partial();
 
 // ─── Lead Followups ───────────────────────────────────────────────────────────
 export const createLeadFollowupSchema = z.object({
-  name: z.string().optional().default(''),     // notes
-  task: z.string().optional().default(''),      // followup_type
+  name: z.string().optional().default(''), // notes
+  task: z.string().optional().default(''), // followup_type
   taskstatus: z.string().optional().default(''),
 });
 export const updateLeadFollowupSchema = createLeadFollowupSchema.partial();

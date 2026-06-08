@@ -1,11 +1,45 @@
 import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import {
-  Gavel, Shield, Lock, Eye, FileText, ChevronLeft, Download, Database, Share2,
-  Clock, UserCheck, Cookie, ExternalLink, UserMinus, RefreshCw, Mail, CheckCircle2,
-  ShieldCheck, Globe, Zap, MessageSquare, Activity, FlaskConical, Stethoscope,
-  Building2, AlertCircle, RefreshCcw, Scale, BookOpen, CheckCircle, ChevronRight,
-  UserPlus, Ban, Terminal, Trash2, MessageCircle, AlertTriangle, CreditCard,
-  LayoutDashboard, HelpCircle
+  Gavel,
+  Shield,
+  Lock,
+  Eye,
+  FileText,
+  ChevronLeft,
+  Download,
+  Database,
+  Share2,
+  Clock,
+  UserCheck,
+  Cookie,
+  ExternalLink,
+  UserMinus,
+  RefreshCw,
+  Mail,
+  CheckCircle2,
+  ShieldCheck,
+  Globe,
+  Zap,
+  MessageSquare,
+  Activity,
+  FlaskConical,
+  Stethoscope,
+  Building2,
+  AlertCircle,
+  RefreshCcw,
+  Scale,
+  BookOpen,
+  CheckCircle,
+  ChevronRight,
+  UserPlus,
+  Ban,
+  Terminal,
+  Trash2,
+  MessageCircle,
+  AlertTriangle,
+  CreditCard,
+  LayoutDashboard,
+  HelpCircle,
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -23,11 +57,11 @@ class LegalErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("Legal Module Render Error:", error, info);
+    console.error('Legal Module Render Error:', error, info);
     toast({
-      title: "Navigation Sync Issue",
+      title: 'Navigation Sync Issue',
       description: "A legal module component failed to render. We've preserved your session.",
-      variant: "error"
+      variant: 'error',
     });
   }
 
@@ -40,10 +74,14 @@ class LegalErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
           </div>
           <h3 className="text-xl font-black text-pp-ink">Legal Display Interrupted</h3>
           <p className="text-pp-text-2 mt-2 mb-8 max-w-sm mx-auto text-sm text-center px-6">
-            We encountered a minor visual rendering issue while loading this document. Your access remains secure.
+            We encountered a minor visual rendering issue while loading this document. Your access
+            remains secure.
           </p>
           <button
-            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            onClick={() => {
+              this.setState({ hasError: false });
+              window.location.reload();
+            }}
             className="bg-pp-blue hover:bg-pp-blue/90 text-white px-8 h-12 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-pp-blue/20 transition-all active:scale-95"
           >
             <RefreshCcw size={16} />
@@ -61,58 +99,64 @@ const TermsOfServicePage = () => {
   const [activeSection, setActiveSection] = useState(1);
 
   const coreModules = [
-    { title: "EMR / EHR", desc: "Digital Health Records", icon: <Stethoscope size={18} /> },
-    { title: "WABA Messaging", desc: "Clinical WhatsApp", icon: <MessageCircle size={18} /> },
-    { title: "AI Diagnostics", desc: "Remedy Intelligence", icon: <Activity size={18} /> },
-    { title: "Cloud Security", desc: "AES-256 Encryption", icon: <Shield size={18} /> }
+    { title: 'EMR / EHR', desc: 'Digital Health Records', icon: <Stethoscope size={18} /> },
+    { title: 'WABA Messaging', desc: 'Clinical WhatsApp', icon: <MessageCircle size={18} /> },
+    { title: 'AI Diagnostics', desc: 'Remedy Intelligence', icon: <Activity size={18} /> },
+    { title: 'Cloud Security', desc: 'AES-256 Encryption', icon: <Shield size={18} /> },
   ];
 
   const sections = [
     {
       id: 1,
-      title: "Acceptance of Terms",
+      title: 'Acceptance of Terms',
       icon: <CheckCircle size={20} />,
-      color: "from-blue-500 to-indigo-600",
-      content: "By accessing or using MMC (\"Service\"), you agree to be bound by these Terms of Service (\"Terms\"). If you disagree with any part of the terms, you may not access the Service. These terms constitute a legally binding agreement between you and MMC."
+      color: 'from-blue-500 to-indigo-600',
+      content:
+        'By accessing or using MMC ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of the terms, you may not access the Service. These terms constitute a legally binding agreement between you and MMC.',
     },
     {
       id: 2,
-      title: "Description of Service",
+      title: 'Description of Service',
       icon: <LayoutDashboard size={20} />,
-      color: "from-emerald-500 to-teal-600",
+      color: 'from-emerald-500 to-teal-600',
       content: (
         <div className="space-y-4">
           <p>MMC is a clinical management platform that provides tools for:</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
-              "Electronic Medical Records (EMR)",
-              "WhatsApp Clinical Messaging",
-              "Appointment & Token Management",
-              "Billing & Financial Reporting",
-              "Inventory & Stock Tracking",
-              "Telehealth & AI Assistance"
+              'Electronic Medical Records (EMR)',
+              'WhatsApp Clinical Messaging',
+              'Appointment & Token Management',
+              'Billing & Financial Reporting',
+              'Inventory & Stock Tracking',
+              'Telehealth & AI Assistance',
             ].map((feature, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 bg-pp-warm-1 rounded-xl border border-pp-warm-4/50">
+              <div
+                key={i}
+                className="flex items-center gap-3 p-3 bg-pp-warm-1 rounded-xl border border-pp-warm-4/50"
+              >
                 <div className="w-1.5 h-1.5 rounded-full bg-pp-blue" />
                 <span className="text-sm font-medium">{feature}</span>
               </div>
             ))}
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 3,
-      title: "Account Registration",
+      title: 'Account Registration',
       icon: <UserPlus size={20} />,
-      color: "from-purple-500 to-violet-600",
+      color: 'from-purple-500 to-violet-600',
       content: (
         <div className="space-y-4">
           <p>To use our Service, you must:</p>
           <ul className="space-y-2 text-sm text-secondary">
             <li className="flex items-start gap-2">
               <span className="mt-1.5 w-1 h-1 rounded-full bg-pp-purple shrink-0" />
-              <span>Be a licensed healthcare professional or authorized clinic representative.</span>
+              <span>
+                Be a licensed healthcare professional or authorized clinic representative.
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1.5 w-1 h-1 rounded-full bg-pp-purple shrink-0" />
@@ -120,7 +164,9 @@ const TermsOfServicePage = () => {
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1.5 w-1 h-1 rounded-full bg-pp-purple shrink-0" />
-              <span>Maintain the security of your account credentials (MFA is strongly recommended).</span>
+              <span>
+                Maintain the security of your account credentials (MFA is strongly recommended).
+              </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1.5 w-1 h-1 rounded-full bg-pp-purple shrink-0" />
@@ -128,13 +174,13 @@ const TermsOfServicePage = () => {
             </li>
           </ul>
         </div>
-      )
+      ),
     },
     {
       id: 4,
-      title: "WhatsApp & Messaging",
+      title: 'WhatsApp & Messaging',
       icon: <MessageCircle size={20} />,
-      color: "from-success to-emerald-700",
+      color: 'from-success to-emerald-700',
       content: (
         <div className="space-y-4">
           <div className="p-4 bg-success-bg/30 border border-success-border/30 rounded-2xl">
@@ -143,63 +189,77 @@ const TermsOfServicePage = () => {
               Meta Cloud API Standards
             </h4>
             <p className="text-sm text-secondary leading-relaxed">
-              MMC utilizes the official Meta WhatsApp Cloud API. Users must comply with WhatsApp's Business Policy. Automated clinical reminders must use approved templates.
+              MMC utilizes the official Meta WhatsApp Cloud API. Users must comply with WhatsApp's
+              Business Policy. Automated clinical reminders must use approved templates.
             </p>
           </div>
           <p className="text-xs text-muted italic">
-            * Note: Promotional messages are subject to strict opt-in requirements and regional telecommunication laws.
+            * Note: Promotional messages are subject to strict opt-in requirements and regional
+            telecommunication laws.
           </p>
         </div>
-      )
+      ),
     },
     {
       id: 5,
-      title: "Subscription & Payments",
+      title: 'Subscription & Payments',
       icon: <CreditCard size={20} />,
-      color: "from-pp-blue to-pp-blue-deep",
+      color: 'from-pp-blue to-pp-blue-deep',
       content: (
         <div className="space-y-4">
           <p>We offer various subscription tiers tailored to clinic size and volume.</p>
           <ul className="list-disc pl-5 space-y-1 text-sm text-secondary">
-            <li><strong>Billing Cycle:</strong> Subscriptions are billed in advance on a monthly or annual basis.</li>
-            <li><strong>Taxes:</strong> All fees are exclusive of GST and other applicable taxes.</li>
-            <li><strong>Refunds:</strong> Payments are non-refundable except where required by law.</li>
-            <li><strong>Changes:</strong> We reserve the right to modify pricing with a 30-day notice.</li>
+            <li>
+              <strong>Billing Cycle:</strong> Subscriptions are billed in advance on a monthly or
+              annual basis.
+            </li>
+            <li>
+              <strong>Taxes:</strong> All fees are exclusive of GST and other applicable taxes.
+            </li>
+            <li>
+              <strong>Refunds:</strong> Payments are non-refundable except where required by law.
+            </li>
+            <li>
+              <strong>Changes:</strong> We reserve the right to modify pricing with a 30-day notice.
+            </li>
           </ul>
         </div>
-      )
+      ),
     },
     {
       id: 6,
-      title: "Acceptable Use",
+      title: 'Acceptable Use',
       icon: <Ban size={20} />,
-      color: "from-rose-500 to-red-600",
+      color: 'from-rose-500 to-red-600',
       content: (
         <div className="space-y-3">
           <p>You agree NOT to use the Service for:</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {[
-              "Unauthorized medical data scraping",
-              "Spamming clinical contacts",
-              "Reverse engineering platform logic",
-              "Hosting malicious code",
-              "Impersonating other medical entities",
-              "Bypassing security protocols"
+              'Unauthorized medical data scraping',
+              'Spamming clinical contacts',
+              'Reverse engineering platform logic',
+              'Hosting malicious code',
+              'Impersonating other medical entities',
+              'Bypassing security protocols',
             ].map((rule, idx) => (
-              <div key={idx} className="flex items-center gap-2 p-2 bg-rose-50 rounded-lg text-xs font-bold text-rose-700 border border-rose-100">
+              <div
+                key={idx}
+                className="flex items-center gap-2 p-2 bg-rose-50 rounded-lg text-xs font-bold text-rose-700 border border-rose-100"
+              >
                 <AlertCircle size={14} />
                 {rule}
               </div>
             ))}
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 7,
-      title: "Medical Disclaimer",
+      title: 'Medical Disclaimer',
       icon: <Scale size={20} />,
-      color: "from-amber-500 to-orange-600",
+      color: 'from-amber-500 to-orange-600',
       content: (
         <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl">
           <div className="flex gap-4">
@@ -207,63 +267,75 @@ const TermsOfServicePage = () => {
               <AlertTriangle size={20} />
             </div>
             <div>
-              <h4 className="font-bold text-amber-900 mb-1 tracking-tight">Clinical Software Warning</h4>
+              <h4 className="font-bold text-amber-900 mb-1 tracking-tight">
+                Clinical Software Warning
+              </h4>
               <p className="text-sm text-amber-800 leading-relaxed">
-                MMC is a clinical management tool, NOT a medical advice service. All AI recommendations and clinical charts must be verified by a licensed medical practitioner. The practitioner remains solely responsible for patient diagnosis and treatment.
+                MMC is a clinical management tool, NOT a medical advice service. All AI
+                recommendations and clinical charts must be verified by a licensed medical
+                practitioner. The practitioner remains solely responsible for patient diagnosis and
+                treatment.
               </p>
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 8,
-      title: "Intellectual Property",
+      title: 'Intellectual Property',
       icon: <Globe size={20} />,
-      color: "from-slate-600 to-slate-800",
-      content: "The Service and its original content, features, and functionality (including logo, design, and clinical logic) are and will remain the exclusive property of MMC. Our trademarks and trade dress may not be used without prior written consent."
+      color: 'from-slate-600 to-slate-800',
+      content:
+        'The Service and its original content, features, and functionality (including logo, design, and clinical logic) are and will remain the exclusive property of MMC. Our trademarks and trade dress may not be used without prior written consent.',
     },
     {
       id: 9,
-      title: "Data Privacy",
+      title: 'Data Privacy',
       icon: <Shield size={20} />,
-      color: "from-blue-600 to-cyan-600",
-      content: "Your use of the Service is also governed by our Privacy Policy. By using the Service, you consent to the collection and use of information as outlined in the policy, including clinical data processing via secure cloud infrastructure."
+      color: 'from-blue-600 to-cyan-600',
+      content:
+        'Your use of the Service is also governed by our Privacy Policy. By using the Service, you consent to the collection and use of information as outlined in the policy, including clinical data processing via secure cloud infrastructure.',
     },
     {
       id: 10,
-      title: "Confidentiality",
+      title: 'Confidentiality',
       icon: <Terminal size={20} />,
-      color: "from-indigo-600 to-pp-purple",
-      content: "Both parties agree to protect and maintain the confidentiality of any non-public information disclosed during the term of service. This includes patient data, business logic, and financial records."
+      color: 'from-indigo-600 to-pp-purple',
+      content:
+        'Both parties agree to protect and maintain the confidentiality of any non-public information disclosed during the term of service. This includes patient data, business logic, and financial records.',
     },
     {
       id: 11,
-      title: "Termination",
+      title: 'Termination',
       icon: <Trash2 size={20} />,
-      color: "from-red-600 to-pp-ink",
-      content: "We may terminate or suspend your account immediately, without prior notice or liability, for any reason, including breach of Terms. Upon termination, your right to use the Service will immediately cease."
+      color: 'from-red-600 to-pp-ink',
+      content:
+        'We may terminate or suspend your account immediately, without prior notice or liability, for any reason, including breach of Terms. Upon termination, your right to use the Service will immediately cease.',
     },
     {
       id: 12,
-      title: "Limitation of Liability",
+      title: 'Limitation of Liability',
       icon: <AlertCircle size={20} />,
-      color: "from-slate-700 to-black",
-      content: "In no event shall MMC, its directors, or employees be liable for any indirect, incidental, special, or consequential damages resulting from your use or inability to use the Service."
+      color: 'from-slate-700 to-black',
+      content:
+        'In no event shall MMC, its directors, or employees be liable for any indirect, incidental, special, or consequential damages resulting from your use or inability to use the Service.',
     },
     {
       id: 13,
-      title: "Governing Law",
+      title: 'Governing Law',
       icon: <Gavel size={20} />,
-      color: "from-blue-900 to-indigo-950",
-      content: "These Terms shall be governed by and construed in accordance with the laws of Maharashtra, India. Any legal action or proceeding shall be brought exclusively in the courts of Mumbai."
+      color: 'from-blue-900 to-indigo-950',
+      content:
+        'These Terms shall be governed by and construed in accordance with the laws of Maharashtra, India. Any legal action or proceeding shall be brought exclusively in the courts of Mumbai.',
     },
     {
       id: 14,
-      title: "Changes to Terms",
+      title: 'Changes to Terms',
       icon: <RefreshCw size={20} />,
-      color: "from-cyan-600 to-pp-blue",
-      content: "We reserve the right to modify these terms at any time. We will provide at least 30 days' notice for any material changes. Continued use after changes constitutes acceptance of the new Terms."
+      color: 'from-cyan-600 to-pp-blue',
+      content:
+        "We reserve the right to modify these terms at any time. We will provide at least 30 days' notice for any material changes. Continued use after changes constitutes acceptance of the new Terms.",
     },
   ];
 
@@ -300,15 +372,25 @@ const TermsOfServicePage = () => {
         <div className="flex items-center gap-12">
           <Link to="/" className="flex items-center group">
             <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 group-hover:shadow-md transition-all duration-300">
-              <img src={mmcLogo} alt="Manage My Clinic" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
+              <img
+                src={mmcLogo}
+                alt="Manage My Clinic"
+                style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+              />
             </div>
           </Link>
 
           <div className="hidden xl:flex items-center gap-8">
-            <Link to="/privacy-policy" className="text-sm font-black text-[#1e3a8a] hover:text-[#2563eb] transition-colors">
+            <Link
+              to="/privacy-policy"
+              className="text-sm font-black text-[#1e3a8a] hover:text-[#2563eb] transition-colors"
+            >
               Privacy
             </Link>
-            <Link to="/terms-of-service" className="text-sm font-black text-[#1e3a8a] hover:text-[#2563eb] transition-colors">
+            <Link
+              to="/terms-of-service"
+              className="text-sm font-black text-[#1e3a8a] hover:text-[#2563eb] transition-colors"
+            >
               Terms
             </Link>
           </div>
@@ -341,9 +423,12 @@ const TermsOfServicePage = () => {
                           <ShieldCheck size={12} />
                           Platform Governance
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-[900] text-pp-ink mb-4 tracking-tight">Terms of Service</h1>
+                        <h1 className="text-4xl lg:text-5xl font-[900] text-pp-ink mb-4 tracking-tight">
+                          Terms of Service
+                        </h1>
                         <p className="text-lg text-pp-text-2 max-w-2xl leading-relaxed font-medium">
-                          Operational standards for the modern digital clinic. Ensuring security, ethics, and professional excellence in healthcare management.
+                          Operational standards for the modern digital clinic. Ensuring security,
+                          ethics, and professional excellence in healthcare management.
                         </p>
                         <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6">
                           {coreModules.map((mod, idx) => (
@@ -352,8 +437,12 @@ const TermsOfServicePage = () => {
                                 {React.cloneElement(mod.icon as any, { size: 16 })}
                               </div>
                               <div>
-                                <div className="text-[10px] font-black uppercase tracking-widest text-pp-ink">{mod.title}</div>
-                                <div className="text-[9px] font-bold text-pp-text-3">{mod.desc}</div>
+                                <div className="text-[10px] font-black uppercase tracking-widest text-pp-ink">
+                                  {mod.title}
+                                </div>
+                                <div className="text-[9px] font-bold text-pp-text-3">
+                                  {mod.desc}
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -374,11 +463,17 @@ const TermsOfServicePage = () => {
                     {/* Dynamic Sections */}
                     <div className="p-10 lg:p-16 space-y-16">
                       {sections.map((section) => (
-                        <section key={section.id} id={`section-${section.id}`} className="scroll-mt-12 group">
+                        <section
+                          key={section.id}
+                          id={`section-${section.id}`}
+                          className="scroll-mt-12 group"
+                        >
                           <div className="flex flex-col gap-4">
                             <div className="flex-1">
                               <h2 className="text-xl font-black text-pp-ink mb-4 tracking-tight flex items-center gap-3">
-                                <span className="opacity-20 text-2xl">{String(section.id).padStart(2, '0')}</span>
+                                <span className="opacity-20 text-2xl">
+                                  {String(section.id).padStart(2, '0')}
+                                </span>
                                 {section.title}
                               </h2>
                               <div className="text-pp-text-2 leading-[1.7] text-[14px] font-medium selection:bg-pp-purple/10">
@@ -401,11 +496,17 @@ const TermsOfServicePage = () => {
                               <div className="w-16 h-16 bg-pp-purple/5 rounded-2xl flex items-center justify-center text-pp-purple mb-6 group-hover:scale-110 transition-transform duration-500">
                                 <Mail size={28} />
                               </div>
-                              <h3 className="text-xl font-black text-pp-ink mb-3">Legal Support Desk</h3>
+                              <h3 className="text-xl font-black text-pp-ink mb-3">
+                                Legal Support Desk
+                              </h3>
                               <p className="text-[15px] text-pp-text-2 max-w-sm mb-8 leading-relaxed font-medium">
-                                For legal inquiries, dispute resolution, or compliance questions, our dedicated support desk is ready to assist.
+                                For legal inquiries, dispute resolution, or compliance questions,
+                                our dedicated support desk is ready to assist.
                               </p>
-                              <a href="mailto:legal@MMC" className="text-2xl font-black text-pp-purple hover:text-pp-purple/80 transition-colors tracking-tight">
+                              <a
+                                href="mailto:legal@MMC"
+                                className="text-2xl font-black text-pp-purple hover:text-pp-purple/80 transition-colors tracking-tight"
+                              >
                                 legal@MMC
                               </a>
                               <div className="mt-4 w-12 h-1 bg-pp-purple/20 rounded-full" />
@@ -423,9 +524,14 @@ const TermsOfServicePage = () => {
 
                           <div className="relative z-10">
                             <div className="w-16 h-1 bg-pp-purple/30 rounded-full mb-10 mx-auto" />
-                            <h3 className="text-2xl font-black text-pp-ink mb-4 tracking-tight">Contractual Integrity</h3>
+                            <h3 className="text-2xl font-black text-pp-ink mb-4 tracking-tight">
+                              Contractual Integrity
+                            </h3>
                             <p className="text-pp-text-2 max-w-2xl text-[15px] leading-relaxed font-medium">
-                              By proceeding with account creation, you acknowledge that you have read, understood, and agreed to be bound by these clinical operation standards. This agreement constitutes a legally binding contract between you and MMC.
+                              By proceeding with account creation, you acknowledge that you have
+                              read, understood, and agreed to be bound by these clinical operation
+                              standards. This agreement constitutes a legally binding contract
+                              between you and MMC.
                             </p>
                             <div className="mt-12 flex items-center justify-center gap-10 opacity-60">
                               <div className="flex items-center gap-2.5 text-[11px] font-black text-pp-ink uppercase tracking-[0.2em]">
@@ -459,4 +565,3 @@ const TermsOfServicePage = () => {
 };
 
 export default TermsOfServicePage;
-

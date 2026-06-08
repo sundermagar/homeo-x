@@ -1,4 +1,14 @@
-import { pgTable, serial, varchar, text, integer, boolean, timestamp, real, date } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  serial,
+  varchar,
+  text,
+  integer,
+  boolean,
+  timestamp,
+  real,
+  date,
+} from 'drizzle-orm/pg-core';
 
 export const departments = pgTable('departments', {
   id: serial('id').primaryKey(),
@@ -32,7 +42,6 @@ export const dispensaries = pgTable('dispensaries', {
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
-
 
 export const referralSources = pgTable('referral_sources', {
   id: serial('id').primaryKey(),
@@ -153,12 +162,4 @@ export const remedyTreeNodes = pgTable('remedy_tree_nodes', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
-});
-
-export const callStatuses = pgTable('call_statuses', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }).notNull(),
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
 });

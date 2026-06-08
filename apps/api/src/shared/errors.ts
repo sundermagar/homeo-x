@@ -28,7 +28,10 @@ export class ForbiddenError extends AppError {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, public details?: unknown) {
+  constructor(
+    message: string,
+    public details?: unknown,
+  ) {
     super(400, message, 'VALIDATION_ERROR');
   }
 }

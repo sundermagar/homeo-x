@@ -1,15 +1,36 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Search, Plus, List as ListIcon, Grid, Edit2, Trash2, Calendar,
-  Clock, UserCheck, MoreVertical, X, Filter, Stethoscope, Activity, Tag, User, Printer, RefreshCw, CalendarDays
+  Search,
+  Plus,
+  List as ListIcon,
+  Grid,
+  Edit2,
+  Trash2,
+  Calendar,
+  Clock,
+  UserCheck,
+  MoreVertical,
+  X,
+  Filter,
+  Stethoscope,
+  Activity,
+  Tag,
+  Printer,
+  CalendarDays,
+  ArrowLeft,
+  User,
+  Video,
+  Phone,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { AppointmentStatus } from '@mmc/types';
+import { Link, useNavigate } from 'react-router-dom';
+import { AppointmentStatus, Role } from '@mmc/types';
 import type { Appointment } from '@mmc/types';
 import {
-  useAppointments, useTodayAppointments,
-  useUpdateStatus, useDeleteAppointment,
+  useAppointments,
+  useTodayAppointments,
+  useUpdateStatus,
+  useDeleteAppointment,
 } from '../hooks/use-appointments';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { StatusBadge } from '../components/status-badge';
@@ -26,14 +47,24 @@ type Tab = 'all' | 'today' | 'pending';
 
 const formatName = (name?: string | null) => {
   if (!name) return '';
-  return name.trim().replace(/\b\w/g, c => c.toUpperCase());
+  return name.trim().replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 export default function AppointmentListPage() {
+  const navigate = useNavigate();
   const today = new Date().toISOString().split('T')[0] || '';
   const user = useAuthStore((s) => s.user);
-  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
-  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+  const isPatient = user?.type === Role.Patient;
+  const rawRole = (
+    (user as any)?.type ||
+    (user as any)?.role ||
+    (user as any)?.roleName ||
+    ''
+  ).toLowerCase();
+  const isDoctor =
+    rawRole === 'doctor' ||
+    rawRole === 'medical practitioner' ||
+    ((user as any)?.name || '').toLowerCase().startsWith('dr');
 
   const { data: orgs = [] } = useOrganizations();
   const currentOrg = orgs[0];
@@ -58,21 +89,31 @@ export default function AppointmentListPage() {
   const MENU_W = 180;
   const MENU_H = 290;
 
-  const toggleMenu = useCallback((id: number, btn: HTMLButtonElement) => {
-    if (openMenuId === id) { setOpenMenuId(null); setMenuPos(null); return; }
-    const r = btn.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - r.bottom;
-    const top = spaceBelow >= MENU_H ? r.bottom + 4 : r.top - MENU_H - 4;
-    let left = r.right - MENU_W;
-    if (left < 8) left = 8;
-    if (left + MENU_W > window.innerWidth - 8) left = window.innerWidth - MENU_W - 8;
-    setMenuPos({ top: Math.max(8, top), left });
-    setOpenMenuId(id);
-  }, [openMenuId]);
+  const toggleMenu = useCallback(
+    (id: number, btn: HTMLButtonElement) => {
+      if (openMenuId === id) {
+        setOpenMenuId(null);
+        setMenuPos(null);
+        return;
+      }
+      const r = btn.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - r.bottom;
+      const top = spaceBelow >= MENU_H ? r.bottom + 4 : r.top - MENU_H - 4;
+      let left = r.right - MENU_W;
+      if (left < 8) left = 8;
+      if (left + MENU_W > window.innerWidth - 8) left = window.innerWidth - MENU_W - 8;
+      setMenuPos({ top: Math.max(8, top), left });
+      setOpenMenuId(id);
+    },
+    [openMenuId],
+  );
 
   useEffect(() => {
     if (openMenuId === null) return;
-    const close = () => { setOpenMenuId(null); setMenuPos(null); };
+    const close = () => {
+      setOpenMenuId(null);
+      setMenuPos(null);
+    };
     const onMouse = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) close();
     };
@@ -114,21 +155,24 @@ export default function AppointmentListPage() {
     let filtered = todayData;
     if (search) {
       const s = search.toLowerCase();
-      filtered = filtered.filter(a =>
-        (a.patientName || '').toLowerCase().includes(s) ||
-        (a.patientNameFromCase || '').toLowerCase().includes(s) ||
-        (a.phone || '').includes(s)
+      filtered = filtered.filter(
+        (a) =>
+          (a.patientName || '').toLowerCase().includes(s) ||
+          (a.patientNameFromCase || '').toLowerCase().includes(s) ||
+          (a.phone || '').includes(s),
       );
     }
     if (status) {
-      filtered = filtered.filter(a => a.status === status);
+      filtered = filtered.filter((a) => a.status === status);
     }
     totalEntries = filtered.length;
     isPending = todayQuery.isLoading;
     const startIndex = (page - 1) * pageSize;
     data = filtered.slice(startIndex, startIndex + pageSize);
   } else if (tab === 'pending') {
-    const pendingData = todayData.filter(a => ['Pending', 'Waitlist', 'Scheduled'].includes(a.status));
+    const pendingData = todayData.filter((a) =>
+      ['Pending', 'Waitlist', 'Scheduled'].includes(a.status),
+    );
     totalEntries = pendingData.length;
     isPending = todayQuery.isLoading;
     const startIndex = (page - 1) * pageSize;
@@ -142,17 +186,20 @@ export default function AppointmentListPage() {
   };
   const handlePrintSlip = (a: Appointment) => {
     if (currentOrg) {
-      printAppointmentSlip({
-        patientName: formatName(a.patientNameFromCase || a.patientName) || 'Patient',
-        phone: a.phone ?? '',
-        doctorName: a.doctorName ?? 'N/A',
-        bookingDate: (a.bookingDate || today) as string,
-        bookingTime: a.bookingTime ?? '',
-        consultationFee: String(a.consultationFee ?? 0),
-        visitType: a.visitType as any,
-        tokenNo: a.tokenNo ?? undefined,
-        notes: a.notes ?? '',
-      }, currentOrg);
+      printAppointmentSlip(
+        {
+          patientName: formatName(a.patientNameFromCase || a.patientName) || 'Patient',
+          phone: a.phone ?? '',
+          doctorName: a.doctorName ?? 'N/A',
+          bookingDate: (a.bookingDate || today) as string,
+          bookingTime: a.bookingTime ?? '',
+          consultationFee: String(a.consultationFee ?? 0),
+          visitType: a.visitType as any,
+          tokenNo: a.tokenNo ?? undefined,
+          notes: a.notes ?? '',
+        },
+        currentOrg,
+      );
     }
   };
 
@@ -196,26 +243,66 @@ export default function AppointmentListPage() {
     <div className="pp-page-container appt-page animate-fade-in">
       {/* Hero Header */}
       <div className="pp-page-hero">
-        <div>
-          <h1 className="pp-page-hero-title">
-            <CalendarDays size={22} strokeWidth={1.8} />
-            Appointments
-          </h1>
-          <p className="pp-page-hero-sub">{totalEntries} appointment{totalEntries !== 1 ? 's' : ''} managed</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {isPatient && (
+            <Link 
+              to="/portal/select-track"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--pp-bg-hover)',
+                color: 'var(--pp-text-1)',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={e => e.currentTarget.style.background = '#e2e8f0'}
+              onMouseOut={e => e.currentTarget.style.background = 'var(--pp-bg-hover)'}
+            >
+              <ArrowLeft size={20} strokeWidth={2} />
+            </Link>
+          )}
+          <div>
+            <h1 className="pp-page-hero-title">
+              <CalendarDays size={22} strokeWidth={1.8} />
+              {isPatient ? 'My Bookings' : 'Appointments'}
+            </h1>
+            <p className="pp-page-hero-sub">
+              {isPatient
+                ? 'View and manage your scheduled consultations'
+                : `${totalEntries} appointment${totalEntries !== 1 ? 's' : ''} managed`}
+            </p>
+          </div>
         </div>
         <div className="pp-page-hero-actions">
           <div className="appt-segmented-toggle">
-            <button type="button" className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
+            <button
+              type="button"
+              className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+            >
               <ListIcon size={16} strokeWidth={1.6} /> List
             </button>
-            <button type="button" className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
+            <button
+              type="button"
+              className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+            >
               <Grid size={16} strokeWidth={1.6} /> Grid
             </button>
             <Link to="/appointments/calendar" className="appt-segmented-btn" style={{ textDecoration: 'none' }}>
               <Calendar size={16} strokeWidth={1.6} /> Calendar
             </Link>
           </div>
-          <button className="btn-primary" onClick={() => { setDrawerApptId(null); setIsDrawerOpen(true); }}>
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setDrawerApptId(null);
+              setIsDrawerOpen(true);
+            }}
+          >
             <Plus size={14} strokeWidth={1.6} /> New Booking
           </button>
         </div>
@@ -223,8 +310,26 @@ export default function AppointmentListPage() {
 
       {/* Tabs */}
       <div className="appt-tabs">
-        {([['today', 'Today'], ['all', 'All Appointments'], ['pending', 'Pending Queue']] as [Tab, string][]).map(([key, label]) => (
-          <button key={key} className={`appt-tab ${tab === key ? 'active' : ''}`} onClick={() => { setTab(key); setPage(1); }}>
+        {(
+          (isPatient
+            ? [
+                ['today', 'Today'],
+                ['all', 'All Appointments'],
+              ]
+            : [
+                ['today', 'Today'],
+                ['all', 'All Appointments'],
+                ['pending', 'Pending Queue'],
+              ]) as [Tab, string][]
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            className={`appt-tab ${tab === key ? 'active' : ''}`}
+            onClick={() => {
+              setTab(key);
+              setPage(1);
+            }}
+          >
             {label}
           </button>
         ))}
@@ -233,23 +338,63 @@ export default function AppointmentListPage() {
       {/* Filters */}
       {tab !== 'pending' && (
         <div className="pp-filter-card">
-          <div className="pp-filter-search-wrap">
-            <Search size={14} strokeWidth={1.6} />
-            <input
-              className="pp-filter-search-input"
-              placeholder="Search patient / phone…"
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
-            />
-          </div>
+          {!isPatient && (
+            <div className="pp-filter-search-wrap">
+              <Search size={14} strokeWidth={1.6} />
+              <input
+                className="pp-filter-search-input"
+                placeholder="Search patient / phone…"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+          )}
           <div className="pp-filter-controls">
-            <select className="pp-select" style={{ width: 'auto', minWidth: 130 }} value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
+            <select
+              className="pp-select"
+              style={{ width: 'auto', minWidth: 130 }}
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+            >
               <option value="">All Statuses</option>
-              {STATUS_OPTIONS.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
+              {STATUS_OPTIONS.filter(Boolean).map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
             </select>
-            <input className="pp-input" style={{ width: 'auto' }} type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} title="From Date" />
-            <input className="pp-input" style={{ width: 'auto' }} type="date" value={toDate} onChange={e => setToDate(e.target.value)} title="To Date" />
-            <button className="btn-secondary" onClick={() => { setSearch(''); setStatus(''); setFromDate(''); setToDate(''); setPage(1); }}>
+            <input
+              className="pp-input"
+              style={{ width: 'auto' }}
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              title="From Date"
+            />
+            <input
+              className="pp-input"
+              style={{ width: 'auto' }}
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              title="To Date"
+            />
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setFromDate('');
+                setToDate('');
+                setPage(1);
+              }}
+            >
               <Filter size={13} strokeWidth={1.6} /> Clear
             </button>
           </div>
@@ -257,16 +402,35 @@ export default function AppointmentListPage() {
       )}
 
       {/* Table / Grid */}
-      <div className={viewMode === 'list' ? "appt-card" : "appt-grid-view-container"}>
+      <div className={viewMode === 'list' ? 'appt-card' : 'appt-grid-view-container'}>
         {isPending ? (
           <TableSkeleton rows={10} cols={7} />
         ) : data.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={CalendarDays}
-            title={search ? "No matches found" : tab === 'today' ? "No appointments today" : "No appointments found"}
-            description={search ? `We couldn't find any appointment matching "${search}".` : tab === 'today' ? "The clinic is quiet today. Schedule a new appointment to fill the queue." : "Your appointment history is currently empty."}
-            actionLabel={search ? "Clear Search" : "New Booking"}
-            onAction={search ? () => setSearch('') : () => { setDrawerApptId(null); setIsDrawerOpen(true); }}
+            title={
+              search
+                ? 'No matches found'
+                : tab === 'today'
+                  ? 'No appointments today'
+                  : 'No appointments found'
+            }
+            description={
+              search
+                ? `We couldn't find any appointment matching "${search}".`
+                : tab === 'today'
+                  ? 'The clinic is quiet today. Schedule a new appointment to fill the queue.'
+                  : 'Your appointment history is currently empty.'
+            }
+            actionLabel={search ? 'Clear Search' : 'New Booking'}
+            onAction={
+              search
+                ? () => setSearch('')
+                : () => {
+                    setDrawerApptId(null);
+                    setIsDrawerOpen(true);
+                  }
+            }
             variant="card"
             className="my-8"
           />
@@ -276,7 +440,7 @@ export default function AppointmentListPage() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Patient</th>
+                  {!isPatient && <th>Patient</th>}
                   <th>Doctor</th>
                   <th>Date &amp; Time</th>
                   <th>Type</th>
@@ -287,100 +451,192 @@ export default function AppointmentListPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.map(a => (
+                {data.map((a) => (
                   <tr key={a.id}>
-                    <td data-label="#"><span className="appt-cell-id">#{a.id}</span></td>
-                    <td data-label="PATIENT">
-                      {a.patientId ? (
-                        <Link to={`/medical-cases/${a.patientId}`} className="appt-cell-name pp-clickable-name" style={{ textDecoration: 'none', color: 'var(--pp-blue)' }}>
-                          {formatName(a.patientNameFromCase || a.patientName) || '—'}
-                        </Link>
-                      ) : (
-                        <div className="appt-cell-name">{formatName(a.patientNameFromCase || a.patientName) || '—'}</div>
-                      )}
-                      {a.phone && <div className="appt-cell-phone">{a.phone}</div>}
+                    <td data-label="#">
+                      <span className="appt-cell-id">#{a.id}</span>
                     </td>
+                    {!isPatient && (
+                      <td data-label="PATIENT">
+                        <div className="appt-cell-name">
+                          {formatName(a.patientNameFromCase || a.patientName) || '—'}
+                        </div>
+                        {a.phone && <div className="appt-cell-phone">{a.phone}</div>}
+                      </td>
+                    )}
                     <td data-label="DOCTOR">
-                      {(a.doctorName || '').trim()
-                        ? <span className="appt-doctor-badge"><User size={11} strokeWidth={1.6} />{a.doctorName}</span>
-                        : <span className="appt-cell-slash">—</span>}
+                      {(a.doctorName || '').trim() ? (
+                        <span className="appt-doctor-badge">
+                          <User size={11} strokeWidth={1.6} />
+                          {a.doctorName}
+                        </span>
+                      ) : (
+                        <span className="appt-cell-slash">—</span>
+                      )}
                     </td>
                     <td data-label="DATE & TIME">
                       <div className="appt-cell-name">{(a.bookingDate || '').trim() || '—'}</div>
                       {a.bookingTime && <div className="appt-cell-phone">{a.bookingTime}</div>}
                     </td>
-                    <td data-label="TYPE" className="appt-cell-muted">{(a.visitType || '').trim() || '—'}</td>
+                    <td data-label="TYPE" className="appt-cell-muted">
+                      {(a.visitType || '').trim() || '—'}
+                    </td>
                     <td data-label="PACKAGE">
                       {a.packageName ? (
-                        <span className="appt-metadata-badge appt-metadata-package" title={`Expires: ${a.packageExpiry ?? 'N/A'}`}>
+                        <span
+                          className="appt-metadata-badge appt-metadata-package"
+                          title={`Expires: ${a.packageExpiry ?? 'N/A'}`}
+                        >
                           {a.packageName}
                         </span>
                       ) : (
                         <span className="appt-cell-slash">—</span>
                       )}
                     </td>
-                    <td data-label="STATUS"><StatusBadge status={a.status} size="sm" /></td>
+                    <td data-label="STATUS">
+                      <StatusBadge status={a.status} size="sm" />
+                    </td>
                     <td data-label="TOKEN">
-                      {a.tokenNo
-                        ? <span className="appt-cell-token">T{a.tokenNo}</span>
-                        : <span className="appt-cell-slash">—</span>}
+                      {a.tokenNo ? (
+                        <span className="appt-cell-token">T{a.tokenNo}</span>
+                      ) : (
+                        <span className="appt-cell-slash">—</span>
+                      )}
                     </td>
                     <td data-label="ACTIONS">
-                      {/* ── Kebab trigger ── */}
-                      <div className="appt-kebab-wrap">
-                        <button
-                          className="appt-kebab-btn"
-                          title="Actions"
-                          onClick={(e) => toggleMenu(a.id, e.currentTarget)}
-                        >
-                          <MoreVertical size={15} strokeWidth={2} />
-                        </button>
-                      </div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {isPatient && a.status === AppointmentStatus.Consultation && (
+                          <button
+                            className="btn-primary"
+                            style={{ padding: '4px 10px', fontSize: '12px', height: 'auto', borderRadius: '4px' }}
+                            onClick={() => navigate(`/meet/${a.id}?mode=${a.visitType?.toLowerCase().includes('audio') ? 'AUDIO' : 'VIDEO'}`)}
+                          >
+                            {a.visitType?.toLowerCase().includes('audio') ? <Phone size={12} style={{ marginRight: '4px' }} /> : <Video size={12} style={{ marginRight: '4px' }} />}
+                            {a.visitType?.toLowerCase().includes('audio') ? 'Join Audio' : 'Join Call'}
+                          </button>
+                        )}
+                        {/* ── Kebab trigger ── */}
+                        {(!isPatient || (
+                        a.status !== AppointmentStatus.Cancelled &&
+                        a.status !== AppointmentStatus.Done &&
+                        a.status !== AppointmentStatus.Absent
+                      )) && (
+                        <div className="appt-kebab-wrap">
+                          <button
+                            className="appt-kebab-btn"
+                            title="Actions"
+                            onClick={(e) => toggleMenu(a.id, e.currentTarget)}
+                          >
+                            <MoreVertical size={15} strokeWidth={2} />
+                          </button>
+                        </div>
+                      )}
 
                       {/* ── Portal menu — always fully visible ── */}
-                      {openMenuId === a.id && menuPos && createPortal(
-                        <div
-                          ref={menuRef}
-                          className="appt-kebab-menu"
-                          style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}
-                        >
-                          {quickStatuses.filter(q => getAvailableStatuses(a.status).includes(q.s as AppointmentStatus)).map(q => (
-                            <button
-                              key={q.s}
-                              className="appt-kebab-item"
-                              style={{ color: q.color }}
-                              onClick={() => { handleStatusChange(a.id, q.s); setOpenMenuId(null); setMenuPos(null); }}
-                            >
-                              {q.label}
-                            </button>
-                          ))}
-                          <div className="appt-kebab-divider" />
-                          <button className="appt-kebab-item" onClick={() => { handlePrintSlip(a); setOpenMenuId(null); setMenuPos(null); }}>
-                            <Printer size={13} strokeWidth={1.6} /> Print Slip
-                          </button>
-                          <button
-                            className="appt-kebab-item"
-                            onClick={() => { setDrawerApptId(a.id); setIsDrawerOpen(true); setOpenMenuId(null); }}
+                      {openMenuId === a.id &&
+                        menuPos &&
+                        createPortal(
+                          <div
+                            ref={menuRef}
+                            className="appt-kebab-menu"
+                            style={{
+                              position: 'fixed',
+                              top: menuPos.top,
+                              left: menuPos.left,
+                              zIndex: 9999,
+                            }}
                           >
-                            <Edit2 size={13} strokeWidth={1.6} /> Edit
-                          </button>
-                          {confirmDel === a.id ? (
-                            <>
-                              <button className="appt-kebab-item is-confirm" onClick={() => { handleDelete(a.id); setOpenMenuId(null); setMenuPos(null); }}>
-                                ✓ Confirm Delete
-                              </button>
-                              <button className="appt-kebab-item" onClick={() => { setConfirmDel(null); setOpenMenuId(null); setMenuPos(null); }}>
-                                ✕ Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <button className="appt-kebab-item is-danger" onClick={() => setConfirmDel(a.id)}>
-                              <Trash2 size={13} strokeWidth={1.6} /> Delete
-                            </button>
-                          )}
-                        </div>,
-                        document.body
-                      )}
+                            {isPatient ? (
+                              a.status !== AppointmentStatus.Cancelled &&
+                              a.status !== AppointmentStatus.Done &&
+                              a.status !== AppointmentStatus.Absent ? (
+                                <button
+                                  className="appt-kebab-item is-danger"
+                                  onClick={() => {
+                                    handleStatusChange(a.id, AppointmentStatus.Cancelled);
+                                    setOpenMenuId(null);
+                                    setMenuPos(null);
+                                  }}
+                                >
+                                  Cancel Appointment
+                                </button>
+                              ) : null
+                            ) : (
+                              <>
+                                {quickStatuses
+                                  .filter((q) => q.s !== a.status)
+                                  .map((q) => (
+                                    <button
+                                      key={q.s}
+                                      className="appt-kebab-item"
+                                      style={{ color: q.color }}
+                                      onClick={() => {
+                                        handleStatusChange(a.id, q.s);
+                                        setOpenMenuId(null);
+                                        setMenuPos(null);
+                                      }}
+                                    >
+                                      {q.label}
+                                    </button>
+                                  ))}
+                                <div className="appt-kebab-divider" />
+                                <button
+                                  className="appt-kebab-item"
+                                  onClick={() => {
+                                    handlePrintSlip(a);
+                                    setOpenMenuId(null);
+                                    setMenuPos(null);
+                                  }}
+                                >
+                                  <Printer size={13} strokeWidth={1.6} /> Print Slip
+                                </button>
+                                <button
+                                  className="appt-kebab-item"
+                                  onClick={() => {
+                                    setDrawerApptId(a.id);
+                                    setIsDrawerOpen(true);
+                                    setOpenMenuId(null);
+                                  }}
+                                >
+                                  <Edit2 size={13} strokeWidth={1.6} /> Edit
+                                </button>
+                                {confirmDel === a.id ? (
+                                  <>
+                                    <button
+                                      className="appt-kebab-item is-confirm"
+                                      onClick={() => {
+                                        handleDelete(a.id);
+                                        setOpenMenuId(null);
+                                        setMenuPos(null);
+                                      }}
+                                    >
+                                      ✓ Confirm Delete
+                                    </button>
+                                    <button
+                                      className="appt-kebab-item"
+                                      onClick={() => {
+                                        setConfirmDel(null);
+                                        setOpenMenuId(null);
+                                        setMenuPos(null);
+                                      }}
+                                    >
+                                      ✕ Cancel
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    className="appt-kebab-item is-danger"
+                                    onClick={() => setConfirmDel(a.id)}
+                                  >
+                                    <Trash2 size={13} strokeWidth={1.6} /> Delete
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>,
+                          document.body,
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -389,60 +645,133 @@ export default function AppointmentListPage() {
           </div>
         ) : (
           <div className="appt-card-grid">
-            {data.map(a => (
+            {data.map((a) => (
               <div key={a.id} className="appt-grid-card-minimal animate-fade-in">
                 <div className="appt-grid-card-header">
-                  <div className="pat-avatar pat-avatar--md">
-                    {(a.patientNameFromCase?.[0] || a.patientName?.[0] || '?').toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    {a.patientId ? (
-                      <Link to={`/medical-cases/${a.patientId}`} className="appt-grid-card-patient pp-clickable-name" style={{ textDecoration: 'none', color: 'var(--pp-blue)', display: 'block' }}>
-                        {formatName(a.patientNameFromCase || a.patientName) || '—'}
-                      </Link>
-                    ) : (
-                      <div className="appt-grid-card-patient">{formatName(a.patientNameFromCase || a.patientName) || '—'}</div>
-                    )}
-                    <div className="appt-grid-card-phone">{a.phone ?? 'No phone'}</div>
-                  </div>
+                  {isPatient ? (
+                    <>
+                      <div className="pat-avatar pat-avatar--md" style={{ backgroundColor: 'var(--pp-blue-bg)', color: 'var(--pp-blue-fg)' }}>
+                        <Stethoscope size={16} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div className="appt-grid-card-patient">
+                          {a.doctorName || 'Practitioner'}
+                        </div>
+                        <div className="appt-grid-card-phone">ID: #{a.id}</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="pat-avatar pat-avatar--md">
+                        {(a.patientNameFromCase?.[0] || a.patientName?.[0] || '?').toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div className="appt-grid-card-patient">
+                          {formatName(a.patientNameFromCase || a.patientName) || '—'}
+                        </div>
+                        <div className="appt-grid-card-phone">{a.phone ?? 'No phone'}</div>
+                      </div>
+                    </>
+                  )}
                   <StatusBadge status={a.status} size="sm" />
                 </div>
 
                 <div className="appt-grid-card-body-minimal">
+                  {!isPatient && (
+                    <div className="appt-grid-detail-item">
+                      <span className="label">
+                        <Stethoscope size={14} /> Doctor
+                      </span>
+                      <span className="value">{a.doctorName ?? '—'}</span>
+                    </div>
+                  )}
                   <div className="appt-grid-detail-item">
-                    <span className="label"><Stethoscope size={14} /> Doctor</span>
-                    <span className="value">{a.doctorName ?? '—'}</span>
+                    <span className="label">
+                      <Clock size={14} /> Time
+                    </span>
+                    <span className="value">
+                      {a.bookingDate} at {a.bookingTime ?? '—'}
+                    </span>
                   </div>
                   <div className="appt-grid-detail-item">
-                    <span className="label"><Clock size={14} /> Time</span>
-                    <span className="value">{a.bookingDate} at {a.bookingTime ?? '—'}</span>
-                  </div>
-                  <div className="appt-grid-detail-item">
-                    <span className="label"><Activity size={14} /> Visit Type</span>
+                    <span className="label">
+                      <Activity size={14} /> Visit Type
+                    </span>
                     <span className="value">{a.visitType ?? '—'}</span>
                   </div>
                   <div className="appt-grid-detail-item">
-                    <span className="label"><Tag size={14} /> Token</span>
+                    <span className="label">
+                      <Tag size={14} /> Token
+                    </span>
                     <span className="value">{a.tokenNo ? `T${a.tokenNo}` : '—'}</span>
                   </div>
                 </div>
                 <div className="appt-grid-card-actions-minimal">
-                  <button className="appt-btn-minimal white-pill" style={{ flex: '0 0 auto' }} onClick={() => handlePrintSlip(a)}>
-                    <Printer size={14} />
-                  </button>
-                  <button
-                    className="appt-btn-minimal white-pill"
-                    onClick={() => { setDrawerApptId(a.id); setIsDrawerOpen(true); }}
-                  >
-                    <Edit2 size={14} /> Edit
-                  </button>
-                  {confirmDel === a.id ? (
+                  {!isPatient && (
+                    <>
+                      <button
+                        className="appt-btn-minimal white-pill"
+                        style={{ flex: '0 0 auto' }}
+                        onClick={() => handlePrintSlip(a)}
+                      >
+                        <Printer size={14} />
+                      </button>
+                      <button
+                        className="appt-btn-minimal white-pill"
+                        onClick={() => {
+                          setDrawerApptId(a.id);
+                          setIsDrawerOpen(true);
+                        }}
+                      >
+                        <Edit2 size={14} /> Edit
+                      </button>
+                    </>
+                  )}
+                  {isPatient ? (
+                    <>
+                      {a.status === AppointmentStatus.Consultation && (
+                        <button
+                          className="appt-btn-minimal"
+                          style={{ background: 'var(--pp-blue)', color: 'white', border: 'none', flex: 1 }}
+                          onClick={() => navigate(`/meet/${a.id}?mode=${a.visitType?.toLowerCase().includes('audio') ? 'AUDIO' : 'VIDEO'}`)}
+                        >
+                          {a.visitType?.toLowerCase().includes('audio') ? <Phone size={14} /> : <Video size={14} />}
+                          {a.visitType?.toLowerCase().includes('audio') ? 'Join Audio' : 'Join Call'}
+                        </button>
+                      )}
+                      {a.status !== AppointmentStatus.Cancelled &&
+                      a.status !== AppointmentStatus.Done &&
+                      a.status !== AppointmentStatus.Absent && (
+                        <button
+                          className="appt-btn-minimal danger-text-only"
+                          onClick={() => handleStatusChange(a.id, AppointmentStatus.Cancelled)}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </>
+                  ) : confirmDel === a.id ? (
                     <div style={{ display: 'flex', gap: 6, flex: 1 }}>
-                      <button className="appt-btn-minimal danger-bg" style={{ flex: 1, borderRadius: 8 }} onClick={() => handleDelete(a.id)}>Confirm</button>
-                      <button className="appt-btn-minimal white-pill" style={{ flex: 0 }} onClick={() => setConfirmDel(null)}><X size={14} /></button>
+                      <button
+                        className="appt-btn-minimal danger-bg"
+                        style={{ flex: 1, borderRadius: 8 }}
+                        onClick={() => handleDelete(a.id)}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        className="appt-btn-minimal white-pill"
+                        style={{ flex: 0 }}
+                        onClick={() => setConfirmDel(null)}
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
                   ) : (
-                    <button className="appt-btn-minimal danger-text-only" onClick={() => setConfirmDel(a.id)}>
+                    <button
+                      className="appt-btn-minimal danger-text-only"
+                      onClick={() => setConfirmDel(a.id)}
+                    >
                       <Trash2 size={14} /> Delete
                     </button>
                   )}
@@ -451,7 +780,6 @@ export default function AppointmentListPage() {
             ))}
           </div>
         )}
-
       </div>
 
       {/* Pagination */}
@@ -475,7 +803,6 @@ export default function AppointmentListPage() {
           todayQuery.refetch();
         }}
       />
-
     </div>
   );
 }

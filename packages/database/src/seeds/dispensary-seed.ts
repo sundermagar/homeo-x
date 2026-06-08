@@ -13,7 +13,7 @@ export async function seedDispensaries(db: DbClient) {
       mobile: '9876543210',
       email: 'zirakpur@homeox.com',
       gender: 'Male',
-      designation: 'Main Branch'
+      designation: 'Main Branch',
     },
     {
       name: 'Sunrise Homeopathy',
@@ -22,7 +22,7 @@ export async function seedDispensaries(db: DbClient) {
       mobile: '9888877777',
       email: 'chd@homeox.com',
       gender: 'Female',
-      designation: 'Aesthetic Center'
+      designation: 'Aesthetic Center',
     },
     {
       name: 'Metro Wellness Center',
@@ -31,7 +31,7 @@ export async function seedDispensaries(db: DbClient) {
       mobile: '9999911111',
       email: 'delhi@homeox.com',
       gender: 'Male',
-      designation: 'Regional Hub'
+      designation: 'Regional Hub',
     },
     {
       name: 'Nature Cure Dispensary',
@@ -40,12 +40,16 @@ export async function seedDispensaries(db: DbClient) {
       mobile: '9123456789',
       email: 'mumbai@homeox.com',
       gender: 'Female',
-      designation: 'Ayurvedic & Homeo'
-    }
+      designation: 'Ayurvedic & Homeo',
+    },
   ];
 
   for (const dispensary of initialDispensaries) {
-    const existing = await db.select().from(dispensaries).where(eq(dispensaries.email, dispensary.email || '')).limit(1);
+    const existing = await db
+      .select()
+      .from(dispensaries)
+      .where(eq(dispensaries.email, dispensary.email || ''))
+      .limit(1);
     if (existing.length === 0) {
       await db.insert(dispensaries).values(dispensary);
       console.log(`[Seed] Created dispensary: ${dispensary.name}`);

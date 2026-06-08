@@ -56,35 +56,60 @@ async function main() {
     french_label: row.french_label,
     german_label: row.german_label,
     spanish_label: row.spanish_label,
-    created_at: isValidDate(row.created_at) ? new Date(row.created_at).toISOString() : new Date().toISOString(),
-    updated_at: isValidDate(row.updated_at) ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
+    created_at: isValidDate(row.created_at)
+      ? new Date(row.created_at).toISOString()
+      : new Date().toISOString(),
+    updated_at: isValidDate(row.updated_at)
+      ? new Date(row.updated_at).toISOString()
+      : new Date().toISOString(),
   }));
 
   // Parallel inserts
   const concurrency = 50;
   for (let i = 0; i < rows.length; i += concurrency) {
     const chunk = rows.slice(i, i + concurrency);
-    await Promise.all(chunk.map((r: any) => 
-      sql.unsafe(`
+    await Promise.all(
+      chunk.map((r: any) =>
+        sql.unsafe(
+          `
         INSERT INTO "${schema}"."remedy_tree_nodes" 
         (id, label, parent_id, hindi_label, gujrati_label, punjabi_label, malyalum_label, kannad_label, bengali_label, marathi_label, french_label, german_label, spanish_label, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         ON CONFLICT (id) DO NOTHING
-      `, [
-        r.id, r.label, r.parent_id, r.hindi_label, r.gujrati_label, r.punjabi_label, r.malyalum_label, r.kannad_label, r.bengali_label, r.marathi_label, r.french_label, r.german_label, r.spanish_label, r.created_at, r.updated_at
-      ])
-    ));
+      `,
+          [
+            r.id,
+            r.label,
+            r.parent_id,
+            r.hindi_label,
+            r.gujrati_label,
+            r.punjabi_label,
+            r.malyalum_label,
+            r.kannad_label,
+            r.bengali_label,
+            r.marathi_label,
+            r.french_label,
+            r.german_label,
+            r.spanish_label,
+            r.created_at,
+            r.updated_at,
+          ],
+        ),
+      ),
+    );
     console.log(`  ✅ Processed ${Math.min(i + concurrency, rows.length)} / ${rows.length}`);
   }
 
   // Adjust sequence
-  await sql.unsafe(`SELECT setval('"${schema}".remedy_tree_nodes_id_seq', (SELECT MAX(id) FROM "${schema}"."remedy_tree_nodes"))`);
+  await sql.unsafe(
+    `SELECT setval('"${schema}".remedy_tree_nodes_id_seq', (SELECT MAX(id) FROM "${schema}"."remedy_tree_nodes"))`,
+  );
 
   await sql.end();
   console.log('\n🎉 Seeding complete!');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('❌ Seeding failed:', err);
   process.exit(1);
 });

@@ -3,9 +3,7 @@ import type { ICommunicationRepository } from '../ports/communication.repository
 import type { PatientRepository } from '../../patient/ports/patient.repository.js';
 import type { WhatsAppRepository } from '../../whatsapp/ports/whatsapp.repository.js';
 import type { WhatsAppGateway as CloudGateway } from '../../whatsapp/ports/whatsapp-gateway.js';
-import type {
-  SendWhatsAppDto, BroadcastWhatsAppDto, SendWhatsAppResult
-} from '@mmc/types';
+import type { SendWhatsAppDto, BroadcastWhatsAppDto, SendWhatsAppResult } from '@mmc/types';
 import { createLogger } from '../../../shared/logger.js';
 
 const logger = createLogger('send-whatsapp-use-case');
@@ -43,10 +41,15 @@ export class SendWhatsAppUseCase {
 
       if (!channel) {
         if (process.env.WHATSAPP_TOKEN) {
-          logger.info(`No active WABA channel for clinic ${clinicId}, falling back to .env Meta credentials.`);
+          logger.info(
+            `No active WABA channel for clinic ${clinicId}, falling back to .env Meta credentials.`,
+          );
         } else {
           logger.warn(`No active WABA channel for clinic ${clinicId}. WhatsApp send skipped.`);
-          return fail('No active WhatsApp channel configured. Please add a WABA channel or set WHATSAPP_TOKEN in .env.', 'NO_CHANNEL');
+          return fail(
+            'No active WhatsApp channel configured. Please add a WABA channel or set WHATSAPP_TOKEN in .env.',
+            'NO_CHANNEL',
+          );
         }
       }
 
@@ -113,7 +116,10 @@ export class SendWhatsAppUseCase {
       let channelId = channel?.id || null;
       if (!channel) {
         if (!process.env.WHATSAPP_TOKEN) {
-          return fail('No active WhatsApp channel configured. Please add a WABA channel or set WHATSAPP_TOKEN in .env.', 'NO_CHANNEL');
+          return fail(
+            'No active WhatsApp channel configured. Please add a WABA channel or set WHATSAPP_TOKEN in .env.',
+            'NO_CHANNEL',
+          );
         }
       }
 
@@ -131,7 +137,8 @@ export class SendWhatsAppUseCase {
 
       if (!phones.length) return fail('No recipients found', 'VALIDATION');
 
-      let sent = 0, failed = 0;
+      let sent = 0,
+        failed = 0;
       const details: any[] = [];
 
       for (const phone of [...new Set(phones)]) {

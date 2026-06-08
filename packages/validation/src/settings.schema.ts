@@ -32,7 +32,6 @@ export const updateDispensarySchema = createDispensarySchema.partial();
 export type CreateDispensaryInput = z.infer<typeof createDispensarySchema>;
 export type UpdateDispensaryInput = z.infer<typeof updateDispensarySchema>;
 
-
 // ─── Referral Source ──────────────────────────────────────────────────────────
 export const createReferralSourceSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255),
@@ -54,7 +53,11 @@ export type UpdateStickerInput = z.infer<typeof updateStickerSchema>;
 
 // ─── Static Page ──────────────────────────────────────────────────────────────
 export const createStaticPageSchema = z.object({
-  slug: z.string().min(1).max(255).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens'),
+  slug: z
+    .string()
+    .min(1)
+    .max(255)
+    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens'),
   title: z.string().min(1, 'Title is required').max(255),
   content: z.string().optional(),
   isActive: z.boolean().default(true),
@@ -86,7 +89,6 @@ export const createPdfSettingsSchema = z.object({
 export const updatePdfSettingsSchema = createPdfSettingsSchema.partial();
 export type CreatePdfSettingsInput = z.infer<typeof createPdfSettingsSchema>;
 export type UpdatePdfSettingsInput = z.infer<typeof updatePdfSettingsSchema>;
-
 
 // ─── Role ─────────────────────────────────────────────────────────────────────
 export const createRoleSchema = z.object({
@@ -132,8 +134,6 @@ export const updateFrequencySchema = createFrequencySchema.partial();
 export type CreateFrequencyInput = z.infer<typeof createFrequencySchema>;
 export type UpdateFrequencyInput = z.infer<typeof updateFrequencySchema>;
 
-
-
 // ─── Message Template ────────────────────────────────────────────────────────
 export const createMessageTemplateSchema = z.object({
   name: z.string().min(1, 'Template name is required').max(255),
@@ -145,7 +145,7 @@ export const updateMessageTemplateSchema = createMessageTemplateSchema.partial()
 
 // ─── Package Plans ────────────────────────────────────────────────────────
 export const createPackagePlanSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   price: z.number().min(0),
   durationDays: z.number().int().min(1),

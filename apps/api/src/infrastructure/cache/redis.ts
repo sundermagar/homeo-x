@@ -20,13 +20,16 @@ class RedisService {
           return Math.min(times * 100, 3000);
         },
       });
-      
+
       this.client.on('connect', () => logger.info('Redis connected'));
       this.client.on('error', (err: any) => {
         // In development, handle connection refusal quietly
-        if (appConfig.env === 'development' && (err.code === 'ECONNREFUSED' || err.message?.includes('ECONNREFUSED'))) {
+        if (
+          appConfig.env === 'development' &&
+          (err.code === 'ECONNREFUSED' || err.message?.includes('ECONNREFUSED'))
+        ) {
           // If we haven't disabled yet, just warn once per session
-          return; 
+          return;
         }
         logger.error({ err: err.message }, 'Redis connection error');
       });

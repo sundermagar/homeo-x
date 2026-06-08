@@ -30,7 +30,10 @@ export function ChipSelector({
         <button
           key={opt}
           type="button"
-          onClick={() => { onChange(opt); setShowCustom(false); }}
+          onClick={() => {
+            onChange(opt);
+            setShowCustom(false);
+          }}
           className={cn('chip', sizeClass, value === opt && 'chip--selected')}
         >
           {opt}
@@ -53,7 +56,9 @@ export function ChipSelector({
               placeholder={customPlaceholder}
               style={{ width: '6rem', height: '2rem', fontSize: '0.75rem' }}
               onChange={(e) => onChange(e.target.value)}
-              onBlur={() => { if (!value || options.includes(value)) setShowCustom(false); }}
+              onBlur={() => {
+                if (!value || options.includes(value)) setShowCustom(false);
+              }}
             />
           )}
         </>

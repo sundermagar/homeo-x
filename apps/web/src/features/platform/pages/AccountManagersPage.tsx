@@ -1,7 +1,32 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit2, Trash2, X, UserCog, Mail, Phone, MapPin, Users, UserCheck, Calendar, Briefcase, Info, BadgeIndianRupee, RefreshCw, Upload, FileText } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  X,
+  UserCog,
+  Mail,
+  Phone,
+  MapPin,
+  Users,
+  UserCheck,
+  Calendar,
+  Briefcase,
+  Info,
+  BadgeIndianRupee,
+  RefreshCw,
+  Upload,
+  FileText,
+} from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
-import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
+import {
+  useStaffList,
+  useDeleteStaff,
+  useCreateStaff,
+  useUpdateStaff,
+  useStaffMember,
+} from '@/features/staff/hooks/use-staff';
 import type { StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
@@ -17,9 +42,9 @@ function FileInputRow({
   value,
   onChange,
   error,
-  accept = "image/*,application/pdf",
-  className = "",
-  style = {}
+  accept = 'image/*,application/pdf',
+  className = '',
+  style = {},
 }: {
   label: string;
   field: string;
@@ -37,15 +62,13 @@ function FileInputRow({
         <div className="plat-file-trigger">
           <Upload size={14} /> Upload {label}
         </div>
-        <input
-          type="file"
-          accept={accept}
-          onChange={(e) => onChange(field, e)}
-        />
+        <input type="file" accept={accept} onChange={(e) => onChange(field, e)} />
       </div>
       {value && (
         <div className="plat-file-preview">
-          <span className="plat-file-preview-name" title={value}>{value.split('/').pop() || 'Uploaded File'}</span>
+          <span className="plat-file-preview-name" title={value}>
+            {value.split('/').pop() || 'Uploaded File'}
+          </span>
           {value.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
             <img src={value} alt="Preview" className="plat-file-preview-image" />
           ) : (
@@ -58,7 +81,10 @@ function FileInputRow({
   );
 }
 const CATEGORY = 'account' as const;
-const META = { label: 'Account Managers', description: 'Manage clinical finance managers, billing supervisors, and account coordinators.' };
+const META = {
+  label: 'Account Managers',
+  description: 'Manage clinical finance managers, billing supervisors, and account coordinators.',
+};
 const PAGE_SIZE = 10;
 function getDefaultStaffForm(): CreateStaffInput {
   return {
@@ -104,7 +130,7 @@ function getDefaultStaffForm(): CreateStaffInput {
   };
 }
 function staffMemberToForm(staff: StaffMember): CreateStaffInput {
-  const gender = (staff.gender === 'Female' || staff.gender === 'Other') ? staff.gender : 'Male';
+  const gender = staff.gender === 'Female' || staff.gender === 'Other' ? staff.gender : 'Male';
   return {
     ...getDefaultStaffForm(),
     ...staff,
@@ -152,7 +178,7 @@ function StaffModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    console.log("[StaffModal:Account] Initiating validation...");
+    console.log('[StaffModal:Account] Initiating validation...');
     // 1. Logic for Name Splitting (for schema compliance)
     const nameParts = (form.name || '').trim().split(/\s+/);
     const fName = nameParts[0] || '';
@@ -175,7 +201,7 @@ function StaffModal({
     const result = schema.safeParse(payload);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
-      console.error("[StaffModal:Account] Validation Errors:", result.error.flatten().fieldErrors);
+      console.error('[StaffModal:Account] Validation Errors:', result.error.flatten().fieldErrors);
       result.error.errors.forEach((err) => {
         fieldErrors[err.path[0] as string] = err.message;
       });
@@ -189,14 +215,16 @@ function StaffModal({
         await updateMutation.mutateAsync({
           ...payload,
           category: CATEGORY,
-          id: (staff as StaffMember).id
+          id: (staff as StaffMember).id,
         });
       }
       onSuccess();
       onClose();
     } catch (err: any) {
-      console.error("[StaffModal:Account] API Error:", err);
-      setErrors({ general: err.message || 'Verification failed. Please check finance registry data.' });
+      console.error('[StaffModal:Account] API Error:', err);
+      setErrors({
+        general: err.message || 'Verification failed. Please check finance registry data.',
+      });
     }
   };
   const updateForm = (field: string, value: any) => {
@@ -233,7 +261,10 @@ function StaffModal({
       title={isEdit ? 'Update Account Manager' : 'Register New Manager'}
       maxWidth="600px"
     >
-      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
+      <div
+        className="plat-modal-content"
+        style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}
+      >
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && <div className="plat-error-banner mb-4">{errors['general']}</div>}
           {/* Section 1: Personal & Contact */}
@@ -376,7 +407,9 @@ function StaffModal({
                 />
               </div>
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="plat-form-label">Initial Password {isEdit && '(leave blank to keep current)'}</label>
+                <label className="plat-form-label">
+                  Initial Password {isEdit && '(leave blank to keep current)'}
+                </label>
                 <input
                   type="password"
                   className="plat-form-input"
@@ -385,7 +418,9 @@ function StaffModal({
                   disabled={isLoading}
                   placeholder={isEdit ? '••••••••' : 'Setup password'}
                 />
-                {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
+                {errors['password'] && (
+                  <span className="plat-form-error">{errors['password']}</span>
+                )}
               </div>
               {mode === 'create' && (
                 <div className="plat-form-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
@@ -395,17 +430,21 @@ function StaffModal({
                       checked={!!form.sendWelcomeEmail}
                       onChange={(e) => updateForm('sendWelcomeEmail', e.target.checked)}
                     />
-                    <span className="plat-checkbox-label">
-                      Send welcome email with credentials
-                    </span>
+                    <span className="plat-checkbox-label">Send welcome email with credentials</span>
                   </label>
                 </div>
               )}
             </div>
           </div>
           <div className="plat-modal-footer">
-            <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>Discard</button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending || isLoading}>
+            <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
+              Discard
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
+              disabled={isPending || isLoading}
+            >
               {isPending ? 'Syncing…' : isEdit ? 'Update Manager' : 'Register Manager'}
             </button>
           </div>
@@ -428,10 +467,13 @@ export default function AccountManagersPage() {
     limit: itemsPerPage,
     search: debouncedSearch,
     sortBy,
-    sortOrder
+    sortOrder,
   });
   const deleteMutation = useDeleteStaff();
-  const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(CATEGORY, editingId ?? 0);
+  const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(
+    CATEGORY,
+    editingId ?? 0,
+  );
   const staff = data?.data || [];
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
   const activeCount = data?.activeCount ?? 0;
@@ -460,7 +502,13 @@ export default function AccountManagersPage() {
           <p className="plat-header-sub">{META.description}</p>
         </div>
         <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
+          <button
+            className="plat-btn plat-btn-primary"
+            onClick={() => {
+              setEditingId(null);
+              setModalOpen(true);
+            }}
+          >
             <Plus size={14} />
             Add Manager
           </button>
@@ -488,7 +536,9 @@ export default function AccountManagersPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold color-muted uppercase tracking-wider">Sort:</span>
+            <span className="text-[11px] font-bold color-muted uppercase tracking-wider">
+              Sort:
+            </span>
             <select
               className="plat-form-input !py-1 !text-xs !w-auto min-w-[140px]"
               value={`${sortBy}-${sortOrder}`}
@@ -528,79 +578,120 @@ export default function AccountManagersPage() {
             title="No Account Managers Registered"
             description="Financial coordination is key to clinic success. Register your first account manager to begin tracking clinical ledgers."
             actionLabel="Register First Manager"
-            onAction={() => { setEditingId(null); setModalOpen(true); }}
+            onAction={() => {
+              setEditingId(null);
+              setModalOpen(true);
+            }}
             variant="card"
             className="my-8"
           />
         ) : (
           <>
             <div className="plat-table-container">
-            <table className="plat-table">
-              <thead><tr><th>#</th><th>Financial Profile</th><th>Contact</th><th>Designation</th><th>Access Status</th><th>Actions</th></tr></thead>
-              <tbody>
-                {staff.map((s: StaffSummary, i: number) => (
-                  <tr key={s.id} className="plat-table-row">
-                    <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
-                      <div>{(page - 1) * PAGE_SIZE + i + 1}</div>
-                    </td>
-                    <td data-label="Profile">
-                      <div className="plat-cell-val">
-                        <div className="font-semibold">{s.name}</div>
-                        <div className="text-[11px] color-muted font-medium">{s.email || 'No email registered'}</div>
-                      </div>
-                    </td>
-                    <td data-label="Contact">
-                      <div className="plat-cell-val">
-                        <div className="plat-mono-data">{s.mobile}</div>
-                        <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
-                          <MapPin size={10} /> {s.city || 'Station N/A'}
-                        </div>
-                      </div>
-                    </td>
-                    <td data-label="Designation">
-                      <div className="plat-cell-val">
-                        <div className="font-medium">{s.designation || 'Accounts Manager'}</div>
-                      </div>
-                    </td>
-                    <td data-label="Status">
-                      <div className="plat-cell-val">
-                        <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
-                          {s.isActive ? (
-                            <span className="flex items-center gap-1">
-                              <UserCheck size={10} /> Active
-                            </span>
-                          ) : 'Inactive'}
-                        </span>
-                      </div>
-                    </td>
-                    <td data-label="Actions">
-                      <div className="plat-cell-val">
-                        <div className="flex gap-2">
-                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(s)}>
-                            <Edit2 size={13} />
-                          </button>
-                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleDelete(s.id)}>
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    </td>
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Financial Profile</th>
+                    <th>Contact</th>
+                    <th>Designation</th>
+                    <th>Access Status</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            totalItems={data?.total || 0}
-            itemsPerPage={itemsPerPage}
-            currentPage={page}
-            onPageChange={setPage}
-            onLimitChange={setItemsPerPage}
-          />
-        </>
+                </thead>
+                <tbody>
+                  {staff.map((s: StaffSummary, i: number) => (
+                    <tr key={s.id} className="plat-table-row">
+                      <td data-label="#" className="plat-mono-data text-xs" style={{ width: 40 }}>
+                        <div>{(page - 1) * PAGE_SIZE + i + 1}</div>
+                      </td>
+                      <td data-label="Profile">
+                        <div className="plat-cell-val">
+                          <div className="font-semibold">{s.name}</div>
+                          <div className="text-[11px] color-muted font-medium">
+                            {s.email || 'No email registered'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Contact">
+                        <div className="plat-cell-val">
+                          <div className="plat-mono-data">{s.mobile}</div>
+                          <div className="text-[10px] color-muted plat-capitalize flex items-center gap-1 font-medium">
+                            <MapPin size={10} /> {s.city || 'Station N/A'}
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Designation">
+                        <div className="plat-cell-val">
+                          <div className="font-medium">{s.designation || 'Accounts Manager'}</div>
+                        </div>
+                      </td>
+                      <td data-label="Status">
+                        <div className="plat-cell-val">
+                          <span
+                            className={
+                              s.isActive
+                                ? 'plat-badge plat-badge-info'
+                                : 'plat-badge plat-badge-default'
+                            }
+                          >
+                            {s.isActive ? (
+                              <span className="flex items-center gap-1">
+                                <UserCheck size={10} /> Active
+                              </span>
+                            ) : (
+                              'Inactive'
+                            )}
+                          </span>
+                        </div>
+                      </td>
+                      <td data-label="Actions">
+                        <div className="plat-cell-val">
+                          <div className="flex gap-2">
+                            <button
+                              className="plat-btn plat-btn-icon plat-btn-ghost"
+                              style={{ width: 36, height: 36, borderRadius: 10 }}
+                              onClick={() => handleEdit(s)}
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              className="plat-btn plat-btn-icon plat-btn-danger"
+                              style={{ width: 36, height: 36, borderRadius: 10 }}
+                              onClick={() => handleDelete(s.id)}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              totalItems={data?.total || 0}
+              itemsPerPage={itemsPerPage}
+              currentPage={page}
+              onPageChange={setPage}
+              onLimitChange={setItemsPerPage}
+            />
+          </>
         )}
       </div>
-      {modalOpen && <StaffModal mode={editingId ? 'edit' : 'create'} staff={editingStaff} isLoading={isLoadingStaff} onClose={() => { setModalOpen(false); setEditingId(null); }} onSuccess={() => setEditingId(null)} />}
+      {modalOpen && (
+        <StaffModal
+          mode={editingId ? 'edit' : 'create'}
+          staff={editingStaff}
+          isLoading={isLoadingStaff}
+          onClose={() => {
+            setModalOpen(false);
+            setEditingId(null);
+          }}
+          onSuccess={() => setEditingId(null)}
+        />
+      )}
     </div>
   );
 }

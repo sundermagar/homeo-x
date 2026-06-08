@@ -200,7 +200,6 @@ export interface RubricExtractionResult {
   }>;
 }
 
-
 export interface RepertorizeScoreInput {
   selectedRubrics: Array<{ rubricId: string; importance: number }>;
   thermalReaction?: string;
@@ -272,7 +271,6 @@ export interface ClinicalExtractionResult {
   }>;
   auditLogId: string;
 }
-
 
 export interface SummaryOutput {
   summary: string;

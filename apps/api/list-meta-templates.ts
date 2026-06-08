@@ -31,11 +31,11 @@ async function main() {
   const response = await fetch(url, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
     },
   });
 
-  const data = await response.json() as any;
+  const data = (await response.json()) as any;
   if (!response.ok) {
     console.error('❌ Failed to fetch templates from Meta:', data);
     return;

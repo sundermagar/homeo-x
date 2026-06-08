@@ -25,7 +25,7 @@ export async function seedDoctorStaff(db: DbClient) {
       dateBirth: '1985-05-15',
       dateLeft: '1990-01-01', // Legacy default for active
       salaryCur: 75000,
-      consultationFee: '500'
+      consultationFee: '500',
     },
     {
       id: 2,
@@ -46,14 +46,22 @@ export async function seedDoctorStaff(db: DbClient) {
       dateBirth: '1990-08-22',
       dateLeft: '1990-01-01',
       salaryCur: 55000,
-      consultationFee: '300'
-    }
+      consultationFee: '300',
+    },
   ];
 
   for (const doc of doctors) {
-    const existingEmail = await db.select().from(doctorsLegacy).where(eq(doctorsLegacy.email, doc.email)).limit(1);
-    const existingId = await db.select().from(doctorsLegacy).where(eq(doctorsLegacy.id, doc.id)).limit(1);
-    
+    const existingEmail = await db
+      .select()
+      .from(doctorsLegacy)
+      .where(eq(doctorsLegacy.email, doc.email))
+      .limit(1);
+    const existingId = await db
+      .select()
+      .from(doctorsLegacy)
+      .where(eq(doctorsLegacy.id, doc.id))
+      .limit(1);
+
     if (existingEmail.length === 0 && existingId.length === 0) {
       // For legacy tables with manual ID management, we need to handle NEXT ID
       // But for seeding, we can just use the provided IDs if the table is empty

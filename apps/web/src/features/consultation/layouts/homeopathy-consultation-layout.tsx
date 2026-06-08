@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, ArrowRight, Stethoscope, FileText, FlaskConical, History, ChevronLeft, Save, Monitor, Phone, Video, Copy, MessageSquare, ScrollText, Check, Loader2 } from 'lucide-react';
+import {
+  CheckCircle2,
+  ArrowRight,
+  Stethoscope,
+  Brain,
+  FlaskConical,
+  UserCircle,
+  History,
+} from 'lucide-react';
 
 import type { VideoCallState, CallMode } from '../components/consultation-header';
 import { ConsultationStage } from '../components/stages/consultation-stage';
@@ -70,7 +78,11 @@ export function HomeopathyConsultationLayout({
   };
 
   // Track RepertoryStage's current data so the bottom bar "Complete" button can use it
-  const repertoryDataRef = useRef<{ rows: import('../components/stages/repertory-stage').RemedyRxRow[]; advice: string; followUp: string; disease?: string }>({ rows: [], advice: '', followUp: '' });
+  const repertoryDataRef = useRef<{
+    rows: import('../components/stages/repertory-stage').RemedyRxRow[];
+    advice: string;
+    followUp: string;
+  }>({ rows: [], advice: '', followUp: '' });
   // Reset local layout state when navigating to a new patient
   useEffect(() => {
     setCallMode('IN_PERSON');
@@ -97,7 +109,7 @@ export function HomeopathyConsultationLayout({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       // Immediately release this initial probe stream — the real transcriber will
       // create its own stream once mounted. This is just to grab the permission.
-      stream.getTracks().forEach(t => t.stop());
+      stream.getTracks().forEach((t) => t.stop());
     } catch (err) {
       toast({
         title: 'Microphone access denied',
@@ -110,16 +122,18 @@ export function HomeopathyConsultationLayout({
     // If Audio or Video mode, start the call first
     if (callMode === 'AUDIO' || callMode === 'VIDEO') {
       try {
-        const result = await videoCallToken.mutateAsync({ visitId, role: 'host' });
+        const result = await videoCallToken.mutateAsync({ visitId, role: 'host', mode: callMode });
         const rawLink = result.patientJoinLink;
         const dynamicLink = rawLink?.includes('?')
           ? `${rawLink}&mode=${callMode.toLowerCase()}`
           : `${rawLink}?mode=${callMode.toLowerCase()}`;
         const patientJoinLink = dynamicLink?.startsWith('http')
           ? dynamicLink
-          : `${window.location.origin.includes('localhost')
-            ? `https://${import.meta.env['VITE_FRONTEND_URL'] || 'frying-deviancy-rocklike.ngrok-free.dev'}`
-            : window.location.origin}${dynamicLink || `/meet/${visitId}?mode=${callMode.toLowerCase()}`}`;
+          : `${
+              window.location.origin.includes('localhost')
+                ? `https://${import.meta.env['VITE_FRONTEND_URL'] || 'frying-deviancy-rocklike.ngrok-free.dev'}`
+                : window.location.origin
+            }${dynamicLink || `/meet/${visitId}?mode=${callMode.toLowerCase()}`}`;
         onStartVideoCall({
           appId: result.appId,
           channel: result.channel,
@@ -128,9 +142,17 @@ export function HomeopathyConsultationLayout({
           visitId,
           patientJoinLink,
         });
-        toast({ title: 'Call started', description: `Share the patient link to connect. Mode: ${callMode}`, variant: 'success' });
+        toast({
+          title: 'Call started',
+          description: `Share the patient link to connect. Mode: ${callMode}`,
+          variant: 'success',
+        });
       } catch (err) {
-        toast({ title: 'Failed to start call', description: err instanceof Error ? err.message : 'Unknown error', variant: 'error' });
+        toast({
+          title: 'Failed to start call',
+          description: err instanceof Error ? err.message : 'Unknown error',
+          variant: 'error',
+        });
       }
     }
     setStarted(true);
@@ -195,9 +217,9 @@ export function HomeopathyConsultationLayout({
     try {
       const symptoms = state.categorizedSymptoms;
       const symptomTranscript = [
-        ...symptoms.mental.map(s => `Doctor: Patient reports ${s}`),
-        ...symptoms.physical.map(s => `Doctor: Patient has ${s}`),
-        ...symptoms.particular.map(s => `Doctor: Patient complains of ${s}`),
+        ...symptoms.mental.map((s) => `Doctor: Patient reports ${s}`),
+        ...symptoms.physical.map((s) => `Doctor: Patient has ${s}`),
+        ...symptoms.particular.map((s) => `Doctor: Patient complains of ${s}`),
       ].join('\n');
 
       const result: any = await homeopathyConsult.mutateAsync({
@@ -223,7 +245,11 @@ export function HomeopathyConsultationLayout({
       state.setConsultStage('SUMMARY');
     } catch (error) {
       console.error('Follow-up assessment failed:', error);
-      toast({ title: 'Follow-up assessment failed', description: 'Please try again.', variant: 'error' });
+      toast({
+        title: 'Follow-up assessment failed',
+        description: 'Please try again.',
+        variant: 'error',
+      });
     }
   }, [state, visit, patient, visitId, homeopathyConsult]);
 
@@ -233,21 +259,26 @@ export function HomeopathyConsultationLayout({
       return handleFollowUpAssessment();
     }
 
-    if (!(state.ongoingTranscript || '').trim()) {
-      toast({ title: 'No conversation detected', description: 'Please record patient symptoms first. For direct disease search, use Quick Rx.', variant: 'error' });
+    const symptoms = state.categorizedSymptoms;
+    const total = symptoms.mental.length + symptoms.physical.length + symptoms.particular.length;
+    if (total === 0) {
+      toast({
+        title: 'No symptoms',
+        description: 'Extract symptoms before prescribing.',
+        variant: 'error',
+      });
       return;
     }
 
     try {
-      // Step 1: Extract Case (Symptoms, Constitution, etc)
-      const extraction: any = await analyzeCase.mutateAsync({
-        transcript: state.ongoingTranscript,
-        visitId,
-        patientAge: state.patientAge,
-        patientGender: patient?.gender,
-        chiefComplaint: visit.chiefComplaint,
-        specialty: 'HOMEOPATHY'
-      } as any); // cast to any because chiefComplaint and specialty are not in AnalyzeCaseInput but used by endpoint perhaps
+      // Phase 1: Call the unified backend pipeline which internally extracts rubrics,
+      // scores remedies, generates prescription drafts, and creates SOAP summaries.
+      // Build transcript from symptoms for the AI
+      const symptomTranscript = [
+        ...symptoms.mental.map((s) => `Doctor: Patient reports ${s}`),
+        ...symptoms.physical.map((s) => `Doctor: Patient has ${s}`),
+        ...symptoms.particular.map((s) => `Doctor: Patient complains of ${s}`),
+      ].join('\n');
 
       // Step 2: Suggest SOAP
       const soap = await suggestSoap.mutateAsync({
@@ -359,16 +390,76 @@ export function HomeopathyConsultationLayout({
             plan: 'Prescription based on totality of symptoms, lab reports, and repertorization.',
           }));
         }
+        if (result?.remedyScores?.scoredRemedies?.length) {
+          state.setScoredRemedies(result.remedyScores.scoredRemedies);
+        }
+
+        if (result?.prescriptionDraft) {
+          const draft = result.prescriptionDraft;
+          const clinicalFindings = result.clinicalData?.clinicalFindings || [];
+          const objectiveText =
+            clinicalFindings.length > 0
+              ? `Clinical Findings:\n- ${clinicalFindings.join('\n- ')}`
+              : '';
+          const planData = draft.caseAnalysis || '';
+          const planText = Array.isArray(planData) ? planData.join('\n') : planData;
+
+          state.setSoapData({
+            subjective: draft.consultationSummary || '',
+            objective: objectiveText,
+            assessment: result.diagnosisData?.primaryDiagnosis?.name || '',
+            plan: planText,
+            clinicalSummary: result.caseSummary || '',
+          });
+          soapPopulated = !!(draft.consultationSummary || objectiveText || planText);
+
+          if (draft.advice?.length) {
+            state.setAdvice(draft.advice.join('\n'));
+          }
+          if (draft.followUp) {
+            const followUpText = draft.followUp;
+            const date = new Date();
+            const daysMatch = followUpText.match(/(\d+)\s*day/i);
+            const weeksMatch = followUpText.match(/(\d+)\s*week/i);
+            const monthsMatch = followUpText.match(/(\d+)\s*month/i);
+            if (daysMatch) date.setDate(date.getDate() + parseInt(daysMatch[1]));
+            else if (weeksMatch) date.setDate(date.getDate() + parseInt(weeksMatch[1]) * 7);
+            else if (monthsMatch) date.setMonth(date.getMonth() + parseInt(monthsMatch[1]));
+            else date.setDate(date.getDate() + 15);
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            state.setFollowUp(`${yyyy}-${mm}-${dd}`);
+          }
+        }
+      } catch (e) {
+        console.warn('[Repertorize] Phase 3 homeopathy consult failed, using fallback SOAP', e);
       }
 
-      // Auto-fill advice and follow-up if empty
-      if (!state.advice) {
-        state.setAdvice(state.soapData?.advice || 'Drink plenty of plain water\n\nKeep 30 minutes gap before and after medicine\n\nDo not self-medicate or change potency yourself');
-      }
-      if (!state.followUp) {
-        const nextWeek = new Date();
-        nextWeek.setDate(nextWeek.getDate() + 7);
-        state.setFollowUp(nextWeek.toISOString().split('T')[0] || ''); // YYYY-MM-DD
+      // Fallback: AI Phase 3 failed or returned no draft — synthesise a minimal
+      // SOAP from the extracted symptoms + top remedy so the printed prescription
+      // is never blank.
+      if (!soapPopulated) {
+        const subjective = [
+          visit.chiefComplaint ? `Chief complaint: ${visit.chiefComplaint}` : null,
+          symptoms.mental.length ? `Mental: ${symptoms.mental.join('; ')}` : null,
+          symptoms.physical.length ? `Physical: ${symptoms.physical.join('; ')}` : null,
+          symptoms.particular.length ? `Particular: ${symptoms.particular.join('; ')}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n');
+
+        const topRemedy =
+          state.scoredRemedies?.[0]?.remedyName || (state.scoredRemedies?.[0] as any)?.name;
+        state.setSoapData({
+          subjective,
+          objective: '',
+          assessment: topRemedy
+            ? `Indicated remedy: ${topRemedy}`
+            : 'Homeopathic case — see rubrics',
+          plan: 'Prescription based on totality of symptoms and repertorization.',
+          clinicalSummary: '',
+        });
       }
 
       state.setConsultStage('PRESCRIPTION');
@@ -376,8 +467,16 @@ export function HomeopathyConsultationLayout({
       console.error('Prescribing failed:', error);
       toast({ title: 'Remedy generation failed', description: 'Please try again.', variant: 'error' });
     }
-  }, [state, repertorizeScore]);
-
+  }, [
+    state,
+    visit,
+    patient,
+    visitId,
+    extractRubrics,
+    repertorizeScore,
+    homeopathyConsult,
+    handleFollowUpAssessment,
+  ]);
 
   // ─── Render current stage content ───
   const renderStageContent = () => {
@@ -403,8 +502,98 @@ export function HomeopathyConsultationLayout({
             gnmAnalysis={state.gnmAnalysis}
             consultationMode={state.consultationMode}
             onConsultationModeChange={state.setConsultationMode}
+            callMode={callMode}
+            onCallModeChange={setCallMode}
+            onStartConsultation={handleStartConsultation}
+          />
+        );
+
+      case 'CONSULTATION':
+        return (
+          <>
+            {/* Clinical Direction Selector Overlay */}
+            {state.isSelectingDirection && state.pendingConsultResult && (
+              <div className="py-12 animate-in fade-in zoom-in duration-500">
+                <ClinicalDirectionSelector
+                  suggestions={state.pendingConsultResult.diagnosisData}
+                  onSelect={state.handleSelectDirection}
+                />
+              </div>
+            )}
+
+            {!state.isSelectingDirection && state.pendingConsultResult && (
+              <div className="mb-4 bg-[#EFF6FF] border border-[#BFDBFE] rounded-md px-5 py-3 flex items-center justify-between animate-in fade-in shadow-sm">
+                <div>
+                  <h4 className="text-[14px] font-bold text-[#1E3A8A] tracking-tight">
+                    Clinical Direction Locked
+                  </h4>
+                  <p className="text-[12px] font-medium text-[#2563EB] mt-0.5">
+                    Focusing assessment on: {state.soapData.assessment}
+                  </p>
+                </div>
+                <button
+                  onClick={state.handleReopenDirectionSelector}
+                  className="pp-btn-secondary h-9 px-3 text-[12px]"
+                >
+                  Change Direction
+                </button>
+              </div>
+            )}
+
+            <div className={state.isSelectingDirection ? 'hidden' : ''}>
+              <ConsultationStage
+                visitId={visitId}
+                visit={visit}
+                patient={patient}
+                patientAge={state.patientAge}
+                sttLanguage={state.sttLanguage}
+                onSoapGenerated={state.handleSoapGenerated}
+                onHomeopathyConsultGenerated={state.handleHomeopathyConsultGenerated}
+                onVoiceUsed={state.handleVoiceUsed}
+                onTranscriptUpdate={state.setOngoingTranscript}
+                videoCallState={videoCallState}
+                onStartVideoCall={onStartVideoCall}
+                callMode={callMode}
+                video={video}
+                isVideoPaused={isVideoPaused}
+                onPauseToggle={setIsVideoPaused}
+                gnmAnalysis={state.gnmAnalysis}
+                consultationMode={state.consultationMode}
+                onConsultationModeChange={state.setConsultationMode}
+                categorizedSymptoms={state.categorizedSymptoms}
+                onSymptomsExtracted={state.handleSymptomsExtracted}
+                onAnalyseSymptoms={() => state.setConsultStage('TOTALITY')}
+              />
+            </div>
+          </>
+        );
+
+      case 'TOTALITY':
+        return (
+          <TotalityStage
+            gnmAnalysis={state.gnmAnalysis}
+            rankedRemedies={state.scoredRemedies}
+            subjective={state.soapData.subjective}
+            assessment={state.soapData.assessment}
+            onRepertorize={handleRepertorize}
+            onPrescribe={() => state.setConsultStage('PRESCRIPTION')}
             categorizedSymptoms={state.categorizedSymptoms}
-            onSymptomsExtracted={state.handleSymptomsExtracted}
+            onCategorizedSymptomsChange={state.setCategorizedSymptoms}
+            isRepertorizing={
+              extractRubrics.isPending || repertorizeScore.isPending || homeopathyConsult.isPending
+            }
+            thermalReaction={state.thermalReaction}
+            onThermalReactionChange={state.setThermalReaction}
+            miasm={state.miasm}
+            onMiasmChange={state.setMiasm}
+            thirstPattern={state.thirstPattern}
+            onThirstPatternChange={state.setThirstPattern}
+            sleepPosition={state.sleepPosition}
+            onSleepPositionChange={state.setSleepPosition}
+            perspiration={state.perspiration}
+            onPerspirationChange={state.setPerspiration}
+            doctorNotes={state.doctorNotes}
+            onDoctorNotesChange={state.setDoctorNotes}
           />
         );
 
@@ -442,20 +631,50 @@ export function HomeopathyConsultationLayout({
         // Follow-up mode: show assessment summary instead of remedy cards
         if (state.consultationMode === 'followup') {
           const decisionStyles = {
-            REPEAT: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', icon: '🔄', label: 'Repeat Remedy' },
-            CHANGE: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', icon: '🔀', label: 'Change Remedy' },
-            ADVICE_ONLY: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', icon: '💡', label: 'Advice Only' },
+            REPEAT: {
+              bg: 'bg-blue-50',
+              border: 'border-blue-200',
+              text: 'text-blue-800',
+              icon: '🔄',
+              label: 'Repeat Remedy',
+            },
+            CHANGE: {
+              bg: 'bg-amber-50',
+              border: 'border-amber-200',
+              text: 'text-amber-800',
+              icon: '🔀',
+              label: 'Change Remedy',
+            },
+            ADVICE_ONLY: {
+              bg: 'bg-emerald-50',
+              border: 'border-emerald-200',
+              text: 'text-emerald-800',
+              icon: '💡',
+              label: 'Advice Only',
+            },
           };
           const assessment = state.soapData; // Follow-up data is already in SOAP from handleHomeopathyConsultGenerated
-          const decisionMatch = assessment.assessment?.match(/(REPEAT|CHANGE|ADVICE_ONLY|Repeat Remedy|Change Remedy|Advice Only)/i);
-          const decisionKey = decisionMatch?.[0]?.toUpperCase().replace(/ /g, '_').replace('REMEDY', '').replace('_REPEAT', 'REPEAT').replace('_CHANGE', 'CHANGE') as 'REPEAT' | 'CHANGE' | 'ADVICE_ONLY' || 'REPEAT';
+          const decisionMatch = assessment.assessment?.match(
+            /(REPEAT|CHANGE|ADVICE_ONLY|Repeat Remedy|Change Remedy|Advice Only)/i,
+          );
+          const decisionKey =
+            (decisionMatch?.[0]
+              ?.toUpperCase()
+              .replace(/ /g, '_')
+              .replace('REMEDY', '')
+              .replace('_REPEAT', 'REPEAT')
+              .replace('_CHANGE', 'CHANGE') as 'REPEAT' | 'CHANGE' | 'ADVICE_ONLY') || 'REPEAT';
           const style = decisionStyles[decisionKey] || decisionStyles.REPEAT;
 
           return (
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-bold text-[#0F0F0E] tracking-tight">Follow-Up Assessment</h2>
-                <p className="text-sm text-[#4A4A47] mt-1">AI evaluation of patient response to previous treatment.</p>
+                <h2 className="text-xl font-bold text-[#0F0F0E] tracking-tight">
+                  Follow-Up Assessment
+                </h2>
+                <p className="text-sm text-[#4A4A47] mt-1">
+                  AI evaluation of patient response to previous treatment.
+                </p>
               </div>
 
               {/* Decision Badge */}
@@ -472,23 +691,33 @@ export function HomeopathyConsultationLayout({
                 {/* Subjective / Summary */}
                 {assessment.subjective && (
                   <div className="bg-white border border-[#E3E2DF] rounded-lg p-4">
-                    <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-2">Clinical Summary</h3>
-                    <p className="text-sm text-[#0F0F0E] whitespace-pre-line">{assessment.subjective}</p>
+                    <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-2">
+                      Clinical Summary
+                    </h3>
+                    <p className="text-sm text-[#0F0F0E] whitespace-pre-line">
+                      {assessment.subjective}
+                    </p>
                   </div>
                 )}
 
                 {/* Objective / Improvement */}
                 {assessment.objective && (
                   <div className="bg-white border border-[#E3E2DF] rounded-lg p-4">
-                    <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-2">Assessment Details</h3>
-                    <p className="text-sm text-[#0F0F0E] whitespace-pre-line">{assessment.objective}</p>
+                    <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-2">
+                      Assessment Details
+                    </h3>
+                    <p className="text-sm text-[#0F0F0E] whitespace-pre-line">
+                      {assessment.objective}
+                    </p>
                   </div>
                 )}
 
                 {/* Plan */}
                 {assessment.plan && (
                   <div className="bg-white border border-[#E3E2DF] rounded-lg p-4">
-                    <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-2">Suggested Action</h3>
+                    <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-2">
+                      Suggested Action
+                    </h3>
                     <p className="text-sm text-[#0F0F0E] whitespace-pre-line">{assessment.plan}</p>
                   </div>
                 )}
@@ -496,7 +725,9 @@ export function HomeopathyConsultationLayout({
                 {/* Advice */}
                 {state.advice && (
                   <div className="bg-white border border-[#E3E2DF] rounded-lg p-4">
-                    <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-2">Diet & Lifestyle Advice</h3>
+                    <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-2">
+                      Diet & Lifestyle Advice
+                    </h3>
                     <p className="text-sm text-[#0F0F0E] whitespace-pre-line">{state.advice}</p>
                   </div>
                 )}
@@ -506,19 +737,30 @@ export function HomeopathyConsultationLayout({
               {state.followUp && (
                 <div className="bg-[#FAFAF8] border border-[#E3E2DF] rounded-lg px-5 py-3 flex items-center gap-3">
                   <span className="text-sm">📅</span>
-                  <span className="text-sm font-medium text-[#4A4A47]">Next Follow-up: <strong className="text-[#0F0F0E]">{state.followUp}</strong></span>
+                  <span className="text-sm font-medium text-[#4A4A47]">
+                    Next Follow-up: <strong className="text-[#0F0F0E]">{state.followUp}</strong>
+                  </span>
                 </div>
               )}
 
               {/* Rx Items (only if CHANGE) */}
               {state.rxItems.length > 0 && (
                 <div className="bg-white border border-[#E3E2DF] rounded-lg p-4">
-                  <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-3">New Prescription</h3>
+                  <h3 className="text-xs font-bold text-[#888786] uppercase tracking-widest mb-3">
+                    New Prescription
+                  </h3>
                   {state.rxItems.map((item, i) => (
-                    <div key={i} className="flex items-center gap-4 py-2 border-b border-[#F4F3F1] last:border-0">
-                      <span className="text-sm font-bold text-[#2563EB]">{item.medicationName}</span>
+                    <div
+                      key={i}
+                      className="flex items-center gap-4 py-2 border-b border-[#F4F3F1] last:border-0"
+                    >
+                      <span className="text-sm font-bold text-[#2563EB]">
+                        {item.medicationName}
+                      </span>
                       <span className="text-xs text-[#4A4A47]">{item.dosage}</span>
-                      {item.instructions && <span className="text-xs text-[#888786]">— {item.instructions}</span>}
+                      {item.instructions && (
+                        <span className="text-xs text-[#888786]">— {item.instructions}</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -531,26 +773,27 @@ export function HomeopathyConsultationLayout({
         return (
           <PrescriptionStage
             scoredRemedies={state.scoredRemedies}
-            suggestedRubrics={state.suggestedRubrics}
-            thermalReaction={state.thermalReaction}
-            miasm={state.miasm}
-            thirstPattern={state.thirstPattern}
+            onApplyAllRemedies={async (rows: RemedyRxRow[], advice: string, followUp: string) => {
+              // Map the UI rows to the CreatePrescriptionItemInput format
+              const rxItems = rows.map((r) => ({
+                medicationName: r.remedyName,
+                genericName: '',
+                dosage: r.potency,
+                frequency: r.frequency,
+                duration: r.duration,
+                route: 'Globules',
+                instructions: r.instruction,
+              }));
+              // Call complete with data directly — bypasses async state flush
+              await state.handleCompleteWithData(rxItems, advice, followUp);
+            }}
+            onComplete={() => {}} // noop — completion handled inside onApplyAllRemedies
+            isCompleting={state.isCompleting}
             aiAdvice={state.advice}
             aiFollowUp={state.followUp}
             isGeneratingAdvice={homeopathyConsult.isPending}
-            onScoredRemediesChange={state.setScoredRemedies}
-            onDataChange={(rows, adv, fu, disease) => { repertoryDataRef.current = { rows, advice: adv, followUp: fu, disease }; }}
-          />
-        );
-
-      case 'FINALIZE_RX':
-        return (
-          <FinalizeRxStage
-            selectedRemedies={repertoryDataRef.current.rows}
-            initialAdvice={repertoryDataRef.current.advice}
-            initialFollowUp={repertoryDataRef.current.followUp}
             onDataChange={(rows, adv, fu) => {
-              repertoryDataRef.current = { ...repertoryDataRef.current, rows, advice: adv, followUp: fu };
+              repertoryDataRef.current = { rows, advice: adv, followUp: fu };
             }}
           />
         );
@@ -562,37 +805,41 @@ export function HomeopathyConsultationLayout({
 
   // ─── Sidebar step config ───
   const STEPS: { key: ConsultStage; label: string; icon: React.ReactNode }[] = [
-    { key: 'CONVERSATION', label: 'Conversation', icon: <MessageSquare className="h-4 w-4" /> },
-    { key: 'SUMMARY', label: 'Summary', icon: <ScrollText className="h-4 w-4" /> },
-    { key: 'LAB_REPORTS', label: 'Lab Reports', icon: <FileText className="h-4 w-4" /> },
-    { key: 'PRESCRIPTION', label: 'Remedy', icon: <FlaskConical className="h-4 w-4" /> },
-    { key: 'FINALIZE_RX', label: 'Finalize', icon: <Check className="h-4 w-4" /> },
+    {
+      key: 'PATIENT_INFO',
+      label: 'Patient Info & Mode',
+      icon: <UserCircle className="h-3.5 w-3.5" />,
+    },
+    {
+      key: 'CONSULTATION',
+      label: 'Consultation Chat',
+      icon: <Stethoscope className="h-3.5 w-3.5" />,
+    },
+    { key: 'TOTALITY', label: 'Symptom Analysis', icon: <Brain className="h-3.5 w-3.5" /> },
+    {
+      key: 'REPERTORY',
+      label: 'Remedy & Prescription',
+      icon: <FlaskConical className="h-3.5 w-3.5" />,
+    },
   ];
 
-  const currentStepIdx = STEPS.findIndex(s => s.key === state.consultStage);
-
-  // ── Robust patient data extraction ──
-  // The @mmc/types Patient uses `surname` (not `lastName`), has a direct `age`
-  // field, and gender is 'M'/'F'/'Other'. Handle all variants gracefully.
-  const rawFirst = ((patient as any)?.firstName || '').trim();
-  const rawLast = ((patient as any)?.lastName || (patient as any)?.surname || '').trim();
-  const patientName = [rawFirst, rawLast].filter(Boolean).join(' ') || 'New Patient';
-  const patientAge: number | undefined =
-    (patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : undefined)
-    ?? (patient as any)?.age
-    ?? state.patientAge
-    ?? undefined;
+  const currentStepIdx = STEPS.findIndex((s) => s.key === state.consultStage);
+  const patientName = patient ? formatName(patient.firstName, patient.lastName) : 'New Patient';
+  const patientAge = patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : undefined;
   const patientInitials = patientName
-    .split(/\s+/)
-    .filter(w => w.length > 0)
-    .map(w => w[0])
+    .split(' ')
+    .map((w) => w[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2) || '--';
-  const genderMap: Record<string, string> = { M: 'Male', F: 'Female', MALE: 'Male', FEMALE: 'Female', Other: '—', OTHER: '—' };
-  const patientGender = genderMap[(patient?.gender || '')] || (patient?.gender || '—');
-  const modeLabel = { acute: 'Acute', chronic: 'Chronic', followup: 'Follow-up' }[state.consultationMode] || 'Acute';
-  const modeColor = { acute: 'bg-amber-100 text-amber-700', chronic: 'bg-blue-100 text-blue-700', followup: 'bg-emerald-100 text-emerald-700' }[state.consultationMode];
+    .slice(0, 2);
+  const modeLabel =
+    { acute: 'Acute', chronic: 'Chronic', followup: 'Follow-up' }[state.consultationMode] ||
+    'Acute';
+  const modeColor = {
+    acute: 'bg-amber-100 text-amber-700',
+    chronic: 'bg-blue-100 text-blue-700',
+    followup: 'bg-emerald-100 text-emerald-700',
+  }[state.consultationMode];
   const typeLabel = { IN_PERSON: 'In-Person', AUDIO: 'Audio Call', VIDEO: 'Video Call' }[callMode];
   const typeIcon = { IN_PERSON: '🏥', AUDIO: '📞', VIDEO: '📹' }[callMode];
 
@@ -648,31 +895,75 @@ export function HomeopathyConsultationLayout({
   return (
     <div className="flex flex-col lg:flex-row h-[100dvh] w-full overflow-hidden bg-[#FAFAF8]">
       {/* ═══ SIDEBAR ═══ */}
-      <aside className="w-full lg:w-[268px] lg:h-full bg-white border-b lg:border-b-0 lg:border-r border-[#E3E2DF] flex flex-col shrink-0 z-10">
-        {/* Brand */}
-        <div className="px-5 py-3.5 border-b border-[#E3E2DF] flex items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#2563EB] text-white flex items-center justify-center font-extrabold text-[13px]">H</div>
-            <div className="font-extrabold text-[15px] tracking-tight text-[#0F0F0E]">Homeo<span className="text-[#2563EB]">X</span></div>
+      <aside className="w-full lg:w-64 bg-white border-b lg:border-b-0 lg:border-r border-[#E3E2DF] flex flex-col shrink-0 z-10">
+        {/* Patient Card */}
+        <div className="px-4 py-3 lg:px-5 lg:py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] flex items-center lg:items-start lg:flex-col gap-3 lg:gap-0">
+          <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center font-bold text-lg lg:mb-3 border border-[#BFDBFE] shrink-0">
+            {patientInitials || '--'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-[#0F0F0E] truncate">{patientName}</div>
+            <div className="text-xs font-medium text-[#4A4A47] mt-0.5 truncate">
+              {patientAge ? `Age ${patientAge}` : 'Age —'}{' '}
+              <span className="text-[#888786] px-1">•</span> {patient?.gender || '—'}
+            </div>
+          </div>
+          <div className="flex flex-col lg:flex-row lg:flex-wrap gap-1 lg:gap-2 lg:mt-3 items-end lg:items-center shrink-0">
+            <span
+              className={cn('text-[10px] font-bold px-2 py-0.5 rounded-[4px] uppercase', modeColor)}
+            >
+              {modeLabel}
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-white border border-[#E3E2DF] text-[#4A4A47] uppercase whitespace-nowrap">
+              {typeIcon} {typeLabel}
+            </span>
           </div>
           <button onClick={handleNextPatient} className="lg:hidden text-[12px] font-bold text-[#4A4A47] bg-[#FAFAF8] border border-[#E3E2DF] px-3 py-1.5 rounded-md flex items-center gap-1 shadow-sm">
             <ChevronLeft className="h-3.5 w-3.5" /> Queue
           </button>
         </div>
 
-        {/* Middle scrollable area */}
-        <div className="flex-1 min-h-0 lg:overflow-y-auto flex flex-col">
-          {/* Patient Card */}
-          <div className="px-5 py-4 border-b border-[#E3E2DF] bg-[#FAFAF8] shrink-0 flex items-center lg:block gap-4">
-            <div className="w-10 h-10 rounded-lg bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center font-bold lg:mb-2.5 border border-[#BFDBFE] shrink-0">
-              {patientInitials || '--'}
-            </div>
-            <div className="min-w-0">
-              <div className="text-[14px] font-extrabold text-[#0F0F0E] leading-tight truncate">{patientName}</div>
-              <div className="text-[12px] text-[#4A4A47] mt-0.5 truncate">
-                {patientAge ? `Age ${patientAge}` : 'Age —'} <span className="text-[#888786] px-1">·</span> {patientGender}
-              </div>
-            </div>
+        {/* Step Navigation */}
+        <nav className="flex-none lg:flex-1 px-4 py-3 lg:py-4 flex flex-wrap lg:flex-col gap-2 lg:gap-0 lg:space-y-1 border-b lg:border-b-0 border-[#E3E2DF]">
+          {STEPS.map((step, i) => {
+            const isActive = step.key === state.consultStage;
+            const isDone = i < currentStepIdx;
+            return (
+              <button
+                key={step.key}
+                onClick={() => state.setConsultStage(step.key)}
+                className={cn(
+                  'flex-none lg:w-full flex items-center gap-2 lg:gap-3 px-3 py-2 lg:py-2.5 rounded-md text-[12px] lg:text-[13px] font-semibold transition-all duration-200 whitespace-nowrap',
+                  isActive && 'bg-[#EFF6FF] text-[#2563EB]',
+                  isDone && 'text-[#16A34A]',
+                  !isActive && !isDone && 'text-[#4A4A47] hover:bg-[#F4F3F1]',
+                )}
+              >
+                <div
+                  className={cn(
+                    'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-all duration-200',
+                    isActive && 'bg-[#2563EB] text-white',
+                    isDone && 'bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]',
+                    !isActive && !isDone && 'bg-[#F4F3F1] text-[#888786] border border-[#E3E2DF]',
+                  )}
+                >
+                  {isDone ? <CheckCircle2 className="h-3 w-3" /> : i + 1}
+                </div>
+                {step.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Session Info */}
+        <div className="hidden lg:block px-4 py-3 border-t border-[#E3E2DF] bg-[#FAFAF8]">
+          <div className="text-[10px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+            Session
+          </div>
+          <div className="text-[11px] text-[#4A4A47]">
+            {visit.chiefComplaint
+              ? visit.chiefComplaint.slice(0, 50) + (visit.chiefComplaint.length > 50 ? '...' : '')
+              : 'No chief complaint'}
           </div>
 
           {/* Modality / call type */}
@@ -757,46 +1048,67 @@ export function HomeopathyConsultationLayout({
         </div>
 
         {/* Bottom bar */}
-        <div className="shrink-0 border-t border-[#E3E2DF] bg-white px-4 lg:px-8 py-3">
-          <div className="w-full max-w-full flex flex-wrap-reverse sm:flex-nowrap items-center justify-between gap-3">
-            {state.consultStage !== 'CONVERSATION' && (
-              <button onClick={doBack} className="pp-btn-secondary w-full sm:w-auto justify-center h-10 px-4 text-[13px] inline-flex items-center gap-1">
-                <ChevronLeft className="h-4 w-4" /> Previous
-              </button>
-            )}
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto sm:ml-auto">
-              {state.consultStage === 'SUMMARY' && state.consultationMode !== 'followup' ? (
-                <>
-                  <button
-                    onClick={() => handleExtractSummaryRubrics('LAB_REPORTS')}
-                    disabled={isBusy}
-                    className="pp-btn-secondary w-full sm:w-auto justify-center h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
-                  >
-                    {isBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : 'Upload Lab Reports'}
-                  </button>
-                  <button
-                    onClick={() => handleExtractSummaryRubrics('PRESCRIPTION')}
-                    disabled={isBusy}
-                    className="pp-btn-primary w-full sm:w-auto justify-center h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
-                  >
-                    {isBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : 'Skip to Remedy →'}
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={doComplete}
-                  disabled={isBusy}
-                  className="pp-btn-primary w-full sm:w-auto justify-center h-10 px-6 text-[13px] inline-flex items-center gap-1.5 disabled:opacity-60"
-                >
-                  {isBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</> : completeLabel}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-      </div>{/* end main content column */}
+        <ConsultationBottomBar
+          onComplete={() => {
+            if (state.consultStage === 'PATIENT_INFO') handleStartConsultation();
+            else if (state.consultStage === 'CONSULTATION') {
+              // Follow-up: skip totality, run assessment directly
+              if (state.consultationMode === 'followup') {
+                handleFollowUpAssessment();
+              } else {
+                state.setConsultStage('TOTALITY');
+              }
+            } else if (state.consultStage === 'TOTALITY') handleRepertorize();
+            else if (state.consultStage === 'REPERTORY') {
+              const { rows, advice, followUp } = repertoryDataRef.current;
+              if (rows.length > 0) {
+                const rxItems = rows.map((r) => ({
+                  medicationName: r.remedyName,
+                  genericName: '',
+                  dosage: r.potency,
+                  frequency: r.frequency,
+                  duration: r.duration,
+                  route: 'Globules',
+                  instructions: r.instruction,
+                }));
+                state.handleCompleteWithData(rxItems, advice, followUp);
+              } else {
+                state.handleComplete();
+              }
+            }
+          }}
+          onBack={() => {
+            if (state.consultStage === 'CONSULTATION') state.setConsultStage('PATIENT_INFO');
+            else if (state.consultStage === 'TOTALITY') state.setConsultStage('CONSULTATION');
+            else if (state.consultStage === 'REPERTORY') {
+              // Follow-up: go back to CONSULTATION (skip totality)
+              state.setConsultStage(
+                state.consultationMode === 'followup' ? 'CONSULTATION' : 'TOTALITY',
+              );
+            }
+          }}
+          showBack={state.consultStage !== 'PATIENT_INFO'}
+          backLabel="Previous"
+          onSkipAction={() => {
+            if (state.consultStage === 'TOTALITY') state.setConsultStage('PRESCRIPTION');
+          }}
+          onSaveDraft={state.handleSaveDraft}
+          isCompleting={state.isCompleting || homeopathyConsult.isPending}
+          isSaving={state.isSaving}
+          completeLabel={
+            state.consultStage === 'PATIENT_INFO'
+              ? 'Start Consultation →'
+              : state.consultStage === 'CONSULTATION'
+                ? state.consultationMode === 'followup'
+                  ? 'Run Follow-Up Assessment →'
+                  : 'Analyse Symptoms →'
+                : state.consultStage === 'TOTALITY'
+                  ? 'Proceed to Prescribing →'
+                  : 'Approve & Next'
+          }
+        />
+      </div>
+      {/* end main content column */}
 
       {/* Completion Overlay */}
       {state.showCompleted && (
@@ -816,6 +1128,27 @@ export function HomeopathyConsultationLayout({
             </div>
 
             <div className="flex flex-col gap-3 pt-6">
+              <PrintPrescriptionButton
+                visitId={visitId}
+                variant="outline"
+                size="md"
+                label="Download Prescription"
+                className="w-full pp-btn-secondary h-10 justify-center"
+                inlineData={{
+                  soapData: state.soapData,
+                  rxItems: repertoryDataRef.current.rows.map((r) => ({
+                    medicationName: r.remedyName,
+                    dosage: r.potency,
+                    frequency: r.frequency,
+                    duration: r.duration,
+                    instructions: r.instruction,
+                  })),
+                  advice: repertoryDataRef.current.advice,
+                  followUp: repertoryDataRef.current.followUp,
+                  visit,
+                  patient: patient || undefined,
+                }}
+              />
               <button
                 onClick={handleNextPatient}
                 className="w-full pp-btn-primary h-10 flex items-center justify-center"
@@ -824,7 +1157,9 @@ export function HomeopathyConsultationLayout({
               </button>
 
               <button
-                onClick={() => navigate(`/medical-cases/${(patient as any)?.regid || visit.patientId}`)}
+                onClick={() =>
+                  navigate(`/medical-cases/${(patient as any)?.regid || visit.patientId}`)
+                }
                 className="w-full h-10 flex items-center justify-center text-sm font-bold text-[#4A4A47] border border-[#E3E2DF] bg-white rounded-md hover:bg-[#F4F3F1] transition-colors"
               >
                 <History className="h-4 w-4 mr-2" /> View Patient History

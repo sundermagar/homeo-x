@@ -13,15 +13,15 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({ 
-  icon: Icon, 
-  title, 
-  description, 
-  action, 
-  actionLabel, 
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+  actionLabel,
   onAction,
   variant = 'default',
-  className = ''
+  className = '',
 }: EmptyStateProps) {
   return (
     <div className={`empty-state empty-state--${variant} ${className} fade-in`}>
@@ -30,7 +30,7 @@ export function EmptyState({
           <Icon size={48} strokeWidth={1.5} className="empty-state__icon" />
         </div>
       )}
-      
+
       <div className="empty-state__content">
         <h3 className="empty-state__title">{title}</h3>
         {description && <p className="empty-state__description">{description}</p>}
@@ -38,7 +38,9 @@ export function EmptyState({
 
       {(action || actionLabel) && (
         <div className="empty-state__action">
-          {action ? action : (
+          {action ? (
+            action
+          ) : (
             <button className="empty-state__button" onClick={onAction}>
               {actionLabel}
             </button>

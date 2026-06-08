@@ -85,8 +85,8 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 function DefaultFallback({ error, reset, errorId, occurredAt }: FallbackProps): ReactNode {
-  const isChunkError = 
-    error.name === 'ChunkLoadError' || 
+  const isChunkError =
+    error.name === 'ChunkLoadError' ||
     error.message.includes('Failed to fetch dynamically imported module') ||
     error.message.includes('Loading chunk');
 
@@ -102,46 +102,49 @@ function DefaultFallback({ error, reset, errorId, occurredAt }: FallbackProps): 
   }
 
   const reload = (): void => window.location.reload();
-  
+
   const formattedTime = occurredAt
     ? new Date(occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : '';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#F8FAFC] p-6 text-center">
-      <div className="w-16 h-16 bg-[#FEF2F2] rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-[#FEE2E2]">
-        <AlertTriangle size={28} className="text-[#EF4444]" />
-      </div>
-      
-      <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight mb-2">Something went wrong</h1>
-      <p className="text-[#64748B] max-w-md mx-auto mb-8 text-[15px]">
-        {error.message || 'An unexpected error occurred while rendering this page.'}
-      </p>
-
-      <div className="flex items-center gap-3 mb-10">
-        <button 
-          onClick={reset}
-          className="flex items-center gap-2 h-11 px-6 rounded-xl bg-[#0F172A] text-white font-semibold text-[14px] hover:bg-[#1E293B] transition-colors"
-        >
-          <RotateCcw size={16} />
-          Try Again
-        </button>
-        <button 
-          onClick={reload}
-          className="flex items-center gap-2 h-11 px-6 rounded-xl bg-white text-[#475569] font-semibold text-[14px] hover:bg-[#F1F5F9] border border-[#E2E8F0] shadow-sm transition-colors"
-        >
-          <RefreshCw size={16} />
-          Reload Page
-        </button>
-      </div>
-
-      {errorId && (
-        <div className="flex flex-col items-center gap-1 text-[11px] font-mono text-[#94A3B8] bg-white px-4 py-2 rounded-lg border border-[#E2E8F0]">
-          <span>Error ID: {errorId}</span>
-          {formattedTime && <span>Time: {formattedTime}</span>}
+    <div className="eb-soft-overlay" role="alert">
+      <div className="eb-soft-toast">
+        <div className="eb-soft-header">
+          <div className="eb-soft-icon">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="eb-soft-content">
+            <h3 className="eb-soft-title">
+              {isChunkError ? 'Connection refresh needed' : 'Something went wrong'}
+            </h3>
+            <p className="eb-soft-message">
+              {isChunkError
+                ? 'We encountered a minor glitch loading this view. Trying to recover...'
+                : error.message || 'An unexpected error occurred.'}
+            </p>
+          </div>
         </div>
-      )}
-      
+
+        <div className="eb-soft-actions">
+          <button type="button" className="eb-soft-btn primary" onClick={reset}>
+            <RotateCcw size={14} />
+            {isChunkError ? 'Retry now' : 'Try again'}
+          </button>
+          <button type="button" className="eb-soft-btn secondary" onClick={reload}>
+            <RefreshCw size={14} />
+            Reload
+          </button>
+        </div>
+
+        {errorId && (
+          <div className="eb-soft-footer">
+            <span>Error ID: {errorId}</span>
+            {formattedTime && <span> • {formattedTime}</span>}
+          </div>
+        )}
+      </div>
+
       {isDev && error.stack && (
         <details className="mt-8 text-left w-full max-w-3xl bg-[#0F172A] rounded-xl overflow-hidden border border-[#1E293B] shadow-lg">
           <summary className="px-4 py-3 bg-[#1E293B] text-[12px] font-semibold text-[#94A3B8] cursor-pointer hover:text-white transition-colors">

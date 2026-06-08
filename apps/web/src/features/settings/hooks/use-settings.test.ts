@@ -81,7 +81,9 @@ describe('settings hooks', () => {
     await mutationOptions.mutationFn({ id: 22, name: 'Updated Dept' });
     mutationOptions.onSuccess?.();
 
-    expect(mockedApi.put).toHaveBeenCalledWith('/settings/departments/22', { name: 'Updated Dept' });
+    expect(mockedApi.put).toHaveBeenCalledWith('/settings/departments/22', {
+      name: 'Updated Dept',
+    });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['settings', 'departments'] });
   });
 

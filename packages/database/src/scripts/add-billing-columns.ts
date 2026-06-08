@@ -41,7 +41,9 @@ async function main() {
     ORDER BY schema_name
   `;
 
-  console.log(`📋 Found ${schemas.length} tenants: ${schemas.map(s => s.schema_name).join(', ')}`);
+  console.log(
+    `📋 Found ${schemas.length} tenants: ${schemas.map((s) => s.schema_name).join(', ')}`,
+  );
 
   for (const { schema_name } of schemas) {
     try {
@@ -94,7 +96,7 @@ async function main() {
   console.log('\n🎉 Migration complete!');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('❌ Migration failed:', err);
   process.exit(1);
 });

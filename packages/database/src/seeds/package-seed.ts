@@ -12,7 +12,7 @@ export async function seedPackages(db: DbClient) {
       price: 1500,
       durationDays: 30,
       colorCode: '#94a3b8',
-      isActive: true
+      isActive: true,
     },
     {
       name: 'Gold Wellness Plan',
@@ -20,7 +20,7 @@ export async function seedPackages(db: DbClient) {
       price: 4000,
       durationDays: 90,
       colorCode: '#fbbf24',
-      isActive: true
+      isActive: true,
     },
     {
       name: 'Platinum Premium Plan',
@@ -28,13 +28,17 @@ export async function seedPackages(db: DbClient) {
       price: 12000,
       durationDays: 365,
       colorCode: '#818cf8',
-      isActive: true
-    }
+      isActive: true,
+    },
   ];
 
   for (const plan of plans) {
-    const existing = await db.select().from(packagePlans).where(eq(packagePlans.name, plan.name)).limit(1);
-    
+    const existing = await db
+      .select()
+      .from(packagePlans)
+      .where(eq(packagePlans.name, plan.name))
+      .limit(1);
+
     if (existing.length === 0) {
       await db.insert(packagePlans).values(plan);
       console.log(`[Seed] Created package: ${plan.name}`);

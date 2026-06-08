@@ -25,9 +25,18 @@ const ADVICE_TEMPLATES = [
   { label: 'Hydration', text: 'Drink plenty of fluids (at least 2-3 liters of water daily).' },
   { label: 'Med compliance', text: 'Take all medications as prescribed. Do not skip doses.' },
   { label: 'Diet', text: 'Follow a balanced diet. Avoid oily, spicy, and processed foods.' },
-  { label: 'Activity restriction', text: 'Avoid heavy lifting and intense exercise for the advised period.' },
-  { label: 'Antibiotics', text: 'Complete the full course of antibiotics even if symptoms improve.' },
-  { label: 'Fever monitoring', text: 'Monitor temperature. If fever persists beyond 3 days or exceeds 103°F, visit immediately.' },
+  {
+    label: 'Activity restriction',
+    text: 'Avoid heavy lifting and intense exercise for the advised period.',
+  },
+  {
+    label: 'Antibiotics',
+    text: 'Complete the full course of antibiotics even if symptoms improve.',
+  },
+  {
+    label: 'Fever monitoring',
+    text: 'Monitor temperature. If fever persists beyond 3 days or exceeds 103°F, visit immediately.',
+  },
   { label: 'Wound care', text: 'Keep the wound clean and dry. Change dressing daily.' },
 ];
 
@@ -54,8 +63,7 @@ export function FollowUpSelector({
     }
   };
 
-  const isAdviceActive = (template: (typeof ADVICE_TEMPLATES)[0]) =>
-    advice.includes(template.text);
+  const isAdviceActive = (template: (typeof ADVICE_TEMPLATES)[0]) => advice.includes(template.text);
 
   return (
     <Card className="overflow-hidden transition-all duration-300">
@@ -66,23 +74,31 @@ export function FollowUpSelector({
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <CalendarDays className={`h-4 w-4 ${followUp || adviceCount > 0 ? 'text-teal-500' : 'text-gray-400'}`} />
+          <CalendarDays
+            className={`h-4 w-4 ${followUp || adviceCount > 0 ? 'text-teal-500' : 'text-gray-400'}`}
+          />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Follow-up & Advice
           </span>
-          
+
           {/* Summary (if not expanded) */}
           {!isExpanded && (followUp || adviceCount > 0) && (
             <div className="flex items-center gap-1.5 ml-2">
               <span className="h-1 w-1 rounded-full bg-gray-300" />
               <div className="flex items-center gap-2">
                 {followUp && (
-                  <Badge variant="outline" className="h-5 text-[10px] bg-teal-50 text-teal-700 border-teal-100 dark:bg-teal-900/30 dark:text-teal-400">
+                  <Badge
+                    variant="outline"
+                    className="h-5 text-[10px] bg-teal-50 text-teal-700 border-teal-100 dark:bg-teal-900/30 dark:text-teal-400"
+                  >
                     {followUp}
                   </Badge>
                 )}
                 {adviceCount > 0 && (
-                  <Badge variant="outline" className="h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
+                  <Badge
+                    variant="outline"
+                    className="h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/30 dark:text-blue-400"
+                  >
                     {adviceCount} advice
                   </Badge>
                 )}
@@ -90,7 +106,7 @@ export function FollowUpSelector({
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2">
           {isExpanded ? (
             <ChevronUp className="h-4 w-4 text-gray-400" />
@@ -114,9 +130,7 @@ export function FollowUpSelector({
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() =>
-                    onFollowUpChange(followUp === opt.value ? '' : opt.value)
-                  }
+                  onClick={() => onFollowUpChange(followUp === opt.value ? '' : opt.value)}
                   className={`rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
                     followUp === opt.value
                       ? 'bg-teal-500 text-white border-teal-600 shadow-sm'
@@ -143,7 +157,7 @@ export function FollowUpSelector({
                 {showCustomAdvice ? 'Hide Custom' : '+ Custom Advice'}
               </button>
             </div>
-            
+
             <div className="flex flex-wrap gap-1.5">
               {ADVICE_TEMPLATES.map((tpl) => (
                 <button
@@ -163,7 +177,9 @@ export function FollowUpSelector({
 
             {/* Custom textarea */}
             {(showCustomAdvice || (!adviceCount && !isExpanded)) && (
-              <div className={`transition-all duration-300 ${showCustomAdvice ? 'opacity-100 mt-2' : 'opacity-0 h-0 overflow-hidden'}`}>
+              <div
+                className={`transition-all duration-300 ${showCustomAdvice ? 'opacity-100 mt-2' : 'opacity-0 h-0 overflow-hidden'}`}
+              >
                 <Textarea
                   value={advice}
                   onChange={(e) => onAdviceChange(e.target.value)}
@@ -177,14 +193,20 @@ export function FollowUpSelector({
             {/* Selected advice preview (always show if not redundant) */}
             {advice && !showCustomAdvice && (
               <div className="mt-2 space-y-1">
-                {advice.split('\n').filter(Boolean).map((line, i) => (
-                  <div key={i} className="flex items-start gap-2 p-2 rounded bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-900/30">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-                    <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed italic">
-                      {line.trim().replace(/^[•\-\*]\s*/, '')}
-                    </p>
-                  </div>
-                ))}
+                {advice
+                  .split('\n')
+                  .filter(Boolean)
+                  .map((line, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2 p-2 rounded bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-900/30"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                      <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed italic">
+                        {line.trim().replace(/^[•\-\*]\s*/, '')}
+                      </p>
+                    </div>
+                  ))}
               </div>
             )}
           </div>

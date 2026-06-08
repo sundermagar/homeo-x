@@ -14,7 +14,7 @@ export function Pagination({
   itemsPerPage,
   currentPage,
   onPageChange,
-  onLimitChange
+  onLimitChange,
 }: PaginationProps) {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -26,7 +26,7 @@ export function Pagination({
   const renderPageButtons = () => {
     const buttons = [];
     const maxVisible = 5;
-    
+
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(totalPages, startPage + maxVisible - 1);
 
@@ -42,7 +42,7 @@ export function Pagination({
           onClick={() => onPageChange(i)}
         >
           {i}
-        </button>
+        </button>,
       );
     }
     return buttons;
@@ -54,7 +54,7 @@ export function Pagination({
         <span className="pp-pagination-info">
           Showing {startIdx}-{endIdx} of {totalItems}
         </span>
-        <select 
+        <select
           className="pp-pagination-limit"
           value={itemsPerPage}
           onChange={(e) => {
@@ -68,17 +68,17 @@ export function Pagination({
         </select>
       </div>
       <div className="pp-pagination-controls">
-        <button 
+        <button
           className="pp-pagination-btn"
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
         >
           <ChevronLeft size={16} />
         </button>
-        
+
         {renderPageButtons()}
 
-        <button 
+        <button
           className="pp-pagination-btn"
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages || totalPages === 0}

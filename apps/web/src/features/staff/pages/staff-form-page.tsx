@@ -98,7 +98,9 @@ export default function StaffFormPage() {
       setCategory(staffData.category);
     }
   }, [staffData, isEditing]);
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value, type } = e.target;
     let val: any = value;
     if (type === 'number') {
@@ -107,7 +109,7 @@ export default function StaffFormPage() {
     setFormData((prev: any) => ({ ...prev, [name]: val }));
     // Clear specific field error when touched
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -136,7 +138,8 @@ export default function StaffFormPage() {
       }
       navigate('/staff');
     } catch (err: any) {
-      if (err.errors) { // Zod error
+      if (err.errors) {
+        // Zod error
         const newErrors: Record<string, string> = {};
         err.errors.forEach((e: any) => {
           if (e.path.length > 0) {
@@ -152,7 +155,14 @@ export default function StaffFormPage() {
     }
   };
   if (isEditing && isLoadingStaff) {
-    return <div className="plat-empty" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading staff details...</div>;
+    return (
+      <div
+        className="plat-empty"
+        style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}
+      >
+        Loading staff details...
+      </div>
+    );
   }
   const categoryName = CATEGORY_META[category] || 'Staff';
   return (
@@ -163,7 +173,10 @@ export default function StaffFormPage() {
       maxWidth="600px"
     >
       <style>{mobileStyles}</style>
-      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
+      <div
+        className="plat-modal-content"
+        style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}
+      >
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {/* Category Selection (Only when creating) */}
           {!isEditing && (
@@ -172,9 +185,17 @@ export default function StaffFormPage() {
                 <Briefcase size={16} /> Staff Category
               </h4>
               <div className="plat-form-group">
-                <select className="plat-form-input" name="category" value={category} onChange={handleCategoryChange} disabled={isEditing}>
+                <select
+                  className="plat-form-input"
+                  name="category"
+                  value={category}
+                  onChange={handleCategoryChange}
+                  disabled={isEditing}
+                >
                   {Object.entries(CATEGORY_META).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -189,7 +210,12 @@ export default function StaffFormPage() {
               <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '80px 1fr 1fr' }}>
                 <div className="plat-form-group">
                   <label className="plat-form-label">Title</label>
-                  <select className="plat-form-input" name="title" value={formData.title} onChange={handleChange}>
+                  <select
+                    className="plat-form-input"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                  >
                     <option value="Dr">Dr</option>
                     <option value="Mr">Mr</option>
                     <option value="Ms">Ms</option>
@@ -198,26 +224,53 @@ export default function StaffFormPage() {
                 </div>
                 <div className="plat-form-group">
                   <label className="plat-form-label">First Name *</label>
-                  <input className="plat-form-input" name="firstname" value={formData.firstname} onChange={handleChange} placeholder="First Name" />
-                  {errors['firstname'] && <span className="plat-form-error">{errors['firstname']}</span>}
+                  <input
+                    className="plat-form-input"
+                    name="firstname"
+                    value={formData.firstname}
+                    onChange={handleChange}
+                    placeholder="First Name"
+                  />
+                  {errors['firstname'] && (
+                    <span className="plat-form-error">{errors['firstname']}</span>
+                  )}
                 </div>
                 <div className="plat-form-group">
                   <label className="plat-form-label">Surname *</label>
-                  <input className="plat-form-input" name="surname" value={formData.surname} onChange={handleChange} placeholder="Surname" />
-                  {errors['surname'] && <span className="plat-form-error">{errors['surname']}</span>}
+                  <input
+                    className="plat-form-input"
+                    name="surname"
+                    value={formData.surname}
+                    onChange={handleChange}
+                    placeholder="Surname"
+                  />
+                  {errors['surname'] && (
+                    <span className="plat-form-error">{errors['surname']}</span>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="plat-form-group">
                 <label className="plat-form-label">Full Name *</label>
-                <input className="plat-form-input" name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Jane Doe" />
+                <input
+                  className="plat-form-input"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="e.g. Jane Doe"
+                />
                 {errors['name'] && <span className="plat-form-error">{errors['name']}</span>}
               </div>
             )}
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Gender</label>
-                <select className="plat-form-input" name="gender" value={formData.gender} onChange={handleChange}>
+                <select
+                  className="plat-form-input"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                >
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
@@ -225,7 +278,13 @@ export default function StaffFormPage() {
               </div>
               <div className="plat-form-group">
                 <label className="plat-form-label">Date of Birth</label>
-                <input type="date" className="plat-form-input" name="dateBirth" value={formData.dateBirth} onChange={handleChange} />
+                <input
+                  type="date"
+                  className="plat-form-input"
+                  name="dateBirth"
+                  value={formData.dateBirth}
+                  onChange={handleChange}
+                />
               </div>
             </div>
           </div>
@@ -237,23 +296,51 @@ export default function StaffFormPage() {
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Primary Mobile *</label>
-                <NumericInput className="plat-form-input" name="mobile" value={formData.mobile} onChange={handleChange} placeholder="+91" />
+                <NumericInput
+                  className="plat-form-input"
+                  name="mobile"
+                  value={formData.mobile}
+                  onChange={handleChange}
+                  placeholder="+91"
+                />
                 {errors['mobile'] && <span className="plat-form-error">{errors['mobile']}</span>}
               </div>
               <div className="plat-form-group">
                 <label className="plat-form-label">Secondary Mobile</label>
-                <NumericInput className="plat-form-input" name="mobile2" value={formData.mobile2} onChange={handleChange} placeholder="+91" />
+                <NumericInput
+                  className="plat-form-input"
+                  name="mobile2"
+                  value={formData.mobile2}
+                  onChange={handleChange}
+                  placeholder="+91"
+                />
               </div>
             </div>
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Login Email</label>
-                <input type="email" className="plat-form-input" name="email" value={formData.email} onChange={handleChange} placeholder="user@clinic.com" />
+                <input
+                  type="email"
+                  className="plat-form-input"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="user@clinic.com"
+                />
                 {errors['email'] && <span className="plat-form-error">{errors['email']}</span>}
               </div>
               <div className="plat-form-group">
-                <label className="plat-form-label">Initial Password {isEditing && '(keep blank to retain current)'}</label>
-                <input type="password" className="plat-form-input" name="password" value={formData.password} onChange={handleChange} placeholder={isEditing ? '••••••••' : 'Setup password'} />
+                <label className="plat-form-label">
+                  Initial Password {isEditing && '(keep blank to retain current)'}
+                </label>
+                <input
+                  type="password"
+                  className="plat-form-input"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder={isEditing ? '••••••••' : 'Setup password'}
+                />
               </div>
             </div>
             {!isEditing && (
@@ -263,11 +350,11 @@ export default function StaffFormPage() {
                     type="checkbox"
                     name="sendWelcomeEmail"
                     checked={formData.sendWelcomeEmail || false}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, sendWelcomeEmail: e.target.checked }))}
+                    onChange={(e) =>
+                      setFormData((prev: any) => ({ ...prev, sendWelcomeEmail: e.target.checked }))
+                    }
                   />
-                  <span className="plat-checkbox-label">
-                    Send welcome email with credentials
-                  </span>
+                  <span className="plat-checkbox-label">Send welcome email with credentials</span>
                 </label>
               </div>
             )}
@@ -280,11 +367,30 @@ export default function StaffFormPage() {
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Designation</label>
-                <input className="plat-form-input" name="designation" value={formData.designation} onChange={handleChange} placeholder="e.g. Senior Nurse" />
+                <input
+                  className="plat-form-input"
+                  name="designation"
+                  value={formData.designation}
+                  onChange={handleChange}
+                  placeholder="e.g. Senior Nurse"
+                />
               </div>
               <div className="plat-form-group">
                 <label className="plat-form-label">Tenure Status</label>
-                <select className="plat-form-input" name="dateLeft" value={formData.dateLeft ? 'inactive' : ''} onChange={(e) => setFormData((p: any) => ({ ...p, dateLeft: e.target.value === 'inactive' ? new Date().toISOString().substring(0, 10) : '' }))}>
+                <select
+                  className="plat-form-input"
+                  name="dateLeft"
+                  value={formData.dateLeft ? 'inactive' : ''}
+                  onChange={(e) =>
+                    setFormData((p: any) => ({
+                      ...p,
+                      dateLeft:
+                        e.target.value === 'inactive'
+                          ? new Date().toISOString().substring(0, 10)
+                          : '',
+                    }))
+                  }
+                >
                   <option value="">Active Service</option>
                   <option value="inactive">Service Terminated</option>
                 </select>
@@ -294,27 +400,57 @@ export default function StaffFormPage() {
               <div className="plat-form-grid-multi">
                 <div className="plat-form-group">
                   <label className="plat-form-label">Qualification</label>
-                  <input className="plat-form-input" name="qualification" value={formData.qualification} onChange={handleChange} placeholder="MBBS, MD" />
+                  <input
+                    className="plat-form-input"
+                    name="qualification"
+                    value={formData.qualification}
+                    onChange={handleChange}
+                    placeholder="MBBS, MD"
+                  />
                 </div>
                 <div className="plat-form-group">
                   <label className="plat-form-label">Registration ID</label>
-                  <input className="plat-form-input" name="registrationId" value={formData.registrationId} onChange={handleChange} placeholder="Medical Board ID" />
+                  <input
+                    className="plat-form-input"
+                    name="registrationId"
+                    value={formData.registrationId}
+                    onChange={handleChange}
+                    placeholder="Medical Board ID"
+                  />
                 </div>
                 <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="plat-form-label">Alma Mater / Institute</label>
-                  <input className="plat-form-input" name="institute" value={formData.institute} onChange={handleChange} placeholder="University Name" />
+                  <input
+                    className="plat-form-input"
+                    name="institute"
+                    value={formData.institute}
+                    onChange={handleChange}
+                    placeholder="University Name"
+                  />
                 </div>
               </div>
             )}
             <div className="plat-form-grid-multi">
               <div className="plat-form-group">
                 <label className="plat-form-label">Monthly Retainer (₹)</label>
-                <NumericInput className="plat-form-input" name="salaryCur" value={formData.salaryCur} onChange={handleChange} placeholder="0" />
+                <NumericInput
+                  className="plat-form-input"
+                  name="salaryCur"
+                  value={formData.salaryCur}
+                  onChange={handleChange}
+                  placeholder="0"
+                />
               </div>
               {category === 'doctor' && (
                 <div className="plat-form-group">
                   <label className="plat-form-label">Consultation Fee (₹)</label>
-                  <NumericInput className="plat-form-input" name="consultationFee" value={formData.consultationFee} onChange={handleChange} placeholder="0" />
+                  <NumericInput
+                    className="plat-form-input"
+                    name="consultationFee"
+                    value={formData.consultationFee}
+                    onChange={handleChange}
+                    placeholder="0"
+                  />
                 </div>
               )}
             </div>
@@ -326,19 +462,42 @@ export default function StaffFormPage() {
             </h4>
             <div className="plat-form-group">
               <label className="plat-form-label">City Station</label>
-              <input className="plat-form-input" name="city" value={formData.city} onChange={handleChange} placeholder="City name" />
+              <input
+                className="plat-form-input"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                placeholder="City name"
+              />
             </div>
             <div className="plat-form-group">
               <label className="plat-form-label">Residential Address</label>
-              <textarea className="plat-form-input" name="address" value={formData.address} onChange={handleChange} placeholder="Full address" rows={3} style={{ height: 'auto', padding: '12px' }}></textarea>
+              <textarea
+                className="plat-form-input"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Full address"
+                rows={3}
+                style={{ height: 'auto', padding: '12px' }}
+              ></textarea>
             </div>
           </div>
           <div className="plat-modal-footer">
-            <button type="button" className="plat-btn plat-btn-ghost" onClick={() => navigate('/staff')} disabled={isSubmitting}>
+            <button
+              type="button"
+              className="plat-btn plat-btn-ghost"
+              onClick={() => navigate('/staff')}
+              disabled={isSubmitting}
+            >
               Discard
             </button>
             <button type="submit" className="plat-btn plat-btn-primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Syncing...' : (isEditing ? `Update ${categoryName}` : `Register ${categoryName}`)}
+              {isSubmitting
+                ? 'Syncing...'
+                : isEditing
+                  ? `Update ${categoryName}`
+                  : `Register ${categoryName}`}
             </button>
           </div>
         </form>

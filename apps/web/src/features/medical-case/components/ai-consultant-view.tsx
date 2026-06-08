@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Send, BrainCircuit, Activity, BookOpen, Layers, Paperclip, Square, AlertTriangle, X } from 'lucide-react';
+import {
+  Sparkles,
+  Send,
+  BrainCircuit,
+  Activity,
+  BookOpen,
+  Layers,
+  Paperclip,
+  Square,
+  AlertTriangle,
+  X,
+} from 'lucide-react';
 import { useAiAnalysisStream } from '../hooks/use-ai-analysis';
 
 import { AnalysisTheory } from '../types';
@@ -14,7 +25,15 @@ const THEORIES = [
 export function AiConsultantView({ regid }: { regid?: number }) {
   const [theory, setTheory] = useState<AnalysisTheory>(AnalysisTheory.HOMEOPATHY);
   const [question, setQuestion] = useState('');
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string, theory?: AnalysisTheory, provider?: string, isError?: boolean }[]>([]);
+  const [messages, setMessages] = useState<
+    {
+      role: 'user' | 'assistant';
+      content: string;
+      theory?: AnalysisTheory;
+      provider?: string;
+      isError?: boolean;
+    }[]
+  >([]);
   const [attachment, setAttachment] = useState<{ name: string; url: string } | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,7 +45,8 @@ export function AiConsultantView({ regid }: { regid?: number }) {
   useEffect(() => {
     const container = document.querySelector('.mc-ai-chat-container');
     if (container && scrollRef.current && aiStream.isStreaming) {
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 350;
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 350;
       if (isNearBottom) {
         scrollRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
       }
@@ -58,8 +78,13 @@ export function AiConsultantView({ regid }: { regid?: number }) {
         const MAX_DIM = 1280;
         let { width, height } = img;
         if (width > MAX_DIM || height > MAX_DIM) {
-          if (width > height) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM; }
-          else { width = Math.round(width * MAX_DIM / height); height = MAX_DIM; }
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
         }
         const canvas = document.createElement('canvas');
         canvas.width = width;
@@ -82,7 +107,10 @@ export function AiConsultantView({ regid }: { regid?: number }) {
     const currentTheory = theory;
 
     // Add user message to history
-    setMessages(prev => [...prev, { role: 'user', content: currentQuestion, theory: currentTheory }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: 'user', content: currentQuestion, theory: currentTheory },
+    ]);
     setQuestion('');
 
     // Force scroll immediately on new user message
@@ -94,7 +122,7 @@ export function AiConsultantView({ regid }: { regid?: number }) {
       theory: currentTheory,
       question: currentQuestion,
       imageUrl: attachment?.url,
-      patientContext: regid ? `Patient PT-${regid}` : 'General Inquiry'
+      patientContext: regid ? `Patient PT-${regid}` : 'General Inquiry',
     });
     setAttachment(null);
   };
@@ -103,25 +131,31 @@ export function AiConsultantView({ regid }: { regid?: number }) {
   useEffect(() => {
     if (!aiStream.isStreaming) {
       if (aiStream.content && !aiStream.error) {
-        setMessages(prev => {
+        setMessages((prev) => {
           // Prevent duplicates if hook state hasn't cleared yet
           if (prev.length > 0 && prev[prev.length - 1]?.content === aiStream.content) return prev;
-          return [...prev, { 
-            role: 'assistant', 
-            content: aiStream.content, 
-            provider: aiStream.provider || undefined 
-          }];
+          return [
+            ...prev,
+            {
+              role: 'assistant',
+              content: aiStream.content,
+              provider: aiStream.provider || undefined,
+            },
+          ];
         });
       } else if (aiStream.error) {
-        setMessages(prev => {
+        setMessages((prev) => {
           const lastMsg = prev[prev.length - 1];
           // Only append an error bubble if the last message was a user query
           if (lastMsg && lastMsg.role === 'user') {
-            return [...prev, { 
-              role: 'assistant', 
-              content: `**Analysis Failed**\n\n${aiStream.error}`,
-              isError: true
-            }];
+            return [
+              ...prev,
+              {
+                role: 'assistant',
+                content: `**Analysis Failed**\n\n${aiStream.error}`,
+                isError: true,
+              },
+            ];
           }
           return prev;
         });
@@ -155,10 +189,10 @@ export function AiConsultantView({ regid }: { regid?: number }) {
                 <div className="mc-ai-query-bubble">
                   <div className="mc-ai-query-badge">
                     {(() => {
-                      const Icon = THEORIES.find(t => t.id === msg.theory)?.icon;
+                      const Icon = THEORIES.find((t) => t.id === msg.theory)?.icon;
                       return Icon ? <Icon size={10} /> : null;
                     })()}
-                    {THEORIES.find(t => t.id === msg.theory)?.label}
+                    {THEORIES.find((t) => t.id === msg.theory)?.label}
                   </div>
                   <div className="mc-ai-query-text">{msg.content}</div>
                 </div>
@@ -167,10 +201,20 @@ export function AiConsultantView({ regid }: { regid?: number }) {
               <div className={`mc-ai-report ${msg.isError ? 'error' : ''}`}>
                 <div className="mc-ai-report-header">
                   {msg.isError ? <AlertTriangle size={16} /> : <Sparkles size={16} />}
-                  <span>{msg.isError ? 'Analysis Failed' : 'AI Clinical Analysis Report'} {msg.provider && <span style={{ opacity: 0.6, fontSize: '0.85em', marginLeft: 4 }}>({msg.provider})</span>}</span>
+                  <span>
+                    {msg.isError ? 'Analysis Failed' : 'AI Clinical Analysis Report'}{' '}
+                    {msg.provider && (
+                      <span style={{ opacity: 0.6, fontSize: '0.85em', marginLeft: 4 }}>
+                        ({msg.provider})
+                      </span>
+                    )}
+                  </span>
                 </div>
                 <div className="mc-ai-report-body">
-                  <div className="mc-typewriter-box" dangerouslySetInnerHTML={{ __html: msg.content.replace(/\n/g, '<br/>') }} />
+                  <div
+                    className="mc-typewriter-box"
+                    dangerouslySetInnerHTML={{ __html: msg.content.replace(/\n/g, '<br/>') }}
+                  />
                 </div>
               </div>
             )}
@@ -183,7 +227,11 @@ export function AiConsultantView({ regid }: { regid?: number }) {
               <Sparkles size={16} className="mc-icon-spin" />
               <span>
                 {aiStream.content ? 'AI Clinical Analysis Report' : 'Analyzing Clinical Case...'}
-                {aiStream.provider && <span style={{ opacity: 0.6, fontSize: '0.85em', marginLeft: 4 }}>({aiStream.provider})</span>}
+                {aiStream.provider && (
+                  <span style={{ opacity: 0.6, fontSize: '0.85em', marginLeft: 4 }}>
+                    ({aiStream.provider})
+                  </span>
+                )}
               </span>
             </div>
             <div className="mc-ai-report-body">
@@ -205,41 +253,67 @@ export function AiConsultantView({ regid }: { regid?: number }) {
           <div className="mc-ai-empty">
             <Sparkles size={48} strokeWidth={1} style={{ opacity: 0.2, marginBottom: 16 }} />
             <h3>Ask the Clinical Analysis AI</h3>
-            <p>Select a theoretical lens and describe the patient's symptoms or upload a lab report for advanced analysis.</p>
+            <p>
+              Select a theoretical lens and describe the patient's symptoms or upload a lab report
+              for advanced analysis.
+            </p>
           </div>
         )}
         <div ref={scrollRef} style={{ height: 1 }} />
       </div>
 
-      <form className="mc-ai-input-wrapper" style={{ flexDirection: 'column', gap: '8px', alignItems: 'stretch' }} onSubmit={(e) => {
-        e.preventDefault();
-        if (!aiStream.isStreaming) {
-          handleAnalyze(e);
-        }
-      }}>
+      <form
+        className="mc-ai-input-wrapper"
+        style={{ flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!aiStream.isStreaming) {
+            handleAnalyze(e);
+          }
+        }}
+      >
         {attachment && (
           <div className="mc-ai-attachment-pill">
-            <span style={{ marginRight: '8px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px', whiteSpace: 'nowrap' }}>{attachment.name}</span>
-            <button 
-              type="button" 
-              onClick={() => setAttachment(null)}
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }}
+            <span
+              style={{
+                marginRight: '8px',
+                fontWeight: 500,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '200px',
+                whiteSpace: 'nowrap',
+              }}
             >
-               <X size={14} />
+              {attachment.name}
+            </span>
+            <button
+              type="button"
+              onClick={() => setAttachment(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <X size={14} />
             </button>
           </div>
         )}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            hidden 
-            accept="image/*" 
+          <input
+            type="file"
+            ref={fileInputRef}
+            hidden
+            accept="image/*"
             onChange={handleFileSelect}
           />
-          <button 
-            type="button" 
-            className="mc-ai-attach-btn" 
+          <button
+            type="button"
+            className="mc-ai-attach-btn"
             title="Upload Report"
             onClick={() => fileInputRef.current?.click()}
             disabled={aiStream.isStreaming}
@@ -272,7 +346,7 @@ export function AiConsultantView({ regid }: { regid?: number }) {
             <button
               type="submit"
               className="mc-ai-submit-btn"
-              disabled={(!question.trim() && !attachment)}
+              disabled={!question.trim() && !attachment}
             >
               <span className="btn-text">Analyze</span> <Send size={14} />
             </button>
@@ -282,38 +356,104 @@ export function AiConsultantView({ regid }: { regid?: number }) {
 
       {showErrorModal && (
         <div className="mc-modal-overlay" onClick={handleCloseError}>
-          <div className="mc-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480, animation: 'modalFadeIn 200ms ease-out' }}>
-            <div className="mc-modal-header" style={{ borderBottomColor: '#fee2e2', backgroundColor: '#fef2f2', padding: '20px 24px' }}>
+          <div
+            className="mc-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 480, animation: 'modalFadeIn 200ms ease-out' }}
+          >
+            <div
+              className="mc-modal-header"
+              style={{
+                borderBottomColor: '#fee2e2',
+                backgroundColor: '#fef2f2',
+                padding: '20px 24px',
+              }}
+            >
               <div className="mc-modal-title-group" style={{ alignItems: 'center' }}>
-                <div className="mc-modal-icon-bg" style={{ backgroundColor: '#fecaca', color: 'var(--pp-danger-fg)', width: 40, height: 40 }}>
+                <div
+                  className="mc-modal-icon-bg"
+                  style={{
+                    backgroundColor: '#fecaca',
+                    color: 'var(--pp-danger-fg)',
+                    width: 40,
+                    height: 40,
+                  }}
+                >
                   <AlertTriangle size={20} />
                 </div>
                 <div>
-                  <h3 className="mc-modal-title" style={{ color: '#991b1b', fontSize: '1.05rem' }}>AI Service Unavailable</h3>
-                  <p className="mc-modal-sub" style={{ color: '#b91c1c', marginTop: 2 }}>High traffic volume detected.</p>
+                  <h3 className="mc-modal-title" style={{ color: '#991b1b', fontSize: '1.05rem' }}>
+                    AI Service Unavailable
+                  </h3>
+                  <p className="mc-modal-sub" style={{ color: '#b91c1c', marginTop: 2 }}>
+                    High traffic volume detected.
+                  </p>
                 </div>
               </div>
-              <button className="mc-modal-close" onClick={handleCloseError} style={{ color: 'var(--pp-danger-fg)' }}>
+              <button
+                className="mc-modal-close"
+                onClick={handleCloseError}
+                style={{ color: 'var(--pp-danger-fg)' }}
+              >
                 <X size={20} />
               </button>
             </div>
             <div className="mc-modal-body" style={{ padding: '24px' }}>
-              <p style={{ marginBottom: 16, fontSize: '0.95rem', color: '#334155', lineHeight: 1.6 }}>
-                The AI clinical analysis service is currently experiencing high traffic or your session timed out. This is usually resolved within a few seconds.
+              <p
+                style={{ marginBottom: 16, fontSize: '0.95rem', color: '#334155', lineHeight: 1.6 }}
+              >
+                The AI clinical analysis service is currently experiencing high traffic or your
+                session timed out. This is usually resolved within a few seconds.
               </p>
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 16px', fontSize: '0.8rem', color: '#475569', fontFamily: 'monospace', wordBreak: 'break-word' }}>
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 8,
+                  padding: '12px 16px',
+                  fontSize: '0.8rem',
+                  color: '#475569',
+                  fontFamily: 'monospace',
+                  wordBreak: 'break-word',
+                }}
+              >
                 {aiStream.error || 'Connection timed out after 15 seconds.'}
               </div>
-              <div style={{ marginTop: 20, display: 'flex', gap: 10, alignItems: 'flex-start', background: '#f0f9ff', padding: 12, borderRadius: 8, border: '1px solid #e0f2fe' }}>
+              <div
+                style={{
+                  marginTop: 20,
+                  display: 'flex',
+                  gap: 10,
+                  alignItems: 'flex-start',
+                  background: '#f0f9ff',
+                  padding: 12,
+                  borderRadius: 8,
+                  border: '1px solid #e0f2fe',
+                }}
+              >
                 <span style={{ fontSize: '1.2rem' }}>💡</span>
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#0369a1', lineHeight: 1.5 }}>
-                  <strong>Tip:</strong> Please wait ~30 seconds before retrying. You can also try switching to a different theoretical lens.
+                  <strong>Tip:</strong> Please wait ~30 seconds before retrying. You can also try
+                  switching to a different theoretical lens.
                 </p>
               </div>
             </div>
-            <div className="mc-modal-footer" style={{ padding: '16px 24px', backgroundColor: '#f8fafc' }}>
-              <button type="button" className="mc-btn-secondary" onClick={handleCloseError}>Close</button>
-              <button type="button" className="mc-btn-primary" onClick={handleCloseError} style={{ backgroundColor: 'var(--pp-danger-fg)', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)' }}>
+            <div
+              className="mc-modal-footer"
+              style={{ padding: '16px 24px', backgroundColor: '#f8fafc' }}
+            >
+              <button type="button" className="mc-btn-secondary" onClick={handleCloseError}>
+                Close
+              </button>
+              <button
+                type="button"
+                className="mc-btn-primary"
+                onClick={handleCloseError}
+                style={{
+                  backgroundColor: 'var(--pp-danger-fg)',
+                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)',
+                }}
+              >
                 Dismiss & Retry
               </button>
             </div>

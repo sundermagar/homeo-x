@@ -17,9 +17,9 @@ export const NewChatModal = ({ isOpen, onClose, onSelect }: NewChatModalProps) =
   const { data: contacts, isLoading } = useContacts(1); // truthy sentinel — server uses auth context
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  const filteredContacts = contacts?.filter((c: any) => 
-    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.phone?.includes(searchTerm)
+  const filteredContacts = contacts?.filter(
+    (c: any) =>
+      c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.phone?.includes(searchTerm),
   );
 
   if (!isOpen) return null;
@@ -38,10 +38,13 @@ export const NewChatModal = ({ isOpen, onClose, onSelect }: NewChatModalProps) =
         <div className="appt-drawer-body flex flex-col p-0">
           <div className="p-5 border-b border-pp-border bg-pp-bg-subtle/30">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/60" size={16} />
-              <input 
-                placeholder="Find patient by name or phone..." 
-                className="pp-filter-search-input" 
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/60"
+                size={16}
+              />
+              <input
+                placeholder="Find patient by name or phone..."
+                className="pp-filter-search-input"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 autoFocus
@@ -51,13 +54,17 @@ export const NewChatModal = ({ isOpen, onClose, onSelect }: NewChatModalProps) =
 
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
-              <div className="p-12 text-center text-muted font-bold animate-pulse text-[11px] uppercase tracking-widest">Synchronizing Directory...</div>
+              <div className="p-12 text-center text-muted font-bold animate-pulse text-[11px] uppercase tracking-widest">
+                Synchronizing Directory...
+              </div>
             ) : filteredContacts?.length === 0 ? (
-              <div className="p-12 text-center text-muted italic text-sm">No clinical matches found.</div>
+              <div className="p-12 text-center text-muted italic text-sm">
+                No clinical matches found.
+              </div>
             ) : (
               <div className="divide-y divide-pp-border">
                 {filteredContacts?.map((contact: any) => (
-                  <div 
+                  <div
                     key={contact.id}
                     className="p-4 flex items-center gap-4 hover:bg-pp-bg-subtle transition-all cursor-pointer group"
                     onClick={() => {
@@ -69,7 +76,9 @@ export const NewChatModal = ({ isOpen, onClose, onSelect }: NewChatModalProps) =
                       {contact.name?.substring(0, 1).toUpperCase() || 'P'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-main text-[13px] group-hover:text-pp-blue transition-colors">{contact.name || 'Anonymous'}</p>
+                      <p className="font-bold text-main text-[13px] group-hover:text-pp-blue transition-colors">
+                        {contact.name || 'Anonymous'}
+                      </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <Phone size={10} className="text-muted" />
                         <span className="text-[11px] text-muted font-bold">+{contact.phone}</span>
@@ -86,6 +95,6 @@ export const NewChatModal = ({ isOpen, onClose, onSelect }: NewChatModalProps) =
         </div>
       </div>
     </>,
-    document.body
+    document.body,
   );
 };

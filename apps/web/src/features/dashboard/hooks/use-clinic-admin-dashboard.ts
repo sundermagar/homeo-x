@@ -8,7 +8,10 @@ export const clinicAdminKeys = {
 };
 
 const fetchClinicAdminDashboard = async (period: string): Promise<ClinicAdminDashboardData> => {
-  const res = await apiClient.get<{ success: boolean; data: ClinicAdminDashboardData }>('/dashboard/clinic-admin', { params: { period } });
+  const res = await apiClient.get<{ success: boolean; data: ClinicAdminDashboardData }>(
+    '/dashboard/clinic-admin',
+    { params: { period } },
+  );
   return res.data.data;
 };
 
@@ -16,8 +19,8 @@ export function useClinicAdminDashboard(period: string = 'month') {
   return useQuery({
     queryKey: clinicAdminKeys.detail(period),
     queryFn: () => fetchClinicAdminDashboard(period),
-    staleTime: 2 * 60_000,   // 2 min — financial aggregates don't need real-time refresh
-    gcTime: 10 * 60_000,     // keep in cache 10 min after unmount
+    staleTime: 2 * 60_000, // 2 min — financial aggregates don't need real-time refresh
+    gcTime: 10 * 60_000, // keep in cache 10 min after unmount
   });
 }
 

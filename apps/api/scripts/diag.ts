@@ -10,11 +10,11 @@ async function main() {
 
   const appts = await db.execute(sql`SELECT * FROM appointments ORDER BY id DESC LIMIT 5`);
   const wl = await db.execute(sql`SELECT * FROM waitlist ORDER BY id DESC LIMIT 5`);
-  
-  console.log("=== APPOINTMENTS ===");
-  console.log(JSON.stringify((appts as any).slice(0,2), null, 2));
-  console.log("=== WAITLIST ===");
-  console.log(JSON.stringify((wl as any).slice(0,2), null, 2));
+
+  console.log('=== APPOINTMENTS ===');
+  console.log(JSON.stringify((appts as any).slice(0, 2), null, 2));
+  console.log('=== WAITLIST ===');
+  console.log(JSON.stringify((wl as any).slice(0, 2), null, 2));
   process.exit(0);
 }
 main();

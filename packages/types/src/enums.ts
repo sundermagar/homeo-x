@@ -18,29 +18,29 @@ export enum CaseStatus {
 }
 
 export enum AppointmentStatus {
-  Pending      = 'Pending',
-  Confirmed    = 'Confirmed',
+  Pending = 'Pending',
+  Confirmed = 'Confirmed',
   Consultation = 'Consultation',
-  Done         = 'Done',
-  Visited      = 'Visited',
-  Absent       = 'Absent',
-  Cancelled    = 'Cancelled',
-  Rescheduled  = 'Rescheduled',
-  Waitlist     = 'Waitlist',
-  Arrived      = 'Arrived',
-  InProgress   = 'InProgress',
-  Completed    = 'Completed',
+  Done = 'Done',
+  Visited = 'Visited',
+  Absent = 'Absent',
+  Cancelled = 'Cancelled',
+  Rescheduled = 'Rescheduled',
+  Waitlist = 'Waitlist',
+  Arrived = 'Arrived',
+  InProgress = 'InProgress',
+  Completed = 'Completed',
 }
 
 export enum VisitType {
-  New      = 'New',
+  New = 'New',
   FollowUp = 'FollowUp',
 }
 
 export enum TokenStatus {
   Queued = 'queued',
   Called = 'called',
-  Done   = 'done',
+  Done = 'done',
 }
 
 export enum ConsultationStage {

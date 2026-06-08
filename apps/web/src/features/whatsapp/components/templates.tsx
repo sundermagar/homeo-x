@@ -1,19 +1,37 @@
 import React, { useState } from 'react';
 import { useWhatsApp } from '../hooks/use-whatsapp';
-import { FileText, RefreshCw, Search, CheckCircle, AlertCircle, X, ShieldAlert, Plus, Trash } from 'lucide-react';
+import {
+  FileText,
+  RefreshCw,
+  Search,
+  CheckCircle,
+  AlertCircle,
+  X,
+  ShieldAlert,
+  Plus,
+  Trash,
+} from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Drawer } from '@/shared/components/drawer';
 
 export const Templates = () => {
-  const { useChannels, useTemplates, useSyncTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate, useUploadMedia } = useWhatsApp();
+  const {
+    useChannels,
+    useTemplates,
+    useSyncTemplates,
+    useCreateTemplate,
+    useUpdateTemplate,
+    useDeleteTemplate,
+    useUploadMedia,
+  } = useWhatsApp();
   const { data: channels, isLoading: loadingChannels } = useChannels();
-  
+
   const [selectedChannelId, setSelectedChannelId] = useState<number | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
-  
+
   const uploadMutation = useUploadMedia();
-  
+
   // Edit States
   const updateMutation = useUpdateTemplate();
   const deleteMutation = useDeleteTemplate(selectedChannelId);
@@ -24,7 +42,7 @@ export const Templates = () => {
     footer: '',
     mediaType: 'text',
     mediaUrl: '',
-    mediaFile: null as File | null
+    mediaFile: null as File | null,
   });
 
   // Create Dialog States
@@ -39,7 +57,7 @@ export const Templates = () => {
     buttons: [] as any[],
     mediaType: 'text',
     mediaUrl: '',
-    mediaFile: null as File | null
+    mediaFile: null as File | null,
   });
 
   // Sync edit state with selected template
@@ -51,7 +69,7 @@ export const Templates = () => {
         footer: selectedTemplate.footer || '',
         mediaType: selectedTemplate.mediaType || 'text',
         mediaUrl: selectedTemplate.mediaUrl || '',
-        mediaFile: null
+        mediaFile: null,
       });
       setIsEditingTemplate(false);
     } else {
@@ -114,22 +132,32 @@ export const Templates = () => {
     }
 
     // Name formatting (lowercase and underscores only)
-    const formattedName = newTemplate.name.toLowerCase().trim().replace(/[^a-z0-9_]/g, '_');
+    const formattedName = newTemplate.name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9_]/g, '_');
 
     try {
       let mediaHandle = '';
-      if ((newTemplate.mediaType === 'image_upload' || newTemplate.mediaType === 'video_upload') && newTemplate.mediaFile && selectedChannelId) {
+      if (
+        (newTemplate.mediaType === 'image_upload' || newTemplate.mediaType === 'video_upload') &&
+        newTemplate.mediaFile &&
+        selectedChannelId
+      ) {
         const uploadResult = await uploadMutation.mutateAsync({
           channelId: selectedChannelId,
           file: newTemplate.mediaFile,
-          title: newTemplate.name + '_header'
+          title: newTemplate.name + '_header',
         });
         mediaHandle = uploadResult.mediaId;
       }
 
-      const finalMediaType = newTemplate.mediaType === 'image_upload' ? 'image' 
-        : newTemplate.mediaType === 'video_upload' ? 'video' 
-        : newTemplate.mediaType;
+      const finalMediaType =
+        newTemplate.mediaType === 'image_upload'
+          ? 'image'
+          : newTemplate.mediaType === 'video_upload'
+            ? 'video'
+            : newTemplate.mediaType;
 
       await createMutation.mutateAsync({
         channelId: selectedChannelId,
@@ -162,7 +190,7 @@ export const Templates = () => {
         buttons: [],
         mediaType: 'text',
         mediaUrl: '',
-        mediaFile: null
+        mediaFile: null,
       });
     } catch (err: any) {
       toast({
@@ -196,10 +224,12 @@ export const Templates = () => {
     });
   };
 
-  const filteredTemplates = templates?.filter(t => 
-    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.category.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  const filteredTemplates =
+    templates?.filter(
+      (t) =>
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.category.toLowerCase().includes(searchQuery.toLowerCase()),
+    ) || [];
 
   const getStatusBadge = (status: string) => {
     const s = status.toUpperCase();
@@ -233,7 +263,9 @@ export const Templates = () => {
       <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-[var(--bg-card)] p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
         <div className="flex flex-col md:flex-row gap-4 flex-1 items-stretch md:items-center">
           <div className="w-full md:w-64">
-            <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Select Channel</label>
+            <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+              Select Channel
+            </label>
             <select
               value={selectedChannelId || ''}
               onChange={(e) => setSelectedChannelId(Number(e.target.value))}
@@ -242,15 +274,19 @@ export const Templates = () => {
               {loadingChannels ? (
                 <option>Loading channels...</option>
               ) : (
-                channels?.map(ch => (
-                  <option key={ch.id} value={ch.id}>{ch.name} ({ch.phoneNumber})</option>
+                channels?.map((ch) => (
+                  <option key={ch.id} value={ch.id}>
+                    {ch.name} ({ch.phoneNumber})
+                  </option>
                 ))
               )}
             </select>
           </div>
 
           <div className="flex-1 max-w-md mt-4 md:mt-0">
-            <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Search Templates</label>
+            <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+              Search Templates
+            </label>
             <div className="relative">
               <input
                 type="text"
@@ -272,7 +308,7 @@ export const Templates = () => {
             <Plus size={16} />
             Create Template
           </button>
-          
+
           <button
             onClick={handleSync}
             disabled={syncMutation.isPending || !selectedChannelId}
@@ -294,7 +330,8 @@ export const Templates = () => {
           <FileText className="w-16 h-16 text-muted/30 mb-4" />
           <h3 className="text-lg font-bold text-main">No Templates Found</h3>
           <p className="text-secondary max-w-sm mx-auto text-sm mt-1">
-            Click 'Create Template' or sync existing templates from your Meta Business account to get started.
+            Click 'Create Template' or sync existing templates from your Meta Business account to
+            get started.
           </p>
         </div>
       ) : (
@@ -308,8 +345,12 @@ export const Templates = () => {
               <div>
                 <div className="flex justify-between items-start gap-4">
                   <div className="truncate flex-1">
-                    <h4 className="font-bold text-main truncate group-hover:text-pp-blue transition-all">{template.name}</h4>
-                    <p className="text-[11px] uppercase tracking-wider text-muted mt-0.5">{template.category}</p>
+                    <h4 className="font-bold text-main truncate group-hover:text-pp-blue transition-all">
+                      {template.name}
+                    </h4>
+                    <p className="text-[11px] uppercase tracking-wider text-muted mt-0.5">
+                      {template.category}
+                    </p>
                   </div>
                   {getStatusBadge(template.status)}
                 </div>
@@ -319,16 +360,27 @@ export const Templates = () => {
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between pt-4 border-t border-slate-200 dark:border-white/10 text-xs text-muted">
-                <span>Lang: <strong className="text-main dark:text-white uppercase">{template.language}</strong></span>
+              <div className="mt-4 flex items-center justify-between pt-4 border-t border-pp-border text-xs text-muted">
+                <span>
+                  Lang: <strong className="text-main uppercase">{template.language}</strong>
+                </span>
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm(`Are you sure you want to delete the template "${template.name}"?`)) {
+                      if (
+                        window.confirm(
+                          `Are you sure you want to delete the template "${template.name}"?`,
+                        )
+                      ) {
                         deleteMutation.mutate(template.id, {
                           onSuccess: () => toast({ title: 'Template Deleted', variant: 'success' }),
-                          onError: (err: any) => toast({ title: 'Delete Failed', description: err.message, variant: 'error' })
+                          onError: (err: any) =>
+                            toast({
+                              title: 'Delete Failed',
+                              description: err.message,
+                              variant: 'error',
+                            }),
                         });
                       }
                     }}
@@ -354,28 +406,42 @@ export const Templates = () => {
       >
         <div className="flex flex-col md:flex-row -m-6 h-[calc(100vh-73px)] overflow-hidden">
           {/* Template Form Builder */}
-          <form onSubmit={handleCreateTemplate} className="p-6 md:p-8 flex-1 overflow-y-auto space-y-6">
+          <form
+            onSubmit={handleCreateTemplate}
+            className="p-6 md:p-8 flex-1 overflow-y-auto space-y-6"
+          >
             <div>
-              <p className="text-xs text-secondary">Design message structures to send patient campaigns globally.</p>
+              <p className="text-xs text-secondary">
+                Design message structures to send patient campaigns globally.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Template Name */}
               <div>
-                <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Template Name (Lowercase & Underscores only)</label>
+                <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                  Template Name (Lowercase & Underscores only)
+                </label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. prescription_ready"
                   value={newTemplate.name}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
+                  onChange={(e) =>
+                    setNewTemplate({
+                      ...newTemplate,
+                      name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
+                    })
+                  }
                   className="pp-input w-full h-11"
                 />
               </div>
 
               {/* Category Selector */}
               <div>
-                <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Category</label>
+                <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                  Category
+                </label>
                 <select
                   value={newTemplate.category}
                   onChange={(e) => setNewTemplate({ ...newTemplate, category: e.target.value })}
@@ -391,10 +457,14 @@ export const Templates = () => {
             {/* Header Input */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Type</label>
+                <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                  Header Type
+                </label>
                 <select
                   value={newTemplate.mediaType}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, mediaType: e.target.value, header: '' })}
+                  onChange={(e) =>
+                    setNewTemplate({ ...newTemplate, mediaType: e.target.value, header: '' })
+                  }
                   className="pp-input w-full h-11"
                 >
                   <option value="text">Text Title</option>
@@ -407,7 +477,9 @@ export const Templates = () => {
 
               {newTemplate.mediaType === 'text' ? (
                 <div>
-                  <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Title Text (Optional)</label>
+                  <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                    Header Title Text (Optional)
+                  </label>
                   <input
                     type="text"
                     placeholder="e.g. Appointment Confirmation"
@@ -416,19 +488,30 @@ export const Templates = () => {
                     className="pp-input w-full h-11"
                   />
                 </div>
-              ) : newTemplate.mediaType === 'image_upload' || newTemplate.mediaType === 'video_upload' ? (
+              ) : newTemplate.mediaType === 'image_upload' ||
+                newTemplate.mediaType === 'video_upload' ? (
                 <div>
-                  <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Upload Media File (Max 16MB)</label>
+                  <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                    Upload Media File (Max 16MB)
+                  </label>
                   <input
                     type="file"
                     accept={newTemplate.mediaType === 'image_upload' ? 'image/*' : 'video/*'}
-                    onChange={(e) => setNewTemplate({ ...newTemplate, mediaFile: e.target.files?.[0] || null, mediaUrl: e.target.files?.[0] ? URL.createObjectURL(e.target.files[0]) : '' })}
+                    onChange={(e) =>
+                      setNewTemplate({
+                        ...newTemplate,
+                        mediaFile: e.target.files?.[0] || null,
+                        mediaUrl: e.target.files?.[0] ? URL.createObjectURL(e.target.files[0]) : '',
+                      })
+                    }
                     className="pp-input w-full pt-2.5 h-11"
                   />
                 </div>
               ) : (
                 <div>
-                  <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Media URL (Must be publicly accessible)</label>
+                  <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                    Media URL (Must be publicly accessible)
+                  </label>
                   <input
                     type="url"
                     placeholder="https://..."
@@ -442,7 +525,9 @@ export const Templates = () => {
 
             {/* Body Content */}
             <div>
-              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Body Message Text (Supports variables like {"{{1}}"})</label>
+              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                Body Message Text (Supports variables like {'{{1}}'})
+              </label>
               <textarea
                 rows={4}
                 required
@@ -455,7 +540,9 @@ export const Templates = () => {
 
             {/* Footer text */}
             <div>
-              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Footer Text (Optional)</label>
+              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                Footer Text (Optional)
+              </label>
               <input
                 type="text"
                 placeholder="e.g. Reply STOP to unsubscribe"
@@ -467,15 +554,26 @@ export const Templates = () => {
 
             {/* Interactive buttons builder */}
             <div className="space-y-4 pt-2">
-              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1 block">Interactive Buttons (Optional)</label>
-              
+              <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1 block">
+                Interactive Buttons (Optional)
+              </label>
+
               {/* Current buttons list */}
               {newTemplate.buttons.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
                   {newTemplate.buttons.map((btn, idx) => (
-                    <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-pp-bg-subtle text-xs font-semibold text-main rounded-xl border border-pp-border">
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-pp-bg-subtle text-xs font-semibold text-main rounded-xl border border-pp-border"
+                    >
                       {btn.text} ({btn.type})
-                      <button type="button" onClick={() => handleRemoveButton(idx)} className="text-red-500 hover:text-red-700 ml-1">✕</button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveButton(idx)}
+                        className="text-red-500 hover:text-red-700 ml-1"
+                      >
+                        ✕
+                      </button>
                     </span>
                   ))}
                 </div>
@@ -484,7 +582,11 @@ export const Templates = () => {
               <div className="bg-pp-bg-subtle/50 p-4 rounded-2xl border border-pp-border flex flex-col md:flex-row flex-wrap gap-3 items-end">
                 <div className="flex-1 min-w-[120px]">
                   <span className="text-[10px] text-secondary mb-1 block">Type</span>
-                  <select value={btnType} onChange={(e) => setBtnType(e.target.value)} className="pp-input w-full h-10 text-xs">
+                  <select
+                    value={btnType}
+                    onChange={(e) => setBtnType(e.target.value)}
+                    className="pp-input w-full h-10 text-xs"
+                  >
                     <option value="QUICK_REPLY">Quick Reply Button</option>
                     <option value="URL">Visit Website URL</option>
                     <option value="PHONE_NUMBER">Call Phone Number</option>
@@ -500,7 +602,7 @@ export const Templates = () => {
                     className="pp-input w-full h-10 text-xs"
                   />
                 </div>
-                
+
                 {btnType === 'URL' && (
                   <div className="flex-1">
                     <span className="text-[10px] text-secondary mb-1 block">Destination URL</span>
@@ -568,42 +670,59 @@ export const Templates = () => {
 
               {/* Simulated Screen */}
               <div className="w-full h-full bg-[#efeae2] rounded-[30px] overflow-hidden flex flex-col justify-between pt-6 pb-4 px-3 border border-main/10 relative">
-                
                 {/* Whatsapp Header */}
                 <div className="bg-[#075e54] text-white p-2.5 text-[10px] font-bold absolute top-0 left-0 right-0 flex items-center gap-1.5 pl-6 pt-5">
-                  <div className="w-4 h-4 bg-[var(--bg-card)]/20 rounded-full flex items-center justify-center text-[7px]">W</div>
+                  <div className="w-4 h-4 bg-[var(--bg-card)]/20 rounded-full flex items-center justify-center text-[7px]">
+                    W
+                  </div>
                   <span className="truncate">{newTemplate.name || 'new_template_preview'}</span>
                 </div>
 
                 {/* Message bubble */}
                 <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-black/5 mt-10 relative text-[10px] leading-relaxed text-main self-start max-w-[95%] w-full">
-                  {(newTemplate.mediaType === 'image' || newTemplate.mediaType === 'image_upload') && newTemplate.mediaUrl && (
-                    <div className="w-full h-24 bg-gray-100 rounded-xl mb-2 overflow-hidden border border-pp-border/50">
-                      <img src={newTemplate.mediaUrl} alt="Header Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://placehold.co/400x200?text=Image+Preview' }} />
-                    </div>
-                  )}
-                  {(newTemplate.mediaType === 'video' || newTemplate.mediaType === 'video_upload') && newTemplate.mediaUrl && (
-                    <div className="w-full h-24 bg-gray-200 rounded-xl mb-2 flex items-center justify-center border border-pp-border/50 relative overflow-hidden">
-                       <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
-                         <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">▶</div>
-                       </div>
-                       <video src={newTemplate.mediaUrl} className="w-full h-full object-cover opacity-50" />
-                    </div>
-                  )}
+                  {(newTemplate.mediaType === 'image' ||
+                    newTemplate.mediaType === 'image_upload') &&
+                    newTemplate.mediaUrl && (
+                      <div className="w-full h-24 bg-gray-100 rounded-xl mb-2 overflow-hidden border border-pp-border/50">
+                        <img
+                          src={newTemplate.mediaUrl}
+                          alt="Header Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as any).src =
+                              'https://placehold.co/400x200?text=Image+Preview';
+                          }}
+                        />
+                      </div>
+                    )}
+                  {(newTemplate.mediaType === 'video' ||
+                    newTemplate.mediaType === 'video_upload') &&
+                    newTemplate.mediaUrl && (
+                      <div className="w-full h-24 bg-gray-200 rounded-xl mb-2 flex items-center justify-center border border-pp-border/50 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
+                          <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">
+                            ▶
+                          </div>
+                        </div>
+                        <video
+                          src={newTemplate.mediaUrl}
+                          className="w-full h-full object-cover opacity-50"
+                        />
+                      </div>
+                    )}
                   {newTemplate.mediaType === 'text' && newTemplate.header && (
                     <div className="font-extrabold text-[10px] text-main border-b border-pp-border/50 pb-1 mb-1.5">
                       {newTemplate.header}
                     </div>
                   )}
-                  
+
                   <div className="whitespace-pre-wrap">
-                    {newTemplate.body || 'Hello {{1}}, your template body message preview will render dynamically here as you type...'}
+                    {newTemplate.body ||
+                      'Hello {{1}}, your template body message preview will render dynamically here as you type...'}
                   </div>
 
                   {newTemplate.footer && (
-                    <div className="text-[8px] text-muted mt-1">
-                      {newTemplate.footer}
-                    </div>
+                    <div className="text-[8px] text-muted mt-1">{newTemplate.footer}</div>
                   )}
 
                   {/* Time & tick */}
@@ -616,7 +735,10 @@ export const Templates = () => {
                   {newTemplate.buttons.length > 0 && (
                     <div className="border-t border-pp-border/50 mt-2.5 pt-1.5 space-y-1">
                       {newTemplate.buttons.map((btn, idx) => (
-                        <div key={idx} className="w-full py-1 text-center font-bold text-[#00a884] bg-pp-bg-subtle/30 hover:bg-pp-bg-subtle/60 rounded-lg text-[9px] border border-black/5 cursor-pointer">
+                        <div
+                          key={idx}
+                          className="w-full py-1 text-center font-bold text-[#00a884] bg-pp-bg-subtle/30 hover:bg-pp-bg-subtle/60 rounded-lg text-[9px] border border-black/5 cursor-pointer"
+                        >
                           {btn.text}
                         </div>
                       ))}
@@ -628,9 +750,10 @@ export const Templates = () => {
                 <div className="bg-white rounded-full p-1.5 flex items-center justify-between border border-black/5">
                   <div className="w-4 h-4 bg-pp-bg-subtle rounded-full" />
                   <div className="flex-1 bg-pp-bg-subtle/50 h-3 rounded-full mx-2" />
-                  <div className="w-4 h-4 bg-[#075e54] rounded-full flex items-center justify-center text-white text-[8px]">▶</div>
+                  <div className="w-4 h-4 bg-[#075e54] rounded-full flex items-center justify-center text-white text-[8px]">
+                    ▶
+                  </div>
                 </div>
-
               </div>
             </div>
           </div>
@@ -655,7 +778,9 @@ export const Templates = () => {
                 </div>
                 <div>
                   <span className="text-[10px] text-muted uppercase block">Language</span>
-                  <span className="text-sm font-semibold uppercase">{selectedTemplate.language}</span>
+                  <span className="text-sm font-semibold uppercase">
+                    {selectedTemplate.language}
+                  </span>
                 </div>
               </div>
 
@@ -665,10 +790,18 @@ export const Templates = () => {
                     {/* Header Input */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Type</label>
+                        <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                          Header Type
+                        </label>
                         <select
                           value={editedTemplate.mediaType}
-                          onChange={(e) => setEditedTemplate({ ...editedTemplate, mediaType: e.target.value, header: '' })}
+                          onChange={(e) =>
+                            setEditedTemplate({
+                              ...editedTemplate,
+                              mediaType: e.target.value,
+                              header: '',
+                            })
+                          }
                           className="pp-input w-full h-11"
                         >
                           <option value="text">Text Title</option>
@@ -681,33 +814,54 @@ export const Templates = () => {
 
                       {editedTemplate.mediaType === 'text' ? (
                         <div>
-                          <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Header Title Text (Optional)</label>
+                          <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                            Header Title Text (Optional)
+                          </label>
                           <input
                             type="text"
                             placeholder="e.g. Appointment Confirmation"
                             value={editedTemplate.header}
-                            onChange={(e) => setEditedTemplate({ ...editedTemplate, header: e.target.value })}
+                            onChange={(e) =>
+                              setEditedTemplate({ ...editedTemplate, header: e.target.value })
+                            }
                             className="pp-input w-full h-11"
                           />
                         </div>
-                      ) : editedTemplate.mediaType === 'image_upload' || editedTemplate.mediaType === 'video_upload' ? (
+                      ) : editedTemplate.mediaType === 'image_upload' ||
+                        editedTemplate.mediaType === 'video_upload' ? (
                         <div>
-                          <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Upload Media File</label>
+                          <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                            Upload Media File
+                          </label>
                           <input
                             type="file"
-                            accept={editedTemplate.mediaType === 'image_upload' ? 'image/*' : 'video/*'}
-                            onChange={(e) => setEditedTemplate({ ...editedTemplate, mediaFile: e.target.files?.[0] || null, mediaUrl: e.target.files?.[0] ? URL.createObjectURL(e.target.files[0]) : '' })}
+                            accept={
+                              editedTemplate.mediaType === 'image_upload' ? 'image/*' : 'video/*'
+                            }
+                            onChange={(e) =>
+                              setEditedTemplate({
+                                ...editedTemplate,
+                                mediaFile: e.target.files?.[0] || null,
+                                mediaUrl: e.target.files?.[0]
+                                  ? URL.createObjectURL(e.target.files[0])
+                                  : '',
+                              })
+                            }
                             className="pp-input w-full pt-2.5 h-11"
                           />
                         </div>
                       ) : (
                         <div>
-                          <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Media URL</label>
+                          <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                            Media URL
+                          </label>
                           <input
                             type="url"
                             placeholder="https://..."
                             value={editedTemplate.mediaUrl}
-                            onChange={(e) => setEditedTemplate({ ...editedTemplate, mediaUrl: e.target.value })}
+                            onChange={(e) =>
+                              setEditedTemplate({ ...editedTemplate, mediaUrl: e.target.value })
+                            }
                             className="pp-input w-full h-11"
                           />
                         </div>
@@ -716,44 +870,67 @@ export const Templates = () => {
 
                     {/* Body Content */}
                     <div>
-                      <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Body Message Text (Supports variables like {"{{1}}"})</label>
+                      <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                        Body Message Text (Supports variables like {'{{1}}'})
+                      </label>
                       <textarea
                         rows={6}
                         required
                         placeholder="e.g. Hello {{1}}, your homeopathy prescription is ready for pickup."
                         value={editedTemplate.body}
-                        onChange={(e) => setEditedTemplate({ ...editedTemplate, body: e.target.value })}
+                        onChange={(e) =>
+                          setEditedTemplate({ ...editedTemplate, body: e.target.value })
+                        }
                         className="pp-input w-full p-3 font-sans text-sm"
                       />
                     </div>
 
                     {/* Footer text */}
                     <div>
-                      <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">Footer Text (Optional)</label>
+                      <label className="pp-table-meta-label uppercase tracking-widest text-[9px] mb-1.5 block">
+                        Footer Text (Optional)
+                      </label>
                       <input
                         type="text"
                         placeholder="e.g. Reply STOP to unsubscribe"
                         value={editedTemplate.footer}
-                        onChange={(e) => setEditedTemplate({ ...editedTemplate, footer: e.target.value })}
+                        onChange={(e) =>
+                          setEditedTemplate({ ...editedTemplate, footer: e.target.value })
+                        }
                         className="pp-input w-full h-11"
                       />
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <h4 className="text-xs uppercase tracking-wider font-bold text-main">Template Content</h4>
-                    
+                    <h4 className="text-xs uppercase tracking-wider font-bold text-main">
+                      Template Content
+                    </h4>
+
                     {selectedTemplate.mediaType === 'image' && selectedTemplate.mediaUrl && (
                       <div className="w-full max-w-[200px] h-32 bg-gray-100 rounded-xl mt-2 overflow-hidden border border-pp-border/50">
-                        <img src={selectedTemplate.mediaUrl} alt="Media" className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://placehold.co/400x200?text=Image+Preview' }} />
+                        <img
+                          src={selectedTemplate.mediaUrl}
+                          alt="Media"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as any).src =
+                              'https://placehold.co/400x200?text=Image+Preview';
+                          }}
+                        />
                       </div>
                     )}
                     {selectedTemplate.mediaType === 'video' && selectedTemplate.mediaUrl && (
                       <div className="w-full max-w-[200px] h-32 bg-gray-200 rounded-xl mt-2 flex items-center justify-center border border-pp-border/50 relative overflow-hidden">
-                         <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
-                           <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">▶</div>
-                         </div>
-                         <video src={selectedTemplate.mediaUrl} className="w-full h-full object-cover opacity-50" />
+                        <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
+                          <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">
+                            ▶
+                          </div>
+                        </div>
+                        <video
+                          src={selectedTemplate.mediaUrl}
+                          className="w-full h-full object-cover opacity-50"
+                        />
                       </div>
                     )}
                     {selectedTemplate.mediaType === 'text' && selectedTemplate.header && (
@@ -774,14 +951,23 @@ export const Templates = () => {
 
                 {selectedTemplate.buttons && (
                   <div>
-                    <h4 className="text-xs uppercase tracking-wider font-bold text-main mb-2">Interactive Buttons</h4>
+                    <h4 className="text-xs uppercase tracking-wider font-bold text-main mb-2">
+                      Interactive Buttons
+                    </h4>
                     <div className="flex flex-wrap gap-2">
-                      {Array.isArray(selectedTemplate.buttons) ? selectedTemplate.buttons.map((btn: any, idx: number) => (
-                        <span key={idx} className="px-3 py-1.5 bg-pp-bg-subtle text-xs font-semibold text-main rounded-xl border border-pp-border">
-                          {btn.text} ({btn.type})
+                      {Array.isArray(selectedTemplate.buttons) ? (
+                        selectedTemplate.buttons.map((btn: any, idx: number) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1.5 bg-pp-bg-subtle text-xs font-semibold text-main rounded-xl border border-pp-border"
+                          >
+                            {btn.text} ({btn.type})
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted">
+                          Configured interactive action elements active.
                         </span>
-                      )) : (
-                        <span className="text-xs text-muted">Configured interactive action elements active.</span>
                       )}
                     </div>
                   </div>
@@ -801,23 +987,35 @@ export const Templates = () => {
                     <button
                       onClick={async () => {
                         if (!editedTemplate.body.trim()) {
-                          toast({ title: 'Validation Error', description: 'Body text is required.', variant: 'error' });
+                          toast({
+                            title: 'Validation Error',
+                            description: 'Body text is required.',
+                            variant: 'error',
+                          });
                           return;
                         }
                         try {
                           let mediaHandle = selectedTemplate.mediaHandle || '';
-                          if ((editedTemplate.mediaType === 'image_upload' || editedTemplate.mediaType === 'video_upload') && editedTemplate.mediaFile && selectedTemplate.channelId) {
+                          if (
+                            (editedTemplate.mediaType === 'image_upload' ||
+                              editedTemplate.mediaType === 'video_upload') &&
+                            editedTemplate.mediaFile &&
+                            selectedTemplate.channelId
+                          ) {
                             const uploadResult = await uploadMutation.mutateAsync({
                               channelId: selectedTemplate.channelId,
                               file: editedTemplate.mediaFile,
-                              title: selectedTemplate.name + '_header_update'
+                              title: selectedTemplate.name + '_header_update',
                             });
                             mediaHandle = uploadResult.mediaId;
                           }
 
-                          const finalMediaType = editedTemplate.mediaType === 'image_upload' ? 'image' 
-                            : editedTemplate.mediaType === 'video_upload' ? 'video' 
-                            : editedTemplate.mediaType;
+                          const finalMediaType =
+                            editedTemplate.mediaType === 'image_upload'
+                              ? 'image'
+                              : editedTemplate.mediaType === 'video_upload'
+                                ? 'video'
+                                : editedTemplate.mediaType;
 
                           await updateMutation.mutateAsync({
                             id: selectedTemplate.id,
@@ -832,9 +1030,13 @@ export const Templates = () => {
                             mediaUrl: editedTemplate.mediaUrl,
                             mediaHandle: mediaHandle || undefined,
                             buttons: selectedTemplate.buttons,
-                            status: selectedTemplate.status
+                            status: selectedTemplate.status,
                           });
-                          toast({ title: 'Template Updated', description: 'Successfully saved template changes.', variant: 'success' });
+                          toast({
+                            title: 'Template Updated',
+                            description: 'Successfully saved template changes.',
+                            variant: 'success',
+                          });
                           setSelectedTemplate({
                             ...selectedTemplate,
                             header: editedTemplate.header,
@@ -846,7 +1048,11 @@ export const Templates = () => {
                           });
                           setIsEditingTemplate(false);
                         } catch (err: any) {
-                          toast({ title: 'Update Failed', description: err.message || 'Failed to save changes.', variant: 'error' });
+                          toast({
+                            title: 'Update Failed',
+                            description: err.message || 'Failed to save changes.',
+                            variant: 'error',
+                          });
                         }
                       }}
                       disabled={updateMutation.isPending}
@@ -878,32 +1084,49 @@ export const Templates = () => {
 
                 {/* Simulated Screen */}
                 <div className="w-full h-full bg-[#efeae2] rounded-[28px] overflow-hidden flex flex-col justify-between pt-6 pb-4 px-3 border border-main/10 relative">
-                  
                   {/* Whatsapp Header */}
                   <div className="bg-[#075e54] text-white p-2 text-[10px] font-bold absolute top-0 left-0 right-0 flex items-center gap-1.5 pl-6 pt-5">
-                    <div className="w-4 h-4 bg-[var(--bg-card)]/20 rounded-full flex items-center justify-center text-[7px]">W</div>
+                    <div className="w-4 h-4 bg-[var(--bg-card)]/20 rounded-full flex items-center justify-center text-[7px]">
+                      W
+                    </div>
                     <span className="truncate">Clinical Verification</span>
                   </div>
 
                   {/* Message bubble */}
                   <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-black/5 mt-10 relative text-[10px] leading-relaxed text-main self-start max-w-[90%] w-full">
-                    
                     {/* Media Preview */}
                     {isEditingTemplate ? (
                       <>
-                        {(editedTemplate.mediaType === 'image' || editedTemplate.mediaType === 'image_upload') && editedTemplate.mediaUrl && (
-                          <div className="w-full h-24 bg-gray-100 rounded-xl mb-2 overflow-hidden border border-pp-border/50">
-                            <img src={editedTemplate.mediaUrl} alt="Header Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://placehold.co/400x200?text=Image+Preview' }} />
-                          </div>
-                        )}
-                        {(editedTemplate.mediaType === 'video' || editedTemplate.mediaType === 'video_upload') && editedTemplate.mediaUrl && (
-                          <div className="w-full h-24 bg-gray-200 rounded-xl mb-2 flex items-center justify-center border border-pp-border/50 relative overflow-hidden">
-                            <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
-                              <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">▶</div>
+                        {(editedTemplate.mediaType === 'image' ||
+                          editedTemplate.mediaType === 'image_upload') &&
+                          editedTemplate.mediaUrl && (
+                            <div className="w-full h-24 bg-gray-100 rounded-xl mb-2 overflow-hidden border border-pp-border/50">
+                              <img
+                                src={editedTemplate.mediaUrl}
+                                alt="Header Preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as any).src =
+                                    'https://placehold.co/400x200?text=Image+Preview';
+                                }}
+                              />
                             </div>
-                            <video src={editedTemplate.mediaUrl} className="w-full h-full object-cover opacity-50" />
-                          </div>
-                        )}
+                          )}
+                        {(editedTemplate.mediaType === 'video' ||
+                          editedTemplate.mediaType === 'video_upload') &&
+                          editedTemplate.mediaUrl && (
+                            <div className="w-full h-24 bg-gray-200 rounded-xl mb-2 flex items-center justify-center border border-pp-border/50 relative overflow-hidden">
+                              <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
+                                <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">
+                                  ▶
+                                </div>
+                              </div>
+                              <video
+                                src={editedTemplate.mediaUrl}
+                                className="w-full h-full object-cover opacity-50"
+                              />
+                            </div>
+                          )}
                         {editedTemplate.mediaType === 'text' && editedTemplate.header && (
                           <div className="font-extrabold text-[10px] text-main border-b border-pp-border/50 pb-1 mb-1.5">
                             {editedTemplate.header}
@@ -914,15 +1137,28 @@ export const Templates = () => {
                       <>
                         {selectedTemplate.mediaType === 'image' && selectedTemplate.mediaUrl && (
                           <div className="w-full h-24 bg-gray-100 rounded-xl mb-2 overflow-hidden border border-pp-border/50">
-                            <img src={selectedTemplate.mediaUrl} alt="Header Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as any).src = 'https://placehold.co/400x200?text=Image+Preview' }} />
+                            <img
+                              src={selectedTemplate.mediaUrl}
+                              alt="Header Preview"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as any).src =
+                                  'https://placehold.co/400x200?text=Image+Preview';
+                              }}
+                            />
                           </div>
                         )}
                         {selectedTemplate.mediaType === 'video' && selectedTemplate.mediaUrl && (
                           <div className="w-full h-24 bg-gray-200 rounded-xl mb-2 flex items-center justify-center border border-pp-border/50 relative overflow-hidden">
                             <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
-                              <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">▶</div>
+                              <div className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white pl-0.5">
+                                ▶
+                              </div>
                             </div>
-                            <video src={selectedTemplate.mediaUrl} className="w-full h-full object-cover opacity-50" />
+                            <video
+                              src={selectedTemplate.mediaUrl}
+                              className="w-full h-full object-cover opacity-50"
+                            />
                           </div>
                         )}
                         {selectedTemplate.mediaType === 'text' && selectedTemplate.header && (
@@ -938,16 +1174,12 @@ export const Templates = () => {
                     </div>
 
                     {isEditingTemplate && editedTemplate.footer && (
-                      <div className="text-[8px] text-muted mt-1">
-                        {editedTemplate.footer}
-                      </div>
+                      <div className="text-[8px] text-muted mt-1">{editedTemplate.footer}</div>
                     )}
                     {!isEditingTemplate && selectedTemplate.footer && (
-                      <div className="text-[8px] text-muted mt-1">
-                        {selectedTemplate.footer}
-                      </div>
+                      <div className="text-[8px] text-muted mt-1">{selectedTemplate.footer}</div>
                     )}
-                    
+
                     {/* Time & tick */}
                     <div className="text-[8px] text-muted text-right mt-1.5 flex items-center justify-end gap-0.5">
                       12:30 PM
@@ -959,16 +1191,16 @@ export const Templates = () => {
                   <div className="bg-white rounded-full p-1.5 flex items-center justify-between border border-black/5">
                     <div className="w-4 h-4 bg-pp-bg-subtle rounded-full" />
                     <div className="flex-1 bg-pp-bg-subtle/50 h-3 rounded-full mx-2" />
-                    <div className="w-4 h-4 bg-[#075e54] rounded-full flex items-center justify-center text-white text-[8px]">▶</div>
+                    <div className="w-4 h-4 bg-[#075e54] rounded-full flex items-center justify-center text-white text-[8px]">
+                      ▶
+                    </div>
                   </div>
-
                 </div>
               </div>
             </div>
           </div>
         )}
       </Drawer>
-
     </div>
   );
 };

@@ -1,21 +1,22 @@
 import { useState, useCallback, useEffect } from 'react';
-import {
-  Stethoscope,
-  Search,
-  X,
-  ChevronDown,
-  ChevronUp,
-  Sparkles,
-  FileText,
-} from 'lucide-react';
+import { Stethoscope, Search, X, ChevronDown, ChevronUp, Sparkles, FileText } from 'lucide-react';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
 import { Textarea } from '../../../components/ui/textarea';
 import { Button } from '../../../components/ui/button';
 import { AiConfidenceBadge } from './ai-confidence-badge';
 import { useIcd10Search } from '../../../hooks/use-icd10';
-import { useAiSuggestSoap, useAiSuggestDiagnosis, useAiFeedback } from '../../../hooks/use-ai-suggest';
-import type { SoapSuggestion, DiagnosisSuggestion, SuggestSoapInput, SuggestDiagnosisInput } from '../../../types/ai';
+import {
+  useAiSuggestSoap,
+  useAiSuggestDiagnosis,
+  useAiFeedback,
+} from '../../../hooks/use-ai-suggest';
+import type {
+  SoapSuggestion,
+  DiagnosisSuggestion,
+  SuggestSoapInput,
+  SuggestDiagnosisInput,
+} from '../../../types/ai';
 
 interface DiagnosisChipsProps {
   /** Selected ICD codes (comma-separated string) */
@@ -76,14 +77,14 @@ export function DiagnosisChips({
   // Parse initial codes from string
   useEffect(() => {
     if (selectedCodes) {
-      const codes = selectedCodes.split(',').map((c) => c.trim()).filter(Boolean);
+      const codes = selectedCodes
+        .split(',')
+        .map((c) => c.trim())
+        .filter(Boolean);
       setSelectedDiagnoses((prev) => {
         const existing = prev.map((d) => d.code);
         const newCodes = codes.filter((c) => !existing.includes(c));
-        return [
-          ...prev,
-          ...newCodes.map((code) => ({ code, description: code })),
-        ];
+        return [...prev, ...newCodes.map((code) => ({ code, description: code }))];
       });
     }
   }, []);
@@ -127,7 +128,7 @@ export function DiagnosisChips({
 
   const handleAiSuggest = useCallback(() => {
     if (!aiContext) return;
-    
+
     // Use targeted diagnosis suggestion engine
     const suggestInput: SuggestDiagnosisInput = {
       symptoms: [aiContext.chiefComplaint || ''],
@@ -175,20 +176,20 @@ export function DiagnosisChips({
         aiFeedback.mutate({ auditLogId: activeSoapSuggestion.auditLogId, action: 'accepted' });
       }
     } else if (activeDxSuggestion) {
-       onSoapChange({
+      onSoapChange({
         ...soapData,
         assessment: activeDxSuggestion.primaryDiagnosis.name || soapData.assessment,
       });
 
       const primary = activeDxSuggestion.primaryDiagnosis;
       const merged = [...selectedDiagnoses];
-      if (primary.icdCode && !merged.some(m => m.code === primary.icdCode)) {
+      if (primary.icdCode && !merged.some((m) => m.code === primary.icdCode)) {
         merged.push({ code: primary.icdCode, description: primary.icdDescription || primary.name });
       }
-      
+
       // Also add differentials if likely
-      activeDxSuggestion.differentials.forEach(diff => {
-        if (diff.likelihood === 'probable' && !merged.some(m => m.code === diff.icdCode)) {
+      activeDxSuggestion.differentials.forEach((diff) => {
+        if (diff.likelihood === 'probable' && !merged.some((m) => m.code === diff.icdCode)) {
           merged.push({ code: diff.icdCode, description: diff.icdDescription || diff.name });
         }
       });
@@ -230,17 +231,25 @@ export function DiagnosisChips({
   }, [activeSoapSuggestion, activeDxSuggestion, aiFeedback, onAiSuggestionHandled]);
 
   // AI suggested diagnoses for UI display
-  const aiDiagnoses = activeSoapSuggestion?.icdCodes 
-    ? activeSoapSuggestion.icdCodes 
-    : activeDxSuggestion 
+  const aiDiagnoses = activeSoapSuggestion?.icdCodes
+    ? activeSoapSuggestion.icdCodes
+    : activeDxSuggestion
       ? [
-          { code: activeDxSuggestion.primaryDiagnosis.icdCode, description: activeDxSuggestion.primaryDiagnosis.icdDescription || activeDxSuggestion.primaryDiagnosis.name },
-          ...activeDxSuggestion.differentials.slice(0, 2).map(d => ({ code: d.icdCode, description: d.icdDescription || d.name }))
+          {
+            code: activeDxSuggestion.primaryDiagnosis.icdCode,
+            description:
+              activeDxSuggestion.primaryDiagnosis.icdDescription ||
+              activeDxSuggestion.primaryDiagnosis.name,
+          },
+          ...activeDxSuggestion.differentials
+            .slice(0, 2)
+            .map((d) => ({ code: d.icdCode, description: d.icdDescription || d.name })),
         ]
       : [];
-  
+
   const aiConfidence = activeSoapSuggestion?.confidence ?? activeDxSuggestion?.confidence ?? 0;
-  const aiAssessment = activeSoapSuggestion?.assessment ?? activeDxSuggestion?.primaryDiagnosis.name;
+  const aiAssessment =
+    activeSoapSuggestion?.assessment ?? activeDxSuggestion?.primaryDiagnosis.name;
 
   return (
     <Card>
@@ -248,9 +257,7 @@ export function DiagnosisChips({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Stethoscope className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Diagnosis
-            </span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Diagnosis</span>
           </div>
           <div className="flex items-center gap-1.5">
             {aiContext && (
@@ -371,12 +378,8 @@ export function DiagnosisChips({
                     onClick={() => addDiagnosis(icd.code, icd.shortDesc)}
                     className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-50 dark:border-gray-800 last:border-0"
                   >
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
-                      {icd.code}
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400 ml-2">
-                      {icd.shortDesc}
-                    </span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">{icd.code}</span>
+                    <span className="text-gray-500 dark:text-gray-400 ml-2">{icd.shortDesc}</span>
                   </button>
                 ))}
               </div>
@@ -421,24 +424,20 @@ export function DiagnosisChips({
 
           {showSoapEditor && (
             <div className="mt-3 space-y-3">
-              {(['subjective', 'objective', 'assessment', 'plan'] as const).map(
-                (field) => (
-                  <div key={field}>
-                    <label className="text-[11px] uppercase tracking-wide font-medium text-gray-400 mb-1 block">
-                      {field.charAt(0).toUpperCase() + field.slice(1)}
-                    </label>
-                    <Textarea
-                      value={soapData[field]}
-                      onChange={(e) =>
-                        onSoapChange({ ...soapData, [field]: e.target.value })
-                      }
-                      rows={2}
-                      className="text-sm resize-none"
-                      placeholder={`Enter ${field}...`}
-                    />
-                  </div>
-                ),
-              )}
+              {(['subjective', 'objective', 'assessment', 'plan'] as const).map((field) => (
+                <div key={field}>
+                  <label className="text-[11px] uppercase tracking-wide font-medium text-gray-400 mb-1 block">
+                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                  </label>
+                  <Textarea
+                    value={soapData[field]}
+                    onChange={(e) => onSoapChange({ ...soapData, [field]: e.target.value })}
+                    rows={2}
+                    className="text-sm resize-none"
+                    placeholder={`Enter ${field}...`}
+                  />
+                </div>
+              ))}
             </div>
           )}
 

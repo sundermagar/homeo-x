@@ -21,18 +21,26 @@ export const permissions = pgTable('permissions', {
   deletedAt: timestamp('deleted_at'),
 });
 
-export const roleUser = pgTable('role_user', {
-  userId: integer('user_id').notNull(),
-  roleId: integer('role_id').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.userId, t.roleId] }),
-}));
+export const roleUser = pgTable(
+  'role_user',
+  {
+    userId: integer('user_id').notNull(),
+    roleId: integer('role_id').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.userId, t.roleId] }),
+  }),
+);
 
-export const permissionRole = pgTable('permission_role', {
-  permissionId: integer('permission_id').notNull(),
-  roleId: integer('role_id').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.permissionId, t.roleId] }),
-}));
+export const permissionRole = pgTable(
+  'permission_role',
+  {
+    permissionId: integer('permission_id').notNull(),
+    roleId: integer('role_id').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.permissionId, t.roleId] }),
+  }),
+);

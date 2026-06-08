@@ -19,8 +19,15 @@ export interface IDashboardRepository {
   getRecentActivity(contextId: number, limit: number): Promise<ActivityItem[]>;
   getPendingReminders(contextId: number, limit: number): Promise<SimpleReminder[]>;
   getBirthdays(contextId: number): Promise<BirthdayPatient[]>;
-  getRevenueSeries(period: string, contextId: number, paymentMode?: string): Promise<RevenueSeries[]>;
-  getMultiRevenueSeries(period: string, contextId: number): Promise<{ total: RevenueSeries[]; cash: RevenueSeries[]; upi: RevenueSeries[] }>;
+  getRevenueSeries(
+    period: string,
+    contextId: number,
+    paymentMode?: string,
+  ): Promise<RevenueSeries[]>;
+  getMultiRevenueSeries(
+    period: string,
+    contextId: number,
+  ): Promise<{ total: RevenueSeries[]; cash: RevenueSeries[]; upi: RevenueSeries[] }>;
   markReminderDone(id: number): Promise<void>;
   getRecentTransactions(limit: number, contextId?: number): Promise<RecentTransaction[]>;
   getIntelligenceInsights(kpis: DashboardKpis): Promise<IntelligenceInsight[]>;

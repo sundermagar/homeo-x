@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, CheckCircle2, MessageSquare, RefreshCw, Search } from 'lucide-react';
 import {
-  useSmsTemplates, useCreateTemplate, useUpdateTemplate, useDeleteTemplate
+  useSmsTemplates,
+  useCreateTemplate,
+  useUpdateTemplate,
+  useDeleteTemplate,
 } from '../hooks/use-communications';
 import { SmsType } from '@mmc/types';
 import type { SmsTemplate, CreateSmsTemplateDto } from '@mmc/types';
@@ -14,7 +17,10 @@ import '../styles/communications.css';
 const SMS_TYPES = Object.values(SmsType);
 
 function TemplateDrawer({
-  initial, onClose, onSave, isOpen
+  initial,
+  onClose,
+  onSave,
+  isOpen,
 }: {
   initial?: SmsTemplate;
   onClose: () => void;
@@ -22,42 +28,63 @@ function TemplateDrawer({
   isOpen: boolean;
 }) {
   const [form, setForm] = useState({
-    name:     initial?.name     ?? '',
-    message:  initial?.message  ?? '',
-    smsType:  initial?.smsType  ?? SmsType.General,
+    name: initial?.name ?? '',
+    message: initial?.message ?? '',
+    smsType: initial?.smsType ?? SmsType.General,
     isActive: initial?.isActive ?? true,
   });
 
-  const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
   const charCount = form.message.length;
   const preview = form.message
     .replace(/{#name#}/gi, 'Rajesh Kumar')
     .replace(/{#date#}/gi, new Date().toLocaleDateString('en-IN'));
 
   return (
-    <Drawer 
-      isOpen={isOpen} 
-      onClose={onClose} 
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
       title={initial ? 'Edit Template' : 'New SMS Template'}
       maxWidth="540px"
     >
       <div className="comm-form-group">
         <label className="comm-form-label">Template Name *</label>
-        <input className="comm-form-input" placeholder="e.g. Appointment Reminder"
-          value={form.name} onChange={e => set('name', e.target.value)} required />
+        <input
+          className="comm-form-input"
+          placeholder="e.g. Appointment Reminder"
+          value={form.name}
+          onChange={(e) => set('name', e.target.value)}
+          required
+        />
       </div>
       <div className="comm-form-group">
         <label className="comm-form-label">Category</label>
-        <select className="comm-form-select" value={form.smsType} onChange={e => set('smsType', e.target.value)}>
-          {SMS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        <select
+          className="comm-form-select"
+          value={form.smsType}
+          onChange={(e) => set('smsType', e.target.value)}
+        >
+          {SMS_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
         </select>
       </div>
       <div className="comm-form-group">
         <label className="comm-form-label">Message Body *</label>
-        <textarea className="comm-form-textarea" style={{ minHeight: '120px' }}
+        <textarea
+          className="comm-form-textarea"
+          style={{ minHeight: '120px' }}
           placeholder="Enter your message..."
-          value={form.message} onChange={e => set('message', e.target.value)} required />
-        <div className={`comm-char-count${charCount > 160 ? ' over' : ''}`} style={{ marginTop: '4px' }}>
+          value={form.message}
+          onChange={(e) => set('message', e.target.value)}
+          required
+        />
+        <div
+          className={`comm-char-count${charCount > 160 ? ' over' : ''}`}
+          style={{ marginTop: '4px' }}
+        >
           {charCount} / 160 (SMS segment)
         </div>
       </div>
@@ -67,20 +94,46 @@ function TemplateDrawer({
       {preview && (
         <div className="comm-form-group" style={{ marginTop: '16px' }}>
           <label className="comm-form-label">Preview</label>
-          <div className="comm-preview-box" style={{ background: 'var(--pp-warm-1)', border: '1.5px dashed var(--pp-warm-4)', borderRadius: '12px' }}>
+          <div
+            className="comm-preview-box"
+            style={{
+              background: 'var(--pp-warm-1)',
+              border: '1.5px dashed var(--pp-warm-4)',
+              borderRadius: '12px',
+            }}
+          >
             {preview}
           </div>
         </div>
       )}
       <div className="comm-form-group" style={{ marginTop: '12px' }}>
         <label className="comm-form-checkbox">
-          <input type="checkbox" checked={form.isActive} onChange={e => set('isActive', e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={form.isActive}
+            onChange={(e) => set('isActive', e.target.checked)}
+          />
           Active (available for sending)
         </label>
       </div>
-      <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px', borderTop: '1px solid var(--pp-warm-4)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-        <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="plat-btn plat-btn-primary" onClick={() => onSave(form as CreateSmsTemplateDto)}>
+      <div
+        className="plat-modal-footer"
+        style={{
+          padding: '24px 0 0 0',
+          marginTop: '24px',
+          borderTop: '1px solid var(--pp-warm-4)',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '12px',
+        }}
+      >
+        <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          className="plat-btn plat-btn-primary"
+          onClick={() => onSave(form as CreateSmsTemplateDto)}
+        >
           <CheckCircle2 size={14} /> {initial ? 'Save Changes' : 'Create Template'}
         </button>
       </div>
@@ -99,9 +152,10 @@ export default function SmsTemplatesPage() {
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const filtered = templates.filter(t =>
-    t.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.smsType.toLowerCase().includes(search.toLowerCase())
+  const filtered = templates.filter(
+    (t) =>
+      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.smsType.toLowerCase().includes(search.toLowerCase()),
   );
 
   const totalItems = filtered.length;
@@ -131,7 +185,9 @@ export default function SmsTemplatesPage() {
             <MessageSquare size={16} className="color-primary" />
             Archived SMS Templates
           </h1>
-          <p className="plat-header-sub">{templates.length} templates · Legacy template repository (Read Only)</p>
+          <p className="plat-header-sub">
+            {templates.length} templates · Legacy template repository (Read Only)
+          </p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-ghost" disabled title="Creation disabled">
@@ -141,13 +197,31 @@ export default function SmsTemplatesPage() {
       </div>
 
       {/* Deactivation Banner */}
-      <div style={{ margin: '0 24px 24px 24px', padding: '16px 20px', background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ padding: '8px', background: '#fed7aa', borderRadius: '50%', color: '#9a3412' }}>
+      <div
+        style={{
+          margin: '0 24px 24px 24px',
+          padding: '16px 20px',
+          background: '#fff7ed',
+          border: '1px solid #ffedd5',
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}
+      >
+        <div
+          style={{ padding: '8px', background: '#fed7aa', borderRadius: '50%', color: '#9a3412' }}
+        >
           <RefreshCw size={18} />
         </div>
         <div>
-          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#9a3412' }}>Messaging Infrastructure Updated</h4>
-          <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#c2410c' }}>Legacy SMS templates are now read-only. Please migrate your communication workflows to the WhatsApp Template Manager.</p>
+          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#9a3412' }}>
+            Messaging Infrastructure Updated
+          </h4>
+          <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#c2410c' }}>
+            Legacy SMS templates are now read-only. Please migrate your communication workflows to
+            the WhatsApp Template Manager.
+          </p>
         </div>
       </div>
 
@@ -160,7 +234,10 @@ export default function SmsTemplatesPage() {
             className="plat-form-input plat-search-input"
             placeholder="Search templates by name or category..."
             value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
       </div>
@@ -190,32 +267,53 @@ export default function SmsTemplatesPage() {
               <tbody>
                 {paginatedData.map((t, index) => (
                   <tr key={t.id} className="plat-table-row">
-                    <td data-label="#" className="plat-mono-data text-xs">{(page - 1) * itemsPerPage + index + 1}</td>
+                    <td data-label="#" className="plat-mono-data text-xs">
+                      {(page - 1) * itemsPerPage + index + 1}
+                    </td>
                     <td data-label="NAME">
-                      <div className="plat-tpl-name" style={{ fontWeight: 700, color: 'var(--pp-ink)' }}>{t.name}</div>
+                      <div
+                        className="plat-tpl-name"
+                        style={{ fontWeight: 700, color: 'var(--pp-ink)' }}
+                      >
+                        {t.name}
+                      </div>
                     </td>
                     <td data-label="CATEGORY">
                       <span className="plat-badge plat-badge-default">{t.smsType}</span>
                     </td>
                     <td data-label="MESSAGE">
-                      <div className="plat-tpl-preview">
-                        {t.message}
-                      </div>
+                      <div className="plat-tpl-preview">{t.message}</div>
                       <div className="plat-tpl-meta">
-                        {t.message.length} chars · {Math.ceil(t.message.length / 160)} segment{Math.ceil(t.message.length / 160) > 1 ? 's' : ''}
+                        {t.message.length} chars · {Math.ceil(t.message.length / 160)} segment
+                        {Math.ceil(t.message.length / 160) > 1 ? 's' : ''}
                       </div>
                     </td>
                     <td data-label="STATUS">
-                      <span className={t.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
+                      <span
+                        className={
+                          t.isActive
+                            ? 'plat-badge plat-badge-info'
+                            : 'plat-badge plat-badge-default'
+                        }
+                      >
                         {t.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td data-label="ACTIONS">
                       <div className="plat-tpl-actions" style={{ display: 'flex', gap: '6px' }}>
-                        <button className="plat-btn plat-btn-ghost plat-btn-sm" onClick={() => setModal(t)} title="Edit">
+                        <button
+                          className="plat-btn plat-btn-ghost plat-btn-sm"
+                          onClick={() => setModal(t)}
+                          title="Edit"
+                        >
                           <Edit2 size={13} />
                         </button>
-                        <button className="plat-btn plat-btn-ghost plat-btn-sm" style={{ color: 'var(--pp-danger-fg)' }} onClick={() => handleDelete(t)} title="Delete">
+                        <button
+                          className="plat-btn plat-btn-ghost plat-btn-sm"
+                          style={{ color: 'var(--pp-danger-fg)' }}
+                          onClick={() => handleDelete(t)}
+                          title="Delete"
+                        >
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -235,7 +333,10 @@ export default function SmsTemplatesPage() {
             pageSize={itemsPerPage}
             totalItems={totalItems}
             onPageChange={(p) => setPage(p)}
-            onPageSizeChange={(size) => { setItemsPerPage(size); setPage(1); }}
+            onPageSizeChange={(size) => {
+              setItemsPerPage(size);
+              setPage(1);
+            }}
           />
         )}
       </div>
@@ -243,12 +344,10 @@ export default function SmsTemplatesPage() {
       {/* Drawer */}
       <TemplateDrawer
         isOpen={!!modal}
-        initial={(modal && typeof modal === 'object') ? modal : undefined}
+        initial={modal && typeof modal === 'object' ? modal : undefined}
         onClose={() => setModal(null)}
         onSave={handleSave}
       />
-
-
     </div>
   );
 }

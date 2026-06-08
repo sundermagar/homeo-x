@@ -26,7 +26,7 @@ const WA_TABLES = [
       "created_at" timestamp DEFAULT NOW() NOT NULL,
       "updated_at" timestamp DEFAULT NOW() NOT NULL,
       CONSTRAINT "wa_contact_phone_clinic_unique_{{SCHEMA}}" UNIQUE("phone", "clinic_id")
-    )`
+    )`,
   },
   {
     name: 'wa_contact_groups',
@@ -36,7 +36,7 @@ const WA_TABLES = [
       "name" text NOT NULL,
       "description" text,
       "created_at" timestamp DEFAULT NOW() NOT NULL
-    )`
+    )`,
   },
   {
     name: 'wa_contact_group_members',
@@ -44,7 +44,7 @@ const WA_TABLES = [
       "id" serial PRIMARY KEY,
       "contact_id" integer REFERENCES "{{SCHEMA}}"."wa_contacts"("id") ON DELETE CASCADE,
       "group_id" integer REFERENCES "{{SCHEMA}}"."wa_contact_groups"("id") ON DELETE CASCADE
-    )`
+    )`,
   },
   {
     name: 'wa_media',
@@ -58,7 +58,7 @@ const WA_TABLES = [
       "url" text,
       "size" integer,
       "created_at" timestamp DEFAULT NOW() NOT NULL
-    )`
+    )`,
   },
   {
     name: 'wa_chatbots',
@@ -72,7 +72,7 @@ const WA_TABLES = [
       "is_active" boolean DEFAULT true,
       "created_at" timestamp DEFAULT NOW() NOT NULL,
       "updated_at" timestamp DEFAULT NOW() NOT NULL
-    )`
+    )`,
   },
   {
     name: 'wa_training_data',
@@ -84,7 +84,7 @@ const WA_TABLES = [
       "content" text,
       "metadata" jsonb,
       "created_at" timestamp DEFAULT NOW() NOT NULL
-    )`
+    )`,
   },
   {
     name: 'wa_ai_settings',
@@ -105,7 +105,7 @@ const WA_TABLES = [
       "train_from_kb" boolean DEFAULT false,
       "created_at" timestamp DEFAULT NOW() NOT NULL,
       "updated_at" timestamp DEFAULT NOW() NOT NULL
-    )`
+    )`,
   },
   {
     name: 'wa_training_sources',
@@ -121,7 +121,7 @@ const WA_TABLES = [
       "chunk_count" integer DEFAULT 0,
       "created_at" timestamp DEFAULT NOW() NOT NULL,
       "updated_at" timestamp DEFAULT NOW() NOT NULL
-    )`
+    )`,
   },
   {
     name: 'wa_training_chunks',
@@ -133,7 +133,7 @@ const WA_TABLES = [
       "embedding" jsonb,
       "metadata" jsonb DEFAULT '{}'::jsonb,
       "created_at" timestamp DEFAULT NOW() NOT NULL
-    )`
+    )`,
   },
   {
     name: 'wa_training_qa_pairs',
@@ -147,8 +147,8 @@ const WA_TABLES = [
       "is_active" boolean DEFAULT true,
       "created_at" timestamp DEFAULT NOW() NOT NULL,
       "updated_at" timestamp DEFAULT NOW() NOT NULL
-    )`
-  }
+    )`,
+  },
 ];
 
 async function main() {
@@ -161,7 +161,7 @@ async function main() {
       SELECT schema_name 
       FROM information_schema.schemata 
       WHERE schema_name LIKE 'tenant_%' OR schema_name = 'public'
-    `.then(rows => rows.map(r => r['schema_name']));
+    `.then((rows) => rows.map((r) => r['schema_name']));
 
     console.log(`🔍 Discovered ${schemas.length} schemas to repair.`);
 
@@ -184,7 +184,7 @@ async function main() {
       // B. Ensure columns and schema alignment in wa_ai_settings
       try {
         console.log(`  🔨 Aligning columns for [${schema}.wa_ai_settings]...`);
-        
+
         await sql.unsafe(`
           ALTER TABLE "${schema}"."wa_ai_settings" 
           ADD COLUMN IF NOT EXISTS "response_config" jsonb DEFAULT '{"tone":"Friendly","length":"Medium (~200 words)","fallback":"I''m sorry, I don''t have the information you''re looking for."}'::jsonb,
@@ -198,7 +198,7 @@ async function main() {
       // C. Ensure metadata and channel_id in wa_training_chunks
       try {
         console.log(`  🔨 Aligning columns for [${schema}.wa_training_chunks]...`);
-        
+
         await sql.unsafe(`
           ALTER TABLE "${schema}"."wa_training_chunks" 
           ADD COLUMN IF NOT EXISTS "channel_id" integer REFERENCES "${schema}"."wa_channels"(id) ON DELETE CASCADE,

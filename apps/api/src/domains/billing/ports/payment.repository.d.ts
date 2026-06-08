@@ -5,23 +5,23 @@ import type { ListPaymentsQuery } from '@mmc/validation';
  * The infrastructure layer provides the concrete adapter (PostgreSQL, in-memory, etc.)
  */
 export interface PaymentRepository {
-    findById(id: number): Promise<PaymentWithPatient | null>;
-    findAll(params: ListPaymentsQuery): Promise<{
-        data: PaymentWithPatient[];
-        total: number;
-    }>;
-    create(data: {
-        regid?: number;
-        billId?: number;
-        orderId?: string;
-        paymentId?: string;
-        signature?: string;
-        amount: number;
-        currency: string;
-        status: string;
-        paymentMode: string;
-        paymentDate?: Date;
-    }): Promise<Payment>;
-    updateStatus(id: number, status: string): Promise<Payment | null>;
+  findById(id: number): Promise<PaymentWithPatient | null>;
+  findAll(params: ListPaymentsQuery): Promise<{
+    data: PaymentWithPatient[];
+    total: number;
+  }>;
+  create(data: {
+    regid?: number;
+    billId?: number;
+    orderId?: string;
+    paymentId?: string;
+    signature?: string;
+    amount: number;
+    currency: string;
+    status: string;
+    paymentMode: string;
+    paymentDate?: Date;
+  }): Promise<Payment>;
+  updateStatus(id: number, status: string): Promise<Payment | null>;
 }
 //# sourceMappingURL=payment.repository.d.ts.map

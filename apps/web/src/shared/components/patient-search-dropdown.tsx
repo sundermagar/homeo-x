@@ -9,11 +9,15 @@ interface PatientSearchDropdownProps {
   className?: string;
 }
 
-export function PatientSearchDropdown({ onSelect, placeholder = "Search RegID, Name or Mobile...", className = "" }: PatientSearchDropdownProps) {
+export function PatientSearchDropdown({
+  onSelect,
+  placeholder = 'Search RegID, Name or Mobile...',
+  className = '',
+}: PatientSearchDropdownProps) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   const { data: results = [], isLoading } = usePatientLookup(query);
 
   useEffect(() => {
@@ -35,17 +39,17 @@ export function PatientSearchDropdown({ onSelect, placeholder = "Search RegID, N
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <div style={{ position: 'relative', width: '100%', height: '32px' }}>
-        <Search 
-          size={14} 
-          style={{ 
-            position: 'absolute', 
-            left: '10px', 
+        <Search
+          size={14}
+          style={{
+            position: 'absolute',
+            left: '10px',
             top: '50%',
             transform: 'translateY(-50%)',
-            color: '#94a3b8', 
+            color: '#94a3b8',
             pointerEvents: 'none',
-            zIndex: 20
-          }} 
+            zIndex: 20,
+          }}
         />
         <input
           type="text"
@@ -59,7 +63,7 @@ export function PatientSearchDropdown({ onSelect, placeholder = "Search RegID, N
             border: '1px solid #cbd5e1',
             borderRadius: '6px',
             outline: 'none',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
           }}
           placeholder="Search patient (RegID, Name, Mobile)..."
           value={query}
@@ -71,7 +75,7 @@ export function PatientSearchDropdown({ onSelect, placeholder = "Search RegID, N
           className="focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
         />
         {query && (
-          <button 
+          <button
             onClick={() => setQuery('')}
             style={{
               position: 'absolute',
@@ -85,7 +89,7 @@ export function PatientSearchDropdown({ onSelect, placeholder = "Search RegID, N
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              zIndex: 20
+              zIndex: 20,
             }}
           >
             <X size={12} />
@@ -115,9 +119,7 @@ export function PatientSearchDropdown({ onSelect, placeholder = "Search RegID, N
                     <User size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-slate-900 truncate">
-                      {patient.fullName}
-                    </div>
+                    <div className="font-semibold text-slate-900 truncate">{patient.fullName}</div>
                     <div className="flex items-center gap-3 mt-0.5">
                       <span className="flex items-center gap-1 text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
                         <Tag size={10} /> {patient.regid}

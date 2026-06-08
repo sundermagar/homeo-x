@@ -10,18 +10,14 @@ const ToastViewport = React.forwardRef<
   React.ComponentRef<typeof ToastPrimitive.Viewport>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitive.Viewport>
 >(({ className, ...props }, ref) => (
-  <ToastPrimitive.Viewport
-    ref={ref}
-    className={cn('toast-viewport', className)}
-    {...props}
-  />
+  <ToastPrimitive.Viewport ref={ref} className={cn('toast-viewport', className)} {...props} />
 ));
 ToastViewport.displayName = 'ToastViewport';
 
 const toastVariantClass: Record<string, string> = {
   default: '',
   success: 'toast--success',
-  error:   'toast--error',
+  error: 'toast--error',
   warning: 'toast--warning',
   whatsapp: 'toast--whatsapp',
 };
@@ -30,27 +26,22 @@ export interface ToastProps extends React.ComponentPropsWithoutRef<typeof ToastP
   variant?: keyof typeof toastVariantClass;
 }
 
-const Toast = React.forwardRef<
-  React.ComponentRef<typeof ToastPrimitive.Root>,
-  ToastProps
->(({ className, variant = 'default', ...props }, ref) => (
-  <ToastPrimitive.Root
-    ref={ref}
-    className={cn('toast', toastVariantClass[variant], className)}
-    {...props}
-  />
-));
+const Toast = React.forwardRef<React.ComponentRef<typeof ToastPrimitive.Root>, ToastProps>(
+  ({ className, variant = 'default', ...props }, ref) => (
+    <ToastPrimitive.Root
+      ref={ref}
+      className={cn('toast', toastVariantClass[variant], className)}
+      {...props}
+    />
+  ),
+);
 Toast.displayName = 'Toast';
 
 const ToastAction = React.forwardRef<
   React.ComponentRef<typeof ToastPrimitive.Action>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitive.Action>
 >(({ className, ...props }, ref) => (
-  <ToastPrimitive.Action
-    ref={ref}
-    className={cn('toast__action', className)}
-    {...props}
-  />
+  <ToastPrimitive.Action ref={ref} className={cn('toast__action', className)} {...props} />
 ));
 ToastAction.displayName = 'ToastAction';
 
@@ -73,11 +64,7 @@ const ToastTitle = React.forwardRef<
   React.ComponentRef<typeof ToastPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitive.Title>
 >(({ className, ...props }, ref) => (
-  <ToastPrimitive.Title
-    ref={ref}
-    className={cn('toast__title', className)}
-    {...props}
-  />
+  <ToastPrimitive.Title ref={ref} className={cn('toast__title', className)} {...props} />
 ));
 ToastTitle.displayName = 'ToastTitle';
 
@@ -93,4 +80,12 @@ const ToastDescription = React.forwardRef<
 ));
 ToastDescription.displayName = 'ToastDescription';
 
-export { ToastProvider, ToastViewport, Toast, ToastTitle, ToastDescription, ToastClose, ToastAction };
+export {
+  ToastProvider,
+  ToastViewport,
+  Toast,
+  ToastTitle,
+  ToastDescription,
+  ToastClose,
+  ToastAction,
+};

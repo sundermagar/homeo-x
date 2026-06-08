@@ -7,15 +7,15 @@ import '../styles/settings.css';
 export default function StaffManagementPage() {
   return (
     <div className="plat-page fade-in">
-
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
             <Users size={20} className="color-primary" />
             Staff Management
           </h1>
-          <p className="plat-header-sub">Manage platform users, receptionists, and clinical assistants.</p>
+          <p className="plat-header-sub">
+            Manage platform users, receptionists, and clinical assistants.
+          </p>
         </div>
         <div className="plat-header-actions">
           <Link to="/platform/accounts" className="plat-btn plat-btn-primary">
@@ -42,7 +42,8 @@ export default function StaffManagementPage() {
           <h3 className="text-lg font-semibold mb-2">Centralized Account Management</h3>
           <p className="plat-empty-text max-w-md mx-auto">
             Staff roles, permissions, and login credentials are managed through the centralized
-            <strong> Platform Accounts</strong> module for enhanced security and multi-clinic synchronization.
+            <strong> Platform Accounts</strong> module for enhanced security and multi-clinic
+            synchronization.
           </p>
           <Link to="/platform/accounts" className="plat-btn plat-btn-primary mt-6">
             Go to User Accounts

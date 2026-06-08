@@ -9,7 +9,7 @@ export function sendSuccess(
   data: any = {},
   message?: string,
   statusCode: number = 200,
-  meta?: { total?: number; page?: number; limit?: number }
+  meta?: { total?: number; page?: number; limit?: number },
 ) {
   const response: ApiResponse = {
     success: true,
@@ -36,12 +36,7 @@ export function sendSuccess(
 /**
  * Standardizes error API responses.
  */
-export function sendError(
-  res: Response,
-  message: string,
-  statusCode: number = 500,
-  code?: string
-) {
+export function sendError(res: Response, message: string, statusCode: number = 500, code?: string) {
   const response: ApiResponse = {
     success: false,
     error: message,

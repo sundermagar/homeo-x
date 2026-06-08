@@ -4,11 +4,11 @@ MMC is an enterprise-grade Homeopathic Clinic Management Platform.
 
 ## Features
 
-* AI-powered consultation
-* Real-time transcription
-* Multi-tenant architecture
-* Audit logging
-* Circuit breaker for external services
+- AI-powered consultation
+- Real-time transcription
+- Multi-tenant architecture
+- Audit logging
+- Circuit breaker for external services
 
 ## Goal
 

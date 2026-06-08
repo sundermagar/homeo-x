@@ -17,7 +17,7 @@
 
 // FileUploadButton.tsx - File Upload Component
 
-import { useRef } from "react";
+import { useRef } from 'react';
 
 interface FileUploadButtonProps {
   accept: string;
@@ -30,7 +30,7 @@ export function FileUploadButton({
   accept,
   onUpload,
   children,
-  className = "",
+  className = '',
 }: FileUploadButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -44,7 +44,7 @@ export function FileUploadButton({
       onUpload(file);
     }
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 

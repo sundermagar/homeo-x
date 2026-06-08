@@ -14,48 +14,57 @@ const getUseCases = (req: any) => {
   return new DashboardUseCases(repo);
 };
 
-router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const useCases = getUseCases(req);
-  const period = (req.query.period as string) || 'month';
-  if (!req.user) throw new Error('Unauthorized');
+router.get(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
+    const useCases = getUseCases(req);
+    const period = (req.query.period as string) || 'month';
+    if (!req.user) throw new Error('Unauthorized');
 
-  const t0 = Date.now();
-  const result = await useCases.getUnifiedDashboard(period, req.user.contextId, req.user as any);
-  const elapsed = Date.now() - t0;
-  if (elapsed > 1000) {
-    console.warn(`[Dashboard] /dashboard?period=${period} took ${elapsed}ms (slow!)`);
-  } else {
-    console.log(`[Dashboard] /dashboard?period=${period} took ${elapsed}ms`);
-  }
-  if (!result.success) throw new Error(result.error);
-  res.setHeader('Cache-Control', 'no-store');
-  sendSuccess(res, result.data);
-}));
+    const t0 = Date.now();
+    const result = await useCases.getUnifiedDashboard(period, req.user.contextId, req.user as any);
+    const elapsed = Date.now() - t0;
+    if (elapsed > 1000) {
+      console.warn(`[Dashboard] /dashboard?period=${period} took ${elapsed}ms (slow!)`);
+    } else {
+      console.log(`[Dashboard] /dashboard?period=${period} took ${elapsed}ms`);
+    }
+    if (!result.success) throw new Error(result.error);
+    res.setHeader('Cache-Control', 'private, max-age=300, stale-while-revalidate=600');
+    sendSuccess(res, result.data);
+  }),
+);
 
-router.get('/clinic-admin', asyncHandler(async (req, res) => {
-  const useCases = getUseCases(req);
-  const period = (req.query.period as string) || 'month';
-  if (!req.user) throw new Error('Unauthorized');
+router.get(
+  '/clinic-admin',
+  asyncHandler(async (req, res) => {
+    const useCases = getUseCases(req);
+    const period = (req.query.period as string) || 'month';
+    if (!req.user) throw new Error('Unauthorized');
 
-  const t0 = Date.now();
-  const result = await useCases.getClinicAdminDashboard(period, req.user.contextId);
-  const elapsed = Date.now() - t0;
-  if (elapsed > 1000) {
-    console.warn(`[Dashboard] /clinic-admin?period=${period} took ${elapsed}ms (slow!)`);
-  } else {
-    console.log(`[Dashboard] /clinic-admin?period=${period} took ${elapsed}ms`);
-  }
-  if (!result.success) throw new Error(result.error);
-  res.setHeader('Cache-Control', 'no-store');
-  sendSuccess(res, result.data);
-}));
+    const t0 = Date.now();
+    const result = await useCases.getClinicAdminDashboard(period, req.user.contextId);
+    const elapsed = Date.now() - t0;
+    if (elapsed > 1000) {
+      console.warn(`[Dashboard] /clinic-admin?period=${period} took ${elapsed}ms (slow!)`);
+    } else {
+      console.log(`[Dashboard] /clinic-admin?period=${period} took ${elapsed}ms`);
+    }
+    if (!result.success) throw new Error(result.error);
+    res.setHeader('Cache-Control', 'private, max-age=300, stale-while-revalidate=600');
+    sendSuccess(res, result.data);
+  }),
+);
 
-router.post('/reminder/:id/done', asyncHandler(async (req, res) => {
-  const useCases = getUseCases(req);
-  const result = await useCases.markReminderDone(Number(req.params.id));
+router.post(
+  '/reminder/:id/done',
+  asyncHandler(async (req, res) => {
+    const useCases = getUseCases(req);
+    const result = await useCases.markReminderDone(Number(req.params.id));
 
-  if (!result.success) throw new Error(result.error);
-  sendSuccess(res, result.data);
-}));
+    if (!result.success) throw new Error(result.error);
+    sendSuccess(res, result.data);
+  }),
+);
 
 export const dashboardRouter: ExpressRouter = router;

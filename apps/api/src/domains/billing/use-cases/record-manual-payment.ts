@@ -21,7 +21,7 @@ export class RecordManualPaymentUseCase {
     if (input.splitPayments && input.splitPayments.length > 0) {
       for (const split of input.splitPayments) {
         if (split.amount <= 0) continue;
-        
+
         const p = await this.paymentRepo.create({
           regid: input.regid,
           billId: input.billId,
@@ -73,5 +73,4 @@ export class RecordManualPaymentUseCase {
 
     return ok(payments);
   }
-
 }

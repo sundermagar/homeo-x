@@ -8,7 +8,9 @@ dotenv.config({ path: path.resolve(import.meta.dirname, '../../.env') });
 async function main() {
   const db = createDbClient(process.env.DATABASE_URL!, 'tenant_demo');
 
-  console.log('Updating database template thank_you_for_reference to thank_you_for_reference_v3...');
+  console.log(
+    'Updating database template thank_you_for_reference to thank_you_for_reference_v3...',
+  );
   await db.execute(sql`
     UPDATE wa_templates
     SET name = 'thank_you_for_reference_v3',

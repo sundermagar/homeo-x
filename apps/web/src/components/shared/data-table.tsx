@@ -61,7 +61,9 @@ export function DataTable<T>({
                       className={`h-3.5 w-3.5 ${sortBy === col.key ? 'text-primary-600' : 'text-gray-400'}`}
                     />
                     {sortBy === col.key && (
-                      <span className="sr-only">{sortOrder === 'asc' ? 'ascending' : 'descending'}</span>
+                      <span className="sr-only">
+                        {sortOrder === 'asc' ? 'ascending' : 'descending'}
+                      </span>
                     )}
                   </button>
                 ) : (
@@ -80,7 +82,9 @@ export function DataTable<T>({
             >
               {columns.map((col) => (
                 <TableCell key={col.key}>
-                  {col.render ? col.render(item) : ((item as Record<string, unknown>)[col.key] as ReactNode)}
+                  {col.render
+                    ? col.render(item)
+                    : ((item as Record<string, unknown>)[col.key] as ReactNode)}
                 </TableCell>
               ))}
             </TableRow>

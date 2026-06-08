@@ -10,11 +10,7 @@ import {
   UpdateExpenseUseCase,
   DeleteExpenseUseCase,
 } from '../../../domains/billing/index.js';
-import {
-  createExpenseSchema,
-  updateExpenseSchema,
-  listExpensesQuerySchema,
-} from '@mmc/validation';
+import { createExpenseSchema, updateExpenseSchema, listExpensesQuerySchema } from '@mmc/validation';
 import type { DbClient } from '@mmc/database';
 
 export function createExpensesRouter(): Router {

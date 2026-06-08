@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useWhatsApp } from '../hooks/use-whatsapp';
-import { Search, UserPlus, Filter, Edit, User, Tag, Phone, Mail, Trash2, Download, Upload, ChevronDown } from 'lucide-react';
+import {
+  Search,
+  UserPlus,
+  Filter,
+  Edit,
+  User,
+  Tag,
+  Phone,
+  Mail,
+  Trash2,
+  Download,
+  Upload,
+  ChevronDown,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { ContactModal } from './contact-modal';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
@@ -11,7 +24,7 @@ export const ContactList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const { data, isLoading } = useContactsPaginated({ page, limit: pageSize, search: searchTerm });
   const contacts = data?.data || [];
   const totalEntries = data?.total || 0;
@@ -32,13 +45,10 @@ export const ContactList = () => {
   // Dynamic available groups/tags deduplicated case-insensitively
   const availableGroups = Array.from(
     new Set(
-      [
-        'VIP', 'Lead', 'Follow-up', 'Patient',
-        ...contacts.flatMap((c: any) => c.tags || [])
-      ]
-      .map(tag => normalizeTag(tag))
-      .filter(Boolean)
-    )
+      ['VIP', 'Lead', 'Follow-up', 'Patient', ...contacts.flatMap((c: any) => c.tags || [])]
+        .map((tag) => normalizeTag(tag))
+        .filter(Boolean),
+    ),
   );
 
   // Filter contacts locally based on dropdown selections
@@ -53,7 +63,7 @@ export const ContactList = () => {
     }
     return true;
   });
-  
+
   const { mutateAsync: deleteContact } = useDeleteContact();
   const { mutateAsync: createContact } = useCreateContact();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -95,15 +105,18 @@ export const ContactList = () => {
       return;
     }
     const headers = ['Name', 'Phone', 'Email', 'Tags', 'Registered At'];
-    const rows = contacts.map(c => [
+    const rows = contacts.map((c) => [
       c.name || '',
       c.phone || '',
       c.email || '',
       (c.tags || []).join('; '),
-      safeFormatDate(c.createdAt, 'yyyy-MM-dd')
+      safeFormatDate(c.createdAt, 'yyyy-MM-dd'),
     ]);
-    
-    const csvContent = [headers.join(','), ...rows.map(r => r.map(val => `"${val.replace(/"/g, '""')}"`).join(','))].join('\n');
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((r) => r.map((val) => `"${val.replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -119,10 +132,13 @@ export const ContactList = () => {
     const headers = ['Name', 'Phone', 'Email', 'Tags'];
     const sampleRows = [
       ['John Doe', '919876543210', 'john@example.com', 'VIP; Patient'],
-      ['Jane Smith', '919876543211', 'jane@example.com', 'Lead; Followup']
+      ['Jane Smith', '919876543211', 'jane@example.com', 'Lead; Followup'],
     ];
-    
-    const csvContent = [headers.join(','), ...sampleRows.map(r => r.map(val => `"${val.replace(/"/g, '""')}"`).join(','))].join('\n');
+
+    const csvContent = [
+      headers.join(','),
+      ...sampleRows.map((r) => r.map((val) => `"${val.replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -137,67 +153,86 @@ export const ContactList = () => {
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = async (event) => {
       const text = event.target?.result as string;
       if (!text) return;
-      
-      const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+
+      const lines = text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
       if (lines.length <= 1) {
         alert('The uploaded file is empty or has no data rows.');
         return;
       }
-      
-      const headers = (lines[0] || '').split(',').map(h => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
-      
+
+      const headers = (lines[0] || '').split(',').map((h) =>
+        h
+          .trim()
+          .replace(/^["']|["']$/g, '')
+          .toLowerCase(),
+      );
+
       const nameIdx = headers.indexOf('name');
       const phoneIdx = headers.indexOf('phone');
       const emailIdx = headers.indexOf('email');
       const tagsIdx = headers.indexOf('tags');
-      
+
       if (phoneIdx === -1) {
         alert('CSV must contain at least a "Phone" column.');
         return;
       }
-      
+
       let importedCount = 0;
       let failedCount = 0;
-      
+
       // Import sequentially or concurrently
       const importPromises = [];
-      
+
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
         if (!line) continue;
         const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
-        const columns = matches.map(c => c.trim().replace(/^["']|["']$/g, ''));
-        
+        const columns = matches.map((c) => c.trim().replace(/^["']|["']$/g, ''));
+
         const phoneVal = columns[phoneIdx]?.replace(/\D/g, '');
         if (!phoneVal) {
           failedCount++;
           continue;
         }
-        
+
         const nameVal = nameIdx !== -1 ? columns[nameIdx] : '';
         const emailVal = emailIdx !== -1 ? columns[emailIdx] : '';
         const tagsStr = tagsIdx !== -1 ? columns[tagsIdx] : '';
-        const tagsVal = tagsStr ? tagsStr.split(';').map(t => t.trim()).filter(Boolean) : [];
-        
+        const tagsVal = tagsStr
+          ? tagsStr
+              .split(';')
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : [];
+
         importPromises.push(
           createContact({
             name: nameVal || `Imported ${phoneVal.substring(phoneVal.length - 4)}`,
             phone: phoneVal,
             email: emailVal || null,
-            tags: tagsVal
+            tags: tagsVal,
           })
-          .then(() => { importedCount++; })
-          .catch(() => { failedCount++; })
+            .then(() => {
+              importedCount++;
+            })
+            .catch(() => {
+              failedCount++;
+            }),
         );
       }
-      
+
       await Promise.allSettled(importPromises);
-      alert(`Import completed!\n- Successfully imported: ${importedCount}\n- Failed or skipped: ${failedCount}`);
+      alert(
+        `Import completed!\n- Successfully imported: ${importedCount}\n- Failed or skipped: ${failedCount}`,
+      );
       e.target.value = '';
     };
     reader.readAsText(file);
@@ -209,11 +244,14 @@ export const ContactList = () => {
       <div className="bg-[var(--bg-card)] p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm space-y-4">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/60" size={16} />
-          <input 
-            placeholder="Search contacts..." 
-            className="w-full pl-11 pr-4 py-2.5 bg-[var(--bg-main)] border border-slate-200 dark:border-slate-500/30 rounded-xl text-[13px] font-medium text-main focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted/60" 
+          <input
+            placeholder="Search contacts..."
+            className="w-full pl-11 pr-4 py-2.5 bg-[var(--bg-main)] border border-slate-200 dark:border-slate-500/30 rounded-xl text-[13px] font-medium text-main focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted/60"
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
 
@@ -221,7 +259,7 @@ export const ContactList = () => {
         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
           {/* Groups Dropdown */}
           <div className="relative">
-            <button 
+            <button
               onClick={() => {
                 setIsGroupDropdownOpen(!isGroupDropdownOpen);
                 setIsStatusDropdownOpen(false);
@@ -232,33 +270,41 @@ export const ContactList = () => {
               <span>{selectedGroup ? `Group: ${selectedGroup}` : 'All Groups'}</span>
               <ChevronDown size={12} className="text-muted/70" />
             </button>
-            
+
             {isGroupDropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-48 bg-[var(--bg-card)] border border-slate-200 dark:border-white/10 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
-                <button 
-                  onClick={() => { setSelectedGroup(null); setIsGroupDropdownOpen(false); }}
+              <div className="absolute left-0 mt-1.5 w-48 bg-[var(--bg-card)] border border-slate-200 dark:border-slate-500/30 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                <button
+                  onClick={() => {
+                    setSelectedGroup(null);
+                    setIsGroupDropdownOpen(false);
+                  }}
                   className="w-full text-left px-4 py-2 text-xs font-medium text-main hover:bg-[var(--bg-card)] transition-colors flex items-center justify-between"
                 >
                   <span>All Groups</span>
                   {!selectedGroup && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
                 </button>
                 {availableGroups.map((group) => (
-                  <button 
+                  <button
                     key={group}
-                    onClick={() => { setSelectedGroup(group); setIsGroupDropdownOpen(false); }}
+                    onClick={() => {
+                      setSelectedGroup(group);
+                      setIsGroupDropdownOpen(false);
+                    }}
                     className="w-full text-left px-4 py-2 text-xs font-medium text-main hover:bg-[var(--bg-card)] transition-colors flex items-center justify-between"
                   >
                     <span>{group}</span>
-                    {selectedGroup === group && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                    {selectedGroup === group && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    )}
                   </button>
                 ))}
               </div>
             )}
           </div>
-          
+
           {/* Statuses Dropdown */}
           <div className="relative">
-            <button 
+            <button
               onClick={() => {
                 setIsStatusDropdownOpen(!isStatusDropdownOpen);
                 setIsGroupDropdownOpen(false);
@@ -266,20 +312,28 @@ export const ContactList = () => {
               className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-secondary dark:text-white/80 transition-all"
             >
               <Filter size={14} className="text-muted" />
-              <span>{selectedStatus && selectedStatus !== 'All Statuses' ? `Status: ${selectedStatus}` : 'All Statuses'}</span>
+              <span>
+                {selectedStatus && selectedStatus !== 'All Statuses'
+                  ? `Status: ${selectedStatus}`
+                  : 'All Statuses'}
+              </span>
               <ChevronDown size={12} className="text-muted/70" />
             </button>
-            
+
             {isStatusDropdownOpen && (
               <div className="absolute left-0 mt-1.5 w-48 bg-[var(--bg-card)] border border-slate-200 dark:border-white/10 rounded-xl shadow-lg z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
                 {['All Statuses', 'Active', 'Inactive'].map((status) => (
-                  <button 
+                  <button
                     key={status}
-                    onClick={() => { setSelectedStatus(status === 'All Statuses' ? null : status); setIsStatusDropdownOpen(false); }}
+                    onClick={() => {
+                      setSelectedStatus(status === 'All Statuses' ? null : status);
+                      setIsStatusDropdownOpen(false);
+                    }}
                     className="w-full text-left px-4 py-2 text-xs font-medium text-main hover:bg-[var(--bg-card)] transition-colors flex items-center justify-between"
                   >
                     <span>{status}</span>
-                    {((!selectedStatus && status === 'All Statuses') || selectedStatus === status) && (
+                    {((!selectedStatus && status === 'All Statuses') ||
+                      selectedStatus === status) && (
                       <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                     )}
                   </button>
@@ -290,7 +344,7 @@ export const ContactList = () => {
 
           <div className="hidden lg:block h-4 w-px bg-slate-200 mx-1"></div>
 
-          <button 
+          <button
             onClick={handleExport}
             className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-secondary dark:text-white/80 transition-all"
           >
@@ -298,15 +352,15 @@ export const ContactList = () => {
             <span>Export All Contacts</span>
           </button>
 
-          <input 
-            type="file" 
-            id="csv-import-input" 
-            accept=".csv" 
-            className="hidden" 
-            onChange={handleImportFile} 
+          <input
+            type="file"
+            id="csv-import-input"
+            accept=".csv"
+            className="hidden"
+            onChange={handleImportFile}
           />
 
-          <button 
+          <button
             onClick={() => document.getElementById('csv-import-input')?.click()}
             className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-secondary dark:text-white/80 transition-all"
           >
@@ -314,7 +368,7 @@ export const ContactList = () => {
             <span>Import Contacts</span>
           </button>
 
-          <button 
+          <button
             onClick={handleDownloadSample}
             className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-xs font-semibold text-secondary dark:text-white/80 transition-all"
           >
@@ -361,10 +415,14 @@ export const ContactList = () => {
                           </td>
                           <td>
                             <div>
-                              <p className="font-bold text-main dark:text-white/90 text-[13px]">{contact.name || 'Anonymous Contact'}</p>
+                              <p className="font-bold text-main text-[13px]">
+                                {contact.name || 'Anonymous Contact'}
+                              </p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <Mail size={10} className="text-muted" />
-                                <span className="text-[11px] text-muted font-medium">{contact.email || 'no-email@homeox.com'}</span>
+                                <span className="text-[11px] text-muted font-medium">
+                                  {contact.email || 'no-email@homeox.com'}
+                                </span>
                               </div>
                             </div>
                           </td>
@@ -373,16 +431,23 @@ export const ContactList = () => {
                               <div className="p-1.5 bg-green-50 dark:bg-green-500/10 rounded-lg text-success">
                                 <Phone size={12} />
                               </div>
-                              <span className="text-[12px] font-bold text-secondary dark:text-white/90">+{contact.phone}</span>
+                              <span className="text-[12px] font-bold text-secondary">
+                                +{contact.phone}
+                              </span>
                             </div>
                           </td>
                           <td>
                             <div className="flex flex-wrap gap-1">
                               {contact.tags?.map((tag: string) => (
-                                <span key={tag} className="px-2 py-0.5 bg-pp-bg-subtle text-primary text-[10px] font-bold rounded-full border border-pp-border uppercase tracking-tight">
+                                <span
+                                  key={tag}
+                                  className="px-2 py-0.5 bg-pp-bg-subtle text-primary text-[10px] font-bold rounded-full border border-pp-border uppercase tracking-tight"
+                                >
                                   {normalizeTag(tag)}
                                 </span>
-                              )) || <span className="text-[11px] text-muted italic">Unsegmented</span>}
+                              )) || (
+                                <span className="text-[11px] text-muted italic">Unsegmented</span>
+                              )}
                             </div>
                           </td>
                           <td>
@@ -390,19 +455,22 @@ export const ContactList = () => {
                               {safeFormatDate(contact.createdAt, 'MMM dd, yyyy')}
                             </span>
                           </td>
-                           <td className="text-center">
+                          <td className="text-center">
                             <div className="flex items-center justify-center gap-2">
                               {!isPatient ? (
                                 <>
-                                  <button 
+                                  <button
                                     onClick={() => handleDelete(contact.id)}
                                     className="p-1.5 transition-all hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg"
                                     title="Delete CRM Contact"
                                   >
                                     <Trash2 size={15} />
                                   </button>
-                                  <button 
-                                    onClick={() => { setEditingContact(contact); setIsModalOpen(true); }}
+                                  <button
+                                    onClick={() => {
+                                      setEditingContact(contact);
+                                      setIsModalOpen(true);
+                                    }}
                                     className="p-1.5 transition-all hover:bg-slate-100 rounded-lg text-slate-500 hover:text-primary"
                                     title="Edit Patient Contact"
                                   >
@@ -410,7 +478,10 @@ export const ContactList = () => {
                                   </button>
                                 </>
                               ) : (
-                                <span className="text-[10px] text-slate-400 font-semibold px-2 py-0.5 bg-slate-100 rounded-full border border-slate-200 dark:border-slate-500/30 cursor-not-allowed select-none" title="EHR Patients cannot be modified or deleted from WhatsApp marketing context">
+                                <span
+                                  className="text-[10px] text-slate-400 font-semibold px-2 py-0.5 bg-slate-100 rounded-full border border-slate-200 dark:border-slate-500/30 cursor-not-allowed select-none"
+                                  title="EHR Patients cannot be modified or deleted from WhatsApp marketing context"
+                                >
                                   EHR
                                 </span>
                               )}
@@ -435,29 +506,39 @@ export const ContactList = () => {
               filteredContacts.map((contact: any) => {
                 const isPatient = String(contact.id).startsWith('patient_');
                 return (
-                  <div key={contact.id} className="bg-[var(--bg-card)] p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm space-y-4">
+                  <div
+                    key={contact.id}
+                    className="bg-white p-5 rounded-2xl border border-pp-border shadow-sm space-y-4"
+                  >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-pp-bg-subtle flex items-center justify-center text-primary font-bold text-xs">
                           {contact.name?.substring(0, 2).toUpperCase() || 'P'}
                         </div>
                         <div>
-                          <h4 className="font-bold text-main text-sm">{contact.name || 'Anonymous Contact'}</h4>
-                          <p className="text-[10px] text-muted">{contact.email || 'no-email@homeox.com'}</p>
+                          <h4 className="font-bold text-main text-sm">
+                            {contact.name || 'Anonymous Contact'}
+                          </h4>
+                          <p className="text-[10px] text-muted">
+                            {contact.email || 'no-email@homeox.com'}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
                         {!isPatient ? (
                           <>
-                            <button 
+                            <button
                               onClick={() => handleDelete(contact.id)}
                               className="p-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 rounded-lg text-red-500 transition-all"
                               title="Delete Contact"
                             >
                               <Trash2 size={15} />
                             </button>
-                            <button 
-                              onClick={() => { setEditingContact(contact); setIsModalOpen(true); }}
+                            <button
+                              onClick={() => {
+                                setEditingContact(contact);
+                                setIsModalOpen(true);
+                              }}
                               className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-primary transition-all"
                               title="Edit Contact"
                             >
@@ -471,7 +552,7 @@ export const ContactList = () => {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="bg-pp-bg-subtle/50 p-3 rounded-xl border border-pp-border text-xs text-secondary space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="font-semibold text-muted text-[10px]">PHONE:</span>
@@ -479,13 +560,18 @@ export const ContactList = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="font-semibold text-muted text-[10px]">REGISTERED:</span>
-                        <span className="font-medium text-main">{safeFormatDate(contact.createdAt, 'MMM dd, yyyy')}</span>
+                        <span className="font-medium text-main">
+                          {safeFormatDate(contact.createdAt, 'MMM dd, yyyy')}
+                        </span>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap gap-1 pt-1">
                       {contact.tags?.map((tag: string) => (
-                        <span key={tag} className="px-2 py-0.5 bg-pp-bg-subtle text-primary text-[10px] font-bold rounded-full border border-pp-border uppercase tracking-tight">
+                        <span
+                          key={tag}
+                          className="px-2 py-0.5 bg-pp-bg-subtle text-primary text-[10px] font-bold rounded-full border border-pp-border uppercase tracking-tight"
+                        >
                           {normalizeTag(tag)}
                         </span>
                       )) || <span className="text-[10px] text-muted italic">Unsegmented</span>}
@@ -495,7 +581,7 @@ export const ContactList = () => {
               })
             )}
           </div>
-          
+
           {totalEntries > 0 && (
             <Pagination
               currentPage={page}
@@ -508,10 +594,13 @@ export const ContactList = () => {
           )}
         </>
       )}
-      <ContactModal 
-        isOpen={isModalOpen} 
-        onClose={() => { setIsModalOpen(false); setEditingContact(null); }} 
-        contact={editingContact} 
+      <ContactModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingContact(null);
+        }}
+        contact={editingContact}
       />
     </div>
   );

@@ -10,10 +10,13 @@ import postgres from 'postgres';
 const envPath = path.join(process.cwd(), '../../.env');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
-  envContent.split('\n').forEach(line => {
+  envContent.split('\n').forEach((line) => {
     const [key, ...values] = line.split('=');
     if (key && values.length > 0) {
-      process.env[key.trim()] = values.join('=').trim().replace(/^["']|["']$/g, '');
+      process.env[key.trim()] = values
+        .join('=')
+        .trim()
+        .replace(/^["']|["']$/g, '');
     }
   });
 }
@@ -48,7 +51,9 @@ async function main() {
     // Unique index on name - may fail if dupes exist
     try {
       await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_remedies_name ON remedies(name)`;
-    } catch { console.log('  [skip] idx_remedies_name already exists or dupes'); }
+    } catch {
+      console.log('  [skip] idx_remedies_name already exists or dupes');
+    }
     console.log('  ✅ remedies');
 
     // ─── 2. Remedy profiles ───
@@ -66,7 +71,9 @@ async function main() {
       )`;
     try {
       await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_remedy ON remedy_profiles(remedy_id)`;
-    } catch { console.log('  [skip] idx_profile_remedy'); }
+    } catch {
+      console.log('  [skip] idx_profile_remedy');
+    }
     console.log('  ✅ remedy_profiles');
 
     // ─── 3. Rubrics - ALTER existing legacy table with new columns ───
@@ -94,7 +101,9 @@ async function main() {
     try {
       await sql`CREATE INDEX IF NOT EXISTS idx_rubrics_chapter ON rubrics(chapter)`;
       await sql`CREATE INDEX IF NOT EXISTS idx_rubrics_category ON rubrics(category)`;
-    } catch { console.log('  [skip] rubrics indexes'); }
+    } catch {
+      console.log('  [skip] rubrics indexes');
+    }
     console.log('  ✅ rubrics');
 
     // ─── 4. Rubric-remedy map ───
@@ -129,7 +138,9 @@ async function main() {
     try {
       await sql`CREATE INDEX IF NOT EXISTS idx_rrm_rubric ON rubric_remedy_map(rubric_id)`;
       await sql`CREATE INDEX IF NOT EXISTS idx_rrm_remedy ON rubric_remedy_map(remedy_id)`;
-    } catch { console.log('  [skip] rrm indexes'); }
+    } catch {
+      console.log('  [skip] rrm indexes');
+    }
     console.log('  ✅ rubric_remedy_map');
 
     // ─── 5. SOAP notes ───
@@ -192,7 +203,9 @@ async function main() {
     }
     try {
       await sql`CREATE INDEX IF NOT EXISTS idx_soap_tenant ON soap_notes(tenant_id)`;
-    } catch { console.log('  [skip] soap indexes'); }
+    } catch {
+      console.log('  [skip] soap indexes');
+    }
     console.log('  ✅ soap_notes');
 
     // ─── 6. Prescriptions ───
@@ -239,7 +252,9 @@ async function main() {
     try {
       await sql`CREATE INDEX IF NOT EXISTS idx_rx_visit ON prescriptions(visit_id)`;
       await sql`CREATE INDEX IF NOT EXISTS idx_rx_tenant ON prescriptions(tenant_id)`;
-    } catch { console.log('  [skip] rx indexes'); }
+    } catch {
+      console.log('  [skip] rx indexes');
+    }
     console.log('  ✅ prescriptions');
 
     // ─── 7. Prescription Items ───
@@ -262,7 +277,9 @@ async function main() {
       )`;
     try {
       await sql`CREATE INDEX IF NOT EXISTS idx_rxi_prescription ON prescription_items(prescription_id)`;
-    } catch { console.log('  [skip] rxi indexes'); }
+    } catch {
+      console.log('  [skip] rxi indexes');
+    }
     console.log('  ✅ prescription_items');
 
     console.log('\n[Migration] ════════════════════════════════════════');

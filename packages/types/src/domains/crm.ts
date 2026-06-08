@@ -17,7 +17,7 @@ export interface Lead {
 export interface LeadFollowup {
   id: number;
   leadId: number;
-  name?: string | null;       // notes/description
+  name?: string | null; // notes/description
   task?: string | null;
   taskstatus?: string | null;
   createdAt: string;

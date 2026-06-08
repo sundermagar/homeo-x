@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { MessageSquare, Plus, X, RefreshCw, Trash2, Edit2, Send, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useMessageTemplates, useCreateMessageTemplate, useUpdateMessageTemplate, useDeleteMessageTemplate } from '../hooks/use-settings';
+import {
+  useMessageTemplates,
+  useCreateMessageTemplate,
+  useUpdateMessageTemplate,
+  useDeleteMessageTemplate,
+} from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -23,19 +28,14 @@ export default function MessageTemplatesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
 
-  const filtered = templates.filter((t: any) =>
-    t.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.content.toLowerCase().includes(search.toLowerCase())
+  const filtered = templates.filter(
+    (t: any) =>
+      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.content.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filtered);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filtered);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -49,7 +49,7 @@ export default function MessageTemplatesPage() {
       name: tpl.name,
       content: tpl.content,
       type: tpl.type || 'SMS',
-      isActive: tpl.isActive ?? true
+      isActive: tpl.isActive ?? true,
     });
     setIsModalOpen(true);
   };
@@ -71,8 +71,6 @@ export default function MessageTemplatesPage() {
 
   return (
     <div className="plat-page fade-in">
-
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
@@ -96,9 +94,7 @@ export default function MessageTemplatesPage() {
         </div>
         <div className="plat-stat-card">
           <p className="plat-stat-label">Filtered</p>
-          <p className="plat-stat-value plat-stat-value-success">
-            {filtered.length}
-          </p>
+          <p className="plat-stat-value plat-stat-value-success">{filtered.length}</p>
         </div>
       </div>
 
@@ -124,60 +120,79 @@ export default function MessageTemplatesPage() {
           </div>
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '60px' }}>ID</th>
-                  <th>Template Name</th>
-                  <th style={{ width: '100px' }}>Channel</th>
-                  <th>Message Preview</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '120px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((tpl: any) => (
-                  <tr key={tpl.id} className="plat-table-row">
-                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{tpl.id}</td>
-                    <td data-label="Name" className="plat-table-cell font-semibold">{tpl.name}</td>
-                    <td data-label="Channel" className="plat-table-cell">
-                      <span className={`plat-badge ${tpl.type === 'WhatsApp' ? 'plat-badge-admin' : 'plat-badge-default'}`}>
-                        {tpl.type}
-                      </span>
-                    </td>
-                    <td data-label="Preview" className="plat-table-cell">
-                      <div className="truncate max-w-[280px] text-secondary text-sm" title={tpl.content}>{tpl.content}</div>
-                    </td>
-                    <td data-label="Status" className="plat-table-cell">
-                      <span className={`plat-badge ${tpl.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                        {tpl.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="plat-table-cell">
-                      <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(tpl)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(tpl.id, tpl.name)}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px' }}>ID</th>
+                    <th>Template Name</th>
+                    <th style={{ width: '100px' }}>Channel</th>
+                    <th>Message Preview</th>
+                    <th style={{ width: '100px' }}>Status</th>
+                    <th style={{ width: '120px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((tpl: any) => (
+                    <tr key={tpl.id} className="plat-table-row">
+                      <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">
+                        {tpl.id}
+                      </td>
+                      <td data-label="Name" className="plat-table-cell font-semibold">
+                        {tpl.name}
+                      </td>
+                      <td data-label="Channel" className="plat-table-cell">
+                        <span
+                          className={`plat-badge ${tpl.type === 'WhatsApp' ? 'plat-badge-admin' : 'plat-badge-default'}`}
+                        >
+                          {tpl.type}
+                        </span>
+                      </td>
+                      <td data-label="Preview" className="plat-table-cell">
+                        <div
+                          className="truncate max-w-[280px] text-secondary text-sm"
+                          title={tpl.content}
+                        >
+                          {tpl.content}
+                        </div>
+                      </td>
+                      <td data-label="Status" className="plat-table-cell">
+                        <span
+                          className={`plat-badge ${tpl.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}
+                        >
+                          {tpl.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="flex justify-end gap-3">
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon"
+                            onClick={() => handleOpenEdit(tpl)}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(tpl.id, tpl.name)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
@@ -190,14 +205,17 @@ export default function MessageTemplatesPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
                 <div className="plat-form-group">
                   <label className="plat-form-label">Template Name *</label>
                   <input
                     className="plat-form-input"
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     required
                     placeholder="e.g. Appointment Confirmation"
                   />
@@ -206,11 +224,21 @@ export default function MessageTemplatesPage() {
                   <label className="plat-form-label">Communication Channel</label>
                   <div className="flex gap-4 p-2 border border-main rounded-lg bg-soft">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="tpl-type" checked={form.type === 'SMS'} onChange={() => setForm(f => ({ ...f, type: 'SMS' }))} />
+                      <input
+                        type="radio"
+                        name="tpl-type"
+                        checked={form.type === 'SMS'}
+                        onChange={() => setForm((f) => ({ ...f, type: 'SMS' }))}
+                      />
                       <span className="text-sm">SMS</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="tpl-type" checked={form.type === 'WhatsApp'} onChange={() => setForm(f => ({ ...f, type: 'WhatsApp' }))} />
+                      <input
+                        type="radio"
+                        name="tpl-type"
+                        checked={form.type === 'WhatsApp'}
+                        onChange={() => setForm((f) => ({ ...f, type: 'WhatsApp' }))}
+                      />
                       <span className="text-sm font-bold color-primary">WhatsApp</span>
                     </label>
                   </div>
@@ -218,13 +246,13 @@ export default function MessageTemplatesPage() {
                 <div className="plat-form-group">
                   <label className="plat-form-label">Message Content *</label>
                   <div className="bg-faded rounded-lg p-3 mb-2 text-[11px] text-muted border border-dashed border-main">
-                    Tip: Use <b>{"{name}"}</b>, <b>{"{date}"}</b> for variables.
+                    Tip: Use <b>{'{name}'}</b>, <b>{'{date}'}</b> for variables.
                   </div>
                   <textarea
                     className="plat-form-input"
                     style={{ minHeight: '160px', fontFamily: 'monospace', fontSize: '13px' }}
                     value={form.content}
-                    onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
                     required
                     placeholder="Hello {name}, your appointment is confirmed for {date}..."
                   />
@@ -234,7 +262,7 @@ export default function MessageTemplatesPage() {
                   <input
                     type="checkbox"
                     checked={form.isActive}
-                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                   />
                   <span className="plat-checkbox-label">Template is Active</span>
                 </label>
@@ -242,14 +270,19 @@ export default function MessageTemplatesPage() {
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={createTpl.isPending || updateTpl.isPending}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
+              disabled={createTpl.isPending || updateTpl.isPending}
+            >
               {editingId ? 'Save Changes' : 'Create Template'}
             </button>
           </div>
         </form>
       </Drawer>
-
     </div>
   );
 }

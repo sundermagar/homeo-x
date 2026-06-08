@@ -12,7 +12,13 @@ interface AppointmentFormDrawerProps {
   onSuccess?: () => void;
 }
 
-export function AppointmentFormDrawer({ isOpen, onClose, appointmentId, initialDate, onSuccess }: AppointmentFormDrawerProps) {
+export function AppointmentFormDrawer({
+  isOpen,
+  onClose,
+  appointmentId,
+  initialDate,
+  onSuccess,
+}: AppointmentFormDrawerProps) {
   const [editData, setEditData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +27,8 @@ export function AppointmentFormDrawer({ isOpen, onClose, appointmentId, initialD
       setLoading(true);
       // Fetch the specific appointment data if editing
       import('@/infrastructure/api-client').then(({ apiClient }) => {
-        apiClient.get(`/appointments/${appointmentId}`)
+        apiClient
+          .get(`/appointments/${appointmentId}`)
           .then(({ data }) => {
             setEditData(data.data);
             setLoading(false);
@@ -68,6 +75,6 @@ export function AppointmentFormDrawer({ isOpen, onClose, appointmentId, initialD
         </div>
       </div>
     </>,
-    document.body
+    document.body,
   );
 }

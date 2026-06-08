@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { LoginUseCase } from '../../../domains/auth/use-cases/login.use-case.js';
+import { PatientLoginUseCase } from '../../../domains/auth/use-cases/patient-login.use-case.js';
 import { LogoutUseCase } from '../../../domains/auth/use-cases/logout.use-case.js';
 import { ChangePasswordUseCase } from '../../../domains/auth/use-cases/change-password.use-case.js';
 import { UserRepositoryPG } from '../../repositories/user.repository.pg.js';
+import { PatientRepositoryPg } from '../../repositories/patient.repository.pg.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import { UnauthorizedError } from '../../../shared/errors.js';
@@ -25,51 +27,67 @@ const getRepo = (req: any) => new UserRepositoryPG(req.tenantDb);
 const getPublicRepo = (req: any) => new UserRepositoryPG(req.publicDb);
 
 // POST /api/auth/login
-authRouter.post('/login', asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+authRouter.post(
+  '/login',
+  asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
 
-  // Primary attempt: search in the resolved tenant DB (normal staff/doctor login)
-  let result: any = { success: false, error: 'Database error' };
-  try {
+    // Primary attempt: search in the resolved tenant DB (normal staff/doctor login)
     const tenantLoginUseCase = new LoginUseCase(getRepo(req));
-    result = await tenantLoginUseCase.execute(email, password);
-  } catch (tenantErr: any) {
-    console.log(`[Auth] Tenant login threw error: ${tenantErr.message}`);
-  }
+    const result = await tenantLoginUseCase.execute(email, password);
 
-  if (result.success) {
-    sendSuccess(res, result.data);
-    return;
-  }
+    if (result.success) {
+      sendSuccess(res, result.data);
+      return;
+    }
 
-  // Fallback: search in the public schema (clinic admin login from any domain)
-  // Clinic admins are mirrored to public.users during organization provisioning
-  console.log(`[Auth] Tenant login failed for ${email}, trying public schema fallback...`);
-  const publicLoginUseCase = new LoginUseCase(getPublicRepo(req));
-  const publicResult = await publicLoginUseCase.execute(email, password);
+    // Fallback: search in the public schema (clinic admin login from any domain)
+    // Clinic admins are mirrored to public.users during organization provisioning
+    console.log(`[Auth] Tenant login failed for ${email}, trying public schema fallback...`);
+    const publicLoginUseCase = new LoginUseCase(getPublicRepo(req));
+    const publicResult = await publicLoginUseCase.execute(email, password);
 
-  if (publicResult.success) {
-    console.log(`[Auth] ✅ Public schema fallback login succeeded for ${email}`);
-    sendSuccess(res, publicResult.data);
-    return;
-  }
+    if (publicResult.success) {
+      console.log(`[Auth] ✅ Public schema fallback login succeeded for ${email}`);
+      sendSuccess(res, publicResult.data);
+      return;
+    }
 
-  throw new UnauthorizedError(result.error as string || 'Invalid credentials');
-}));
+    // Fallback 3: search in patients table (for patient portal login)
+    console.log(
+      `[Auth] Public schema fallback login failed for ${email}, trying patient login fallback...`,
+    );
+    const patientRepo = new PatientRepositoryPg(req.tenantDb);
+    const patientLoginUseCase = new PatientLoginUseCase(patientRepo);
+    const patientResult = await patientLoginUseCase.execute(email, password);
+
+    if (patientResult.success) {
+      console.log(`[Auth] ✅ Patient fallback login succeeded for ${email}`);
+      sendSuccess(res, patientResult.data);
+      return;
+    }
+
+    throw new UnauthorizedError((result.error as string) || 'Invalid credentials');
+  }),
+);
 
 // POST /api/auth/logout
-authRouter.post('/logout', authMiddleware, asyncHandler(async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.split(' ')[1];
-  
-  if (!token) {
-    throw new UnauthorizedError('Missing token');
-  }
+authRouter.post(
+  '/logout',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1];
 
-  const logoutUseCase = new LogoutUseCase();
-  await logoutUseCase.execute(token, req.user!);
-  sendSuccess(res, undefined, 'Logged out successfully');
-}));
+    if (!token) {
+      throw new UnauthorizedError('Missing token');
+    }
+
+    const logoutUseCase = new LogoutUseCase();
+    await logoutUseCase.execute(token, req.user!);
+    sendSuccess(res, undefined, 'Logged out successfully');
+  }),
+);
 
 // GET /api/auth/me
 authRouter.get('/me', authMiddleware, (req, res) => {
@@ -77,70 +95,83 @@ authRouter.get('/me', authMiddleware, (req, res) => {
 });
 
 // PUT /api/auth/password
-authRouter.put('/password', authMiddleware, asyncHandler(async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  const changePasswordUseCase = new ChangePasswordUseCase(getRepo(req));
-  
-  await changePasswordUseCase.execute(req.user!.id, currentPassword, newPassword);
-  sendSuccess(res, undefined, 'Password updated successfully');
-}));
+authRouter.put(
+  '/password',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const changePasswordUseCase = new ChangePasswordUseCase(getRepo(req));
+
+    await changePasswordUseCase.execute(req.user!.id, currentPassword, newPassword);
+    sendSuccess(res, undefined, 'Password updated successfully');
+  }),
+);
 
 import { ForgotPasswordUseCase } from '../../../domains/auth/use-cases/forgot-password.use-case.js';
 import { ResetPasswordUseCase } from '../../../domains/auth/use-cases/reset-password.use-case.js';
 
 // POST /api/auth/forgot-password
-authRouter.post('/forgot-password', asyncHandler(async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    throw new UnauthorizedError('Email is required');
-  }
-
-  try {
-    const useCase = new ForgotPasswordUseCase(getRepo(req));
-    const result = await useCase.execute(email);
-    sendSuccess(res, result);
-    return;
-  } catch (err: any) {
-    if (err.name === 'NotFoundError' || err.message === 'User not found') {
-      try {
-        const publicUseCase = new ForgotPasswordUseCase(getPublicRepo(req));
-        const publicResult = await publicUseCase.execute(email);
-        sendSuccess(res, publicResult);
-        return;
-      } catch (publicErr) {
-        // Return success anyway to prevent email enumeration
-        sendSuccess(res, { success: true, message: 'If the email exists, a reset link has been sent.' });
-        return;
-      }
+authRouter.post(
+  '/forgot-password',
+  asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+      throw new UnauthorizedError('Email is required');
     }
-    throw err;
-  }
-}));
+
+    try {
+      const useCase = new ForgotPasswordUseCase(getRepo(req));
+      const result = await useCase.execute(email);
+      sendSuccess(res, result);
+      return;
+    } catch (err: any) {
+      if (err.name === 'NotFoundError' || err.message === 'User not found') {
+        try {
+          const publicUseCase = new ForgotPasswordUseCase(getPublicRepo(req));
+          const publicResult = await publicUseCase.execute(email);
+          sendSuccess(res, publicResult);
+          return;
+        } catch (publicErr) {
+          // Return success anyway to prevent email enumeration
+          sendSuccess(res, {
+            success: true,
+            message: 'If the email exists, a reset link has been sent.',
+          });
+          return;
+        }
+      }
+      throw err;
+    }
+  }),
+);
 
 // POST /api/auth/reset-password
-authRouter.post('/reset-password', asyncHandler(async (req, res) => {
-  const { email, token, newPassword } = req.body;
-  if (!email || !token || !newPassword) {
-    throw new UnauthorizedError('Missing required fields');
-  }
-
-  try {
-    const useCase = new ResetPasswordUseCase(getRepo(req));
-    const result = await useCase.execute(email, token, newPassword);
-    sendSuccess(res, result);
-    return;
-  } catch (err: any) {
-    // If user not found or token invalid, check public repo
-    if (err.name === 'UnauthorizedError' || err.name === 'NotFoundError') {
-      try {
-        const publicUseCase = new ResetPasswordUseCase(getPublicRepo(req));
-        const publicResult = await publicUseCase.execute(email, token, newPassword);
-        sendSuccess(res, publicResult);
-        return;
-      } catch (publicErr) {
-        throw publicErr;
-      }
+authRouter.post(
+  '/reset-password',
+  asyncHandler(async (req, res) => {
+    const { email, token, newPassword } = req.body;
+    if (!email || !token || !newPassword) {
+      throw new UnauthorizedError('Missing required fields');
     }
-    throw err;
-  }
-}));
+
+    try {
+      const useCase = new ResetPasswordUseCase(getRepo(req));
+      const result = await useCase.execute(email, token, newPassword);
+      sendSuccess(res, result);
+      return;
+    } catch (err: any) {
+      // If user not found or token invalid, check public repo
+      if (err.name === 'UnauthorizedError' || err.name === 'NotFoundError') {
+        try {
+          const publicUseCase = new ResetPasswordUseCase(getPublicRepo(req));
+          const publicResult = await publicUseCase.execute(email, token, newPassword);
+          sendSuccess(res, publicResult);
+          return;
+        } catch (publicErr) {
+          throw publicErr;
+        }
+      }
+      throw err;
+    }
+  }),
+);

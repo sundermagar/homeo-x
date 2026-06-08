@@ -5,7 +5,7 @@ import type {
   MonthWiseDueSummary,
   MonthWiseDueDetail,
   BirthdayPatient,
-  ReferenceListResult
+  ReferenceListResult,
 } from '@mmc/types';
 
 export interface IAnalyticsRepository {
@@ -22,7 +22,11 @@ export interface IAnalyticsRepository {
   /**
    * Get detailed month-wise financial and clinical grid breakdown (casemonthwise)
    */
-  getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string): Promise<MonthWiseResult[]>;
+  getMonthWiseBreakdown(
+    clinicId?: number,
+    fromYearMth?: string,
+    toYearMth?: string,
+  ): Promise<MonthWiseResult[]>;
 
   /**
    * Get month-wise patient balance dues for a given year
@@ -37,7 +41,11 @@ export interface IAnalyticsRepository {
   /**
    * Get patients whose birthday falls in the given date range (ignoring year)
    */
-  getBirthdays(clinicId?: number, fromMonthDay?: string, toMonthDay?: string): Promise<BirthdayPatient[]>;
+  getBirthdays(
+    clinicId?: number,
+    fromMonthDay?: string,
+    toMonthDay?: string,
+  ): Promise<BirthdayPatient[]>;
 
   /**
    * Identify patients who already received an SMS notification on the given date

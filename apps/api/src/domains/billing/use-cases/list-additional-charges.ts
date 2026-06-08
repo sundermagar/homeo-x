@@ -1,6 +1,9 @@
 import type { AdditionalChargeRepository } from '../ports/accounts.repository.js';
-import type { BillingRepository } from '../ports/billing.repository.js';
-import type { CreateAdditionalChargeInput, UpdateAdditionalChargeInput, ListAdditionalChargesQuery } from '@mmc/validation';
+import type {
+  CreateAdditionalChargeInput,
+  UpdateAdditionalChargeInput,
+  ListAdditionalChargesQuery,
+} from '@mmc/validation';
 import type { AdditionalCharge, AdditionalChargeWithPatient } from '@mmc/types';
 
 export interface AdditionalChargeResult {
@@ -70,24 +73,8 @@ export class UpdateAdditionalChargeUseCase {
       if (!oldCharge) return { success: false, error: 'Additional charge not found' };
 
       const updated = await this.repo.update(id, input);
-      if (!updated) return { success: false, error: 'Additional charge not found or already deleted' };
-
-      if (this.billingRepo && oldCharge.regid && oldCharge.dateval && oldCharge.additionalName) {
-        // Calculate new total amount for the bill
-        const newPrice = input.additionalPrice !== undefined ? input.additionalPrice : oldCharge.additionalPrice;
-        const newQty = input.additionalQuantity !== undefined ? input.additionalQuantity : oldCharge.additionalQuantity;
-        const newAmount = (newPrice || 0) * (newQty || 1);
-        const newName = input.additionalName || oldCharge.additionalName;
-
-        await this.billingRepo.updateAdditionalChargeBill(
-          oldCharge.regid,
-          oldCharge.dateval,
-          oldCharge.additionalName,
-          newName,
-          newAmount
-        );
-      }
-
+      if (!updated)
+        return { success: false, error: 'Additional charge not found or already deleted' };
       return { success: true, data: updated };
     } catch (err) {
       return { success: false, error: (err as Error).message };

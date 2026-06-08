@@ -78,7 +78,12 @@ visitsRouter.get('/:visitId', async (req: Request, res: Response, next: NextFunc
     const normalizedPatient = {
       id: patient?.id ?? appt.patientId,
       regid: patient?.regid ?? null,
-      mrn: patient?.regid != null ? `PT-${patient.regid}` : (patient?.id != null ? `ID-${patient.id}` : ''),
+      mrn:
+        patient?.regid != null
+          ? `PT-${patient.regid}`
+          : patient?.id != null
+            ? `ID-${patient.id}`
+            : '',
       firstName: patient?.firstName ?? fallback.firstName,
       lastName: patient?.surname ?? fallback.lastName,
       gender: patient?.gender ?? null,
@@ -104,7 +109,8 @@ visitsRouter.get('/:visitId', async (req: Request, res: Response, next: NextFunc
       if (['consultation', 'inprogress', 'in_progress'].includes(v)) return 'IN_PROGRESS';
       if (['completed', 'done', 'visited'].includes(v)) return 'COMPLETED';
       if (['cancelled', 'canceled', 'absent'].includes(v)) return 'CANCELLED';
-      if (['pending', 'confirmed', 'arrived', 'waitlist', 'scheduled'].includes(v)) return 'CHECKED_IN';
+      if (['pending', 'confirmed', 'arrived', 'waitlist', 'scheduled'].includes(v))
+        return 'CHECKED_IN';
       return 'CHECKED_IN';
     };
 
@@ -129,20 +135,28 @@ visitsRouter.get('/:visitId', async (req: Request, res: Response, next: NextFunc
       patient: normalizedPatient,
       vitals: null,
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST /api/visits/:visitId/vitals — record vitals for a visit
-visitsRouter.post('/:visitId/vitals', asyncHandler(async (req, res) => {
-  const visitId = parseVisitId(req.params.visitId);
-  await getVitalsUseCase(req).execute({ ...req.body, visitId });
-  sendSuccess(res, null, 'Vitals recorded successfully');
-}));
+visitsRouter.post(
+  '/:visitId/vitals',
+  asyncHandler(async (req, res) => {
+    const visitId = parseVisitId(req.params.visitId);
+    await getVitalsUseCase(req).execute({ ...req.body, visitId });
+    sendSuccess(res, null, 'Vitals recorded successfully');
+  }),
+);
 
 // GET /api/visits/:visitId/vitals — read vitals for a visit
-visitsRouter.get('/:visitId/vitals', asyncHandler(async (req, res) => {
-  const visitId = parseVisitId(req.params.visitId);
-  const result = await getVitalsUseCase(req).get(visitId);
-  if (!result.success) throw new Error(result.error);
-  sendSuccess(res, result.data);
-}));
+visitsRouter.get(
+  '/:visitId/vitals',
+  asyncHandler(async (req, res) => {
+    const visitId = parseVisitId(req.params.visitId);
+    const result = await getVitalsUseCase(req).get(visitId);
+    if (!result.success) throw new Error(result.error);
+    sendSuccess(res, result.data);
+  }),
+);

@@ -17,7 +17,7 @@ export interface SyncResult {
 
 /**
  * SyncTemplatesUseCase
- * 
+ *
  * Fetches all message templates from the Meta Graph API for a given channel,
  * then upserts them into the local database. Handles:
  * - Intelligent diff-based upsert (skip unchanged templates)
@@ -29,7 +29,7 @@ export interface SyncResult {
 export class SyncTemplatesUseCase {
   constructor(
     private readonly gateway: WhatsAppGateway,
-    private readonly waRepo: WhatsAppRepository
+    private readonly waRepo: WhatsAppRepository,
   ) {}
 
   async execute(channelId: number): Promise<SyncResult> {
@@ -68,8 +68,8 @@ export class SyncTemplatesUseCase {
 
       logger.info(
         `Sync complete for channel ${channelId}: ` +
-        `${result.created} created, ${result.updated} updated, ` +
-        `${result.unchanged} unchanged, ${result.failed} failed`
+          `${result.created} created, ${result.updated} updated, ` +
+          `${result.unchanged} unchanged, ${result.failed} failed`,
       );
     } catch (err: any) {
       logger.error(`Template sync failed for channel ${channelId}: ${err.message}`);
@@ -115,35 +115,38 @@ export class SyncTemplatesUseCase {
     }
 
     // Parse buttons
-    const buttons = buttonsComp?.buttons?.map((btn: any) => ({
-      type: btn.type,          // URL, QUICK_REPLY, PHONE_NUMBER, COPY_CODE
-      text: btn.text,
-      url: btn.url,
-      phoneNumber: btn.phone_number,
-      example: btn.example,
-    })) || [];
+    const buttons =
+      buttonsComp?.buttons?.map((btn: any) => ({
+        type: btn.type, // URL, QUICK_REPLY, PHONE_NUMBER, COPY_CODE
+        text: btn.text,
+        url: btn.url,
+        phoneNumber: btn.phone_number,
+        example: btn.example,
+      })) || [];
 
     // Parse carousel cards
-    const carouselCards = carouselComp?.cards?.map((card: any) => ({
-      header: card.components?.find((c: any) => c.type === 'HEADER'),
-      body: card.components?.find((c: any) => c.type === 'BODY')?.text,
-      buttons: card.components?.find((c: any) => c.type === 'BUTTONS')?.buttons || [],
-    })) || [];
+    const carouselCards =
+      carouselComp?.cards?.map((card: any) => ({
+        header: card.components?.find((c: any) => c.type === 'HEADER'),
+        body: card.components?.find((c: any) => c.type === 'BODY')?.text,
+        buttons: card.components?.find((c: any) => c.type === 'BUTTONS')?.buttons || [],
+      })) || [];
 
     return {
       channelId,
       whatsappTemplateId: remote.id,
       name: remote.name,
-      status: remote.status?.toLowerCase() || 'draft',     // APPROVED -> approved
+      status: remote.status?.toLowerCase() || 'draft', // APPROVED -> approved
       category: remote.category?.toLowerCase() || 'utility', // MARKETING -> marketing
       language: remote.language || 'en_US',
       header: headerComp?.text || null,
       body: bodyText,
       footer: footerComp?.text || null,
       buttons,
-      variables: variableExamples.length > 0
-        ? variableExamples
-        : variableMatches.map((_: any, i: number) => `Variable ${i + 1}`),
+      variables:
+        variableExamples.length > 0
+          ? variableExamples
+          : variableMatches.map((_: any, i: number) => `Variable ${i + 1}`),
       mediaType,
       mediaUrl,
       mediaHandle,

@@ -17,7 +17,9 @@ export function useDoctorStatus(isDoctor: boolean) {
   const query = useQuery({
     queryKey: statusKeys.doctor,
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; isActive: boolean }>('/doctors/status');
+      const { data } = await apiClient.get<{ success: boolean; isActive: boolean }>(
+        '/doctors/status',
+      );
       return data.isActive;
     },
     enabled: isDoctor,
@@ -53,7 +55,10 @@ export function useUpdateDoctorStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (isActive: boolean) => {
-      const { data } = await apiClient.patch<{ success: boolean; isActive: boolean }>('/doctors/status', { isActive });
+      const { data } = await apiClient.patch<{ success: boolean; isActive: boolean }>(
+        '/doctors/status',
+        { isActive },
+      );
       return data.isActive;
     },
     onSuccess: (isActive) => {

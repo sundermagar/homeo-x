@@ -30,12 +30,25 @@ export class QueueManagementUseCase {
     await triggerNotification({ userId, clinicId, type, title, message, repo: this.notifRepo });
   }
 
-  async getWaitlist(date: string, doctorId?: number, clinicId?: number): Promise<Result<WaitlistEntry[]>> {
-    const list = await this.repo.getWaitlist(date, doctorId, clinicId);
+  async getWaitlist(
+    date: string,
+    doctorId?: number,
+    clinicId?: number,
+    patientId?: number,
+    patientRegId?: number,
+  ): Promise<Result<WaitlistEntry[]>> {
+    const list = await this.repo.getWaitlist(date, doctorId, clinicId, patientId, patientRegId);
     return ok(list);
   }
 
-  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; unregisteredPatientId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<Result<{ waitingNumber: number }>> {
+  async addToWaitlist(dto: {
+    patientId?: number;
+    appointmentId?: number;
+    unregisteredPatientId?: number;
+    doctorId?: number;
+    consultationFee?: number;
+    clinicId?: number;
+  }): Promise<Result<{ waitingNumber: number }>> {
     const waitingNumber = await this.repo.addToWaitlist(dto);
 
     if (this.notifRepo && dto.doctorId) {

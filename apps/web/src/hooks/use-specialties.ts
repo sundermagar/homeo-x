@@ -22,7 +22,8 @@ export function useSpecialtyConfig(specialty: string | undefined) {
 export function useSoapTemplate(specialty: string | undefined) {
   return useQuery({
     queryKey: ['soap-template', specialty],
-    queryFn: () => api.get<Record<string, unknown>>(`${API.SPECIALTIES}/${specialty}/soap-template`),
+    queryFn: () =>
+      api.get<Record<string, unknown>>(`${API.SPECIALTIES}/${specialty}/soap-template`),
     enabled: !!specialty,
   });
 }

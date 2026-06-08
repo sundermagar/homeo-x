@@ -6,10 +6,22 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" },
-    "./domains/*": { "import": "./dist/domains/*.js", "types": "./dist/domains/*.d.ts" },
-    "./api/*": { "import": "./dist/api/*.js", "types": "./dist/api/*.d.ts" },
-    "./events/*": { "import": "./dist/events/*.js", "types": "./dist/events/*.d.ts" }
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./domains/*": {
+      "import": "./dist/domains/*.js",
+      "types": "./dist/domains/*.d.ts"
+    },
+    "./api/*": {
+      "import": "./dist/api/*.js",
+      "types": "./dist/api/*.d.ts"
+    },
+    "./events/*": {
+      "import": "./dist/events/*.js",
+      "types": "./dist/events/*.d.ts"
+    }
   },
   "scripts": {
     "build": "tsc",

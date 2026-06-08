@@ -28,7 +28,7 @@ export function useRoles() {
   return useQuery({
     queryKey: ['roles'],
     queryFn: async () => {
-      const response = await apiClient.get<{ success: boolean, data: Role[] }>('/roles');
+      const response = await apiClient.get<{ success: boolean; data: Role[] }>('/roles');
       return response.data.data || [];
     },
   });
@@ -39,7 +39,9 @@ export function useRole(id: number | null) {
     queryKey: ['roles', id],
     queryFn: async () => {
       if (!id) return null;
-      const response = await apiClient.get<{ success: boolean, data: RoleWithPermissions }>(`/roles/${id}`);
+      const response = await apiClient.get<{ success: boolean; data: RoleWithPermissions }>(
+        `/roles/${id}`,
+      );
       return response.data.data;
     },
     enabled: !!id,
@@ -50,7 +52,7 @@ export function useCreateRole() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (role: Omit<Role, 'id'>) => {
-      const response = await apiClient.post<{ success: boolean, data: Role }>('/roles', role);
+      const response = await apiClient.post<{ success: boolean; data: Role }>('/roles', role);
       return response.data.data;
     },
     onSuccess: () => {
@@ -63,7 +65,7 @@ export function useUpdateRole() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...role }: Role) => {
-      const response = await apiClient.put<{ success: boolean, data: Role }>(`/roles/${id}`, role);
+      const response = await apiClient.put<{ success: boolean; data: Role }>(`/roles/${id}`, role);
       return response.data.data;
     },
     onSuccess: (_, variables) => {
@@ -92,7 +94,9 @@ export function usePermissions() {
   return useQuery({
     queryKey: ['permissions'],
     queryFn: async () => {
-      const response = await apiClient.get<{ success: boolean, data: Permission[] }>('/permissions');
+      const response = await apiClient.get<{ success: boolean; data: Permission[] }>(
+        '/permissions',
+      );
       return response.data.data || [];
     },
   });
@@ -102,7 +106,9 @@ export function useAssignPermissions() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ roleId, permissionIds }: { roleId: number; permissionIds: number[] }) => {
-      const response = await apiClient.post<{ success: boolean }>(`/roles/${roleId}/permissions`, { permissionIds });
+      const response = await apiClient.post<{ success: boolean }>(`/roles/${roleId}/permissions`, {
+        permissionIds,
+      });
       return response.data;
     },
     onSuccess: (_, variables) => {
@@ -115,7 +121,10 @@ export function useCreatePermission() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (permission: Omit<Permission, 'id' | 'slug'>) => {
-      const response = await apiClient.post<{ success: boolean, data: Permission }>('/permissions', permission);
+      const response = await apiClient.post<{ success: boolean; data: Permission }>(
+        '/permissions',
+        permission,
+      );
       return response.data.data;
     },
     onSuccess: () => {
@@ -128,7 +137,10 @@ export function useUpdatePermission() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...permission }: Permission) => {
-      const response = await apiClient.put<{ success: boolean, data: Permission }>(`/permissions/${id}`, permission);
+      const response = await apiClient.put<{ success: boolean; data: Permission }>(
+        `/permissions/${id}`,
+        permission,
+      );
       return response.data.data;
     },
     onSuccess: () => {

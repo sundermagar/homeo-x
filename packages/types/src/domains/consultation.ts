@@ -1,4 +1,10 @@
-import type { ConsultationStage, ScribingStatus, Speaker, ThermalReaction, Miasm } from '../enums.js';
+import type {
+  ConsultationStage,
+  ScribingStatus,
+  Speaker,
+  ThermalReaction,
+  Miasm,
+} from '../enums.js';
 
 export interface ScribingSession {
   id: number;
@@ -91,7 +97,12 @@ export interface ConsultationPipelineResult {
   emotionProfile: EmotionProfile[];
   nextQuestions: AiSuggestedQuestion[];
   repertory: {
-    rubrics: Array<{ rubricId?: string; description: string; category: string; importance: string }>;
+    rubrics: Array<{
+      rubricId?: string;
+      description: string;
+      category: string;
+      importance: string;
+    }>;
     remedies: ScoredRemedy[];
   };
   prescription: Record<string, unknown>;

@@ -21,7 +21,11 @@ export class PaymentRepositoryPg implements PaymentRepository {
       .limit(1);
 
     if (!row) return null;
-    return { ...this.toDomain(row.payment), patientName: row.patientName ?? '', phone: row.phone ?? null };
+    return {
+      ...this.toDomain(row.payment),
+      patientName: row.patientName ?? '',
+      phone: row.phone ?? null,
+    };
   }
 
   async findAll(params: ListPaymentsQuery): Promise<{ data: PaymentWithPatient[]; total: number }> {
@@ -45,12 +49,19 @@ export class PaymentRepositoryPg implements PaymentRepository {
         .orderBy(desc(payments.id))
         .limit(limit)
         .offset(offset),
-      this.db.select({ count: sql<number>`count(*)` }).from(payments).where(where),
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(payments)
+        .where(where),
     ]);
 
     const total = Number(countRows[0]?.count ?? 0);
     return {
-      data: rows.map(r => ({ ...this.toDomain(r.payment), patientName: r.patientName ?? '', phone: r.phone ?? null })),
+      data: rows.map((r) => ({
+        ...this.toDomain(r.payment),
+        patientName: r.patientName ?? '',
+        phone: r.phone ?? null,
+      })),
       total,
     };
   }

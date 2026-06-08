@@ -7,27 +7,48 @@ import { Role } from '@mmc/types';
 // code is downloaded. This reduces the initial bundle by ~40-80 KB per
 // unused dashboard (charts, tables, role-specific components).
 const DoctorDashboard = lazy(() =>
-  import('./doctor-dashboard').then((m) => ({ default: m.DoctorDashboard }))
+  import('./doctor-dashboard').then((m) => ({ default: m.DoctorDashboard })),
 );
 const AdminDashboard = lazy(() =>
-  import('./admin-dashboard').then((m) => ({ default: m.AdminDashboard }))
+  import('./admin-dashboard').then((m) => ({ default: m.AdminDashboard })),
 );
 const SuperAdminDashboard = lazy(() =>
   import('./super-admin-dashboard').then((m) => ({ default: m.SuperAdminDashboard }))
 );
 const ClinicAdminDashboard = lazy(() =>
-  import('./clinic-admin-dashboard').then((m) => ({ default: m.ClinicAdminDashboard }))
+  import('./clinic-admin-dashboard').then((m) => ({ default: m.ClinicAdminDashboard })),
 );
 const ReceptionistDashboard = lazy(() =>
-  import('./receptionist-dashboard').then((m) => ({ default: m.ReceptionistDashboard }))
+  import('./receptionist-dashboard').then((m) => ({ default: m.ReceptionistDashboard })),
+);
+const PatientDashboard = lazy(() =>
+  import('./patient-dashboard').then((m) => ({ default: m.PatientDashboard })),
 );
 
 /** Minimal loading skeleton shown while dashboard chunk downloads. */
 function DashboardSkeleton() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', opacity: 0.5 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '60vh',
+        opacity: 0.5,
+      }}
+    >
       <div style={{ textAlign: 'center' }}>
-        <div className="animate-spin" style={{ width: 32, height: 32, border: '3px solid #e5e7eb', borderTopColor: '#6366f1', borderRadius: '50%', margin: '0 auto 12px' }} />
+        <div
+          className="animate-spin"
+          style={{
+            width: 32,
+            height: 32,
+            border: '3px solid #e5e7eb',
+            borderTopColor: '#6366f1',
+            borderRadius: '50%',
+            margin: '0 auto 12px',
+          }}
+        />
         <p style={{ color: '#94a3b8', fontSize: 14 }}>Loading dashboard…</p>
       </div>
     </div>
@@ -60,8 +81,10 @@ export default function DashboardPage() {
     case Role.Receptionist:
       DashboardComponent = ReceptionistDashboard;
       break;
-    case Role.Dispensary:
-      return <Navigate to="/dispensary-dashboard" replace />;
+    case 'Patient' as Role:
+    case Role.Patient:
+      DashboardComponent = PatientDashboard;
+      break;
     default:
       // Fallback to Admin Dashboard for other roles (Account, etc.)
       DashboardComponent = AdminDashboard;

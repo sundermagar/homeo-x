@@ -13,13 +13,16 @@ interface StaffListResponse {
 
 // ─── Staff Queries ───
 
-export function useStaffList(category: StaffCategory, params: { 
-  page?: number; 
-  limit?: number; 
-  search?: string;
-  sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC';
-}) {
+export function useStaffList(
+  category: StaffCategory,
+  params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+  },
+) {
   return useQuery<StaffListResponse>({
     queryKey: [STAFF_KEY, category, params],
     queryFn: async () => {
@@ -29,10 +32,10 @@ export function useStaffList(category: StaffCategory, params: {
       // Interceptor unwraps success responses: res.data might be just the array
       // Use _original to get the full response body containing 'total'
       const body = (res as any)._original ?? res.data;
-      return { 
-        data: (body.data ?? res.data ?? []) as StaffSummary[], 
+      return {
+        data: (body.data ?? res.data ?? []) as StaffSummary[],
         total: (body.total ?? (Array.isArray(res.data) ? res.data.length : 0)) as number,
-        activeCount: body.activeCount ?? 0
+        activeCount: body.activeCount ?? 0,
       };
     },
   });
@@ -70,7 +73,11 @@ export function useCreateStaff() {
 export function useUpdateStaff() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ category, id, ...input }: UpdateStaffInput & { category: StaffCategory; id: number }) => {
+    mutationFn: async ({
+      category,
+      id,
+      ...input
+    }: UpdateStaffInput & { category: StaffCategory; id: number }) => {
       if (!id || isNaN(id)) {
         throw new Error('Invalid staff member ID');
       }

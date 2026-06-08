@@ -4,7 +4,12 @@ import type { ILeadRepository } from '../ports/lead.repository.js';
 export class ManageRemindersUseCase {
   constructor(private readonly repo: ILeadRepository) {}
 
-  async list(filters: { status?: string; page: number; limit: number; date?: string }): Promise<Result<{ data: any[]; total: number }>> {
+  async list(filters: {
+    status?: string;
+    page: number;
+    limit: number;
+    date?: string;
+  }): Promise<Result<{ data: any[]; total: number }>> {
     const res = await this.repo.findReminders(filters);
     return ok(res);
   }

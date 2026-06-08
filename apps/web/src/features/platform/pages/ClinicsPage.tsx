@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, Plus, X, RefreshCw, Edit2, Trash2, Power, PowerOff } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useOrganizations, useCreateOrganization, useDeleteOrganization, useUpdateOrganization, useToggleOrganizationStatus } from '../hooks/use-organizations';
+import {
+  useOrganizations,
+  useCreateOrganization,
+  useDeleteOrganization,
+  useUpdateOrganization,
+} from '../hooks/use-organizations';
 import type { CreateOrganizationInput } from '@mmc/types';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../styles/platform.css';
@@ -13,8 +18,16 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { Drawer } from '@/shared/components/drawer';
 import { HfrVerificationModal } from '../components/hfr-verification-modal';
 const EMPTY_FORM: any = {
-  name: '', email: '', phone: '', city: '', website: '', description: '', connectSince: '',
-  adminEmail: '', adminPassword: '', sendWelcomeEmail: false,
+  name: '',
+  email: '',
+  phone: '',
+  city: '',
+  website: '',
+  description: '',
+  connectSince: '',
+  adminEmail: '',
+  adminPassword: '',
+  sendWelcomeEmail: false,
 };
 export default function ClinicsPage() {
   const qc = useQueryClient();
@@ -22,15 +35,8 @@ export default function ClinicsPage() {
   const createOrg = useCreateOrganization();
   const deleteOrg = useDeleteOrganization();
   const updateOrg = useUpdateOrganization();
-  const toggleStatus = useToggleOrganizationStatus();
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(orgs);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(orgs);
   const [isCreating, setIsCreating] = useState(false);
   const [editingOrg, setEditingOrg] = useState<any>(null);
   const [selectedVerifyOrg, setSelectedVerifyOrg] = useState<any>(null);
@@ -65,7 +71,7 @@ export default function ClinicsPage() {
       setForm(EMPTY_FORM);
       await refetch();
     } catch (err: any) {
-      console.error("[Create/Update] Error:", err?.response || err);
+      console.error('[Create/Update] Error:', err?.response || err);
       alert(`Failed: ${err?.response?.data?.error || err.message || 'Unknown error'}`);
     }
   };
@@ -95,26 +101,14 @@ export default function ClinicsPage() {
       qc.invalidateQueries({ queryKey: ['organizations'] });
       await refetch();
     } catch (err: any) {
-      console.error("[Delete] Error:", err?.response || err);
-      alert(`Failed to delete clinic: ${err?.response?.data?.error || err.message || 'Unknown error'}`);
+      console.error('[Delete] Error:', err?.response || err);
+      alert(
+        `Failed to delete clinic: ${err?.response?.data?.error || err.message || 'Unknown error'}`,
+      );
     }
   };
-
-  const handleToggleStatus = async (org: any) => {
-    const isSuspending = org.status === 'active';
-    const action = isSuspending ? 'suspend' : 'reactivate';
-    if (!window.confirm(`Are you sure you want to ${action} "${org.name}"?`)) return;
-
-    try {
-      await toggleStatus.mutateAsync({ id: org.id, status: isSuspending ? 'suspended' : 'active' });
-    } catch (err: any) {
-      alert(`Failed to ${action} clinic: ${err?.response?.data?.error || err.message}`);
-    }
-  };
-
-  const set = (key: string, val: any) =>
-    setForm(prev => ({ ...prev, [key]: val }));
-  const activeCities = new Set(orgs.map(o => o.city).filter(Boolean)).size;
+  const set = (key: string, val: any) => setForm((prev) => ({ ...prev, [key]: val }));
+  const activeCities = new Set(orgs.map((o) => o.city).filter(Boolean)).size;
   return (
     <div className="plat-page fade-in">
       {/* ─── Header ─── */}
@@ -124,10 +118,19 @@ export default function ClinicsPage() {
             <Building2 size={22} strokeWidth={1.6} />
             Clinics & Organizations
           </h1>
-          <p className="pp-page-hero-sub">Manage all {orgs.length} registered clinic organisations.</p>
+          <p className="pp-page-hero-sub">
+            Manage all {orgs.length} registered clinic organisations.
+          </p>
         </div>
         <div className="pp-page-hero-actions">
-          <button className="btn-primary" onClick={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}>
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setEditingOrg(null);
+              setIsCreating(true);
+              setForm(EMPTY_FORM);
+            }}
+          >
             <Plus size={14} strokeWidth={1.6} />
             Create Clinic
           </button>
@@ -137,10 +140,9 @@ export default function ClinicsPage() {
       <div className="pp-stat-grid">
         {[
           { label: 'Total Clinics', value: orgs.length, cls: 'is-primary' },
-          { label: 'Active', value: orgs.filter(o => o.status === 'active' && !o.deletedAt).length, cls: 'is-success' },
-          { label: 'Suspended', value: orgs.filter(o => o.status === 'suspended' && !o.deletedAt).length, cls: 'is-danger' },
+          { label: 'Active', value: orgs.filter((o) => !o.deletedAt).length, cls: 'is-success' },
           { label: 'Cities', value: activeCities, cls: '' },
-        ].map(stat => (
+        ].map((stat) => (
           <div key={stat.label} className="pp-stat-card-enhanced">
             <div className="pp-stat-label">{stat.label}</div>
             <div className={`pp-stat-value ${stat.cls}`}>{stat.value}</div>
@@ -157,7 +159,11 @@ export default function ClinicsPage() {
             title="No clinics registered"
             description="Add your first clinic to get started with the multi-tenant clinical ecosystem."
             actionLabel="Add Clinic"
-            onAction={() => { setEditingOrg(null); setIsCreating(true); setForm(EMPTY_FORM); }}
+            onAction={() => {
+              setEditingOrg(null);
+              setIsCreating(true);
+              setForm(EMPTY_FORM);
+            }}
             variant="card"
             className="my-8"
           />
@@ -185,14 +191,17 @@ export default function ClinicsPage() {
                       </td>
                       <td data-label="Clinic Name">
                         <div className="plat-cell-val">
-                          <div className="flex items-center gap-2">
-                            <div className="plat-capitalize" style={{ fontWeight: 600 }}>{org.name}</div>
-                            {org.status === 'suspended' && (
-                              <span style={{ fontSize: '0.65rem', background: '#fee2e2', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>SUSPENDED</span>
-                            )}
+                          <div className="plat-capitalize" style={{ fontWeight: 600 }}>
+                            {org.name}
                           </div>
                           {org.description && (
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                            <div
+                              style={{
+                                fontSize: '0.75rem',
+                                color: 'var(--text-muted)',
+                                marginTop: '1px',
+                              }}
+                            >
                               {org.description}
                             </div>
                           )}
@@ -200,7 +209,12 @@ export default function ClinicsPage() {
                       </td>
                       <td data-label="City">
                         <div className="plat-cell-val">
-                          <div className="plat-capitalize" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{org.city || '—'}</div>
+                          <div
+                            className="plat-capitalize"
+                            style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}
+                          >
+                            {org.city || '—'}
+                          </div>
                         </div>
                       </td>
                       <td data-label="Phone">
@@ -214,11 +228,17 @@ export default function ClinicsPage() {
                         <div className="plat-cell-val">
                           <div style={{ fontSize: '0.75rem' }}>
                             {org.website ? (
-                              <a href={org.website} target="_blank" rel="noreferrer"
-                                style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                              <a
+                                href={org.website}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ color: 'var(--primary)', textDecoration: 'none' }}
+                              >
                                 {org.website.replace(/^https?:\/\//, '')}
                               </a>
-                            ) : '—'}
+                            ) : (
+                              '—'
+                            )}
                           </div>
                         </div>
                       </td>
@@ -251,7 +271,10 @@ export default function ClinicsPage() {
                       </td>
                       <td data-label="Connected">
                         <div className="plat-cell-val">
-                          <div className="plat-mono-data text-xs" style={{ color: 'var(--text-muted)' }}>
+                          <div
+                            className="plat-mono-data text-xs"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
                             {org.connectSince || '—'}
                           </div>
                         </div>
@@ -261,13 +284,10 @@ export default function ClinicsPage() {
                           <div className="flex justify-end gap-2" style={{ width: '100%' }}>
                             <button
                               className="plat-btn plat-btn-icon plat-btn-ghost"
-                              style={{ width: 36, height: 36, borderRadius: 10, color: org.status === 'suspended' ? '#10b981' : '#f59e0b' }}
-                              onClick={() => handleToggleStatus(org)}
-                              title={org.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                              style={{ width: 36, height: 36, borderRadius: 10 }}
+                              onClick={() => handleEdit(org)}
+                              title="Edit"
                             >
-                              {org.status === 'suspended' ? <Power size={13} /> : <PowerOff size={13} />}
-                            </button>
-                            <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(org)} title="Edit">
                               <Edit2 size={13} />
                             </button>
                             <button
@@ -297,14 +317,21 @@ export default function ClinicsPage() {
         )}
       </div>
       {isCreating && (
-    <Drawer
-      isOpen={true}
-      onClose={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}
-      title={editingOrg ? 'Edit Clinic' : 'Register New Clinic'}
-      maxWidth="600px"
-    >
-      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
-        <form onSubmit={handleCreate} className="plat-modal-body">
+        <Drawer
+          isOpen={true}
+          onClose={() => {
+            setIsCreating(false);
+            setEditingOrg(null);
+            setForm(EMPTY_FORM);
+          }}
+          title={editingOrg ? 'Edit Clinic' : 'Register New Clinic'}
+          maxWidth="600px"
+        >
+          <div
+            className="plat-modal-content"
+            style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}
+          >
+            <form onSubmit={handleCreate} className="plat-modal-body">
               <div className="plat-form-section">
                 <h4 className="plat-form-section-title">Clinic Identity</h4>
                 <div className="plat-form-grid-multi">
@@ -315,7 +342,7 @@ export default function ClinicsPage() {
                       type="text"
                       required
                       value={form.name || ''}
-                      onChange={e => set('name', e.target.value)}
+                      onChange={(e) => set('name', e.target.value)}
                       placeholder="e.g. Hope Homeopathy Center"
                     />
                   </div>
@@ -325,7 +352,7 @@ export default function ClinicsPage() {
                       className="plat-form-input"
                       type="text"
                       value={form.city || ''}
-                      onChange={e => set('city', e.target.value)}
+                      onChange={(e) => set('city', e.target.value)}
                       placeholder="City"
                     />
                   </div>
@@ -335,7 +362,7 @@ export default function ClinicsPage() {
                       className="plat-form-input"
                       type="date"
                       value={form.connectSince || ''}
-                      onChange={e => set('connectSince', e.target.value)}
+                      onChange={(e) => set('connectSince', e.target.value)}
                     />
                   </div>
                 </div>
@@ -349,7 +376,7 @@ export default function ClinicsPage() {
                       className="plat-form-input"
                       name="phone"
                       value={form.phone || ''}
-                      onChange={e => set('phone', e.target.value)}
+                      onChange={(e) => set('phone', e.target.value)}
                       placeholder="9876543210"
                     />
                   </div>
@@ -359,7 +386,7 @@ export default function ClinicsPage() {
                       className="plat-form-input"
                       type="email"
                       value={form.email || ''}
-                      onChange={e => set('email', e.target.value)}
+                      onChange={(e) => set('email', e.target.value)}
                       placeholder="office@clinic.com"
                     />
                   </div>
@@ -369,7 +396,7 @@ export default function ClinicsPage() {
                       className="plat-form-input"
                       type="url"
                       value={form.website || ''}
-                      onChange={e => set('website', e.target.value)}
+                      onChange={(e) => set('website', e.target.value)}
                       placeholder="https://www.clinic.com"
                     />
                   </div>
@@ -378,7 +405,7 @@ export default function ClinicsPage() {
                     <textarea
                       className="plat-form-input"
                       value={form.description || ''}
-                      onChange={e => set('description', e.target.value)}
+                      onChange={(e) => set('description', e.target.value)}
                       rows={2}
                       placeholder="Brief overview of the clinic..."
                     />
@@ -395,7 +422,7 @@ export default function ClinicsPage() {
                       type="email"
                       required
                       value={form.adminEmail || ''}
-                      onChange={e => set('adminEmail', e.target.value)}
+                      onChange={(e) => set('adminEmail', e.target.value)}
                       placeholder="admin@newclinic.com"
                     />
                   </div>
@@ -406,7 +433,7 @@ export default function ClinicsPage() {
                       type="password"
                       required
                       value={form.adminPassword || ''}
-                      onChange={e => set('adminPassword', e.target.value)}
+                      onChange={(e) => set('adminPassword', e.target.value)}
                       placeholder="Min 6 characters"
                     />
                   </div>
@@ -417,7 +444,7 @@ export default function ClinicsPage() {
                       <input
                         type="checkbox"
                         checked={form.sendWelcomeEmail || false}
-                        onChange={e => set('sendWelcomeEmail', e.target.checked)}
+                        onChange={(e) => set('sendWelcomeEmail', e.target.checked)}
                       />
                       <span className="plat-checkbox-label">
                         Send welcome email with credentials
@@ -427,9 +454,27 @@ export default function ClinicsPage() {
                 )}
               </div>
               <div className="plat-modal-footer">
-                <button type="button" className="plat-btn plat-btn-ghost" onClick={() => { setIsCreating(false); setEditingOrg(null); setForm(EMPTY_FORM); }}>Discard</button>
-                <button type="submit" className="plat-btn plat-btn-primary" disabled={createOrg.isPending || updateOrg.isPending}>
-                  {createOrg.isPending || updateOrg.isPending ? 'Syncing...' : editingOrg ? 'Update Clinic' : 'Create Clinic'}
+                <button
+                  type="button"
+                  className="plat-btn plat-btn-ghost"
+                  onClick={() => {
+                    setIsCreating(false);
+                    setEditingOrg(null);
+                    setForm(EMPTY_FORM);
+                  }}
+                >
+                  Discard
+                </button>
+                <button
+                  type="submit"
+                  className="plat-btn plat-btn-primary"
+                  disabled={createOrg.isPending || updateOrg.isPending}
+                >
+                  {createOrg.isPending || updateOrg.isPending
+                    ? 'Syncing...'
+                    : editingOrg
+                      ? 'Update Clinic'
+                      : 'Create Clinic'}
                 </button>
               </div>
             </form>

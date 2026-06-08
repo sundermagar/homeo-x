@@ -5,7 +5,11 @@ import { UnauthorizedError } from '../../../shared/errors.js';
 export class ResetPasswordUseCase {
   constructor(private userRepository: UserRepositoryPG) {}
 
-  async execute(email: string, token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  async execute(
+    email: string,
+    token: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; message: string }> {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
@@ -30,9 +34,9 @@ export class ResetPasswordUseCase {
     // This method needs to exist or be created: updatePasswordAndClearOtp
     await this.userRepository.updatePasswordAndClearOtp(user.id, hashedNewPassword);
 
-    return { 
-      success: true, 
-      message: 'Password reset successfully' 
+    return {
+      success: true,
+      message: 'Password reset successfully',
     };
   }
 }

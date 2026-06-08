@@ -1,11 +1,42 @@
 import { eq, and, isNull, gte, lte, ilike, or, sql, desc, asc, max, ne } from 'drizzle-orm';
 import type { DbClient } from '@mmc/database';
 import * as schema from '@mmc/database';
-import type { Appointment, WaitlistEntry, AvailabilitySlot, CreateAppointmentDto, UpdateAppointmentDto } from '@mmc/types';
+import type {
+  Appointment,
+  WaitlistEntry,
+  AvailabilitySlot,
+  CreateAppointmentDto,
+  UpdateAppointmentDto,
+} from '@mmc/types';
 import { AppointmentStatus } from '@mmc/types';
-import type { AppointmentRepository, AppointmentFilters } from '../../domains/appointment/ports/appointment.repository.js';
+import type {
+  AppointmentRepository,
+  AppointmentFilters,
+} from '../../domains/appointment/ports/appointment.repository.js';
 
-// Removed hardcoded ALL_TIME_SLOTS. Clinics must set up timings in Settings.
+const ALL_TIME_SLOTS = [
+  '10:00 AM',
+  '10:30 AM',
+  '11:00 AM',
+  '11:30 AM',
+  '12:00 PM',
+  '12:30 PM',
+  '01:00 PM',
+  '01:30 PM',
+  '02:00 PM',
+  '02:30 PM',
+  '03:00 PM',
+  '03:30 PM',
+  '04:00 PM',
+  '04:30 PM',
+  '05:00 PM',
+  '05:30 PM',
+  '06:00 PM',
+  '06:30 PM',
+  '07:00 PM',
+  '07:30 PM',
+  '08:00 PM',
+];
 
 function toMins(t: string): number {
   if (!t) return 0;
@@ -59,7 +90,7 @@ function generateTimeSlots(start: string, end: string, slotDuration: number, lun
 // `toISOString().split('T')[0]` returns the UTC date and rolls over wrong
 // between midnight and 05:30 IST.
 function todayLocalYMD(): string {
-  return new Date().toLocaleDateString('en-CA');
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 }
 
 // Returns "hh:mm AM/PM" in the process's local timezone.
@@ -95,12 +126,24 @@ function mapRow(row: typeof schema.appointments.$inferSelect): Appointment {
 }
 
 export class AppointmentRepositoryPG implements AppointmentRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   // ─── Queries ──────────────────────────────────────────────────────────────
 
   async findMany(filters: AppointmentFilters) {
-    const { date, fromDate, toDate, doctorId, clinicId, status, search, patientId, page = 1, limit = 50 } = filters;
+    const {
+      date,
+      fromDate,
+      toDate,
+      doctorId,
+      clinicId,
+      status,
+      search,
+      patientId,
+      patientRegId,
+      page = 1,
+      limit = 50,
+    } = filters;
     const offset = (page - 1) * limit;
 
     const conditions: any[] = [isNull(schema.appointments.deletedAt)];
@@ -119,12 +162,25 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     if (fromDate) conditions.push(gte(schema.appointments.bookingDate, fromDate));
     if (toDate) conditions.push(lte(schema.appointments.bookingDate, toDate));
     if (status) conditions.push(eq(schema.appointments.status, status));
-    if (patientId) conditions.push(eq(schema.appointments.patientId, patientId));
+    if (patientId && patientRegId) {
+      conditions.push(
+        or(
+          eq(schema.appointments.patientId, patientId),
+          eq(schema.appointments.patientId, patientRegId)
+        )
+      );
+    } else if (patientId) {
+      conditions.push(eq(schema.appointments.patientId, patientId));
+    } else if (patientRegId) {
+      conditions.push(eq(schema.appointments.patientId, patientRegId));
+    }
     if (search) {
-      conditions.push(or(
-        ilike(schema.appointments.patientName, `%${search}%`),
-        ilike(schema.appointments.phone, `%${search}%`)
-      ));
+      conditions.push(
+        or(
+          ilike(schema.appointments.patientName, `%${search}%`),
+          ilike(schema.appointments.phone, `%${search}%`),
+        ),
+      );
     }
 
     if (doctorId) {
@@ -142,7 +198,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     const rows = await this.db
       .select({
         appointment: schema.appointments,
-        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}), (SELECT name FROM users WHERE id = ${schema.appointments.doctorId}), 'Practitioner')`
+        doctorName: sql<string>`COALESCE((SELECT name FROM doctors WHERE id = ${schema.appointments.doctorId}), (SELECT name FROM users WHERE id = ${schema.appointments.doctorId}), 'Practitioner')`,
       })
       .from(schema.appointments)
       .where(where)
@@ -156,13 +212,13 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       .where(where);
 
     return {
-      data: rows.map(r => ({ ...mapRow(r.appointment), doctorName: r.doctorName })),
-      total: countResult?.count ?? 0
+      data: rows.map((r) => ({ ...mapRow(r.appointment), doctorName: r.doctorName })),
+      total: countResult?.count ?? 0,
     };
   }
 
   async findFollowups(filters: AppointmentFilters) {
-    const { fromDate, toDate, doctorId, clinicId, search, page = 1, limit = 50 } = filters;
+    const { fromDate, toDate, doctorId, clinicId, patientId, patientRegId, search, page = 1, limit = 50 } = filters;
     const offset = (page - 1) * limit;
     const todayStr = todayLocalYMD();
 
@@ -193,23 +249,14 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       )`;
     };
 
-    const parseDateInput = (d: string | undefined) => {
-      if (!d) return null;
-      if (d.includes('-')) return d;
-      const parts = d.split('/');
-      if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-      return d;
-    };
-
-    const parsedFrom = parseDateInput(fromDate);
-    const parsedTo = parseDateInput(toDate);
-
-    const combinedDateFilter = (parsedFrom || parsedTo)
-      ? sql`WHERE 1=1 
-          ${parsedFrom ? sql`AND booking_date >= ${parsedFrom}::date` : sql``}
-          ${parsedTo ? sql`AND booking_date <= ${parsedTo}::date` : sql``}`
-      : sql`WHERE booking_date IS NULL OR booking_date <= ${todayStr}::date`;
-
+    const fromDateCondition = fromDate
+      ? safeDateCondition('a.booking_date', fromDate, '>=')
+      : sql``;
+    const toDateCondition = toDate ? safeDateCondition('a.booking_date', toDate, '<=') : sql``;
+    const pendingFromDateCondition = fromDate
+      ? safeDateCondition('p.next_date', fromDate, '>=')
+      : sql``;
+    const pendingToDateCondition = toDate ? safeDateCondition('p.next_date', toDate, '<=') : sql``;
 
     const apptsQuery = sql`
       SELECT
@@ -288,6 +335,15 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         AND ${getBaseDateCompare('a.booking_date', '<')}
         ${clinicId ? sql`AND a.clinic_id = ${clinicId}` : sql``}
         ${doctorId ? sql`AND a.doctor_id = ${doctorId}` : sql``}
+        ${
+          patientId && patientRegId
+            ? sql`AND (a.patient_id = ${patientId} OR a.patient_id = ${patientRegId})`
+            : patientId
+            ? sql`AND a.patient_id = ${patientId}`
+            : patientRegId
+            ? sql`AND a.patient_id = ${patientRegId}`
+            : sql``
+        }
         ${search ? sql`AND (a.patient_name ILIKE ${'%' + search + '%'} OR a.phone ILIKE ${'%' + search + '%'})` : sql``}
     `;
 
@@ -329,6 +385,15 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       LEFT JOIN case_datas cd ON cd.regid = p.regid
       WHERE (p.deleted_at IS NULL OR p.deleted_at = '')
         ${clinicId ? sql`AND cd.clinic_id = ${clinicId}` : sql``}
+        ${
+          patientId && patientRegId
+            ? sql`AND (p.regid = ${patientId} OR p.regid = ${patientRegId})`
+            : patientId
+            ? sql`AND p.regid = ${patientId}`
+            : patientRegId
+            ? sql`AND p.regid = ${patientRegId}`
+            : sql``
+        }
         ${search ? sql`AND ((COALESCE(cd.first_name, '') || ' ' || COALESCE(cd.surname, '')) ILIKE ${'%' + search + '%'} OR cd.mobile1 ILIKE ${'%' + search + '%'})` : sql``}
     `;
 
@@ -346,11 +411,11 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     const [rows, countRows] = await Promise.all([
       this.db.execute(unionQuery),
-      this.db.execute(countQuery)
+      this.db.execute(countQuery),
     ]);
 
     return {
-      data: (rows as any[]).map(r => ({
+      data: (rows as any[]).map((r) => ({
         id: r.id,
         patientId: r.patient_id,
         doctorId: r.doctor_id,
@@ -372,13 +437,13 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         deletedAt: r.deleted_at,
         clinicId: r.clinic_id,
         unregisteredPatientId: r.unregistered_patient_id,
-        doctorName: r.doctor_name
+        doctorName: r.doctor_name,
       })),
-      total: (countRows[0] as any)?.total ?? 0
+      total: (countRows[0] as any)?.total ?? 0,
     };
   }
 
-  async findToday(doctorId?: number, clinicId?: number) {
+  async findToday(doctorId?: number, clinicId?: number, patientId?: number, patientRegId?: number) {
     const today = todayLocalYMD();
 
     // Using Drizzle select for automatic mapping
@@ -387,11 +452,26 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       sql`(
         ${schema.appointments.bookingDate}::text LIKE '%' || TO_CHAR(${today}::date, 'YYYY-MM-DD') || '%'
         OR ${schema.appointments.bookingDate}::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
-      )`
+      )`,
     ];
 
     if (clinicId) {
-      conditions.push(sql`(${schema.appointments.clinicId} = ${clinicId} OR ${schema.appointments.clinicId} IS NULL OR ${schema.appointments.clinicId} = 0 OR ${schema.appointments.clinicId} = 1)`);
+      conditions.push(
+        sql`(${schema.appointments.clinicId} = ${clinicId} OR ${schema.appointments.clinicId} IS NULL OR ${schema.appointments.clinicId} = 0 OR ${schema.appointments.clinicId} = 1)`,
+      );
+    }
+
+    if (patientId && patientRegId) {
+      conditions.push(
+        or(
+          eq(schema.appointments.patientId, patientId),
+          eq(schema.appointments.patientId, patientRegId)
+        )
+      );
+    } else if (patientId) {
+      conditions.push(eq(schema.appointments.patientId, patientId));
+    } else if (patientRegId) {
+      conditions.push(eq(schema.appointments.patientId, patientRegId));
     }
 
     if (doctorId) {
@@ -425,16 +505,16 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
             AND (pk.deleted_at IS NULL OR pk.deleted_at::text = '')
           ORDER BY pk.created_at DESC 
           LIMIT 1
-        )`
+        )`,
       })
       .from(schema.appointments)
       .where(and(...conditions))
       .orderBy(asc(schema.appointments.bookingTime));
 
-    return rows.map(r => ({
+    return rows.map((r) => ({
       ...mapRow(r.appointment),
       doctorName: r.doctorName,
-      packageName: r.packageName
+      packageName: r.packageName,
     }));
   }
 
@@ -456,52 +536,17 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         and(
           eq(schema.appointments.doctorId, doctorId),
           eq(schema.appointments.bookingDate, date),
-          isNull(schema.appointments.deletedAt)
-        )
+          isNull(schema.appointments.deletedAt),
+        ),
       );
-    const bookedTimes = new Set(booked.map(b => b.time).filter(Boolean));
+    const bookedTimes = new Set(booked.map((b) => b.time).filter(Boolean));
 
     const today = todayLocalYMD();
     const isToday = date === today;
-    const now = new Date();
-    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const kolkataNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const currentMins = kolkataNow.getHours() * 60 + kolkataNow.getMinutes();
 
-    let slotsList: string[] = [];
-
-    if (timingConfigStr) {
-      try {
-        const config = JSON.parse(timingConfigStr);
-        if (config.schedule && config.slotDuration) {
-          let y, m, dNum;
-          if (date.includes('-')) {
-             [y, m, dNum] = date.split('-');
-          } else if (date.includes('/')) {
-             [dNum, m, y] = date.split('/');
-          }
-          if (y && m && dNum) {
-            const dObj = new Date(Number(y), Number(m) - 1, Number(dNum));
-            const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-            const dayName = weekdays[dObj.getDay()];
-            
-            if (dayName && config.schedule[dayName]) {
-              const dayTiming = config.schedule[dayName];
-              if (!dayTiming.isOpen) {
-                slotsList = []; // Closed on this day
-              } else if (dayTiming.start && dayTiming.end) {
-                const generated = generateTimeSlots(dayTiming.start, dayTiming.end, config.slotDuration, dayTiming.lunchStart, dayTiming.lunchEnd);
-                if (generated.length > 0) {
-                  slotsList = generated;
-                }
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Failed to parse timing config', err);
-      }
-    }
-
-    return slotsList.map(time => {
+    return ALL_TIME_SLOTS.map((time) => {
       const tMins = toMins(time);
       const isPast = isToday && tMins < currentMins;
       return {
@@ -552,7 +597,6 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     return row?.id ?? 0;
   }
 
-
   async update(id: number, dto: UpdateAppointmentDto): Promise<void> {
     const fields: Partial<typeof schema.appointments.$inferInsert> = {};
     if (dto.status !== undefined) fields.status = dto.status;
@@ -581,10 +625,11 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     if (cancellationReason) fields.cancellationReason = cancellationReason;
     await this.db.update(schema.appointments).set(fields).where(eq(schema.appointments.id, id));
 
-    // SYNC: If the appointment is being cancelled or marked absent, 
+    // SYNC: If the appointment is being cancelled or marked absent,
     // remove it from the active waitlist queue so it leaves the dashboard.
     if (status === 'Cancelled' || status === 'Absent') {
-      await this.db.update(schema.waitlist)
+      await this.db
+        .update(schema.waitlist)
         .set({ deletedAt: new Date(), updatedAt: new Date() })
         .where(eq(schema.waitlist.appointmentId, id));
     }
@@ -634,14 +679,14 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
   // ─── Waitlist ─────────────────────────────────────────────────────────────
 
-  async getWaitlist(date: string, doctorId?: number, clinicId?: number): Promise<WaitlistEntry[]> {
+  async getWaitlist(date: string, doctorId?: number, clinicId?: number, patientId?: number, patientRegId?: number): Promise<WaitlistEntry[]> {
     const conditions: any[] = [
       isNull(schema.waitlist.deletedAt),
       sql`(
         ${schema.waitlist.date}::text = ${date} 
         OR ${schema.waitlist.date}::text = TO_CHAR(${date}::date, 'DD/MM/YYYY')
         OR ${schema.waitlist.date}::text LIKE '%' || TO_CHAR(${date}::date, 'DD/MM/YYYY') || '%'
-      )`
+      )`,
     ];
 
     if (clinicId) {
@@ -706,16 +751,29 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
           OR w.date::text LIKE '%' || TO_CHAR(${date}::date, 'DD/MM/YYYY') || '%'
         )
         ${clinicId ? sql`AND (w.clinic_id = ${clinicId} OR w.clinic_id IS NULL OR w.clinic_id = 0 OR w.clinic_id = 1)` : sql``}
-        ${doctorId ? sql`AND (
+        ${
+          patientId && patientRegId
+            ? sql`AND (w.patient_id = ${patientId} OR w.patient_id = ${patientRegId})`
+            : patientId
+            ? sql`AND w.patient_id = ${patientId}`
+            : patientRegId
+            ? sql`AND w.patient_id = ${patientRegId}`
+            : sql``
+        }
+        ${
+          doctorId
+            ? sql`AND (
           w.doctor_id = ${doctorId} 
           OR REPLACE(LOWER(TRIM(u.name)), 'dr. ', '') = REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '')
           OR REPLACE(LOWER(TRIM(d.name)), 'dr. ', '') = REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '')
           OR REPLACE(LOWER(TRIM(a.assistant_doctor)), 'dr. ', '') = REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '')
-        )` : sql``}
+        )`
+            : sql``
+        }
       ORDER BY w.waiting_number ASC
     `);
 
-    return (rows as any[]).map(r => ({
+    return (rows as any[]).map((r) => ({
       ...r,
       id: r.id,
       patientId: r.patient_id,
@@ -733,27 +791,36 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       consultationFee: r.consultation_fee?.toString() || null,
       rowcolor: r.rowcolor || 0,
       status: r.status,
-      date: r.date
+      date: r.date,
     }));
   }
 
-  async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<number> {
+  async addToWaitlist(dto: {
+    patientId?: number;
+    appointmentId?: number;
+    doctorId?: number;
+    consultationFee?: number;
+    clinicId?: number;
+  }): Promise<number> {
     const today = todayLocalYMD();
     const cid = dto.clinicId;
 
     // Preventive check: Is this patient already in the waitlist for today?
     if (dto.patientId) {
-      const existing = await this.db.select()
+      const existing = await this.db
+        .select()
         .from(schema.waitlist)
-        .where(and(
-          eq(schema.waitlist.patientId, dto.patientId),
-          eq(schema.waitlist.date, today),
-          or(
-            eq(schema.waitlist.status, 0), // Waiting
-            eq(schema.waitlist.status, 1)  // In Progress
+        .where(
+          and(
+            eq(schema.waitlist.patientId, dto.patientId),
+            eq(schema.waitlist.date, today),
+            or(
+              eq(schema.waitlist.status, 0), // Waiting
+              eq(schema.waitlist.status, 1), // In Progress
+            ),
+            isNull(schema.waitlist.deletedAt),
           ),
-          isNull(schema.waitlist.deletedAt)
-        ))
+        )
         .limit(1);
 
       if (existing.length > 0) {
@@ -777,12 +844,12 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
         // 2. If pid is still null, try finding patient by name/phone from the appointment record
         if (!pid && !upid && appt.patientName) {
-          const [found] = await this.db.execute(sql`
+          const [found] = (await this.db.execute(sql`
               SELECT id FROM patients 
               WHERE (first_name || ' ' || surname ILIKE ${appt.patientName} OR mobile1 = ${appt.phone || ''})
                 AND (deleted_at IS NULL OR deleted_at::text = '' OR deleted_at::text = '0')
               ORDER BY id DESC LIMIT 1
-            `) as any[];
+            `)) as any[];
           if (found) pid = found.id;
         }
 
@@ -801,7 +868,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       // we might need to error or create an unregistered patient.
       // For now, let's assume BookAppointmentUseCase handled it.
       if (!dto.appointmentId) {
-        throw new Error("Could not resolve patient for waitlist. Please ensure patient record exists.");
+        throw new Error(
+          'Could not resolve patient for waitlist. Please ensure patient record exists.',
+        );
       }
     }
 
@@ -811,21 +880,25 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     if (!finalAppointmentId) {
       const timeStr = nowLocal12h();
 
-      const [newAppt] = await this.db.insert(schema.appointments).values({
-        clinicId: cid ?? null,
-        patientId: pid || null,
-        unregisteredPatientId: upid || null,
-        doctorId: did ?? null,
-        bookingDate: today,
-        bookingTime: timeStr,
-        status: AppointmentStatus.Waitlist,
-        visitType: 'Walk-In',
-        consultationFee: fee?.toString() ?? null,
-      }).returning({ id: schema.appointments.id });
+      const [newAppt] = await this.db
+        .insert(schema.appointments)
+        .values({
+          clinicId: cid ?? null,
+          patientId: pid || null,
+          unregisteredPatientId: upid || null,
+          doctorId: did ?? null,
+          bookingDate: today,
+          bookingTime: timeStr,
+          status: AppointmentStatus.Waitlist,
+          visitType: 'Walk-In',
+          consultationFee: fee?.toString() ?? null,
+        })
+        .returning({ id: schema.appointments.id });
       finalAppointmentId = newAppt?.id;
     } else {
       // If it exists, ensure its status is marked as Waitlist so the dashboard treats it as waiting
-      await this.db.update(schema.appointments)
+      await this.db
+        .update(schema.appointments)
         .set({ status: AppointmentStatus.Waitlist, updatedAt: new Date() })
         .where(eq(schema.appointments.id, finalAppointmentId));
     }
@@ -861,23 +934,27 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       const activeEntries = await this.db
         .select()
         .from(schema.waitlist)
-        .where(and(
-          eq(schema.waitlist.doctorId, target.doctorId),
-          eq(schema.waitlist.date, target.date),
-          eq(schema.waitlist.status, 1),
-          ne(schema.waitlist.id, waitlistId)
-        ));
+        .where(
+          and(
+            eq(schema.waitlist.doctorId, target.doctorId),
+            eq(schema.waitlist.date, target.date),
+            eq(schema.waitlist.status, 1),
+            ne(schema.waitlist.id, waitlistId),
+          ),
+        );
 
       if (activeEntries.length > 0) {
         await this.db
           .update(schema.waitlist)
           .set({ status: 0, calledAt: null, updatedAt: new Date() })
-          .where(and(
-            eq(schema.waitlist.doctorId, target.doctorId),
-            eq(schema.waitlist.date, target.date),
-            eq(schema.waitlist.status, 1),
-            ne(schema.waitlist.id, waitlistId)
-          ));
+          .where(
+            and(
+              eq(schema.waitlist.doctorId, target.doctorId),
+              eq(schema.waitlist.date, target.date),
+              eq(schema.waitlist.status, 1),
+              ne(schema.waitlist.id, waitlistId),
+            ),
+          );
 
         for (const entry of activeEntries) {
           if (entry.appointmentId) {

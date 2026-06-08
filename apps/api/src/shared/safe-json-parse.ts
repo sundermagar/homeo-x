@@ -18,9 +18,18 @@ function findLastSafePosition(s: string): number {
 
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
-    if (escape) { escape = false; continue; }
-    if (c === '\\') { escape = true; continue; }
-    if (c === '"') { inString = !inString; continue; }
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (c === '\\') {
+      escape = true;
+      continue;
+    }
+    if (c === '"') {
+      inString = !inString;
+      continue;
+    }
     if (inString) continue;
 
     if (c === '{' || c === '[') {
@@ -49,9 +58,18 @@ function balanceClose(s: string): string {
 
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
-    if (escape) { escape = false; continue; }
-    if (c === '\\') { escape = true; continue; }
-    if (c === '"') { inString = !inString; continue; }
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (c === '\\') {
+      escape = true;
+      continue;
+    }
+    if (c === '"') {
+      inString = !inString;
+      continue;
+    }
     if (inString) continue;
 
     if (c === '{') stack.push('}');
@@ -73,16 +91,17 @@ function balanceClose(s: string): string {
  * the array starts first).
  */
 function trimToOuter(content: string): string {
-  let s = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  let s = content
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .trim();
 
   const firstBrace = s.indexOf('{');
   const firstBracket = s.indexOf('[');
   const lastBrace = s.lastIndexOf('}');
   const lastBracket = s.lastIndexOf(']');
 
-  const useArray =
-    firstBracket !== -1 &&
-    (firstBrace === -1 || firstBracket < firstBrace);
+  const useArray = firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace);
 
   if (useArray) {
     if (firstBracket !== -1 && lastBracket > firstBracket) {
@@ -111,25 +130,45 @@ function trimToOuter(content: string): string {
 export function safeJsonParse<T = unknown>(content: string): T | null {
   if (!content || typeof content !== 'string') return null;
 
-  try { return JSON.parse(content) as T; } catch { /* fall through */ }
+  try {
+    return JSON.parse(content) as T;
+  } catch {
+    /* fall through */
+  }
 
   const trimmed = trimToOuter(content);
-  try { return JSON.parse(trimmed) as T; } catch { /* fall through */ }
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    /* fall through */
+  }
 
   // Strip trailing commas before close brackets (`{"a": 1,}` → `{"a": 1}`)
   const noTrailingCommas = trimmed.replace(/,(\s*[}\]])/g, '$1');
-  try { return JSON.parse(noTrailingCommas) as T; } catch { /* fall through */ }
+  try {
+    return JSON.parse(noTrailingCommas) as T;
+  } catch {
+    /* fall through */
+  }
 
   // Truncate to last safe position (handles mid-value cutoff) and close.
   const safeEnd = findLastSafePosition(noTrailingCommas);
   if (safeEnd > 0) {
     const truncated = balanceClose(noTrailingCommas.substring(0, safeEnd));
-    try { return JSON.parse(truncated) as T; } catch { /* fall through */ }
+    try {
+      return JSON.parse(truncated) as T;
+    } catch {
+      /* fall through */
+    }
   }
 
   // Last resort: balance whatever's there.
   const balanced = balanceClose(noTrailingCommas);
-  try { return JSON.parse(balanced) as T; } catch { /* fall through */ }
+  try {
+    return JSON.parse(balanced) as T;
+  } catch {
+    /* fall through */
+  }
 
   return null;
 }

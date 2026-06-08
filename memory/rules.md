@@ -1,6 +1,7 @@
 # Project Rules
 
 ## Core Rules
+
 - Follow DDD architecture
 - Use Hexagonal Architecture
 - Keep domain logic framework-independent
@@ -8,16 +9,18 @@
 - Validate all inputs using Zod
 
 ## API Rules
+
 - Follow REST conventions
 - Response format:
 
 {
-  "success": true,
-  "data": {},
-  "message": ""
+"success": true,
+"data": {},
+"message": ""
 }
 
 ## Middleware Rules
+
 - JWT authentication
 - Tenant resolution
 - Zod validation
@@ -25,17 +28,20 @@
 - Audit logging
 
 ## Error Handling
+
 - Use AppError classes
 - Return proper HTTP status
 - Include correlationId in every response
 
 ## Database Rules
+
 - Use PostgreSQL only
 - Schema-per-tenant
 - Use Drizzle ORM
 - Use JSONB for audit logs
 
 ## Audit Rules
+
 - Log every state change:
   - who
   - what
@@ -43,11 +49,13 @@
   - tenant
 
 ## Design & UI Rules
+
 - All pages must be fully responsive
 - Follow a mobile-first responsive design approach
 - Ensure interactive elements are touch-friendly
 
 ## Development Rules
+
 - Use pnpm workspace
 - Follow modular architecture
 - Sync frontend + backend contracts

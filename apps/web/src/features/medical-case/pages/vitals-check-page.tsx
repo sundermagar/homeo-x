@@ -1,9 +1,20 @@
 import { useState, useRef } from 'react';
 import {
-  Activity, User, Calendar, Phone, Zap,
-  Ruler, Weight, RefreshCw, Info, TrendingDown,
-  TrendingUp, CheckCircle2, History, ChevronRight,
-  RotateCcw
+  Activity,
+  User,
+  Calendar,
+  Phone,
+  Zap,
+  Ruler,
+  Weight,
+  RefreshCw,
+  Info,
+  TrendingDown,
+  TrendingUp,
+  CheckCircle2,
+  History,
+  ChevronRight,
+  RotateCcw,
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { apiClient } from '@/infrastructure/api-client';
@@ -17,7 +28,15 @@ const RESULT_IMG_URL = 'https://xkidsgrowth.com/la-assets/images/heigh_growth_re
 // PARAMETER CARD COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function ParameterCard({ label, current, ideal, unit, icon: Icon, color, analysis }: {
+function ParameterCard({
+  label,
+  current,
+  ideal,
+  unit,
+  icon: Icon,
+  color,
+  analysis,
+}: {
   label: string;
   current: string;
   ideal: string;
@@ -39,7 +58,8 @@ function ParameterCard({ label, current, ideal, unit, icon: Icon, color, analysi
         {ideal && (
           <div className={`param-diff-badge ${isDeficit ? 'deficit' : 'premium'}`}>
             {isDeficit ? <TrendingDown size={13} /> : <TrendingUp size={13} />}
-            Gap: {isDeficit ? '-' : '+'}{Math.abs(parseFloat(diff!))} {unit}
+            Gap: {isDeficit ? '-' : '+'}
+            {Math.abs(parseFloat(diff!))} {unit}
           </div>
         )}
       </div>
@@ -91,7 +111,7 @@ export default function VitalsCheckPage() {
     dob: '',
     gender: 'M',
     height: '',
-    weight: ''
+    weight: '',
   });
 
   const searchTimeout = useRef<any>(null);
@@ -100,13 +120,16 @@ export default function VitalsCheckPage() {
   const handleSearch = (q: string) => {
     setSearch(q);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    if (q.length < 2) { setSuggestions([]); return; }
+    if (q.length < 2) {
+      setSuggestions([]);
+      return;
+    }
 
     searchTimeout.current = setTimeout(async () => {
       try {
         const { data } = await apiClient.get(`/patients?search=${q}&limit=5`);
         const payload = data?.data ?? data;
-        setSuggestions(Array.isArray(payload) ? payload : payload?.data ?? []);
+        setSuggestions(Array.isArray(payload) ? payload : (payload?.data ?? []));
       } catch (err) {
         console.error('Search failed', err);
       }
@@ -115,8 +138,8 @@ export default function VitalsCheckPage() {
 
   const selectPatient = (p: any) => {
     // Standardize gender to 'M' or 'F'
-    const gender = (p.gender === 'F' || p.gender === 'Female') ? 'F' : 'M';
-    
+    const gender = p.gender === 'F' || p.gender === 'Female' ? 'F' : 'M';
+
     // Format DOB for <input type="date" /> (YYYY-MM-DD)
     let dob = '';
     if (p.dob) {
@@ -137,7 +160,7 @@ export default function VitalsCheckPage() {
       name: p.fullName || '',
       mobile: p.mobile1 || p.phone || '',
       dob: dob,
-      gender
+      gender,
     });
     setSuggestions([]);
     setSearch(`${p.fullName || ''} (PT-${p.regid})`);
@@ -159,7 +182,7 @@ export default function VitalsCheckPage() {
         heightCm: parseFloat(form.height),
         weightKg: parseFloat(form.weight),
         name: form.name,
-        mobile: form.mobile
+        mobile: form.mobile,
       });
 
       const payload = data?.result ?? data?.data ?? data;
@@ -194,12 +217,13 @@ export default function VitalsCheckPage() {
             <Activity size={22} style={{ color: 'var(--primary)' }} />
             Growth Calculator
           </h1>
-          <p className="ghub-subtitle">WHO Standardized Percentile Mapping Engine (Supports up to 20 years)</p>
+          <p className="ghub-subtitle">
+            WHO Standardized Percentile Mapping Engine (Supports up to 20 years)
+          </p>
         </div>
       </div>
 
       <div className="ghub-main-container">
-
         {!results ? (
           <>
             {/* Left: Capture Parameters */}
@@ -211,7 +235,9 @@ export default function VitalsCheckPage() {
 
               {errors.length > 0 && (
                 <div className="ghub-error-banner">
-                  {errors.map((err, i) => <div key={i}>{err}</div>)}
+                  {errors.map((err, i) => (
+                    <div key={i}>{err}</div>
+                  ))}
                 </div>
               )}
 
@@ -230,10 +256,20 @@ export default function VitalsCheckPage() {
                     />
                     {suggestions.length > 0 && (
                       <div className="ghub-dropdown">
-                        {suggestions.map(p => (
-                          <div key={p.regid} onClick={() => selectPatient(p)} className="ghub-drop-item">
+                        {suggestions.map((p) => (
+                          <div
+                            key={p.regid}
+                            onClick={() => selectPatient(p)}
+                            className="ghub-drop-item"
+                          >
                             <span style={{ fontWeight: 700 }}>{p.fullName || 'Unknown'}</span>
-                            <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                fontFamily: 'var(--font-mono)',
+                                color: 'var(--text-muted)',
+                              }}
+                            >
                               PT-{p.regid}
                             </span>
                           </div>
@@ -259,7 +295,9 @@ export default function VitalsCheckPage() {
                     </div>
                   </div>
                   <div className="ghub-input-field">
-                    <label className="ghub-input-label">Patient Name <span className="text-danger">*</span></label>
+                    <label className="ghub-input-label">
+                      Patient Name <span className="text-danger">*</span>
+                    </label>
                     <div className="ghub-input-container">
                       <User className="ghub-input-icon-left" size={16} />
                       <input
@@ -277,7 +315,9 @@ export default function VitalsCheckPage() {
                 {/* Contact + DOB */}
                 <div className="ghub-grid-2 mt-6">
                   <div className="ghub-input-field">
-                    <label className="ghub-input-label">Primary Mobile <span className="text-danger">*</span></label>
+                    <label className="ghub-input-label">
+                      Primary Mobile <span className="text-danger">*</span>
+                    </label>
                     <div className="ghub-input-container">
                       <Phone className="ghub-input-icon-left" size={16} />
                       <input
@@ -291,7 +331,9 @@ export default function VitalsCheckPage() {
                     </div>
                   </div>
                   <div className="ghub-input-field">
-                    <label className="ghub-input-label">Date of Birth <span className="text-danger">*</span></label>
+                    <label className="ghub-input-label">
+                      Date of Birth <span className="text-danger">*</span>
+                    </label>
                     <div className="ghub-input-container">
                       <Calendar className="ghub-input-icon-left" size={16} />
                       <input
@@ -339,7 +381,7 @@ export default function VitalsCheckPage() {
                       step="0.1"
                       min="0"
                       value={form.height}
-                      onChange={e => {
+                      onChange={(e) => {
                         const val = e.target.value;
                         if (val !== '' && parseFloat(val) < 0) return;
                         setForm({ ...form, height: val });
@@ -358,7 +400,7 @@ export default function VitalsCheckPage() {
                       step="0.1"
                       min="0"
                       value={form.weight}
-                      onChange={e => {
+                      onChange={(e) => {
                         const val = e.target.value;
                         if (val !== '' && parseFloat(val) < 0) return;
                         setForm({ ...form, weight: val });
@@ -369,7 +411,11 @@ export default function VitalsCheckPage() {
                 </div>
 
                 <div className="ghub-form-actions">
-                  <button type="submit" className="ghub-action-button primary" disabled={submitting}>
+                  <button
+                    type="submit"
+                    className="ghub-action-button primary"
+                    disabled={submitting}
+                  >
                     {submitting ? (
                       <RotateCcw className="animate-spin" size={18} />
                     ) : (
@@ -377,11 +423,7 @@ export default function VitalsCheckPage() {
                     )}
                     <span>Calculate</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="ghub-action-button secondary"
-                  >
+                  <button type="button" onClick={reset} className="ghub-action-button secondary">
                     <RotateCcw size={18} />
                     <span>Clear</span>
                   </button>
@@ -396,7 +438,10 @@ export default function VitalsCheckPage() {
               </div>
               <div className="ghub-content-area">
                 <h3>Standardized Percentile Mapping</h3>
-                <p>Our engine utilizes WHO international standards to provide real-time clinical insights into developmental gaps.</p>
+                <p>
+                  Our engine utilizes WHO international standards to provide real-time clinical
+                  insights into developmental gaps.
+                </p>
               </div>
             </section>
           </>

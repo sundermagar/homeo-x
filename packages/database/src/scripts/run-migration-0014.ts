@@ -1,14 +1,14 @@
 /**
  * Migration runner for 0014_add_vitals_regid_fix_images.sql
- * 
+ *
  * Usage: npx tsx packages/database/src/scripts/run-migration-0014.ts
- * 
+ *
  * This script:
  * 1. Adds `regid` column to `vitals` table (backfills from appointments)
  * 2. Makes `visit_id` nullable in `vitals`
  * 3. Adds `regid` column to `soap_notes` table (backfills from appointments)
  * 4. Fixes NULL `created_at` in `case_images` and `case_notes`
- * 
+ *
  * Safe to re-run. Does NOT delete any data.
  */
 
@@ -32,14 +32,17 @@ async function runMigration() {
   console.log('🚀 Starting migration 0014: vitals regid + fix images...\n');
 
   // Read the SQL file
-  const sqlPath = path.resolve(process.cwd(), 'packages/database/src/migrations/0014_add_vitals_regid_fix_images.sql');
+  const sqlPath = path.resolve(
+    process.cwd(),
+    'packages/database/src/migrations/0014_add_vitals_regid_fix_images.sql',
+  );
   const migrationSql = fs.readFileSync(sqlPath, 'utf-8');
 
   // Split by semicolons and filter empty statements
   const statements = migrationSql
     .split(/;\s*$/m)
-    .map(s => s.trim())
-    .filter(s => s.length > 0 && !s.startsWith('--'));
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && !s.startsWith('--'));
 
   // Run on public schema first
   const publicDb = createDbClient(DATABASE_URL!);
@@ -55,11 +58,9 @@ async function runMigration() {
 
   for (const schemaName of schemas) {
     console.log(`\n📦 Running migration on schema: ${schemaName}`);
-    
+
     try {
-      const db = schemaName === 'public' 
-        ? publicDb 
-        : createDbClient(DATABASE_URL!, schemaName);
+      const db = schemaName === 'public' ? publicDb : createDbClient(DATABASE_URL!, schemaName);
 
       // Set search path
       await db.execute(sql.raw(`SET search_path TO ${schemaName}`));
@@ -77,7 +78,7 @@ async function runMigration() {
   process.exit(0);
 }
 
-runMigration().catch(err => {
+runMigration().catch((err) => {
   console.error('💥 Migration failed:', err);
   process.exit(1);
 });

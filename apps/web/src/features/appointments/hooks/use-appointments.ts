@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/infrastructure/api-client';
-import type { Appointment, WaitlistEntry, AvailabilitySlot, CreateAppointmentDto, UpdateAppointmentDto } from '@mmc/types';
+import type {
+  Appointment,
+  WaitlistEntry,
+  AvailabilitySlot,
+  CreateAppointmentDto,
+  UpdateAppointmentDto,
+} from '@mmc/types';
 
 // ─── Query Keys ──────────────────────────────────────────────────────────────
 export const apptKeys = {
@@ -13,16 +19,19 @@ export const apptKeys = {
 };
 
 // ─── List Appointments ────────────────────────────────────────────────────────
-export function useAppointments(filters: {
-  date?: string;
-  from_date?: string;
-  to_date?: string;
-  doctor_id?: number;
-  status?: string;
-  search?: string;
-  page?: number;
-  limit?: number;
-} = {}) {
+export function useAppointments(
+  filters: {
+    date?: string;
+    from_date?: string;
+    to_date?: string;
+    doctor_id?: number;
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+    refetchInterval?: number | false;
+  } = {},
+) {
   return useQuery({
     queryKey: apptKeys.list(filters),
     queryFn: async () => {
@@ -30,18 +39,22 @@ export function useAppointments(filters: {
       Object.entries(filters).forEach(([k, v]) => {
         if (v !== undefined && v !== '') params.set(k, String(v));
       });
-      const res = await apiClient.get<{ success: boolean; data: { data: Appointment[]; total: number } | Appointment[] }>(`/appointments?${params}`);
-      
+      const res = await apiClient.get<{
+        success: boolean;
+        data: { data: Appointment[]; total: number } | Appointment[];
+      }>(`/appointments?${params}`);
+
       const payload = res.data.data;
       if (Array.isArray(payload)) {
         return { data: payload, total: payload.length };
       }
-      return { 
-        data: payload?.data ?? [], 
-        total: payload?.total ?? 0 
+      return {
+        data: payload?.data ?? [],
+        total: payload?.total ?? 0,
       };
     },
     staleTime: 30_000,
+    refetchInterval: filters.refetchInterval,
   });
 }
 
@@ -50,7 +63,9 @@ export function useAppointment(id: number | string | undefined) {
   return useQuery({
     queryKey: apptKeys.detail(Number(id)),
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: Appointment }>(`/appointments/${id}`);
+      const res = await apiClient.get<{ success: boolean; data: Appointment }>(
+        `/appointments/${id}`,
+      );
       return res.data.data;
     },
     enabled: !!id,
@@ -72,11 +87,15 @@ export function useTodayAppointments(doctorId?: number) {
 }
 
 // ─── Available Slots ──────────────────────────────────────────────────────────
-export function useAvailableSlots(doctorId: number | undefined, date: string | undefined) {
+export function useAvailableSlots(doctorId: number | undefined, date: string | undefined, isPortal = false) {
   return useQuery({
-    queryKey: apptKeys.slots(doctorId!, date!),
+    queryKey: [...apptKeys.slots(doctorId!, date!), isPortal],
     queryFn: async () => {
-      const res = await apiClient.get<{ success: boolean; data: AvailabilitySlot[] }>(`/appointments/availability?doctor_id=${doctorId}&date=${date}`);
+      const endpoint = isPortal ? '/portal/slots' : '/appointments/availability';
+      const queryParam = isPortal ? 'doctorId' : 'doctor_id';
+      const res = await apiClient.get<{ success: boolean; data: AvailabilitySlot[] }>(
+        `${endpoint}?${queryParam}=${doctorId}&date=${date}`,
+      );
       return res.data.data;
     },
     enabled: !!doctorId && !!date,
@@ -97,14 +116,14 @@ export function useWaitlist(date: string, doctorId?: number) {
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
-export function useCreateAppointment() {
+export function useCreateAppointment(isPortal = false) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: CreateAppointmentDto) => apiClient.post('/appointments', dto),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: apptKeys.all });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    mutationFn: (dto: CreateAppointmentDto) => {
+      const endpoint = isPortal ? '/portal/appointments' : '/appointments';
+      return apiClient.post(endpoint, dto);
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
   });
 }
 
@@ -123,12 +142,16 @@ export function useUpdateAppointment() {
 export function useUpdateStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status, cancellationReason }: { id: number; status: string; cancellationReason?: string }) =>
-      apiClient.post(`/appointments/${id}/status`, { status, cancellationReason }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: apptKeys.all });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
-    },
+    mutationFn: ({
+      id,
+      status,
+      cancellationReason,
+    }: {
+      id: number;
+      status: string;
+      cancellationReason?: string;
+    }) => apiClient.post(`/appointments/${id}/status`, { status, cancellationReason }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
   });
 }
 
@@ -158,12 +181,14 @@ export function useIssueToken() {
 export function useAddToWaitlist() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: { patientId?: number; appointmentId?: number; unregisteredPatientId?: number; doctorId?: number; consultationFee?: number }) =>
-      apiClient.post('/appointments/waiting', dto),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: apptKeys.all });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
-    },
+    mutationFn: (dto: {
+      patientId?: number;
+      appointmentId?: number;
+      unregisteredPatientId?: number;
+      doctorId?: number;
+      consultationFee?: number;
+    }) => apiClient.post('/appointments/waiting', dto),
+    onSuccess: () => qc.invalidateQueries({ queryKey: apptKeys.all }),
   });
 }
 

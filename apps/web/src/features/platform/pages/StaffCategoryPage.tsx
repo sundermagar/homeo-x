@@ -1,7 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit2, Trash2, X, Users, UserCheck, Stethoscope, ClipboardList, ShieldCheck, UserCog, MapPin } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  X,
+  Users,
+  UserCheck,
+  Stethoscope,
+  ClipboardList,
+  ShieldCheck,
+  UserCog,
+  MapPin,
+} from 'lucide-react';
 import { NumericInput } from '@/shared/components/NumericInput';
-import { useStaffList, useDeleteStaff, useCreateStaff, useUpdateStaff, useStaffMember } from '@/features/staff/hooks/use-staff';
+import {
+  useStaffList,
+  useDeleteStaff,
+  useCreateStaff,
+  useUpdateStaff,
+  useStaffMember,
+} from '@/features/staff/hooks/use-staff';
 import type { StaffCategory, StaffSummary, StaffMember } from '@mmc/types';
 import type { CreateStaffInput, UpdateStaffInput } from '@mmc/validation';
 import { createStaffSchema, updateStaffSchema } from '@mmc/validation';
@@ -11,14 +30,32 @@ import { Drawer } from '@/shared/components/drawer';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { EmptyState } from '@/components/shared/empty-state';
 
-
-
 const CATEGORY_META: Record<StaffCategory, { label: string; description: string; icon: any }> = {
-  doctor: { label: 'Doctors', description: 'Clinical practitioners and specialized doctor profiles.', icon: Stethoscope },
-  employee: { label: 'Employees', description: 'Support staff and facility employees.', icon: Users },
-  receptionist: { label: 'Receptionists', description: 'Front desk and appointment coordinators.', icon: ClipboardList },
-  clinicadmin: { label: 'Clinic Admins', description: 'Clinic administrators with management access.', icon: ShieldCheck },
-  account: { label: 'Account Mgrs', description: 'Account managers handling clinic billing.', icon: UserCog },
+  doctor: {
+    label: 'Doctors',
+    description: 'Clinical practitioners and specialized doctor profiles.',
+    icon: Stethoscope,
+  },
+  employee: {
+    label: 'Employees',
+    description: 'Support staff and facility employees.',
+    icon: Users,
+  },
+  receptionist: {
+    label: 'Receptionists',
+    description: 'Front desk and appointment coordinators.',
+    icon: ClipboardList,
+  },
+  clinicadmin: {
+    label: 'Clinic Admins',
+    description: 'Clinic administrators with management access.',
+    icon: ShieldCheck,
+  },
+  account: {
+    label: 'Account Mgrs',
+    description: 'Account managers handling clinic billing.',
+    icon: UserCog,
+  },
 };
 
 const PAGE_SIZE = 30;
@@ -68,7 +105,10 @@ function getDefaultStaffForm(category: StaffCategory): CreateStaffInput {
 }
 
 function staffMemberToForm(staff: StaffMember): CreateStaffInput {
-  const gender = staff.gender === 'Female' || staff.gender === 'Other' ? (staff.gender as "Female" | "Other") : 'Male';
+  const gender =
+    staff.gender === 'Female' || staff.gender === 'Other'
+      ? (staff.gender as 'Female' | 'Other')
+      : 'Male';
   return {
     category: staff.category,
     name: staff.name,
@@ -127,7 +167,9 @@ function StaffModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [form, setForm] = useState<CreateStaffInput | UpdateStaffInput>(() => getDefaultStaffForm(category));
+  const [form, setForm] = useState<CreateStaffInput | UpdateStaffInput>(() =>
+    getDefaultStaffForm(category),
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const createMutation = useCreateStaff();
@@ -172,7 +214,7 @@ function StaffModal({
         await updateMutation.mutateAsync({
           category,
           id: (staff as StaffMember).id,
-          ...(payload as UpdateStaffInput)
+          ...(payload as UpdateStaffInput),
         });
       }
       onSuccess();
@@ -197,10 +239,17 @@ function StaffModal({
     <Drawer
       isOpen={true}
       onClose={onClose}
-      title={isEdit ? `Update ${CATEGORY_META[category].label.replace(/s$/, '')}` : `Register New ${CATEGORY_META[category].label.replace(/s$/, '')}`}
+      title={
+        isEdit
+          ? `Update ${CATEGORY_META[category].label.replace(/s$/, '')}`
+          : `Register New ${CATEGORY_META[category].label.replace(/s$/, '')}`
+      }
       maxWidth="600px"
     >
-      <div className="plat-modal-content" style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}>
+      <div
+        className="plat-modal-content"
+        style={{ border: 'none', boxShadow: 'none', margin: 0, padding: 0 }}
+      >
         <form onSubmit={handleSubmit} className="plat-modal-body">
           {errors['general'] && <div className="plat-error-banner mb-4">{errors['general']}</div>}
 
@@ -249,7 +298,7 @@ function StaffModal({
                 disabled={isLoading}
               />
             </div>
-            
+
             {category === 'doctor' && (
               <div className="plat-form-group">
                 <label className="plat-form-label">Consultation Fee (₹)</label>
@@ -272,14 +321,22 @@ function StaffModal({
                   onChange={(e) => updateForm('password', e.target.value)}
                   disabled={isLoading}
                 />
-                {errors['password'] && <span className="plat-form-error">{errors['password']}</span>}
+                {errors['password'] && (
+                  <span className="plat-form-error">{errors['password']}</span>
+                )}
               </div>
             )}
           </div>
 
           <div className="plat-modal-footer">
-            <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>Discard</button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={isPending || isLoading}>
+            <button type="button" className="plat-btn plat-btn-ghost" onClick={onClose}>
+              Discard
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
+              disabled={isPending || isLoading}
+            >
               {isPending ? 'Processing…' : isEdit ? 'Update Details' : 'Register Entry'}
             </button>
           </div>
@@ -299,13 +356,23 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
   const meta = CATEGORY_META[category] || CATEGORY_META.doctor;
   const Icon = meta.icon;
 
-  const { data, isLoading } = useStaffList(category, { page, limit: PAGE_SIZE, search: debouncedSearch });
+  const { data, isLoading } = useStaffList(category, {
+    page,
+    limit: PAGE_SIZE,
+    search: debouncedSearch,
+  });
   const deleteMutation = useDeleteStaff();
-  const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(category, editingId ?? 0);
+  const { data: editingStaff, isLoading: isLoadingStaff } = useStaffMember(
+    category,
+    editingId ?? 0,
+  );
 
   const staff = data?.data || [];
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
-  const activeCount = useMemo(() => (staff as StaffSummary[]).filter((s: StaffSummary) => s.isActive).length, [staff]);
+  const activeCount = useMemo(
+    () => (staff as StaffSummary[]).filter((s: StaffSummary) => s.isActive).length,
+    [staff],
+  );
 
   const handleEdit = (s: StaffSummary) => {
     setEditingId(s.id);
@@ -328,11 +395,21 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
     <div className="plat-page fade-in">
       <div className="plat-header">
         <div>
-          <h1 className="plat-header-title"><Icon size={20} className="color-primary" /> {meta.label}</h1>
+          <h1 className="plat-header-title">
+            <Icon size={20} className="color-primary" /> {meta.label}
+          </h1>
           <p className="plat-header-sub">{meta.description}</p>
         </div>
         <div className="plat-header-actions">
-          <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}><Plus size={14} /> Add {meta.label.replace(/s$/, '')}</button>
+          <button
+            className="plat-btn plat-btn-primary"
+            onClick={() => {
+              setEditingId(null);
+              setModalOpen(true);
+            }}
+          >
+            <Plus size={14} /> Add {meta.label.replace(/s$/, '')}
+          </button>
         </div>
       </div>
 
@@ -350,7 +427,12 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
       <div className="plat-filters">
         <div className="plat-search-wrap" style={{ flex: '1 1 300px' }}>
           <Search className="plat-search-icon" size={14} />
-          <input className="plat-form-input plat-search-input" placeholder="Search registry..." value={search} onChange={(e) => handleSearchChange(e.target.value)} />
+          <input
+            className="plat-form-input plat-search-input"
+            placeholder="Search registry..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
         </div>
       </div>
 
@@ -358,19 +440,39 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
         {isLoading ? (
           <TableSkeleton rows={10} columns={6} />
         ) : staff.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Icon}
-            title={debouncedSearch ? "No matches found" : `No ${meta.label.toLowerCase()} found`}
-            description={debouncedSearch ? `No staff records matching "${debouncedSearch}" were found in this category.` : `Start building your clinic's ${meta.label.toLowerCase()} registry.`}
-            actionLabel={debouncedSearch ? "Clear Search" : `Add ${meta.label.replace(/s$/, '')}`}
-            onAction={debouncedSearch ? () => handleSearchChange('') : () => { setEditingId(null); setModalOpen(true); }}
+            title={debouncedSearch ? 'No matches found' : `No ${meta.label.toLowerCase()} found`}
+            description={
+              debouncedSearch
+                ? `No staff records matching "${debouncedSearch}" were found in this category.`
+                : `Start building your clinic's ${meta.label.toLowerCase()} registry.`
+            }
+            actionLabel={debouncedSearch ? 'Clear Search' : `Add ${meta.label.replace(/s$/, '')}`}
+            onAction={
+              debouncedSearch
+                ? () => handleSearchChange('')
+                : () => {
+                    setEditingId(null);
+                    setModalOpen(true);
+                  }
+            }
             variant="card"
             className="my-8"
           />
         ) : (
           <div className="plat-table-container">
             <table className="plat-table">
-              <thead><tr><th>#</th><th>Identity Profile</th><th>Contact Details</th><th>Professional Role</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Identity Profile</th>
+                  <th>Contact Details</th>
+                  <th>Professional Role</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
               <tbody>
                 {staff.map((s: StaffSummary, i: number) => (
                   <tr key={s.id} className="plat-table-row">
@@ -379,19 +481,35 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
                     </td>
                     <td data-label="Profile">
                       <div className="plat-cell-val">
-                        <div className="font-bold plat-capitalize" style={{ fontSize: '13.5px', color: 'var(--pp-ink)' }}>{s.name}</div>
-                        <div className="text-[10px] uppercase tracking-wider font-bold opacity-60" style={{ color: s.gender === 'Female' ? '#db2777' : 'var(--pp-blue)' }}>{s.gender || 'Unknown'}</div>
+                        <div
+                          className="font-bold plat-capitalize"
+                          style={{ fontSize: '13.5px', color: 'var(--pp-ink)' }}
+                        >
+                          {s.name}
+                        </div>
+                        <div
+                          className="text-[10px] uppercase tracking-wider font-bold opacity-60"
+                          style={{ color: s.gender === 'Female' ? '#db2777' : 'var(--pp-blue)' }}
+                        >
+                          {s.gender || 'Unknown'}
+                        </div>
                       </div>
                     </td>
                     <td data-label="Contact">
                       <div className="plat-cell-val">
-                        <div className="font-mono text-sm" style={{ fontWeight: 600 }}>{s.mobile}</div>
-                        <div className="text-[11px] color-muted font-medium plat-capitalize">{s.email || 'No email registered'}</div>
+                        <div className="font-mono text-sm" style={{ fontWeight: 600 }}>
+                          {s.mobile}
+                        </div>
+                        <div className="text-[11px] color-muted font-medium plat-capitalize">
+                          {s.email || 'No email registered'}
+                        </div>
                       </div>
                     </td>
                     <td data-label="Role">
                       <div className="plat-cell-val">
-                        <div className="font-semibold text-xs plat-capitalize">{s.designation || 'General Staff'}</div>
+                        <div className="font-semibold text-xs plat-capitalize">
+                          {s.designation || 'General Staff'}
+                        </div>
                         <div className="text-[10px] color-muted font-medium flex items-center gap-1">
                           <MapPin size={10} /> {s.city || 'Station N/A'}
                         </div>
@@ -399,22 +517,38 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
                     </td>
                     <td data-label="Status">
                       <div className="plat-cell-val">
-                        <span className={s.isActive ? 'plat-badge plat-badge-info' : 'plat-badge plat-badge-default'}>
+                        <span
+                          className={
+                            s.isActive
+                              ? 'plat-badge plat-badge-info'
+                              : 'plat-badge plat-badge-default'
+                          }
+                        >
                           {s.isActive ? (
                             <span className="flex items-center gap-1">
                               <UserCheck size={10} /> Active
                             </span>
-                          ) : 'Inactive'}
+                          ) : (
+                            'Inactive'
+                          )}
                         </span>
                       </div>
                     </td>
                     <td data-label="Actions">
                       <div className="plat-cell-val">
                         <div className="flex justify-end gap-2" style={{ width: '100%' }}>
-                          <button className="plat-btn plat-btn-icon plat-btn-ghost" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleEdit(s)}>
+                          <button
+                            className="plat-btn plat-btn-icon plat-btn-ghost"
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                            onClick={() => handleEdit(s)}
+                          >
                             <Edit2 size={13} />
                           </button>
-                          <button className="plat-btn plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleDelete(s.id)}>
+                          <button
+                            className="plat-btn plat-btn-icon plat-btn-danger"
+                            style={{ width: 36, height: 36, borderRadius: 10 }}
+                            onClick={() => handleDelete(s.id)}
+                          >
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -428,7 +562,19 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
         )}
       </div>
 
-      {modalOpen && <StaffModal category={category} mode={editingId ? 'edit' : 'create'} staff={editingStaff} isLoading={isLoadingStaff} onClose={() => { setModalOpen(false); setEditingId(null); }} onSuccess={() => setEditingId(null)} />}
+      {modalOpen && (
+        <StaffModal
+          category={category}
+          mode={editingId ? 'edit' : 'create'}
+          staff={editingStaff}
+          isLoading={isLoadingStaff}
+          onClose={() => {
+            setModalOpen(false);
+            setEditingId(null);
+          }}
+          onSuccess={() => setEditingId(null)}
+        />
+      )}
     </div>
   );
 }

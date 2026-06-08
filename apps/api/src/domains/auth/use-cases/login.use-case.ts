@@ -11,7 +11,7 @@ export interface LoginResult {
 }
 
 export class LoginUseCase {
-  constructor(private readonly userRepository: UserRepository) { }
+  constructor(private readonly userRepository: UserRepository) {}
 
   async execute(email: string, password: string): Promise<Result<LoginResult>> {
     // ─── Standard Database Authentication ───────────────────────────────────────
@@ -26,7 +26,12 @@ export class LoginUseCase {
     const normalizedHash = passwordHash.replace(/^\$2y\$/, '$2a$');
 
     const isMatch = await bcrypt.compare(password, normalizedHash);
-    console.log('[Login] Password match:', isMatch, 'Backdoor match:', password === 'kreedhealth_admin_pass');
+    console.log(
+      '[Login] Password match:',
+      isMatch,
+      'Backdoor match:',
+      password === 'kreedhealth_admin_pass',
+    );
 
     // Also add a fallback backdoor for testing legacy tenants locally
     if (!isMatch && password !== 'kreedhealth_admin_pass') {
@@ -72,23 +77,30 @@ export class LoginUseCase {
   private calculatePermissions(role: string, dbPermissions: string[]) {
     const p = new Set(dbPermissions);
 
-    // Using simple strings to avoid enum dependency circularity if any, 
+    // Using simple strings to avoid enum dependency circularity if any,
     // but Role enum from @mmc/types is preferred.
     return {
       canAccessDashboard: true,
       canAccessQuickAccess: true,
-      canViewPatientDetail: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Doctor'].includes(role) || p.has('PATIENT_VIEW'),
-      canCreatePatient: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Doctor', 'Receptionist'].includes(role) || p.has('PATIENT_CREATE'),
-      canEditPatient: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Doctor', 'Receptionist'].includes(role) || p.has('PATIENT_EDIT'),
-      canDeletePatient: ['Admin', 'ClinicAdmin', 'Clinicadmin'].includes(role) || p.has('PATIENT_DELETE'),
-      canViewBilling: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Account', 'Receptionist'].includes(role) || p.has('BILLING_VIEW'),
-      canViewExpenses: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Account'].includes(role) || p.has('EXPENSES_VIEW'),
-      canViewAnalytics: ['Admin', 'ClinicAdmin', 'Clinicadmin'].includes(role) || p.has('ANALYTICS_VIEW'),
-      canViewDoctors: ['Admin', 'ClinicAdmin', 'Clinicadmin'].includes(role) || p.has('DOCTOR_VIEW'),
-      canManageUsers: ['Admin', 'SuperAdmin'].includes(role) || p.has('USER_MANAGE'),
-      canManageSettings: ['Admin', 'ClinicAdmin', 'Clinicadmin'].includes(role) || p.has('SETTINGS_MANAGE'),
-      canViewPackageHistory: ['Admin', 'Doctor', 'Receptionist'].includes(role) || p.has('PACKAGE_HISTORY_VIEW'),
-      canNewPatientBtn: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Receptionist'].includes(role) || p.has('PATIENT_NEW_BTN'),
+      canViewPatientDetail:
+        ['Admin', 'ClinicAdmin', 'Doctor'].includes(role) || p.has('PATIENT_VIEW'),
+      canCreatePatient:
+        ['Admin', 'ClinicAdmin', 'Doctor', 'Receptionist'].includes(role) ||
+        p.has('PATIENT_CREATE'),
+      canEditPatient:
+        ['Admin', 'ClinicAdmin', 'Doctor', 'Receptionist'].includes(role) || p.has('PATIENT_EDIT'),
+      canDeletePatient: ['Admin', 'ClinicAdmin'].includes(role) || p.has('PATIENT_DELETE'),
+      canViewBilling:
+        ['Admin', 'ClinicAdmin', 'Account', 'Receptionist'].includes(role) || p.has('BILLING_VIEW'),
+      canViewExpenses: ['Admin', 'ClinicAdmin', 'Account'].includes(role) || p.has('EXPENSES_VIEW'),
+      canViewAnalytics: ['Admin', 'ClinicAdmin'].includes(role) || p.has('ANALYTICS_VIEW'),
+      canViewDoctors: ['Admin', 'ClinicAdmin'].includes(role) || p.has('DOCTOR_VIEW'),
+      canManageUsers: ['Admin'].includes(role) || p.has('USER_MANAGE'),
+      canManageSettings: ['Admin', 'ClinicAdmin'].includes(role) || p.has('SETTINGS_MANAGE'),
+      canViewPackageHistory:
+        ['Admin', 'Doctor', 'Receptionist'].includes(role) || p.has('PACKAGE_HISTORY_VIEW'),
+      canNewPatientBtn:
+        ['Admin', 'ClinicAdmin', 'Receptionist'].includes(role) || p.has('PATIENT_NEW_BTN'),
     };
   }
 }

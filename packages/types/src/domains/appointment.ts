@@ -5,8 +5,8 @@ export interface Appointment {
   patientId: number | null;
   unregisteredPatientId: number | null;
   doctorId: number | null;
-  bookingDate: string | null;          // YYYY-MM-DD
-  bookingTime: string | null;          // "09:00 AM"
+  bookingDate: string | null; // YYYY-MM-DD
+  bookingTime: string | null; // "09:00 AM"
   status: AppointmentStatus;
   visitType: VisitType | null;
   consultationFee: string | null;
@@ -32,7 +32,7 @@ export interface Token {
   patientId: number | null;
   doctorId: number | null;
   tokenNo: number;
-  date: string;                        // YYYY-MM-DD
+  date: string; // YYYY-MM-DD
   status: TokenStatus;
   clinicId: number | null;
   createdAt: Date;
@@ -46,8 +46,8 @@ export interface WaitlistEntry {
   appointmentId: number | null;
   doctorId: number | null;
   waitingNumber: number;
-  date: string;                        // YYYY-MM-DD
-  status: number;                      // 0=waiting 1=called 2=done
+  date: string; // YYYY-MM-DD
+  status: number; // 0=waiting 1=called 2=done
   consultationFee: string | null;
   checkedInAt: Date | null;
   calledAt: Date | null;

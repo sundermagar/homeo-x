@@ -40,10 +40,10 @@ async function main() {
   const deleteResponse = await fetch(deleteUrl, {
     method: 'DELETE',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
     },
   });
-  const deleteData = await deleteResponse.json() as any;
+  const deleteData = (await deleteResponse.json()) as any;
   console.log('Delete Response:', JSON.stringify(deleteData, null, 2));
 
   const body = {
@@ -55,15 +55,10 @@ async function main() {
         type: 'BODY',
         text: 'Hello {{1}}, thank you for referring {{2}} to us. We appreciate your trust and support.',
         example: {
-          body_text: [
-            [
-              "Ramesh Kumar",
-              "MMC HomeoTech"
-            ]
-          ]
-        }
-      }
-    ]
+          body_text: [['Ramesh Kumar', 'MMC HomeoTech']],
+        },
+      },
+    ],
   };
 
   console.log(`\nRegistering template "${templateName}" on Meta WABA...`);
@@ -72,13 +67,13 @@ async function main() {
   const response = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
   });
 
-  const data = await response.json() as any;
+  const data = (await response.json()) as any;
   console.log(`Response Status: ${response.status} ${response.statusText}`);
   console.log('Response Body:', JSON.stringify(data, null, 2));
 
@@ -94,7 +89,9 @@ async function main() {
   } else {
     console.error(`\n❌ Failed to register template on Meta.`);
     if (data.error?.message?.includes('already exists')) {
-      console.log('It seems the template already exists on Meta but is not updated in our local database.');
+      console.log(
+        'It seems the template already exists on Meta but is not updated in our local database.',
+      );
       console.log('Updating local status to approved...');
       await db.execute(sql`
         UPDATE wa_templates

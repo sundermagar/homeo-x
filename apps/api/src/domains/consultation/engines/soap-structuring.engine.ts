@@ -32,7 +32,11 @@ export interface SoapGenerationInput {
 export class SoapStructuringEngine {
   constructor(private providerChain: AiProviderChain) {}
 
-  async generateSoap(tenantId: string, userId: string, input: SoapGenerationInput): Promise<SoapSuggestion> {
+  async generateSoap(
+    tenantId: string,
+    userId: string,
+    input: SoapGenerationInput,
+  ): Promise<SoapSuggestion> {
     const systemPrompt = `You are a medical ambient scribe AI. You convert doctor-patient consultation transcripts into structured SOAP notes.
 
 Rules:
@@ -89,7 +93,10 @@ Generate a complete, clinically appropriate SOAP note based strictly on the tran
 
       const parsed: any = safeJsonParse(response.content);
       if (!parsed) {
-        logger.error({ tenantId, contentPreview: response.content.slice(0, 300) }, 'SOAP: JSON unrecoverable even after repair');
+        logger.error(
+          { tenantId, contentPreview: response.content.slice(0, 300) },
+          'SOAP: JSON unrecoverable even after repair',
+        );
         throw new Error('SOAP engine returned unparseable JSON');
       }
 

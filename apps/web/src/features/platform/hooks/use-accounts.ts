@@ -9,17 +9,28 @@ async function fetchAccounts(clinicId?: number, role?: string): Promise<StaffSum
   if (clinicId) params.append('clinic_id', clinicId.toString());
   if (role) params.append('role', role);
   const q = params.toString() ? `?${params.toString()}` : '';
-  const { data } = await apiClient.get<{ success: boolean; data: StaffSummary[] }>(`/clinicadmins${q}`);
+  const { data } = await apiClient.get<{ success: boolean; data: Account[] }>(
+    `/platform-accounts${q}`,
+  );
   return data.data;
 }
 
-async function createAccount(body: CreateAccountInput): Promise<StaffSummary> {
-  const { data } = await apiClient.post<{ success: boolean; data: StaffSummary }>('/clinicadmins', body);
+async function createAccount(body: CreateAccountInput): Promise<Account> {
+  const { data } = await apiClient.post<{ success: boolean; data: Account }>(
+    '/platform-accounts',
+    body,
+  );
   return data.data;
 }
 
-async function updateAccount({ id, ...body }: UpdateAccountInput & { id: number }): Promise<StaffSummary> {
-  const { data } = await apiClient.put<{ success: boolean; data: StaffSummary }>(`/clinicadmins/${id}`, body);
+async function updateAccount({
+  id,
+  ...body
+}: UpdateAccountInput & { id: number }): Promise<Account> {
+  const { data } = await apiClient.put<{ success: boolean; data: Account }>(
+    `/platform-accounts/${id}`,
+    body,
+  );
   return data.data;
 }
 
@@ -28,7 +39,10 @@ async function deleteAccount(id: number): Promise<void> {
 }
 
 export function useAccounts(clinicId?: number, role?: string) {
-  return useQuery({ queryKey: [QUERY_KEY, clinicId, role], queryFn: () => fetchAccounts(clinicId, role) });
+  return useQuery({
+    queryKey: [QUERY_KEY, clinicId, role],
+    queryFn: () => fetchAccounts(clinicId, role),
+  });
 }
 
 export function useCreateAccount() {

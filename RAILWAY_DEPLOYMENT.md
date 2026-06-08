@@ -5,6 +5,7 @@ This guide provides a comprehensive, step-by-step walkthrough for deploying the 
 ## 🏗️ Architecture Overview
 
 The MMC platform consists of:
+
 - **Backend API (`apps/api`)**: Node.js/Express server.
 - **Frontend Web (`apps/web`)**: React/Vite application.
 - **Shared Packages (`packages/*`)**: Database schema, Types, and Validation logic.
@@ -29,7 +30,9 @@ The MMC platform consists of:
 4.  **Do not deploy yet!** We need to configure the services first.
 
 ### Add Managed Databases
+
 In your Railway project dashboard, click **"New"** and add:
+
 1.  **Database** -> **Add PostgreSQL**.
 2.  **Database** -> **Add Redis**.
 
@@ -85,13 +88,17 @@ Create another Service for the Frontend:
 Before the app is functional, you must run migrations. You can do this in two ways:
 
 ### Option A: Manual Migration (Preferred for First Run)
+
 Use the Railway CLI from your local machine:
+
 ```bash
 railway run pnpm db:migrate
 ```
 
 ### Option B: Post-Build Script
+
 You can modify the API build command to include migrations:
+
 ```bash
 pnpm install && pnpm build --filter=@mmc/api && pnpm db:migrate
 ```
@@ -102,14 +109,14 @@ pnpm install && pnpm build --filter=@mmc/api && pnpm db:migrate
 
 Ensure these variables are set in your Railway dashboard for the **API Service**:
 
-| Variable | Description |
-| :--- | :--- |
-| `DATABASE_URL` | Handled by Railway PostgreSQL plugin |
-| `REDIS_URL` | Handled by Railway Redis plugin |
-| `JWT_SECRET` | used for Auth |
-| `RAZORPAY_KEY` | Payment Integration |
-| `RAZORPAY_SECRET` | Payment Integration |
-| `GEMINI_API_KEY` | AI Features |
+| Variable          | Description                          |
+| :---------------- | :----------------------------------- |
+| `DATABASE_URL`    | Handled by Railway PostgreSQL plugin |
+| `REDIS_URL`       | Handled by Railway Redis plugin      |
+| `JWT_SECRET`      | used for Auth                        |
+| `RAZORPAY_KEY`    | Payment Integration                  |
+| `RAZORPAY_SECRET` | Payment Integration                  |
+| `GEMINI_API_KEY`  | AI Features                          |
 
 ---
 

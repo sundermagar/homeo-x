@@ -28,17 +28,17 @@ This document maps legacy MySQL tables (MMC) to current MMC PostgreSQL tables an
 
 ## Mapping Matrix
 
-| Domain | Legacy tables (MMC) | MMC target table | Notes |
-|---|---|---|---|
-| Patients | `case_datas`, `basic_details` | `case_datas` | Prefer `case_datas` as canonical patient source, use `basic_details` for backfill gaps. |
-| Medical Case | `medicalcases`, `case_notes`, `case_examination` | `medicalcases` | Keep core case status/doctor/clinic in `medicalcases`; optional details can stay in legacy tables until modeled. |
-| Vitals | `vitals`, `heightweight`, `case_heights` | `vitals` | Normalize to one row per visit (`visit_id`). |
-| SOAP | `soap_notes` | `soap_notes` | Direct map where possible; keep AI fields defaulted. |
-| Homeopathy details | `homeo_details`, `case_specific` | `homeo_details` | `miasm` and constitutional fields should map directly. |
-| Appointments | `appointments`, `pending_appointments`, `token` | `appointments` | Map booking date/time + status; queue/token can remain legacy until queue domain finalized. |
-| Billing | `bill`, `receipt`, `charges`, `payments` | `bill` | Map totals/received/balance; detailed receipt split can be phase-2 billing enhancement. |
-| Auth/RBAC | `users`, `roles`, `permissions`, `permission_role` | `users`, `roles`, `permissions`, `role_permissions` | `permission_role` -> `role_permissions`. |
-| Consultation AI | `scribing_sessions`, `transcript_segments`, `lab_orders`, `lab_order_items` | same names | Mostly direct migration. |
+| Domain             | Legacy tables (MMC)                                                         | MMC target table                                    | Notes                                                                                                            |
+| ------------------ | --------------------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Patients           | `case_datas`, `basic_details`                                               | `case_datas`                                        | Prefer `case_datas` as canonical patient source, use `basic_details` for backfill gaps.                          |
+| Medical Case       | `medicalcases`, `case_notes`, `case_examination`                            | `medicalcases`                                      | Keep core case status/doctor/clinic in `medicalcases`; optional details can stay in legacy tables until modeled. |
+| Vitals             | `vitals`, `heightweight`, `case_heights`                                    | `vitals`                                            | Normalize to one row per visit (`visit_id`).                                                                     |
+| SOAP               | `soap_notes`                                                                | `soap_notes`                                        | Direct map where possible; keep AI fields defaulted.                                                             |
+| Homeopathy details | `homeo_details`, `case_specific`                                            | `homeo_details`                                     | `miasm` and constitutional fields should map directly.                                                           |
+| Appointments       | `appointments`, `pending_appointments`, `token`                             | `appointments`                                      | Map booking date/time + status; queue/token can remain legacy until queue domain finalized.                      |
+| Billing            | `bill`, `receipt`, `charges`, `payments`                                    | `bill`                                              | Map totals/received/balance; detailed receipt split can be phase-2 billing enhancement.                          |
+| Auth/RBAC          | `users`, `roles`, `permissions`, `permission_role`                          | `users`, `roles`, `permissions`, `role_permissions` | `permission_role` -> `role_permissions`.                                                                         |
+| Consultation AI    | `scribing_sessions`, `transcript_segments`, `lab_orders`, `lab_order_items` | same names                                          | Mostly direct migration.                                                                                         |
 
 ## Recommended Migration Order (per tenant schema)
 

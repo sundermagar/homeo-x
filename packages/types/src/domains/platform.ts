@@ -17,63 +17,59 @@ export interface ClinicTimingConfig {
 }
 
 export interface Organization {
-  id:           number;
-  name:         string;
-  email:        string;
-  phone:        string;
-  address:      string;
-  website:      string;
-  assignedTo:   number;
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  website: string;
+  assignedTo: number;
   connectSince: string;
-  city:         string;
-  description:  string;
-  logo?:        string;
-  tagLine?:     string;
-  address2?:    string;
+  city: string;
+  description: string;
+  logo?: string;
+  tagLine?: string;
+  address2?: string;
   registration?: string;
-  timing?:      string;
-  hfrId?:       string | null;
-  hfrToken?:    string | null;
-  adminEmail?:  string;
+  timing?: string;
+  adminEmail?: string;
   adminPassword?: string;
   registrationFee?: number;
-  deletedAt?:   string | null;
-  createdAt:    string;
-  updatedAt:    string;
-  status:       string;
+  deletedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** Account managers — one per clinic admin. Password is never returned from the API. */
 export interface Account {
-  id:          number;
-  name:        string;
-  email:       string;
-  mobile:      string;
-  mobile2:     string;
-  gender:      string;
-  city:        string;
-  address:     string;
-  about:       string;
+  id: number;
+  name: string;
+  email: string;
+  mobile: string;
+  mobile2: string;
+  gender: string;
+  city: string;
+  address: string;
+  about: string;
   designation: string;
-  dept:        number;
-  clinicId:    number | null;
-  deletedAt?:  string | null;
-  createdAt:   string;
-  updatedAt:   string;
+  dept: number;
+  clinicId: number | null;
+  deletedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateOrganizationInput {
-  name:         string;
-  email?:       string;
-  phone?:       string;
-  address?:     string;
-  address2?:    string;
-  website?:     string;
-  assignedTo?:  number;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  website?: string;
+  assignedTo?: number;
   connectSince?: string;
-  city?:        string;
+  city?: string;
   description?: string;
-  adminEmail?:  string;
+  adminEmail?: string;
   adminPassword?: string;
   sendWelcomeEmail?: boolean;
   registrationFee?: number;
@@ -88,18 +84,18 @@ export interface CreateOrganizationInput {
 export type UpdateOrganizationInput = Partial<CreateOrganizationInput> & { status?: string };
 
 export interface CreateAccountInput {
-  name:        string;
-  email:       string;
-  password:    string;
-  gender?:     string;
-  mobile?:     string;
-  mobile2?:    string;
-  city?:       string;
-  address?:    string;
-  about?:      string;
+  name: string;
+  email: string;
+  password: string;
+  gender?: string;
+  mobile?: string;
+  mobile2?: string;
+  city?: string;
+  address?: string;
+  about?: string;
   designation?: string;
-  dept?:       number;
-  clinicId?:   number;
+  dept?: number;
+  clinicId?: number;
 }
 
 export type UpdateAccountInput = Partial<Omit<CreateAccountInput, 'password'>>;

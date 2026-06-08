@@ -27,10 +27,7 @@ async function main() {
   const db = createDbClient(DATABASE_URL);
 
   // Logs that don't yet have a row in ml_training_embeddings
-  const records = await db
-    .select()
-    .from(mlTrainingLogs)
-    .where(sql`NOT EXISTS (
+  const records = await db.select().from(mlTrainingLogs).where(sql`NOT EXISTS (
       SELECT 1 FROM ${mlTrainingEmbeddings}
       WHERE ${mlTrainingEmbeddings.mlTrainingLogId} = ${mlTrainingLogs.id}
     )`);

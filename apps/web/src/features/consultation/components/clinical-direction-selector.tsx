@@ -27,12 +27,12 @@ export function ClinicalDirectionSelector({
         confidence: suggestions.confidence || 0.8,
       });
     }
-    
+
     if (suggestions.differentials && Array.isArray(suggestions.differentials)) {
       suggestions.differentials.forEach((diff) => {
         // Avoid duplicating primary
         if (suggestions.primaryDiagnosis && diff.name === suggestions.primaryDiagnosis.name) return;
-        
+
         list.push({
           ...diff,
           type: 'Differential',
@@ -40,7 +40,7 @@ export function ClinicalDirectionSelector({
         });
       });
     }
-    
+
     console.log('[ClinicalDirectionSelector] Directions list:', list);
     return list.slice(0, 3);
   }, [suggestions]);
@@ -48,9 +48,16 @@ export function ClinicalDirectionSelector({
   if (directions.length === 0) {
     return (
       <div className="p-8 text-center bg-[#FAFAF8] rounded-xl border border-dashed border-[#E3E2DF]">
-        <h3 className="text-[16px] font-bold text-[#0F0F0E] italic tracking-tight">No specific clinical directions identified.</h3>
-        <p className="text-[13px] text-[#4A4A47] mt-2 font-medium">Proceeding to general consultation draft...</p>
-        <button onClick={() => onSelect('General Consultation', '')} className="pp-btn-secondary mt-5 px-5 py-2">
+        <h3 className="text-[16px] font-bold text-[#0F0F0E] italic tracking-tight">
+          No specific clinical directions identified.
+        </h3>
+        <p className="text-[13px] text-[#4A4A47] mt-2 font-medium">
+          Proceeding to general consultation draft...
+        </p>
+        <button
+          onClick={() => onSelect('General Consultation', '')}
+          className="pp-btn-secondary mt-5 px-5 py-2"
+        >
           Continue
         </button>
       </div>
@@ -60,7 +67,9 @@ export function ClinicalDirectionSelector({
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="space-y-1">
-        <h2 className="text-[20px] font-bold text-[#0F0F0E] tracking-tight">Select a clinical direction</h2>
+        <h2 className="text-[20px] font-bold text-[#0F0F0E] tracking-tight">
+          Select a clinical direction
+        </h2>
         <p className="text-[13px] font-medium text-[#4A4A47]">
           One decision. Details come after — just pick the direction.
         </p>
@@ -71,21 +80,23 @@ export function ClinicalDirectionSelector({
           <div
             key={idx}
             className={cn(
-              "relative cursor-pointer transition-all duration-300 pp-card",
-              selectedIndex === idx 
-                ? "border-[#2563EB] bg-[#EFF6FF] ring-2 ring-[#BFDBFE]" 
-                : "border-[#E3E2DF] hover:border-[#BFDBFE] hover:shadow-md bg-white"
+              'relative cursor-pointer transition-all duration-300 pp-card',
+              selectedIndex === idx
+                ? 'border-[#2563EB] bg-[#EFF6FF] ring-2 ring-[#BFDBFE]'
+                : 'border-[#E3E2DF] hover:border-[#BFDBFE] hover:shadow-md bg-white',
             )}
             onClick={() => setSelectedIndex(idx)}
           >
             <div className="p-5 space-y-4">
               <div className="flex justify-between items-start">
-                <div className={cn(
-                  "h-6 w-6 rounded-md flex items-center justify-center text-[10px] font-bold border",
-                  selectedIndex === idx 
-                    ? "bg-[#2563EB] border-[#2563EB] text-white" 
-                    : "bg-[#FAFAF8] border-[#E3E2DF] text-[#888786]"
-                )}>
+                <div
+                  className={cn(
+                    'h-6 w-6 rounded-md flex items-center justify-center text-[10px] font-bold border',
+                    selectedIndex === idx
+                      ? 'bg-[#2563EB] border-[#2563EB] text-white'
+                      : 'bg-[#FAFAF8] border-[#E3E2DF] text-[#888786]',
+                  )}
+                >
                   {String.fromCharCode(65 + idx)}
                 </div>
                 {selectedIndex === idx && (
@@ -94,10 +105,12 @@ export function ClinicalDirectionSelector({
               </div>
 
               <div className="space-y-1">
-                <h3 className={cn(
-                  "font-bold text-[15px] leading-tight tracking-tight",
-                  selectedIndex === idx ? "text-[#1E3A8A]" : "text-[#0F0F0E]"
-                )}>
+                <h3
+                  className={cn(
+                    'font-bold text-[15px] leading-tight tracking-tight',
+                    selectedIndex === idx ? 'text-[#1E3A8A]' : 'text-[#0F0F0E]',
+                  )}
+                >
                   {dir.name}
                 </h3>
                 <p className="text-[12px] font-medium text-[#4A4A47] line-clamp-3 min-h-[48px]">

@@ -46,10 +46,16 @@ export function calculateAge(dateOfBirth: string | Date | undefined | null): num
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
-export function formatSpecialty(specialty: string | { name?: string; displayName?: string } | null | undefined): string {
+export function formatSpecialty(
+  specialty: string | { name?: string; displayName?: string } | null | undefined,
+): string {
   if (!specialty) return '';
   if (typeof specialty === 'string') return specialty;
   return specialty.displayName || specialty.name || '';

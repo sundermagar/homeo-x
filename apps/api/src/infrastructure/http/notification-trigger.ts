@@ -21,7 +21,10 @@ export async function triggerNotification(opts: TriggerOptions): Promise<void> {
   const { userId, clinicId, type, title, message, repo } = opts;
 
   try {
-    if (!repo.createNotification) { logger.warn('repo.createNotification not implemented'); return; }
+    if (!repo.createNotification) {
+      logger.warn('repo.createNotification not implemented');
+      return;
+    }
     const id = await repo.createNotification({ userId, clinicId, type, title, message });
     if (id !== undefined) {
       emitNotificationToUser(userId, {
@@ -60,11 +63,16 @@ export async function triggerNotificationToRoles(opts: BroadcastOptions): Promis
   if (!repo.findUserIdsByRole) return;
   try {
     const userIds = await repo.findUserIdsByRole(roles, clinicId);
-    const targets = userIds.filter(id => !excludeUserIds.includes(id));
-    await Promise.all(targets.map(userId =>
-      triggerNotification({ userId, clinicId, type, title, message, repo })
-    ));
+    const targets = userIds.filter((id) => !excludeUserIds.includes(id));
+    await Promise.all(
+      targets.map((userId) =>
+        triggerNotification({ userId, clinicId, type, title, message, repo }),
+      ),
+    );
   } catch (err: any) {
-    logger.error({ err: err.message }, `Failed to broadcast notification to roles ${roles.join(',')}`);
+    logger.error(
+      { err: err.message },
+      `Failed to broadcast notification to roles ${roles.join(',')}`,
+    );
   }
 }

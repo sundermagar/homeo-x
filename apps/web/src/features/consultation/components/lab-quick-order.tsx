@@ -58,13 +58,9 @@ export function LabQuickOrder({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FlaskConical className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Lab Orders
-            </span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Lab Orders</span>
             {selectedTests.length > 0 && (
-              <span className="text-xs text-gray-400">
-                ({selectedTests.length})
-              </span>
+              <span className="text-xs text-gray-400">({selectedTests.length})</span>
             )}
           </div>
         </div>

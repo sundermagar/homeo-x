@@ -31,7 +31,7 @@ async function seed() {
   const raw = fs.readFileSync(JSON_DATA_PATH, 'utf-8');
   const data = JSON.parse(raw);
 
-  // Determine target schema. 
+  // Determine target schema.
   // For dev/demo, we usually target 'tenant_demo' or 'public'.
   // User wants it integrated into "his project", so I'll target 'tenant_demo' as a baseline.
   const schema = 'tenant_demo';
@@ -76,12 +76,14 @@ async function seed() {
     const chunkSize = 100;
     for (let i = 0; i < data.stocks.length; i += chunkSize) {
       const chunk = data.stocks.slice(i, i + chunkSize);
-      const values = chunk.map((s: any) => {
-        const name = String(s.name || '').replace(/'/g, "''");
-        const desc = String(s.description || '').replace(/'/g, "''");
-        const potency = String(s.potency || '').replace(/'/g, "''");
-        return `(${s.id}, '${name}', '${desc}', '${potency}', NOW())`;
-      }).join(', ');
+      const values = chunk
+        .map((s: any) => {
+          const name = String(s.name || '').replace(/'/g, "''");
+          const desc = String(s.description || '').replace(/'/g, "''");
+          const potency = String(s.potency || '').replace(/'/g, "''");
+          return `(${s.id}, '${name}', '${desc}', '${potency}', NOW())`;
+        })
+        .join(', ');
 
       try {
         await client.unsafe(`
@@ -99,15 +101,21 @@ async function seed() {
   }
 
   // Reset sequences
-  await client.unsafe(`SELECT setval(pg_get_serial_sequence('"${schema}"."stocks"', 'id'), (SELECT COALESCE(MAX(id), 1) FROM "${schema}"."stocks"))`);
-  await client.unsafe(`SELECT setval(pg_get_serial_sequence('"${schema}"."potencies"', 'id'), (SELECT COALESCE(MAX(id), 1) FROM "${schema}"."potencies"))`);
-  await client.unsafe(`SELECT setval(pg_get_serial_sequence('"${schema}"."case_frequency"', 'id'), (SELECT COALESCE(MAX(id), 1) FROM "${schema}"."case_frequency"))`);
+  await client.unsafe(
+    `SELECT setval(pg_get_serial_sequence('"${schema}"."stocks"', 'id'), (SELECT COALESCE(MAX(id), 1) FROM "${schema}"."stocks"))`,
+  );
+  await client.unsafe(
+    `SELECT setval(pg_get_serial_sequence('"${schema}"."potencies"', 'id'), (SELECT COALESCE(MAX(id), 1) FROM "${schema}"."potencies"))`,
+  );
+  await client.unsafe(
+    `SELECT setval(pg_get_serial_sequence('"${schema}"."case_frequency"', 'id'), (SELECT COALESCE(MAX(id), 1) FROM "${schema}"."case_frequency"))`,
+  );
 
   console.log('✅ Seeding complete!');
   await client.end();
 }
 
-seed().catch(err => {
+seed().catch((err) => {
   console.error('❌ Seeding failed:', err);
   process.exit(1);
 });

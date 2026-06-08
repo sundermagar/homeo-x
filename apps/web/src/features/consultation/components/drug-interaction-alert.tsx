@@ -59,10 +59,7 @@ export function DrugInteractionAlert({ interactions }: DrugInteractionAlertProps
         const Icon = config.icon;
 
         return (
-          <div
-            key={idx}
-            className={`rounded-lg border p-3 ${config.bg} ${config.border}`}
-          >
+          <div key={idx} className={`rounded-lg border p-3 ${config.bg} ${config.border}`}>
             <div className="flex items-start gap-2">
               <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${config.iconColor}`} />
               <div className="min-w-0 flex-1">
@@ -73,9 +70,7 @@ export function DrugInteractionAlert({ interactions }: DrugInteractionAlertProps
                   {interaction.description}
                 </p>
                 {interaction.management && (
-                  <p className="mt-1 text-xs text-gray-600">
-                    Management: {interaction.management}
-                  </p>
+                  <p className="mt-1 text-xs text-gray-600">Management: {interaction.management}</p>
                 )}
               </div>
             </div>

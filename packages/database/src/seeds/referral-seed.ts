@@ -12,11 +12,15 @@ export async function seedReferrals(db: DbClient) {
     { name: 'Professional Medical Referral', type: 'Clinical Network' },
     { name: 'Patient Recommendation Program', type: 'Word of Mouth' },
     { name: 'Offline Print Advertisement', type: 'Traditional Media' },
-    { name: 'Institutional Partnership', type: 'Corporate' }
+    { name: 'Institutional Partnership', type: 'Corporate' },
   ];
 
   for (const source of sources) {
-    const existing = await db.select().from(referralSources).where(eq(referralSources.name, source.name)).limit(1);
+    const existing = await db
+      .select()
+      .from(referralSources)
+      .where(eq(referralSources.name, source.name))
+      .limit(1);
     if (existing.length === 0) {
       await db.insert(referralSources).values({ ...source, isActive: true });
       console.log(`[Seed] Created referral source: ${source.name}`);

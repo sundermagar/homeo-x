@@ -1,4 +1,16 @@
-import { pgTable, serial, integer, varchar, timestamp, text, boolean, real, jsonb, decimal } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  serial,
+  integer,
+  varchar,
+  timestamp,
+  text,
+  boolean,
+  real,
+  jsonb,
+  decimal,
+  date,
+} from 'drizzle-orm/pg-core';
 
 export const growthReferences = pgTable('growth_references', {
   id: serial('id').primaryKey(),
@@ -8,7 +20,6 @@ export const growthReferences = pgTable('growth_references', {
   idealWeightKg: decimal('ideal_weight_kg', { precision: 5, scale: 2 }),
   createdAt: timestamp('created_at').defaultNow(),
 });
-
 
 export const medicalCases = pgTable('medicalcases', {
   id: serial('id').primaryKey(),
@@ -58,6 +69,30 @@ export const soapNotes = pgTable('soap_notes', {
   doctorApproved: boolean('doctor_approved').default(false),
   approvedAt: timestamp('approved_at'),
   specialtyData: jsonb('specialty_data'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const consultationFiles = pgTable('consultation_files', {
+  id: serial('id').primaryKey(),
+  consultationId: integer('consultation_id'),
+  regid: integer('regid'),
+  fileType: varchar('file_type', { length: 50 }),
+  fileUrl: varchar('file_url', { length: 255 }),
+  fileName: varchar('file_name', { length: 255 }),
+  uploadedAt: timestamp('uploaded_at').defaultNow(),
+  description: text('description'),
+});
+
+export const followUpRequests = pgTable('follow_up_requests', {
+  id: serial('id').primaryKey(),
+  patientId: integer('patient_id'),
+  regid: integer('regid'),
+  complaints: text('complaints'),
+  address: text('address'),
+  status: varchar('status', { length: 50 }).default('PENDING'), // PENDING, PAID, REVIEWED, COMPLETED
+  paymentId: varchar('payment_id', { length: 100 }),
+  membershipId: integer('membership_id'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -149,7 +184,7 @@ export const prescriptions = pgTable('case_potencies', {
 // Migrated from legacy: medicine_others → remedy_alternatives
 export const remedyAlternatives = pgTable('remedy_alternatives', {
   id: serial('id').primaryKey(),
-  treeId: integer('tree_id').notNull(),       // FK → remedy_tree_nodes.id
+  treeId: integer('tree_id').notNull(), // FK → remedy_tree_nodes.id
   remedy: varchar('remedy', { length: 255 }),
   potency: varchar('potency', { length: 100 }),
   notes: text('notes'),

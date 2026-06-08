@@ -26,12 +26,7 @@ describe('AssignPackageUseCase', () => {
       sendPackageAssignment: vi.fn().mockResolvedValue(ok({ success: true })),
     };
 
-    useCase = new AssignPackageUseCase(
-      mockRepo,
-      mockBillingRepo,
-      mockPatientRepo,
-      mockSmsUseCase
-    );
+    useCase = new AssignPackageUseCase(mockRepo, mockBillingRepo, mockPatientRepo, mockSmsUseCase);
   });
 
   it('should assign package, create bill, and trigger SMS', async () => {
@@ -55,7 +50,7 @@ describe('AssignPackageUseCase', () => {
       medicalCase: {
         patientName: 'Test Patient',
         mobile: '9876543210',
-      }
+      },
     });
 
     const result = await useCase.execute(dto);
@@ -63,13 +58,15 @@ describe('AssignPackageUseCase', () => {
     expect(result.success).toBe(true);
     expect(mockBillingRepo.create).toHaveBeenCalled();
     expect(mockRepo.assignPackage).toHaveBeenCalled();
-    
+
     // Check if SMS was triggered (async, so we wait a bit or check if it was called)
     // In our implementation we don't await, but for test we can check
-    await new Promise(resolve => setTimeout(resolve, 10));
-    expect(mockSmsUseCase.sendPackageAssignment).toHaveBeenCalledWith(expect.objectContaining({
-      patientName: 'Test Patient',
-      packageName: 'Diamond Plan',
-    }));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(mockSmsUseCase.sendPackageAssignment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        patientName: 'Test Patient',
+        packageName: 'Diamond Plan',
+      }),
+    );
   });
 });

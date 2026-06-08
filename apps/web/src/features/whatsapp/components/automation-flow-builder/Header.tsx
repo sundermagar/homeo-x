@@ -15,17 +15,17 @@
  * ============================================================
  */
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ArrowLeft, Save, Loader2, Zap } from "lucide-react";
+} from '@/components/ui/select';
+import { ArrowLeft, Save, Loader2, Zap } from 'lucide-react';
 
 interface HeaderProps {
   name: string;
@@ -85,14 +85,26 @@ export function Header({
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5 bg-gray-50/80 rounded-xl px-3 py-1.5 border border-gray-100 shadow-sm transition-all hover:bg-gray-50">
           <Zap className="w-3.5 h-3.5 text-blue-500" />
-          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Trigger:</span>
+          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+            Trigger:
+          </span>
           <Select value={trigger} onValueChange={setTrigger}>
             <SelectTrigger className="h-5 text-[11px] w-[135px] border-none bg-transparent shadow-none p-0 focus:ring-0 font-bold text-gray-700 select-none">
               <SelectValue placeholder="Select trigger" />
             </SelectTrigger>
             <SelectContent className="border border-gray-100 shadow-lg rounded-xl">
-              <SelectItem value="new_conversation" className="text-xs font-semibold text-gray-700 rounded-lg">New conversation</SelectItem>
-              <SelectItem value="message_received" className="text-xs font-semibold text-gray-700 rounded-lg">Message received</SelectItem>
+              <SelectItem
+                value="new_conversation"
+                className="text-xs font-semibold text-gray-700 rounded-lg"
+              >
+                New conversation
+              </SelectItem>
+              <SelectItem
+                value="message_received"
+                className="text-xs font-semibold text-gray-700 rounded-lg"
+              >
+                Message received
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -101,11 +113,11 @@ export function Header({
           variant="outline"
           className={`text-[9px] h-6 px-2.5 font-black uppercase tracking-widest rounded-lg border shadow-sm transition-all duration-300 ${
             automation?.id
-              ? "bg-gradient-to-r from-blue-50/60 to-indigo-50/60 text-indigo-600 border-blue-200/50 shadow-indigo-50"
-              : "bg-gradient-to-r from-emerald-50/60 to-green-50/60 text-emerald-600 border-emerald-200/50 shadow-emerald-50"
+              ? 'bg-gradient-to-r from-blue-50/60 to-indigo-50/60 text-indigo-600 border-blue-200/50 shadow-indigo-50'
+              : 'bg-gradient-to-r from-emerald-50/60 to-green-50/60 text-emerald-600 border-emerald-200/50 shadow-emerald-50'
           }`}
         >
-          {automation?.id ? "Editing Flow" : "New Flow"}
+          {automation?.id ? 'Editing Flow' : 'New Flow'}
         </Badge>
 
         <Button

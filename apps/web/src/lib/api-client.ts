@@ -100,7 +100,7 @@ class ApiClient {
           accessToken: string;
           refreshToken: string;
         }> = await response.json();
-        
+
         if (body.success && body.data) {
           setAuth({
             user: body.data.user,
@@ -124,7 +124,12 @@ class ApiClient {
     return this.refreshPromise;
   }
 
-  private async request<T>(method: string, url: string, body?: unknown, options?: RequestInit): Promise<T> {
+  private async request<T>(
+    method: string,
+    url: string,
+    body?: unknown,
+    options?: RequestInit,
+  ): Promise<T> {
     const headers = this.getHeaders();
     // Don't send Content-Type: application/json when there's no body —
     // NestJS body parser rejects empty payloads with that content type.

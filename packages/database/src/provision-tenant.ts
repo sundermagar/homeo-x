@@ -3458,7 +3458,7 @@ export async function provisionTenant(dbUrl: string, schemaName: string): Promis
 
   const sql = postgres(dbUrl, {
     max: 1,
-    onnotice: () => { } // Silence notice logs so Railway doesn't rate-limit us
+    onnotice: () => {}, // Silence notice logs so Railway doesn't rate-limit us
   });
 
   try {
@@ -3471,22 +3471,15 @@ export async function provisionTenant(dbUrl: string, schemaName: string): Promis
 
   try {
     log.info(`  🔨 Provisioning tables for ${schemaName}...`);
-    
-    // Attempt to execute all DDLs in a single fast network roundtrip
-    try {
-      const combinedDdl = TABLES.map(table => table.ddl.replace(/\{\{SCHEMA\}\}/g, schemaName)).join(';\n');
-      await sql.unsafe(combinedDdl);
-      log.info(`  ⚡ Fast batch provisioning successful for [${schemaName}]`);
-    } catch (batchErr: any) {
-      log.info(`  ⚠️  Batch provisioning failed, falling back to sequential: ${batchErr.message}`);
-      // Fallback to sequential execution for error isolation
-      for (const table of TABLES) {
-        try {
-          const ddl = table.ddl.replace(/\{\{SCHEMA\}\}/g, schemaName);
-          await sql.unsafe(ddl);
-        } catch (tableErr: any) {
-          log.error(`    ⚠️  Failed to provision table [${table.name}] in ${schemaName}: ${tableErr.message}`);
-        }
+    for (const table of TABLES) {
+      try {
+        const ddl = table.ddl.replace(/\{\{SCHEMA\}\}/g, schemaName);
+        await sql.unsafe(ddl);
+      } catch (tableErr: any) {
+        log.error(
+          `    ⚠️  Failed to provision table [${table.name}] in ${schemaName}: ${tableErr.message}`,
+        );
+        // Continue to next table
       }
     }
     

@@ -1,12 +1,15 @@
 # PROJECT: MMC
 
 ## Overview
+
 MMC is an enterprise-grade homeopathic clinic management platform with:
+
 - AI-powered consultation
 - Real-time transcription
 - Multi-tenant architecture (schema-per-tenant)
 
 ## Tech Stack
+
 - Language: TypeScript (strict)
 - Backend: Express (DDD, Ports & Adapters)
 - Frontend: React 19
@@ -22,6 +25,7 @@ MMC is an enterprise-grade homeopathic clinic management platform with:
 - Testing: Vitest
 
 ## Key Decisions
+
 - Migrated from MySQL → PostgreSQL
 - Schema-per-tenant for isolation
 - Redis for caching

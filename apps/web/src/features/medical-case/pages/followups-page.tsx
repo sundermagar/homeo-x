@@ -1,8 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Bell, Filter, RotateCw, List, LayoutGrid, MessageSquare,
-  AlertCircle, CalendarClock, Search, ChevronRight, Clock,
-  CheckCircle2, User, Calendar, MoreVertical, X, Phone, Download, Printer
+  Bell,
+  Filter,
+  RotateCw,
+  List,
+  LayoutGrid,
+  MessageSquare,
+  AlertCircle,
+  CalendarClock,
+  Search,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+  User,
+  Calendar,
+  MoreVertical,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/infrastructure/api-client';
@@ -37,7 +49,7 @@ export default function FollowupsPage() {
   const [filters, setFilters] = useState({
     from_date: '',
     to_date: '',
-    doctor_id: ''
+    doctor_id: '',
   });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -60,8 +72,6 @@ export default function FollowupsPage() {
         ...filters,
         page,
         limit,
-        search,
-        _t: Date.now().toString()
       };
 
       const res = await apiClient.get('/appointments/followups', { params });
@@ -70,7 +80,7 @@ export default function FollowupsPage() {
         setTotal(res.data.data.total || 0);
       }
     } catch (error) {
-      console.error("Failed to load followups", error);
+      console.error('Failed to load followups', error);
     } finally {
       setLoading(false);
     }
@@ -171,154 +181,26 @@ export default function FollowupsPage() {
       return;
     }
     const finalPhone = phone.length === 10 ? '91' + phone : phone;
-    
+
     const textMessage = `Dear ${f.patientName || 'Patient'},\n\nThis is a friendly reminder for your upcoming follow-up appointment.\n\nPlease let us know if you need to reschedule.\n\nRegards,\nMMC HomeoTech`;
 
-    sendText.mutate({
-      phone: finalPhone,
-      message: textMessage
-    }, {
-      onSuccess: () => {
-        alert('✅ Follow-up reminder sent via WhatsApp!');
-        updateActionStatus(f, 'WhatsApp Sent');
+    sendText.mutate(
+      {
+        phone: finalPhone,
+        message: textMessage,
       },
-      onError: (err: any) => alert('❌ Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message))
-    });
+      {
+        onSuccess: () => alert('✅ Follow-up reminder sent via WhatsApp!'),
+        onError: (err: any) =>
+          alert(
+            '❌ Failed to send WhatsApp message: ' + (err.response?.data?.message || err.message),
+          ),
+      },
+    );
   };
 
-  const missedCount = followups.filter(f => f.visitType === 'Missed').length;
-  const nextVisitCount = followups.filter(f => f.visitType === 'Next Visit').length;
-  const actionTakenCount = followups.filter(f => f.callStatus).length;
-
-  const handleSort = (key: string) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const sortedFollowups = React.useMemo(() => {
-    let sortableItems = [...followups];
-    if (sortConfig !== null) {
-      sortableItems.sort((a, b) => {
-        let valA = a[sortConfig.key];
-        let valB = b[sortConfig.key];
-
-        // String comparison for names
-        if (sortConfig.key === 'patientName') {
-          valA = valA ? valA.toLowerCase() : '';
-          valB = valB ? valB.toLowerCase() : '';
-        }
-
-        // Date comparison
-        if (sortConfig.key === 'lastDate' || sortConfig.key === 'bookingDate') {
-          valA = valA ? new Date(valA).getTime() : 0;
-          valB = valB ? new Date(valB).getTime() : 0;
-        }
-
-        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    return sortableItems;
-  }, [followups, sortConfig]);
-
-  const exportToCSV = () => {
-    const headers = ['Reg ID', 'Patient Name', 'Phone', 'Enc. Type', 'Prescription Date', 'Next Date', 'Call Status', 'Action Date'];
-    const data = sortedFollowups.map(f => [
-      `#${f.patientId}`,
-      f.patientName || '',
-      f.phone || '',
-      f.visitType,
-      f.lastDate ? new Date(f.lastDate).toLocaleDateString('en-GB') : '',
-      f.bookingDate ? new Date(f.bookingDate).toLocaleDateString('en-GB') : '',
-      f.callStatus || '',
-      f.actionDate ? new Date(f.actionDate).toLocaleDateString('en-GB') : ''
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...data.map(row => row.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Followups_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handlePrint = () => {
-    if (!sortedFollowups || sortedFollowups.length === 0) return;
-    
-    const html = `
-      <html>
-        <head>
-          <title>Follow-up Dues Report</title>
-          <style>
-            body { font-family: sans-serif; padding: 20px; color: #1e293b; }
-            h2 { text-align: center; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; }
-            th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
-            th { background: #f8fafc; font-weight: bold; }
-            @media print {
-              body { padding: 0; }
-              @page { size: A4 portrait; margin: 1cm; }
-            }
-          </style>
-        </head>
-        <body>
-          <h2>Follow-up Dues Report (As of ${new Date().toLocaleDateString('en-GB')})</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Reg ID</th>
-                <th>Patient Name</th>
-                <th>Phone</th>
-                <th>Enc. Type</th>
-                <th>Prescription Date</th>
-                <th>Next Date</th>
-                <th>Call Status</th>
-                <th>Action Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sortedFollowups.map(f => `
-                <tr>
-                  <td>#${f.patientId}</td>
-                  <td>${f.patientName || ''}</td>
-                  <td>${f.phone || ''}</td>
-                  <td>${f.visitType}</td>
-                  <td>${f.lastDate ? new Date(f.lastDate).toLocaleDateString('en-GB') : ''}</td>
-                  <td>${f.bookingDate ? new Date(f.bookingDate).toLocaleDateString('en-GB') : ''}</td>
-                  <td>${f.callStatus || ''}</td>
-                  <td>${f.actionDate ? new Date(f.actionDate).toLocaleDateString('en-GB') : ''}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <script>
-            window.print();
-          </script>
-        </body>
-      </html>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(html);
-      printWindow.document.close();
-    }
-  };
-
-  const SortIcon = ({ columnKey }: { columnKey: string }) => {
-    if (sortConfig?.key !== columnKey) return <span style={{ opacity: 0.3, marginLeft: 4 }}>↕</span>;
-    return <span style={{ marginLeft: 4, color: 'var(--pp-primary)' }}>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
-  };
+  const missedCount = followups.filter((f) => f.visitType === 'Missed').length;
+  const nextVisitCount = followups.filter((f) => f.visitType === 'Next Visit').length;
 
   return (
     <div className="pp-page-container animate-fade-in">
@@ -327,7 +209,9 @@ export default function FollowupsPage() {
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-title pp-text-gradient">Follow-up Dues</h1>
-            <p className="text-subtitle">{followups.length} clinical encounters pending attention</p>
+            <p className="text-subtitle">
+              {followups.length} clinical encounters pending attention
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3 hide-on-print">
@@ -346,34 +230,47 @@ export default function FollowupsPage() {
         </div>
       </header>
 
-      {/* KPI Stats */}
-      <section className="pp-stat-grid mb-8" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px' }}>
-        <div className="fu-insight-item">
-          <div className="fu-insight-icon total"><Bell size={18} /></div>
-          <div>
-            <span className="fu-insight-label">Total Pending</span>
-            <span className="fu-insight-value">{followups.length}</span>
+      {/* Hero / Insights Card */}
+      <section className="fu-hero-card pp-card-premium mb-8">
+        <div className="fu-hero-content">
+          <div className="fu-hero-icon-blob">
+            <CalendarClock size={24} strokeWidth={1.5} />
+          </div>
+          <div className="fu-hero-text">
+            <h2 className="fu-h2">Clinical Insights</h2>
+            <p className="fu-p">
+              Unified dashboard for missed appointments and scheduled next visits.
+            </p>
           </div>
         </div>
-        <div className="fu-insight-item">
-          <div className="fu-insight-icon missed"><AlertCircle size={18} /></div>
-          <div>
-            <span className="fu-insight-label">Missed Visits</span>
-            <span className="fu-insight-value">{missedCount}</span>
+
+        <div className="fu-insights-grid">
+          <div className="fu-insight-item">
+            <div className="fu-insight-icon total">
+              <Bell size={18} />
+            </div>
+            <div>
+              <span className="fu-insight-label">Total Pending</span>
+              <span className="fu-insight-value">{followups.length}</span>
+            </div>
           </div>
-        </div>
-        <div className="fu-insight-item">
-          <div className="fu-insight-icon next"><CheckCircle2 size={18} /></div>
-          <div>
-            <span className="fu-insight-label">Upcoming</span>
-            <span className="fu-insight-value">{nextVisitCount}</span>
+          <div className="fu-insight-item">
+            <div className="fu-insight-icon missed">
+              <AlertCircle size={18} />
+            </div>
+            <div>
+              <span className="fu-insight-label">Missed Visits</span>
+              <span className="fu-insight-value">{missedCount}</span>
+            </div>
           </div>
-        </div>
-        <div className="fu-insight-item">
-          <div className="fu-insight-icon" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary)' }}><Phone size={18} /></div>
-          <div>
-            <span className="fu-insight-label">Action Taken</span>
-            <span className="fu-insight-value">{actionTakenCount}</span>
+          <div className="fu-insight-item">
+            <div className="fu-insight-icon next">
+              <CheckCircle2 size={18} />
+            </div>
+            <div>
+              <span className="fu-insight-label">Upcoming</span>
+              <span className="fu-insight-value">{nextVisitCount}</span>
+            </div>
           </div>
         </div>
       </section>
@@ -388,7 +285,7 @@ export default function FollowupsPage() {
               className="pp-input"
               placeholder="Search by patient name or mobile..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
             />
           </form>
         </div>
@@ -434,10 +331,14 @@ export default function FollowupsPage() {
               <select
                 className="pp-select"
                 value={filters.doctor_id}
-                onChange={e => setFilters(prev => ({ ...prev, doctor_id: e.target.value }))}
+                onChange={(e) => setFilters((prev) => ({ ...prev, doctor_id: e.target.value }))}
               >
                 <option value="">All Doctors</option>
-                {doctors.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                {doctors.map((d: any) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="fu-field">
@@ -446,7 +347,7 @@ export default function FollowupsPage() {
                 type="date"
                 className="pp-input"
                 value={filters.from_date}
-                onChange={e => setFilters(prev => ({ ...prev, from_date: e.target.value }))}
+                onChange={(e) => setFilters((prev) => ({ ...prev, from_date: e.target.value }))}
               />
             </div>
             <div className="fu-field">
@@ -455,7 +356,7 @@ export default function FollowupsPage() {
                 type="date"
                 className="pp-input"
                 value={filters.to_date}
-                onChange={e => setFilters(prev => ({ ...prev, to_date: e.target.value }))}
+                onChange={(e) => setFilters((prev) => ({ ...prev, to_date: e.target.value }))}
               />
             </div>
           </div>
@@ -471,31 +372,59 @@ export default function FollowupsPage() {
             <div className="pp-patient-grid">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="pp-card-premium" style={{ height: 280, padding: 24 }}>
-                  <div className="skeleton-box skeleton-text" style={{ width: '40%', height: 20, marginBottom: 20 }} />
+                  <div
+                    className="skeleton-box skeleton-text"
+                    style={{ width: '40%', height: 20, marginBottom: 20 }}
+                  />
                   <div className="flex flex-col items-center mb-5">
-                    <div className="skeleton-box" style={{ width: 64, height: 64, borderRadius: 20, marginBottom: 12 }} />
-                    <div className="skeleton-box skeleton-text" style={{ width: '60%', height: 18 }} />
+                    <div
+                      className="skeleton-box"
+                      style={{ width: 64, height: 64, borderRadius: 20, marginBottom: 12 }}
+                    />
+                    <div
+                      className="skeleton-box skeleton-text"
+                      style={{ width: '60%', height: 18 }}
+                    />
                   </div>
-                  <div className="skeleton-box skeleton-text" style={{ height: 60, borderRadius: 12 }} />
+                  <div
+                    className="skeleton-box skeleton-text"
+                    style={{ height: 60, borderRadius: 12 }}
+                  />
                 </div>
               ))}
             </div>
           )
         ) : followups.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={CalendarClock}
-            title={search || filters.doctor_id || filters.from_date ? "No matches found" : "No pending follow-ups"}
-            description={search || filters.doctor_id || filters.from_date ? "Try adjusting your filters or search query to find specific clinical encounters." : "You're all caught up! No missed visits or scheduled follow-ups were found for this clinic."}
-            actionLabel={search || filters.doctor_id || filters.from_date ? "Reset Filters" : undefined}
-            onAction={search || filters.doctor_id || filters.from_date ? () => {
-              setFilters({ from_date: '', to_date: '', doctor_id: '' });
-              setSearch('');
-            } : undefined}
+            title={
+              search || filters.doctor_id || filters.from_date
+                ? 'No matches found'
+                : 'No pending follow-ups'
+            }
+            description={
+              search || filters.doctor_id || filters.from_date
+                ? 'Try adjusting your filters or search query to find specific clinical encounters.'
+                : "You're all caught up! No missed visits or scheduled follow-ups were found for this clinic."
+            }
+            actionLabel={
+              search || filters.doctor_id || filters.from_date ? 'Reset Filters' : undefined
+            }
+            onAction={
+              search || filters.doctor_id || filters.from_date
+                ? () => {
+                    setFilters({ from_date: '', to_date: '', doctor_id: '' });
+                    setSearch('');
+                  }
+                : undefined
+            }
             variant="card"
             className="my-8"
           />
         ) : (
-          <div className={`animate-fade-in ${viewMode === 'list' ? 'fu-list-view' : 'fu-grid-view'}`}>
+          <div
+            className={`animate-fade-in ${viewMode === 'list' ? 'fu-list-view' : 'fu-grid-view'}`}
+          >
             {viewMode === 'list' ? (
               <div className="pp-table-scroll pp-card-premium" style={{ padding: 0 }}>
                 <table className="pp-table">
@@ -525,18 +454,8 @@ export default function FollowupsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedFollowups.map(f => (
-                      <tr key={f.id + '-' + f.visitType} className="hover-row">
-                        <td>
-                          <input 
-                            type="checkbox" 
-                            checked={selectedIds.has(f.id + '-' + f.visitType)}
-                            onChange={() => handleSelectRow(f.id, f.visitType)}
-                          />
-                        </td>
-                        <td data-label="Reg ID">
-                          <span className="fu-meta-cell">#{f.patientId}</span>
-                        </td>
+                    {followups.map((f) => (
+                      <tr key={f.id} className="hover-row">
                         <td data-label="Patient">
                           <div className="fu-patient-info">
                             <div className="fu-avatar-sm">{f.patientName?.[0]}</div>
@@ -547,18 +466,19 @@ export default function FollowupsPage() {
                           </div>
                         </td>
                         <td data-label="Enc. Type">
-                          <span className={`db-badge ${f.visitType === 'Missed' ? 'db-badge-danger' : 'db-badge-success'}`}>
+                          <span
+                            className={`db-badge ${f.visitType === 'Missed' ? 'db-badge-danger' : 'db-badge-success'}`}
+                          >
                             {f.visitType}
                           </span>
                         </td>
-                        <td data-label="Prescription Date">
-                          <div className="flex items-center gap-1.5 fu-meta-cell">
-                            {f.lastDate ? (
-                              <>
-                                <Calendar size={14} className="color-muted" />
-                                {new Date(f.lastDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                              </>
-                            ) : '—'}
+                        <td data-label="Due Date">
+                          <div className="fu-meta-cell">
+                            <Calendar size={12} />
+                            {new Date(f.bookingDate).toLocaleDateString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                            })}
                           </div>
                         </td>
                         <td data-label="Next Date">
@@ -616,22 +536,31 @@ export default function FollowupsPage() {
               </div>
             ) : (
               <div className="fu-grid-view-inner">
-                {sortedFollowups.map(f => (
+                {followups.map((f) => (
                   <div key={f.id} className="fu-patient-card pp-card-premium">
                     <div className="flex justify-between items-start mb-4">
                       <div className="fu-avatar-lg">{f.patientName?.[0]}</div>
-                      <span className={`db-badge ${f.visitType === 'Missed' ? 'db-badge-danger' : 'db-badge-success'}`}>
+                      <span
+                        className={`db-badge ${f.visitType === 'Missed' ? 'db-badge-danger' : 'db-badge-success'}`}
+                      >
                         {f.visitType}
                       </span>
                     </div>
-                    
+
                     <h3 className="fu-card-title mb-1">{f.patientName}</h3>
                     <p className="fu-phone mb-4">{f.phone || 'No Contact'}</p>
-                    
+
                     <div className="fu-card-meta mb-4">
                       <div className="fu-meta-row">
                         <Calendar size={14} />
-                        <span>Next Date: {new Date(f.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        <span>
+                          Due:{' '}
+                          {new Date(f.bookingDate).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </span>
                       </div>
                       <div className="fu-meta-row">
                         <Clock size={14} />
@@ -644,10 +573,18 @@ export default function FollowupsPage() {
                     </div>
 
                     <div className="flex gap-2">
-                      <button className="btn-secondary flex-1" onClick={() => openWhatsApp(f)} style={{ height: 40, fontSize: 12 }}>
+                      <button
+                        className="btn-secondary flex-1"
+                        onClick={() => openWhatsApp(f)}
+                        style={{ height: 40, fontSize: 12 }}
+                      >
                         WhatsApp
                       </button>
-                      <Link to={`/medical-cases/${f.patientId}`} className="btn-primary flex-1" style={{ height: 40, fontSize: 12 }}>
+                      <Link
+                        to={`/medical-cases/${f.patientId}`}
+                        className="btn-primary flex-1"
+                        style={{ height: 40, fontSize: 12 }}
+                      >
                         View Case
                       </Link>
                     </div>

@@ -25,7 +25,8 @@ export default function ConsultationModePage() {
   const { data: appointment, isLoading: isApptLoading } = useAppointment(visitId);
 
   // The actual patientId might come from the visit or the appointment
-  const patientIdToFetch = visit?.patientId || appointment?.patientId || (appointment as any)?.regid;
+  const patientIdToFetch =
+    visit?.patientId || appointment?.patientId || (appointment as any)?.regid;
   const { data: fullPatient, isLoading: isPatientLoading } = usePatient(Number(patientIdToFetch));
 
   if (!visitId) return null;
@@ -34,34 +35,40 @@ export default function ConsultationModePage() {
   // We only wait if NEITHER is ready and they are still loading.
   const isCoreDataReady = !!visit || !!appointment;
   const isCoreLoading = !isCoreDataReady && (isVisitLoading || isApptLoading);
-  
+
   if (isCoreLoading || (patientIdToFetch && isPatientLoading)) {
     return <ConsultationSkeleton />;
   }
 
-  const effectiveVisit: Visit = (visit as Visit) ?? ({
-    id: visitId,
-    patientId: patientIdToFetch as string,
-    visitNumber: appointment?.tokenNo ? `T-${appointment.tokenNo}` : `A${visitId}`,
-    status: appointment?.status === 'Waitlist' ? 'CHECKED_IN' : 'IN_PROGRESS',
-    specialty: 'Homeopathy',
-    chiefComplaint: appointment?.notes || '',
-    patient: { 
-      firstName: appointment?.patientName ? appointment.patientName.split(' ')[0] : 'Patient', 
-      lastName: appointment?.patientName ? appointment.patientName.split(' ').slice(1).join(' ') : '' 
-    },
-    vitals: (appointment as any)?.vitals || null,
-  } as unknown as Visit);
+  const effectiveVisit: Visit =
+    (visit as Visit) ??
+    ({
+      id: visitId,
+      patientId: patientIdToFetch as string,
+      visitNumber: appointment?.tokenNo ? `T-${appointment.tokenNo}` : `A${visitId}`,
+      status: appointment?.status === 'Waitlist' ? 'CHECKED_IN' : 'IN_PROGRESS',
+      specialty: 'Homeopathy',
+      chiefComplaint: appointment?.notes || '',
+      patient: {
+        firstName: appointment?.patientName ? appointment.patientName.split(' ')[0] : 'Patient',
+        lastName: appointment?.patientName
+          ? appointment.patientName.split(' ').slice(1).join(' ')
+          : '',
+      },
+      vitals: (appointment as any)?.vitals || null,
+    } as unknown as Visit);
 
   // The visits API now returns a normalized patient sub-object directly on
-  // the visit, but it may be incomplete (missing DOB, allergies, etc). 
+  // the visit, but it may be incomplete (missing DOB, allergies, etc).
   // We explicitly fetch fullPatient and use that if available, falling back
   // to the visit's embedded patient data.
   // We map 'surname' to 'lastName' for compatibility with existing components.
-  const patient = fullPatient ? {
-    ...fullPatient,
-    lastName: (fullPatient as any).surname || (fullPatient as any).lastName || '',
-  } : ((effectiveVisit as any).patient ?? null);
+  const patient = fullPatient
+    ? {
+        ...fullPatient,
+        lastName: (fullPatient as any).surname || (fullPatient as any).lastName || '',
+      }
+    : ((effectiveVisit as any).patient ?? null);
 
   return (
     <ConsultationModeInner
@@ -95,11 +102,13 @@ function ConsultationModeInner({
   const [, setInitError] = useState(false);
 
   const isStarted = visit.status === 'IN_PROGRESS' || visit.status === 'COMPLETED';
-  
+
   // 1. Always fetch summary if IN_PROGRESS or COMPLETED
-  const { data: summary, isError: summaryError, isPending: summaryPending } = useConsultationSummary(
-    isStarted ? visitId : undefined
-  );
+  const {
+    data: summary,
+    isError: summaryError,
+    isPending: summaryPending,
+  } = useConsultationSummary(isStarted ? visitId : undefined);
 
   // Sync summary to active state
   useEffect(() => {
@@ -126,9 +135,13 @@ function ConsultationModeInner({
         onError: () => {
           setActiveCategory('TOTALITY');
           setInitError(true);
-        }
+        },
       });
-    } else if (visit.status !== 'IN_PROGRESS' && visit.status !== 'CHECKED_IN' && visit.status !== 'COMPLETED') {
+    } else if (
+      visit.status !== 'IN_PROGRESS' &&
+      visit.status !== 'CHECKED_IN' &&
+      visit.status !== 'COMPLETED'
+    ) {
       // Fallback for SCHEDULED, CANCELLED
       if (!activeCategory) setActiveCategory('TOTALITY');
     }
@@ -141,14 +154,24 @@ function ConsultationModeInner({
   const [videoCallState, setVideoCallState] = useState<VideoCallState | null>(null);
 
   // Shared consultation state consumed by all layouts
-  const consultationState = useConsultationState({ visitId, visit, patient, uiHints: activeUiHints });
+  const consultationState = useConsultationState({
+    visitId,
+    visit,
+    patient,
+    uiHints: activeUiHints,
+  });
 
   const video = useVideoService();
 
   useEffect(() => {
     if (videoCallState) {
       console.log(`[ConsultationMode] Joining video call channel: ${videoCallState.channel}`);
-      video.join(videoCallState.appId, videoCallState.channel, videoCallState.token, videoCallState.uid);
+      video.join(
+        videoCallState.appId,
+        videoCallState.channel,
+        videoCallState.token,
+        videoCallState.uid,
+      );
     } else {
       video.leave();
     }
@@ -170,4 +193,3 @@ function ConsultationModeInner({
     />
   );
 }
-

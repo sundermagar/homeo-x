@@ -14,7 +14,6 @@ import {
   ChevronDown,
   BrainCircuit,
   MessageSquare,
-  Bell
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -74,7 +73,8 @@ export function DoctorDashboard() {
   const todayAppts = (dashData?.queue || []) as QueueItem[];
   // Prefer the patient we explicitly called last; fall back to the first Consultation patient
   const activeConsultation = activePatientId
-    ? (todayAppts.find((a) => a.id === activePatientId) ?? todayAppts.find((a) => a.status === 'Consultation'))
+    ? (todayAppts.find((a) => a.id === activePatientId) ??
+      todayAppts.find((a) => a.status === 'Consultation'))
     : todayAppts.find((a) => a.status === 'Consultation');
   const kpis = dashData?.kpis;
 
@@ -104,7 +104,13 @@ export function DoctorDashboard() {
       });
       // Sort to match backend logic (Consultation first)
       newQueue.sort((a: any, b: any) => {
-        const order: Record<string, number> = { Consultation: 1, Confirmed: 2, Waitlist: 2, Pending: 3, Completed: 4 };
+        const order: Record<string, number> = {
+          Consultation: 1,
+          Confirmed: 2,
+          Waitlist: 2,
+          Pending: 3,
+          Completed: 4,
+        };
         const aOrd = order[a.status] ?? 5;
         const bOrd = order[b.status] ?? 5;
         if (aOrd !== bOrd) return aOrd - bOrd;
@@ -118,7 +124,7 @@ export function DoctorDashboard() {
     // Fire-and-forget: don't await the backend call
     const skipPromise = realWlId
       ? queueMgmt.skip.mutateAsync(realWlId)
-      : updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' }).catch(() => { });
+      : updateStatus.mutateAsync({ id: item.id, status: 'Waitlist' }).catch(() => {});
 
     // Invalidate cache immediately so React Query refetches in background
     qc.invalidateQueries({ queryKey: dashboardKeys.all });
@@ -142,8 +148,8 @@ export function DoctorDashboard() {
         onSuccess: () => {
           qc.invalidateQueries({ queryKey: ['dashboard'] });
           qc.invalidateQueries({ queryKey: apptKeys.all });
-        }
-      }
+        },
+      },
     );
   };
 
@@ -161,8 +167,8 @@ export function DoctorDashboard() {
         onSuccess: () => {
           qc.invalidateQueries({ queryKey: ['dashboard'] });
           qc.invalidateQueries({ queryKey: apptKeys.all });
-        }
-      }
+        },
+      },
     );
   };
 
@@ -189,7 +195,9 @@ export function DoctorDashboard() {
 
     const interval = setInterval(() => {
       const diff = Math.max(0, Math.floor((Date.now() - start) / 1000));
-      setConsultDuration(`${String(Math.floor(diff / 60)).padStart(2, '0')}:${String(diff % 60).padStart(2, '0')}`);
+      setConsultDuration(
+        `${String(Math.floor(diff / 60)).padStart(2, '0')}:${String(diff % 60).padStart(2, '0')}`,
+      );
     }, 1000);
     return () => clearInterval(interval);
   }, [activeConsultation, consultationStartedAt]);
@@ -199,8 +207,8 @@ export function DoctorDashboard() {
     const appointmentId = item.id;
 
     setConsultationStartedAt(Date.now()); // Record exact click time
-    setConsultDuration('00:00');          // Reset display immediately
-    setActivePatientId(item.id);          // Pin the HUD to this patient
+    setConsultDuration('00:00'); // Reset display immediately
+    setActivePatientId(item.id); // Pin the HUD to this patient
 
     try {
       // Only run the queue transition for patients still in Waitlist.
@@ -236,15 +244,19 @@ export function DoctorDashboard() {
       <div className="dash-kpi-strip">
         {(() => {
           const visitsCount = todayAppts.length;
-          const waitingCount = todayAppts.filter(a => a.status === 'Waitlist').length;
-          const completedCount = todayAppts.filter(a => a.status === 'Completed').length;
+          const waitingCount = todayAppts.filter((a) => a.status === 'Waitlist').length;
+          const completedCount = todayAppts.filter((a) => a.status === 'Completed').length;
           const fmtTrend = (v: number | string | undefined) => {
             const n = Number(v ?? 0);
             const sign = n > 0 ? '+' : '';
             return `${sign}${n}% vs prev`;
           };
           const trendColor = (v: number | string | undefined) =>
-            Number(v ?? 0) > 0 ? 'var(--pp-success-fg)' : Number(v ?? 0) < 0 ? 'var(--pp-danger-fg)' : 'var(--pp-muted-fg)';
+            Number(v ?? 0) > 0
+              ? 'var(--pp-success-fg)'
+              : Number(v ?? 0) < 0
+                ? 'var(--pp-danger-fg)'
+                : 'var(--pp-muted-fg)';
           return (
             <>
               <KPIItem
@@ -282,12 +294,33 @@ export function DoctorDashboard() {
           {/* Active Consultation HUD */}
           <div className="dd-active-head-up">
             <div className="dd-hud-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: '#15803d' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#15803d',
+                }}
+              >
                 <div className="dash-pulse-dot" />
                 ACTIVE CONSULTATION
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>
-                DURATION <span style={{ color: '#0f172a', fontFamily: 'var(--pp-font-mono)', fontSize: 13 }}>{consultDuration}</span>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#94a3b8',
+                }}
+              >
+                DURATION{' '}
+                <span style={{ color: '#0f172a', fontFamily: 'var(--pp-font-mono)', fontSize: 13 }}>
+                  {consultDuration}
+                </span>
               </div>
             </div>
 
@@ -297,35 +330,92 @@ export function DoctorDashboard() {
                   <div className="dd-patient-profile">
                     <h2 className="dd-patient-name-big">{activeConsultation.patientName}</h2>
                     <p className="dd-patient-meta">
-                      — · {activeConsultation.age || '—'} yrs · General · {user?.name || 'Practitioner'} · PT-{activeConsultation.regid}
+                      — · {activeConsultation.age || '—'} yrs · General ·{' '}
+                      {user?.name || 'Practitioner'} · PT-{activeConsultation.regid}
                     </p>
 
-                    <div className="dd-vitals-strip" onClick={() => setShowVitalsModal(true)} style={{ cursor: 'pointer' }}>
-                      <VitalItem icon={<Heart size={12} />} label="BP" value={activeConsultation.vitals?.bp || '--'} color="var(--pp-danger-fg)" />
-                      <VitalItem icon={<Scale size={12} />} label="Weight" value={activeConsultation.vitals?.weight ? `${activeConsultation.vitals.weight} kg` : '--'} color="var(--pp-blue)" />
-                      <VitalItem icon={<Thermometer size={12} />} label="Temp" value={activeConsultation.vitals?.temp ? `${activeConsultation.vitals.temp}°F` : '--'} color="#f59e0b" />
+                    <div
+                      className="dd-vitals-strip"
+                      onClick={() => setShowVitalsModal(true)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <VitalItem
+                        icon={<Heart size={12} />}
+                        label="BP"
+                        value={activeConsultation.vitals?.bp || '--'}
+                        color="var(--pp-danger-fg)"
+                      />
+                      <VitalItem
+                        icon={<Scale size={12} />}
+                        label="Weight"
+                        value={
+                          activeConsultation.vitals?.weight
+                            ? `${activeConsultation.vitals.weight} kg`
+                            : '--'
+                        }
+                        color="var(--pp-blue)"
+                      />
+                      <VitalItem
+                        icon={<Thermometer size={12} />}
+                        label="Temp"
+                        value={
+                          activeConsultation.vitals?.temp
+                            ? `${activeConsultation.vitals.temp}°F`
+                            : '--'
+                        }
+                        color="#f59e0b"
+                      />
                     </div>
 
                     <div className="dd-hud-actions">
-                      <button className="btn-primary" onClick={() => handleStartConsultation(activeConsultation)}>
+                      <button
+                        className="btn-primary"
+                        onClick={() => handleStartConsultation(activeConsultation)}
+                      >
                         <Zap size={14} fill="currentColor" /> Start Consultation
                       </button>
-                      <button className="btn-skip" onClick={() => handleSkip(activeConsultation)}>Skip</button>
+                      <button className="btn-skip" onClick={() => handleSkip(activeConsultation)}>
+                        Skip
+                      </button>
 
                       <div className="dash-dropdown-container" ref={moreMenuRef}>
-                        <button className="btn-more" onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}>
+                        <button
+                          className="btn-more"
+                          onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                        >
                           <MoreHorizontal size={18} />
                         </button>
                         {isMoreMenuOpen && (
                           <div className="dash-dropdown-menu" onClick={(e) => e.stopPropagation()}>
-                            <button className="dash-dropdown-item" onClick={() => handleReschedule(activeConsultation)}>
-                              <Calendar size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Reschedule
+                            <button
+                              className="dash-dropdown-item"
+                              onClick={() => handleReschedule(activeConsultation)}
+                            >
+                              <Calendar
+                                size={14}
+                                style={{ marginRight: 8, verticalAlign: 'middle' }}
+                              />{' '}
+                              Reschedule
                             </button>
-                            <button className="dash-dropdown-item danger" onClick={() => handleMarkAbsent(activeConsultation)}>
-                              <XCircle size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Mark Absent
+                            <button
+                              className="dash-dropdown-item danger"
+                              onClick={() => handleMarkAbsent(activeConsultation)}
+                            >
+                              <XCircle
+                                size={14}
+                                style={{ marginRight: 8, verticalAlign: 'middle' }}
+                              />{' '}
+                              Mark Absent
                             </button>
-                            <button className="dash-dropdown-item danger" onClick={() => handleCancel(activeConsultation)}>
-                              <XCircle size={14} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Cancel Appointment
+                            <button
+                              className="dash-dropdown-item danger"
+                              onClick={() => handleCancel(activeConsultation)}
+                            >
+                              <XCircle
+                                size={14}
+                                style={{ marginRight: 8, verticalAlign: 'middle' }}
+                              />{' '}
+                              Cancel Appointment
                             </button>
                           </div>
                         )}
@@ -334,16 +424,48 @@ export function DoctorDashboard() {
                   </div>
 
                   <div className="dd-clinical-notes">
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--pp-blue)', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.05em' }}>Chief Complaints</div>
-                    <p>{activeConsultation.notes || 'Routine checkup. Documented symptoms pending triage.'}</p>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        color: 'var(--pp-blue)',
+                        textTransform: 'uppercase',
+                        marginBottom: 8,
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      Chief Complaints
+                    </div>
+                    <p>
+                      {activeConsultation.notes ||
+                        'Routine checkup. Documented symptoms pending triage.'}
+                    </p>
                   </div>
                 </>
               ) : (
-                <div style={{ gridColumn: '1 / -1', padding: '48px 0', textAlign: 'center', color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+                <div
+                  style={{
+                    gridColumn: '1 / -1',
+                    padding: '48px 0',
+                    textAlign: 'center',
+                    color: '#94a3b8',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    alignItems: 'center',
+                  }}
+                >
                   <Activity size={32} />
                   <p className="text-small">No patient currently being seen.</p>
-                  {todayAppts.filter(a => a.status === 'Waitlist').length > 0 && (
-                    <button className="btn-primary" onClick={() => handleStartConsultation(todayAppts.find(a => a.status === 'Waitlist')!)}>Call next patient</button>
+                  {todayAppts.filter((a) => a.status === 'Waitlist').length > 0 && (
+                    <button
+                      className="btn-primary"
+                      onClick={() =>
+                        handleStartConsultation(todayAppts.find((a) => a.status === 'Waitlist')!)
+                      }
+                    >
+                      Call next patient
+                    </button>
                   )}
                 </div>
               )}
@@ -355,9 +477,24 @@ export function DoctorDashboard() {
             <div className="dash-card-header">
               <h3 className="dash-section-title">Patient queue</h3>
               <div style={{ display: 'flex', gap: 20 }}>
-                <button className={`dash-tab-btn ${queueFilter === 'ALL' ? 'active' : ''}`} onClick={() => setQueueFilter('ALL')}>All</button>
-                <button className={`dash-tab-btn ${queueFilter === 'WAITING' ? 'active' : ''}`} onClick={() => setQueueFilter('WAITING')}>Waiting</button>
-                <button className={`dash-tab-btn ${queueFilter === 'DONE' ? 'active' : ''}`} onClick={() => setQueueFilter('DONE')}>Done</button>
+                <button
+                  className={`dash-tab-btn ${queueFilter === 'ALL' ? 'active' : ''}`}
+                  onClick={() => setQueueFilter('ALL')}
+                >
+                  All
+                </button>
+                <button
+                  className={`dash-tab-btn ${queueFilter === 'WAITING' ? 'active' : ''}`}
+                  onClick={() => setQueueFilter('WAITING')}
+                >
+                  Waiting
+                </button>
+                <button
+                  className={`dash-tab-btn ${queueFilter === 'DONE' ? 'active' : ''}`}
+                  onClick={() => setQueueFilter('DONE')}
+                >
+                  Done
+                </button>
               </div>
             </div>
             <div className="dash-card-body" style={{ padding: '0 8px' }}>
@@ -377,8 +514,13 @@ export function DoctorDashboard() {
                               {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                             </div>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{a.patientName}</div>
-                              <div className="text-label" style={{ fontSize: 10 }}>{a.bookingTime || 'Scheduled'} · {a.wlId ? 'Waitlist' : 'Token'} {a.wlId ? `W${a.tokenNo}` : (a.tokenNo || '—')}</div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+                                {a.patientName}
+                              </div>
+                              <div className="text-label" style={{ fontSize: 10 }}>
+                                {a.bookingTime || 'Scheduled'} · {a.wlId ? 'Waitlist' : 'Token'}{' '}
+                                {a.wlId ? `W${a.tokenNo}` : a.tokenNo || '—'}
+                              </div>
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -386,12 +528,17 @@ export function DoctorDashboard() {
                               <button
                                 className="dash-view-btn"
                                 title="Start Consultation"
-                                onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartConsultation(a);
+                                }}
                               >
                                 Call
                               </button>
                             )}
-                            <span className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}>
+                            <span
+                              className={`dash-badge badge-${a.status === 'Consultation' ? 'success' : a.status === 'Completed' ? 'primary' : 'warning'}`}
+                            >
                               {a.status || 'Waitlist'}
                             </span>
                           </div>
@@ -401,26 +548,60 @@ export function DoctorDashboard() {
                           <div className="details-inner">
                             <div className="dd-details-grid">
                               <div>
-                                <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Clinical Notes</div>
+                                <div
+                                  className="text-label"
+                                  style={{
+                                    fontSize: 9,
+                                    textTransform: 'uppercase',
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  Clinical Notes
+                                </div>
                                 <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
-                                  {a.notes || 'Routine follow-up. No specific symptoms recorded at registration.'}
+                                  {a.notes ||
+                                    'Routine follow-up. No specific symptoms recorded at registration.'}
                                 </div>
                               </div>
                               <div className="dd-details-right">
-                                <div className="text-label" style={{ fontSize: 9, textTransform: 'uppercase', marginBottom: 4 }}>Patient Info</div>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>PT-{a.regid}</div>
+                                <div
+                                  className="text-label"
+                                  style={{
+                                    fontSize: 9,
+                                    textTransform: 'uppercase',
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  Patient Info
+                                </div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>
+                                  PT-{a.regid}
+                                </div>
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
                                   {a.age || '--'} Yrs · {a.gender || '--'}
                                 </div>
                                 <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                                  <button className="pp-link" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${a.regid}`); }}>View Profile</button>
+                                  <button
+                                    className="pp-link"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/patients/${a.regid}`);
+                                    }}
+                                  >
+                                    View Profile
+                                  </button>
                                   {(a.status === 'Waitlist' || a.status === 'Consultation') && (
                                     <button
                                       className="pp-link"
                                       style={{ color: 'var(--pp-blue)' }}
-                                      onClick={(e) => { e.stopPropagation(); handleStartConsultation(a); }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStartConsultation(a);
+                                      }}
                                     >
-                                      {a.status === 'Consultation' ? 'Enter Consult' : 'Start Consult'}
+                                      {a.status === 'Consultation'
+                                        ? 'Enter Consult'
+                                        : 'Start Consult'}
                                     </button>
                                   )}
                                 </div>
@@ -428,14 +609,17 @@ export function DoctorDashboard() {
                             </div>
                           </div>
                         </div>
-
                       </div>
                     );
                   })
                 ) : (
                   <div style={{ padding: '48px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                     <Users size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
-                    <p className="text-small" style={{ margin: 0 }}>{queueFilter === 'ALL' ? 'Queue view is empty today.' : `No patients in '${queueFilter.toLowerCase()}' status.`}</p>
+                    <p className="text-small">
+                      {queueFilter === 'ALL'
+                        ? 'Queue view is empty today.'
+                        : `No patients in '${queueFilter.toLowerCase()}' status.`}
+                    </p>
                   </div>
                 )}
               </div>
@@ -448,7 +632,15 @@ export function DoctorDashboard() {
           {/* Intelligence Hub */}
           {showIntelligence && (
             <div className="dash-sidebar-card">
-              <div className="dash-section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div
+                className="dash-section-title"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 6,
+                }}
+              >
                 <span>Intelligence Hub</span>
                 <button
                   className="pp-icon-btn"
@@ -460,10 +652,15 @@ export function DoctorDashboard() {
                 </button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {dashData?.intelligenceInsights?.length ? (dashData.intelligenceInsights as IntelligenceInsight[]).map((insight, idx) => (
-                  <IntelligenceItem key={idx} color={insight.color} text={insight.text} />
-                )) : (
-                  <IntelligenceItem color="#22c55e" text="Clinic is running smoothly. Monitoring vital metrics..." />
+                {dashData?.intelligenceInsights?.length ? (
+                  (dashData.intelligenceInsights as IntelligenceInsight[]).map((insight, idx) => (
+                    <IntelligenceItem key={idx} color={insight.color} text={insight.text} />
+                  ))
+                ) : (
+                  <IntelligenceItem
+                    color="#22c55e"
+                    text="Clinic is running smoothly. Monitoring vital metrics..."
+                  />
                 )}
               </div>
             </div>
@@ -544,7 +741,9 @@ const VitalItem = memo(function VitalItem({ icon, label, value, color }: any) {
   return (
     <div className="dd-vital-item">
       <span style={{ color, display: 'flex', alignItems: 'center' }}>{icon}</span>
-      <span className="text-label" style={{ fontSize: 10, margin: '0 4px' }}>{label}</span>
+      <span className="text-label" style={{ fontSize: 10, margin: '0 4px' }}>
+        {label}
+      </span>
       <span style={{ fontWeight: 800 }}>{value}</span>
     </div>
   );

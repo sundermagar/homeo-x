@@ -5,7 +5,10 @@ import type { BillingRepository } from '../../billing/ports/billing.repository.j
 import type { AppointmentRepository } from '../../appointment/ports/appointment.repository.js';
 import type { NotificationsRepository } from '../../communication/ports/notifications.repository.js';
 import { AppointmentStatus } from '@mmc/types';
-import { triggerNotification, triggerNotificationToRoles } from '../../../infrastructure/http/notification-trigger.js';
+import {
+  triggerNotification,
+  triggerNotificationToRoles,
+} from '../../../infrastructure/http/notification-trigger.js';
 
 export interface FinalizeConsultationDto {
   regid: number;

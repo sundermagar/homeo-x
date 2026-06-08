@@ -61,7 +61,7 @@ async function main() {
         ['is_active', 'boolean DEFAULT true'],
         ['created_at', 'timestamp DEFAULT now()'],
         ['updated_at', 'timestamp DEFAULT now()'],
-        ['deleted_at', 'timestamp']
+        ['deleted_at', 'timestamp'],
       ];
 
       for (const [col, type] of columns) {
@@ -81,7 +81,7 @@ async function main() {
   console.log('\n🎉 Migration complete!');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('❌ Migration failed:', err);
   process.exit(1);
 });

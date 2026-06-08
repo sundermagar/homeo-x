@@ -27,7 +27,7 @@ export function createPaymentRouter(): Router {
 
   const razorpayService = new RazorpayServiceAdapter(
     appConfig.razorpay.keyId,
-    appConfig.razorpay.keySecret
+    appConfig.razorpay.keySecret,
   );
 
   const getRepos = (req: Request) => ({
@@ -48,7 +48,7 @@ export function createPaymentRouter(): Router {
       }
       res.json({ success: true, data: result.data });
       return;
-    })
+    }),
   );
 
   // POST /api/payments/verify
@@ -60,7 +60,7 @@ export function createPaymentRouter(): Router {
       const useCase = new VerifyPaymentUseCase(
         paymentRepo,
         billingRepo,
-        appConfig.razorpay.keySecret || ''
+        appConfig.razorpay.keySecret || '',
       );
       const result = await useCase.execute(req.body);
       if (!result.success) {
@@ -78,7 +78,7 @@ export function createPaymentRouter(): Router {
         repo: new NotificationsRepositoryPg(req.tenantDb),
       });
       res.json({ success: true, data: result.data });
-    })
+    }),
   );
 
   // POST /api/payments (Manual Record)
@@ -95,7 +95,9 @@ export function createPaymentRouter(): Router {
       }
       const payments = result.data;
       const total = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
-      const modes = Array.from(new Set(payments.map(p => p.paymentMode))).filter(Boolean).join(', ');
+      const modes = Array.from(new Set(payments.map((p) => p.paymentMode)))
+        .filter(Boolean)
+        .join(', ');
       const clinicId = (req as any).user?.contextId;
       void triggerNotificationToRoles({
         roles: ['Account', 'Clinicadmin'],
@@ -106,7 +108,7 @@ export function createPaymentRouter(): Router {
         repo: new NotificationsRepositoryPg(req.tenantDb),
       });
       res.status(201).json({ success: true, data: payments });
-    })
+    }),
   );
 
   // GET /api/payments/history
@@ -123,7 +125,7 @@ export function createPaymentRouter(): Router {
         pagination: { page, limit, total: result.total },
       });
       return;
-    })
+    }),
   );
 
   // GET /api/payments/:id
@@ -143,7 +145,7 @@ export function createPaymentRouter(): Router {
       }
       res.json({ success: true, data: payment });
       return;
-    })
+    }),
   );
 
   return router;

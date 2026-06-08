@@ -1,6 +1,9 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
-import type { EmailService, SendEmailDto } from '../../domains/communication/ports/email.service.js';
+import type {
+  EmailService,
+  SendEmailDto,
+} from '../../domains/communication/ports/email.service.js';
 import { appConfig } from '../../shared/config/app-config.js';
 import { createLogger } from '../../shared/logger.js';
 
@@ -43,13 +46,16 @@ export class NodemailerServiceAdapter implements EmailService {
       logger.info('Nodemailer SMTP connection established successfully.');
     } catch (err: any) {
       this.isConnected = false;
-      logger.error({
-        message: err.message,
-        code: err.code,
-        command: err.command,
-        response: err.response,
-        stack: err.stack
-      }, 'SMTP connection failed:');
+      logger.error(
+        {
+          message: err.message,
+          code: err.code,
+          command: err.command,
+          response: err.response,
+          stack: err.stack,
+        },
+        'SMTP connection failed:',
+      );
       logger.warn('Emails will be skipped until SMTP is fixed.');
     }
   }
@@ -63,7 +69,10 @@ export class NodemailerServiceAdapter implements EmailService {
         this.isConnected = true;
         logger.info('SMTP reconnection successful!');
       } catch (retryErr: any) {
-        logger.error({ message: retryErr.message, code: retryErr.code }, 'SMTP reconnection failed:');
+        logger.error(
+          { message: retryErr.message, code: retryErr.code },
+          'SMTP reconnection failed:',
+        );
         logger.warn(`Email to ${data.to} skipped: SMTP is not connected.`);
         return false;
       }
@@ -72,7 +81,10 @@ export class NodemailerServiceAdapter implements EmailService {
     try {
       logger.info(`Attempting to send email to ${data.to}...`);
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.MAIL_FROM || `"MMC System" <${process.env.SMTP_USER || process.env.MAIL_USER || 'noreply@managemyclinic.in'}>`,
+        from:
+          process.env.SMTP_FROM ||
+          process.env.MAIL_FROM ||
+          `"MMC System" <${process.env.SMTP_USER || process.env.MAIL_USER || 'noreply@managemyclinic.in'}>`,
         to: data.to,
         subject: data.subject,
         text: data.text,
@@ -83,18 +95,27 @@ export class NodemailerServiceAdapter implements EmailService {
       logger.info(`Email sent successfully: ${info.messageId}`);
       return true;
     } catch (err: any) {
-      logger.error({
-        message: err.message,
-        code: err.code,
-        stack: err.stack
-      }, `Failed to send email to ${data.to}:`);
+      logger.error(
+        {
+          message: err.message,
+          code: err.code,
+          stack: err.stack,
+        },
+        `Failed to send email to ${data.to}:`,
+      );
       // Mark as disconnected so next attempt retries connection
       this.isConnected = false;
       return false;
     }
   }
 
-  async sendWelcomeCredentials(to: string, name: string, role: string, pass: string, isClinic: boolean = false): Promise<boolean> {
+  async sendWelcomeCredentials(
+    to: string,
+    name: string,
+    role: string,
+    pass: string,
+    isClinic: boolean = false,
+  ): Promise<boolean> {
     const loginUrl = process.env.APP_URL || 'https://generous-flow-production.up.railway.app';
     const title = isClinic ? 'Clinic Organization Setup Complete' : 'Welcome to MMC';
     const roleText = isClinic ? 'Clinic Administrator' : role;
@@ -138,10 +159,9 @@ export class NodemailerServiceAdapter implements EmailService {
             </div>
           </div>
         </div>
-      `
+      `,
     });
   }
 }
 
 export const emailService = new NodemailerServiceAdapter();
-

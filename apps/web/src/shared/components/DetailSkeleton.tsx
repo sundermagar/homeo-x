@@ -26,8 +26,11 @@ export function DetailSkeleton({ type = 'patient' }: DetailSkeletonProps) {
 
       <div className="pp-detail-grid" style={{ gap: 24, marginBottom: 24 }}>
         <div className="pp-card-premium" style={{ height: 300, padding: 24 }}>
-          <div className="skeleton-box skeleton-text title" style={{ width: '50%', marginBottom: 24 }} />
-          {[1, 2, 3, 4, 5].map(i => (
+          <div
+            className="skeleton-box skeleton-text title"
+            style={{ width: '50%', marginBottom: 24 }}
+          />
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex justify-between mb-4">
               <div className="skeleton-box skeleton-text" style={{ width: '30%', height: 12 }} />
               <div className="skeleton-box skeleton-text" style={{ width: '40%', height: 12 }} />
@@ -35,8 +38,11 @@ export function DetailSkeleton({ type = 'patient' }: DetailSkeletonProps) {
           ))}
         </div>
         <div className="pp-card-premium" style={{ height: 300, padding: 24 }}>
-          <div className="skeleton-box skeleton-text title" style={{ width: '50%', marginBottom: 24 }} />
-          {[1, 2, 3, 4, 5].map(i => (
+          <div
+            className="skeleton-box skeleton-text title"
+            style={{ width: '50%', marginBottom: 24 }}
+          />
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex justify-between mb-4">
               <div className="skeleton-box skeleton-text" style={{ width: '30%', height: 12 }} />
               <div className="skeleton-box skeleton-text" style={{ width: '40%', height: 12 }} />
@@ -46,7 +52,10 @@ export function DetailSkeleton({ type = 'patient' }: DetailSkeletonProps) {
       </div>
 
       <div className="pp-card-premium" style={{ height: 400, padding: 24 }}>
-        <div className="skeleton-box skeleton-text title" style={{ width: '30%', marginBottom: 24 }} />
+        <div
+          className="skeleton-box skeleton-text title"
+          style={{ width: '30%', marginBottom: 24 }}
+        />
         <div className="skeleton-box" style={{ width: '100%', height: 280, borderRadius: 12 }} />
       </div>
     </div>

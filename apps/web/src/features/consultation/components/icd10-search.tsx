@@ -8,7 +8,10 @@ interface Icd10SearchProps {
   placeholder?: string;
 }
 
-export function Icd10Search({ onSelect, placeholder = 'Search ICD-10 codes...' }: Icd10SearchProps) {
+export function Icd10Search({
+  onSelect,
+  placeholder = 'Search ICD-10 codes...',
+}: Icd10SearchProps) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);

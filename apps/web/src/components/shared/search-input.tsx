@@ -21,7 +21,9 @@ export function SearchInput({
 }: SearchInputProps) {
   const [localValue, setLocalValue] = useState(value);
 
-  useEffect(() => { setLocalValue(value); }, [value]);
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

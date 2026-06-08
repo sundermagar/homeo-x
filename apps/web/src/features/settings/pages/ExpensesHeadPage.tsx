@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { Wallet, Plus, X, RefreshCw, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useExpenseHeads, useCreateExpenseHead, useUpdateExpenseHead, useDeleteExpenseHead } from '@/features/billing/hooks/use-accounts';
+import {
+  useExpenseHeads,
+  useCreateExpenseHead,
+  useUpdateExpenseHead,
+  useDeleteExpenseHead,
+} from '@/features/billing/hooks/use-accounts';
 // import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -25,19 +30,14 @@ export default function ExpensesHeadPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
 
-  const filtered = heads.filter((h: any) =>
-    h.name.toLowerCase().includes(search.toLowerCase()) ||
-    (h.description && h.description.toLowerCase().includes(search.toLowerCase()))
+  const filtered = heads.filter(
+    (h: any) =>
+      h.name.toLowerCase().includes(search.toLowerCase()) ||
+      (h.description && h.description.toLowerCase().includes(search.toLowerCase())),
   );
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filtered);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filtered);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -47,7 +47,11 @@ export default function ExpensesHeadPage() {
 
   const handleOpenEdit = (head: any) => {
     setEditingId(head.id);
-    setForm({ name: head.name, description: head.description || '', isActive: head.isActive ?? true });
+    setForm({
+      name: head.name,
+      description: head.description || '',
+      isActive: head.isActive ?? true,
+    });
     setIsModalOpen(true);
   };
 
@@ -68,15 +72,15 @@ export default function ExpensesHeadPage() {
 
   return (
     <div className="plat-page fade-in">
-
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
             <Wallet size={20} className="color-primary" />
             Expenses Head
           </h1>
-          <p className="plat-header-sub">Manage categories for clinic accounting and expense tracking.</p>
+          <p className="plat-header-sub">
+            Manage categories for clinic accounting and expense tracking.
+          </p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
@@ -85,7 +89,6 @@ export default function ExpensesHeadPage() {
           </button>
         </div>
       </div>
-
       <div className="plat-stats-bar">
         <div className="plat-stat-card">
           <p className="plat-stat-label">Expense Categories</p>
@@ -93,12 +96,9 @@ export default function ExpensesHeadPage() {
         </div>
         <div className="plat-stat-card">
           <p className="plat-stat-label">Active Listing</p>
-          <p className="plat-stat-value plat-stat-value-success">
-            {filtered.length}
-          </p>
+          <p className="plat-stat-value plat-stat-value-success">{filtered.length}</p>
         </div>
       </div>
-
       <div className="plat-filters">
         <div className="plat-search-wrap">
           <Search size={14} className="plat-search-icon" />
@@ -110,81 +110,95 @@ export default function ExpensesHeadPage() {
           />
         </div>
       </div>
-
       <div className="plat-card">
         {isLoading ? (
           <TableSkeleton rows={5} columns={5} />
         ) : filtered.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Wallet}
-            title={search ? "No matches found" : "No expense categories"}
-            description={search ? `No categories matching "${search}" were found.` : "Organize your clinic accounting by adding your first expense category."}
-            actionLabel={search ? "Clear Search" : "Add Category"}
+            title={search ? 'No matches found' : 'No expense categories'}
+            description={
+              search
+                ? `No categories matching "${search}" were found.`
+                : 'Organize your clinic accounting by adding your first expense category.'
+            }
+            actionLabel={search ? 'Clear Search' : 'Add Category'}
             onAction={search ? () => setSearch('') : handleOpenCreate}
             variant="card"
             className="my-8"
           />
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '60px' }}>ID</th>
-                  <th>Category Name</th>
-                  <th>Description</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '120px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((head: any) => (
-                  <tr key={head.id} className="plat-table-row">
-                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">
-                      <div>#{head.id}</div>
-                    </td>
-                    <td data-label="Category" className="plat-table-cell font-semibold">
-                      <div>{head.name}</div>
-                    </td>
-                    <td data-label="Description" className="plat-table-cell text-secondary">
-                      <div>{head.description || '—'}</div>
-                    </td>
-                    <td data-label="Status" className="plat-table-cell">
-                      <div className="plat-cell-val">
-                        <span className={`plat-badge ${head.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}>
-                          {head.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </td>
-                    <td data-label="Actions" className="plat-table-cell">
-                      <div className="plat-cell-val">
-                        <div className="flex justify-end gap-3" style={{ width: '100%' }}>
-                          <button className="plat-btn plat-btn-sm plat-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(head)}>
-                            <Edit2 size={13} />
-                          </button>
-                          <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleDelete(head.id, head.name)}>
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    </td>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px' }}>ID</th>
+                    <th>Category Name</th>
+                    <th>Description</th>
+                    <th style={{ width: '100px' }}>Status</th>
+                    <th style={{ width: '120px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((head: any) => (
+                    <tr key={head.id} className="plat-table-row">
+                      <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">
+                        <div>#{head.id}</div>
+                      </td>
+                      <td data-label="Category" className="plat-table-cell font-semibold">
+                        <div>{head.name}</div>
+                      </td>
+                      <td data-label="Description" className="plat-table-cell text-secondary">
+                        <div>{head.description || '—'}</div>
+                      </td>
+                      <td data-label="Status" className="plat-table-cell">
+                        <div className="plat-cell-val">
+                          <span
+                            className={`plat-badge ${head.isActive ? 'plat-badge-staff' : 'plat-badge-default'}`}
+                          >
+                            {head.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </td>
+                      <td data-label="Actions" className="plat-table-cell">
+                        <div className="plat-cell-val">
+                          <div className="flex justify-end gap-3" style={{ width: '100%' }}>
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon"
+                              style={{ width: 36, height: 36, borderRadius: 10 }}
+                              onClick={() => handleOpenEdit(head)}
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                              style={{ width: 36, height: 36, borderRadius: 10 }}
+                              onClick={() => handleDelete(head.id, head.name)}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
-      </div>      <Drawer
+      </div>{' '}
+      <Drawer
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingId ? 'Edit Category' : 'Add Expense Category'}
@@ -192,14 +206,17 @@ export default function ExpensesHeadPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
                 <div className="plat-form-group">
                   <label className="plat-form-label">Category Name *</label>
                   <input
                     className="plat-form-input"
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     required
                     placeholder="e.g. Electricity, Maintenance, Rent"
                   />
@@ -210,7 +227,7 @@ export default function ExpensesHeadPage() {
                     className="plat-form-input"
                     style={{ minHeight: '120px' }}
                     value={form.description}
-                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                     placeholder="Optional details about this category..."
                   />
                 </div>
@@ -218,7 +235,7 @@ export default function ExpensesHeadPage() {
                   <input
                     type="checkbox"
                     checked={form.isActive}
-                    onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                   />
                   <span className="plat-checkbox-label">Category is Active</span>
                 </label>
@@ -226,14 +243,19 @@ export default function ExpensesHeadPage() {
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={createHead.isPending || updateHead.isPending}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
+              disabled={createHead.isPending || updateHead.isPending}
+            >
               {editingId ? 'Save Changes' : 'Create Category'}
             </button>
           </div>
         </form>
       </Drawer>
-
     </div>
   );
 }

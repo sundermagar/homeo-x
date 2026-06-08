@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { Settings2, Plus, Trash2, Hash, Activity, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
-  usePotencies, useCreatePotency, useDeletePotency,
-  useFrequencies, useCreateFrequency, useDeleteFrequency
+  usePotencies,
+  useCreatePotency,
+  useDeletePotency,
+  useFrequencies,
+  useCreateFrequency,
+  useDeleteFrequency,
 } from '../hooks/use-settings';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -45,15 +49,15 @@ export default function PotenciesFrequenciesPage() {
 
   return (
     <div className="plat-page fade-in">
-
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
             <Settings2 size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
             Medicine Metadata
           </h1>
-          <p className="plat-header-sub">Manage standard potencies and dosage frequencies for prescriptions.</p>
+          <p className="plat-header-sub">
+            Manage standard potencies and dosage frequencies for prescriptions.
+          </p>
         </div>
       </div>
 
@@ -69,7 +73,6 @@ export default function PotenciesFrequenciesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-
         {/* Potencies Section */}
         <div className="plat-card overflow-hidden flex flex-col">
           <div className="p-5 border-b border-main bg-main-sub flex items-center justify-between">
@@ -86,10 +89,14 @@ export default function PotenciesFrequenciesPage() {
                 className="plat-form-input flex-1"
                 placeholder="New Potency (e.g. 30C)"
                 value={newPotency}
-                onChange={e => setNewPotency(e.target.value)}
+                onChange={(e) => setNewPotency(e.target.value)}
                 disabled={createPotency.isPending}
               />
-              <button className="plat-btn plat-btn-primary plat-btn-icon" type="submit" disabled={createPotency.isPending || !newPotency.trim()}>
+              <button
+                className="plat-btn plat-btn-primary plat-btn-icon"
+                type="submit"
+                disabled={createPotency.isPending || !newPotency.trim()}
+              >
                 <Plus size={16} />
               </button>
             </form>
@@ -103,9 +110,15 @@ export default function PotenciesFrequenciesPage() {
             ) : (
               <div className="divide-y divide-main">
                 {potencies.map((p: any) => (
-                  <div key={p.id} className="p-4 px-6 flex items-center justify-between hover:bg-main hover:bg-opacity-40 transition-colors group">
+                  <div
+                    key={p.id}
+                    className="p-4 px-6 flex items-center justify-between hover:bg-main hover:bg-opacity-40 transition-colors group"
+                  >
                     <span className="font-mono font-bold text-sm color-ink">{p.name}</span>
-                    <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-ghost-danger opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteP(p.id, p.name)}>
+                    <button
+                      className="plat-btn plat-btn-sm plat-btn-icon plat-btn-ghost-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDeleteP(p.id, p.name)}
+                    >
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -131,10 +144,14 @@ export default function PotenciesFrequenciesPage() {
                 className="plat-form-input flex-1"
                 placeholder="New Frequency (e.g. TID)"
                 value={newFreq}
-                onChange={e => setNewFreq(e.target.value)}
+                onChange={(e) => setNewFreq(e.target.value)}
                 disabled={createFreq.isPending}
               />
-              <button className="plat-btn plat-btn-primary plat-btn-icon" type="submit" disabled={createFreq.isPending || !newFreq.trim()}>
+              <button
+                className="plat-btn plat-btn-primary plat-btn-icon"
+                type="submit"
+                disabled={createFreq.isPending || !newFreq.trim()}
+              >
                 <Plus size={16} />
               </button>
             </form>
@@ -148,9 +165,15 @@ export default function PotenciesFrequenciesPage() {
             ) : (
               <div className="divide-y divide-main">
                 {frequencies.map((f: any) => (
-                  <div key={f.id} className="p-4 px-6 flex items-center justify-between hover:bg-main hover:bg-opacity-40 transition-colors group">
+                  <div
+                    key={f.id}
+                    className="p-4 px-6 flex items-center justify-between hover:bg-main hover:bg-opacity-40 transition-colors group"
+                  >
                     <span className="font-mono font-bold text-sm color-ink">{f.frequency}</span>
-                    <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-ghost-danger opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteF(f.id, f.frequency)}>
+                    <button
+                      className="plat-btn plat-btn-sm plat-btn-icon plat-btn-ghost-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDeleteF(f.id, f.frequency)}
+                    >
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -159,9 +182,7 @@ export default function PotenciesFrequenciesPage() {
             )}
           </div>
         </div>
-
       </div>
-
     </div>
   );
 }

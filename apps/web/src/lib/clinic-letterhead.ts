@@ -73,41 +73,64 @@ export function clearClinicLetterheadOverride(): void {
   try {
     window.localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new CustomEvent('clinic-letterhead-updated'));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Build the clinic letterhead from a given user record (or the auth-store snapshot). */
 export function buildClinicLetterhead(user?: any): ClinicLetterhead {
   const stored = readStored();
-  const u = user ?? (() => {
-    try { return useAuthStore.getState().user; } catch { return null; }
-  })();
+  const u =
+    user ??
+    (() => {
+      try {
+        return useAuthStore.getState().user;
+      } catch {
+        return null;
+      }
+    })();
 
   return {
-    name:           readMeta('name')         || stored.name           || u?.clinicName         || 'Homeopathy Clinic',
-    tagline:        readMeta('tagline')      || stored.tagline        || u?.clinicTagline      || 'Classical Homeopathy · Holistic Care',
-    logoUrl:        readMeta('logo')         || stored.logoUrl        || u?.clinicLogo         || undefined,
-    address:        readMeta('address')      || stored.address        || u?.clinicAddress      || undefined,
-    phone:          readMeta('phone')        || stored.phone          || u?.clinicPhone        || undefined,
-    email:          readMeta('email')        || stored.email          || u?.clinicEmail        || undefined,
-    website:        readMeta('website')      || stored.website        || u?.clinicWebsite      || undefined,
-    registrationNo: readMeta('registration') || stored.registrationNo || u?.clinicRegistration || undefined,
-    gstin:          readMeta('gstin')        || stored.gstin          || u?.clinicGstin        || undefined,
-    accentColor:    readMeta('accent')       || stored.accentColor    || u?.clinicAccent       || '#2563EB',
-    footer:         readMeta('footer')       || stored.footer         || u?.clinicFooter
-                    || 'This prescription is generated electronically and is valid as a clinical record.',
+    name: readMeta('name') || stored.name || u?.clinicName || 'Homeopathy Clinic',
+    tagline:
+      readMeta('tagline') ||
+      stored.tagline ||
+      u?.clinicTagline ||
+      'Classical Homeopathy · Holistic Care',
+    logoUrl: readMeta('logo') || stored.logoUrl || u?.clinicLogo || undefined,
+    address: readMeta('address') || stored.address || u?.clinicAddress || undefined,
+    phone: readMeta('phone') || stored.phone || u?.clinicPhone || undefined,
+    email: readMeta('email') || stored.email || u?.clinicEmail || undefined,
+    website: readMeta('website') || stored.website || u?.clinicWebsite || undefined,
+    registrationNo:
+      readMeta('registration') || stored.registrationNo || u?.clinicRegistration || undefined,
+    gstin: readMeta('gstin') || stored.gstin || u?.clinicGstin || undefined,
+    accentColor: readMeta('accent') || stored.accentColor || u?.clinicAccent || '#2563EB',
+    footer:
+      readMeta('footer') ||
+      stored.footer ||
+      u?.clinicFooter ||
+      'This prescription is generated electronically and is valid as a clinical record.',
   };
 }
 
 /** Build the doctor letterhead from the current user record. */
-export function buildDoctorLetterhead(user?: any, override?: Partial<DoctorLetterhead>): DoctorLetterhead {
-  const u = user ?? (() => {
-    try { return useAuthStore.getState().user; } catch { return null; }
-  })();
+export function buildDoctorLetterhead(
+  user?: any,
+  override?: Partial<DoctorLetterhead>,
+): DoctorLetterhead {
+  const u =
+    user ??
+    (() => {
+      try {
+        return useAuthStore.getState().user;
+      } catch {
+        return null;
+      }
+    })();
 
-  const fullName = u
-    ? u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim()
-    : '';
+  const fullName = u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : '';
 
   return {
     name: override?.name || fullName || 'Doctor',
@@ -133,7 +156,7 @@ import { useEffect, useState } from 'react';
 function useLetterheadVersion(): number {
   const [version, setVersion] = useState(0);
   useEffect(() => {
-    const bump = () => setVersion(v => v + 1);
+    const bump = () => setVersion((v) => v + 1);
 
     // Custom in-app event (saveClinicLetterheadOverride)
     window.addEventListener('clinic-letterhead-updated', bump);
@@ -152,7 +175,7 @@ function useLetterheadVersion(): number {
 }
 
 export function useClinicLetterhead(): ClinicLetterhead {
-  const user = useAuthStore(s => s.user);
+  const user = useAuthStore((s) => s.user);
   const version = useLetterheadVersion();
   // version is read so the hook re-evaluates on letterhead override changes
   void version;
@@ -160,6 +183,6 @@ export function useClinicLetterhead(): ClinicLetterhead {
 }
 
 export function useDoctorLetterhead(override?: Partial<DoctorLetterhead>): DoctorLetterhead {
-  const user = useAuthStore(s => s.user);
+  const user = useAuthStore((s) => s.user);
   return buildDoctorLetterhead(user, override);
 }

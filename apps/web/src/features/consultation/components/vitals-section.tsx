@@ -36,11 +36,11 @@ function VitalsSummary({ vitals }: { vitals: Vitals }) {
 }
 
 export function VitalsSection({ visitId, existingVitals, onComplete }: VitalsSectionProps) {
-  const hasVitals = existingVitals && (
-    existingVitals.systolicBp != null ||
-    existingVitals.pulseRate != null ||
-    existingVitals.temperatureF != null
-  );
+  const hasVitals =
+    existingVitals &&
+    (existingVitals.systolicBp != null ||
+      existingVitals.pulseRate != null ||
+      existingVitals.temperatureF != null);
 
   return (
     <CollapsibleSection
@@ -60,11 +60,7 @@ export function VitalsSection({ visitId, existingVitals, onComplete }: VitalsSec
     >
       {hasVitals && <VitalsSummary vitals={existingVitals} />}
       <div className={hasVitals ? 'mt-3' : ''}>
-        <VitalsPanel
-          visitId={visitId}
-          existingVitals={existingVitals}
-          onComplete={onComplete}
-        />
+        <VitalsPanel visitId={visitId} existingVitals={existingVitals} onComplete={onComplete} />
       </div>
     </CollapsibleSection>
   );

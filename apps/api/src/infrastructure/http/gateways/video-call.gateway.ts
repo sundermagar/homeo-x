@@ -29,23 +29,29 @@ export function setupVideoCallGateway(io: Server) {
     // ── call:send-question ────────────────────────────────────────────────────
     // Doctor emits this when they click a suggested question.
     // We relay it to everyone else in the room (i.e., the patient) as call:question.
-    socket.on('call:send-question', (data: { visitId: string; question: string; options?: string[] }) => {
-      const { visitId, question, options } = data || {};
-      if (!visitId || !question) return;
-      logger.info(`[VIDEO-CALL] Question → room ${visitId}: "${question.slice(0, 60)}"`);
-      // Broadcast to everyone in the room EXCEPT the sender (the doctor already sees the question)
-      socket.to(visitId).emit('call:question', { visitId, question, options });
-    });
+    socket.on(
+      'call:send-question',
+      (data: { visitId: string; question: string; options?: string[] }) => {
+        const { visitId, question, options } = data || {};
+        if (!visitId || !question) return;
+        logger.info(`[VIDEO-CALL] Question → room ${visitId}: "${question.slice(0, 60)}"`);
+        // Broadcast to everyone in the room EXCEPT the sender (the doctor already sees the question)
+        socket.to(visitId).emit('call:question', { visitId, question, options });
+      },
+    );
 
     // ── call:submit-answer ────────────────────────────────────────────────────
     // Patient emits this when they submit an answer.
     // We relay it to the doctor (everyone else in the room) as call:answer.
-    socket.on('call:submit-answer', (data: { visitId: string; question: string; answer: string }) => {
-      const { visitId, question, answer } = data || {};
-      if (!visitId || !answer) return;
-      logger.info(`[VIDEO-CALL] Answer → room ${visitId}: "${answer.slice(0, 60)}"`);
-      socket.to(visitId).emit('call:answer', { visitId, question, answer });
-    });
+    socket.on(
+      'call:submit-answer',
+      (data: { visitId: string; question: string; answer: string }) => {
+        const { visitId, question, answer } = data || {};
+        if (!visitId || !answer) return;
+        logger.info(`[VIDEO-CALL] Answer → room ${visitId}: "${answer.slice(0, 60)}"`);
+        socket.to(visitId).emit('call:answer', { visitId, question, answer });
+      },
+    );
 
     // ── call:leave ────────────────────────────────────────────────────────────
     // Doctor emits this when they end the call. Patient receives 'call:ended'.

@@ -5,7 +5,9 @@ import type { Organization, CreateOrganizationInput, UpdateOrganizationInput } f
 const QUERY_KEY = 'organizations';
 
 async function fetchOrganizations(): Promise<Organization[]> {
-  const { data } = await apiClient.get<{ success: boolean; data: Organization[] }>('/organizations');
+  const { data } = await apiClient.get<{ success: boolean; data: Organization[] }>(
+    '/organizations',
+  );
   return data.data;
 }
 
@@ -13,17 +15,28 @@ async function fetchOrganization(id: number): Promise<Organization> {
   if (!id) {
     throw new Error('Organization ID is required');
   }
-  const { data } = await apiClient.get<{ success: boolean; data: Organization }>(`/organizations/${id}`);
+  const { data } = await apiClient.get<{ success: boolean; data: Organization }>(
+    `/organizations/${id}`,
+  );
   return data.data;
 }
 
 async function createOrganization(body: CreateOrganizationInput): Promise<Organization> {
-  const { data } = await apiClient.post<{ success: boolean; data: Organization }>('/organizations', body);
+  const { data } = await apiClient.post<{ success: boolean; data: Organization }>(
+    '/organizations',
+    body,
+  );
   return data.data;
 }
 
-async function updateOrganization({ id, ...body }: UpdateOrganizationInput & { id: number }): Promise<Organization> {
-  const { data } = await apiClient.put<{ success: boolean; data: Organization }>(`/organizations/${id}`, body);
+async function updateOrganization({
+  id,
+  ...body
+}: UpdateOrganizationInput & { id: number }): Promise<Organization> {
+  const { data } = await apiClient.put<{ success: boolean; data: Organization }>(
+    `/organizations/${id}`,
+    body,
+  );
   return data.data;
 }
 

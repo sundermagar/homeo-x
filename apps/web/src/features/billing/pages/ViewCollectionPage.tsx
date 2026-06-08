@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  DollarSign, CreditCard, Building2, Wallet, ShoppingBag,
-  Calendar, TrendingDown, Landmark, Banknote, Info, Target,
-  ListOrdered, BarChart3, ChevronLeft, ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  CreditCard,
+  Building2,
+  Calendar,
+  Search,
+  Filter,
+  Download,
+  RefreshCw,
+  Target,
+  ChevronRight,
 } from 'lucide-react';
 import { useExtendedDailySummary } from '../hooks/use-billing';
 import { PaymentDrilldownModal } from '../components/PaymentDrilldownModal';
@@ -18,12 +27,12 @@ type ViewTab = 'daily' | 'monthList' | 'target';
 
 export default function ViewCollectionPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<ViewTab>('daily');
-  const [selectedDate, setSelectedDate] = useState<string>(
-    () => new Date().toISOString().split('T')[0]!
-  );
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [activeView, setActiveView] = useState<'collection' | 'deposit' | 'expense'>('collection');
 
-  const { data: summary, isLoading } = useExtendedDailySummary(selectedDate);
+  const { data: collection, isLoading, refetch } = useDailyCollection(selectedDate);
+  const { data: summary } = useCollectionSummary(selectedDate);
+  const user = useAuthStore((s) => s.user);
 
   // Drilldown modal state
   const [drilldown, setDrilldown] = useState<{ mode: string; title: string } | null>(null);
@@ -48,13 +57,28 @@ export default function ViewCollectionPage() {
     setSelectedDate(new Date().toISOString().split('T')[0]!);
   };
 
-  const formatDate = (date: string) => {
-    const d = new Date(date + 'T00:00:00');
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
-  const openDrilldown = (mode: string, title: string) => {
-    setDrilldown({ mode, title: `${title} — ${formatDate(selectedDate)}` });
+  // Calculate payment mode breakdown
+  const paymentBreakdown = {
+    cash:
+      collection?.records
+        ?.filter((r) => r.paymentMode === 'Cash')
+        .reduce((s, r) => s + (r.received || 0), 0) || 0,
+    card:
+      collection?.records
+        ?.filter((r) => r.paymentMode === 'Card')
+        .reduce((s, r) => s + (r.received || 0), 0) || 0,
+    cheque:
+      collection?.records
+        ?.filter((r) => r.paymentMode === 'Cheque')
+        .reduce((s, r) => s + (r.received || 0), 0) || 0,
+    online:
+      collection?.records
+        ?.filter((r) => r.paymentMode === 'Online')
+        .reduce((s, r) => s + (r.received || 0), 0) || 0,
+    other:
+      collection?.records
+        ?.filter((r) => !['Cash', 'Card', 'Cheque', 'Online'].includes(r.paymentMode || ''))
+        .reduce((s, r) => s + (r.received || 0), 0) || 0,
   };
 
   return (
@@ -84,8 +108,119 @@ export default function ViewCollectionPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="appt-tabs">
+      {/* Date Navigator */}
+      <div className="date-navigator">
+        <button className="date-nav-btn" onClick={handlePrevDay}>
+          ← Previous
+        </button>
+        <div className="date-input-group">
+          <Calendar size={16} />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="date-input"
+          />
+        </div>
+        <button className="date-nav-btn" onClick={handleNextDay}>
+          Next →
+        </button>
+        <button className="date-today-btn" onClick={handleToday}>
+          Today
+        </button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="collection-summary-cards">
+        <div className="summary-card total">
+          <div className="summary-card-icon">
+            <DollarSign size={24} />
+          </div>
+          <div className="summary-card-content">
+            <span className="summary-card-label">Total Collection</span>
+            <span className="summary-card-value">
+              ₹{(collection?.totalReceived || 0).toLocaleString('en-IN')}
+            </span>
+          </div>
+        </div>
+
+        <div className="summary-card cash">
+          <div className="summary-card-icon">
+            <DollarSign size={24} />
+          </div>
+          <div className="summary-card-content">
+            <span className="summary-card-label">Cash</span>
+            <span className="summary-card-value">
+              ₹{paymentBreakdown.cash.toLocaleString('en-IN')}
+            </span>
+          </div>
+        </div>
+
+        <div className="summary-card card">
+          <div className="summary-card-icon">
+            <CreditCard size={24} />
+          </div>
+          <div className="summary-card-content">
+            <span className="summary-card-label">Card</span>
+            <span className="summary-card-value">
+              ₹{paymentBreakdown.card.toLocaleString('en-IN')}
+            </span>
+          </div>
+        </div>
+
+        <div className="summary-card cheque">
+          <div className="summary-card-icon">
+            <Building2 size={24} />
+          </div>
+          <div className="summary-card-content">
+            <span className="summary-card-label">Cheque</span>
+            <span className="summary-card-value">
+              ₹{paymentBreakdown.cheque.toLocaleString('en-IN')}
+            </span>
+          </div>
+        </div>
+
+        <div className="summary-card online">
+          <div className="summary-card-icon">
+            <TrendingUp size={24} />
+          </div>
+          <div className="summary-card-content">
+            <span className="summary-card-label">Online</span>
+            <span className="summary-card-value">
+              ₹{paymentBreakdown.online.toLocaleString('en-IN')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="quick-stats-row">
+        <div className="quick-stat">
+          <span className="quick-stat-label">Total Charges</span>
+          <span className="quick-stat-value">
+            ₹{(collection?.totalCharges || 0).toLocaleString('en-IN')}
+          </span>
+        </div>
+        <div className="quick-stat">
+          <span className="quick-stat-label">Received</span>
+          <span className="quick-stat-value success">
+            ₹{(collection?.totalReceived || 0).toLocaleString('en-IN')}
+          </span>
+        </div>
+        <div className="quick-stat">
+          <span className="quick-stat-label">Balance Pending</span>
+          <span className="quick-stat-value danger">
+            ₹{(collection?.totalBalance || 0).toLocaleString('en-IN')}
+          </span>
+        </div>
+        <div className="quick-stat">
+          <span className="quick-stat-label">Transactions</span>
+          <span className="quick-stat-value">{collection?.recordCount || 0}</span>
+        </div>
+      </div>
+
+      {/* View Tabs */}
+      <div className="view-tabs">
         <button
           className={`appt-tab ${activeTab === 'daily' ? 'active' : ''}`}
           onClick={() => setActiveTab('daily')}
@@ -133,193 +268,88 @@ export default function ViewCollectionPage() {
           </div>
 
           {isLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', animation: 'pulse 1.5s infinite', padding: '12px 0' }}>
-              <div className="skeleton-box" style={{ width: '100%', height: '60px', borderRadius: '12px' }} />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '30px' }}>
-                <div className="skeleton-box" style={{ height: '340px', borderRadius: '16px' }} />
-                <div className="skeleton-box" style={{ height: '340px', borderRadius: '16px' }} />
-              </div>
-            </div>
-          ) : summary ? (
-            <div className="vc-daily-content">
-              <div className="vc-ledger-layout">
-                {/* Left Column: Collection Breakdown */}
-                <div className="appt-card" style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div className="appt-card-header">
-                    <h3 className="appt-card-title">Collection Breakdown</h3>
-                    <div className="vc-ledger-total">
-                      Total: <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>₹{summary.collection.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-
-                  <div className="pp-table-scroll">
-                    <table className="pp-table vc-summary-table">
-                      <tbody>
-                        <tr className="pp-hover-row">
-                          <td>
-                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
-                              <Banknote size={15} strokeWidth={1.8} /> Cash
-                            </div>
-                          </td>
-                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.cash.toLocaleString('en-IN')}</td>
-                          <td className="vc-right" style={{ width: 40 }}>
-                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Cash', 'Cash Payment')} title="View Details">
-                              <Info size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                        <tr className="pp-hover-row">
-                          <td>
-                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
-                              <CreditCard size={15} strokeWidth={1.8} /> Credit Card
-                            </div>
-                          </td>
-                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.card.toLocaleString('en-IN')}</td>
-                          <td className="vc-right">
-                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Card', 'Credit Card Payment')} title="View Details">
-                              <Info size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                        <tr className="pp-hover-row">
-                          <td>
-                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
-                              <Building2 size={15} strokeWidth={1.8} /> Cheque
-                            </div>
-                          </td>
-                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.cheque.toLocaleString('en-IN')}</td>
-                          <td className="vc-right">
-                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Cheque', 'Cheque Payment')} title="View Details">
-                              <Info size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                        <tr className="pp-hover-row">
-                          <td>
-                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
-                              <Wallet size={15} strokeWidth={1.8} /> Online
-                            </div>
-                          </td>
-                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.online.toLocaleString('en-IN')}</td>
-                          <td className="vc-right">
-                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Online', 'Online Payment')} title="View Details">
-                              <Info size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                        <tr className="pp-hover-row">
-                          <td>
-                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
-                              <Banknote size={15} strokeWidth={1.8} /> UPI
-                            </div>
-                          </td>
-                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{(summary.upi || 0).toLocaleString('en-IN')}</td>
-                          <td className="vc-right">
-                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('UPI', 'UPI Payment')} title="View Details">
-                              <Info size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                        <tr className="pp-hover-row">
-                          <td>
-                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
-                              <ShoppingBag size={15} strokeWidth={1.8} /> Product Charges
-                            </div>
-                          </td>
-                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.productCharges.toLocaleString('en-IN')}</td>
-                          <td className="vc-right">
-                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Product', 'Product Charges')} title="View Details">
-                              <Info size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Right Column: Deposits & Balance */}
-                <div className="appt-card" style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div className="appt-card-header">
-                    <h3 className="appt-card-title">Deposits & Balance</h3>
-                    <div className="vc-ledger-total vc-cih-highlight">
-                      Cash in Hand: <span style={{ fontWeight: 800, color: 'var(--pp-success-fg)' }}>₹{summary.cashInHand.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-
-                  <div className="pp-table-scroll" style={{ flex: 1 }}>
-                    <table className="pp-table vc-summary-table">
-                      <tbody>
-                        <tr className="pp-hover-row">
-                          <td>
-                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
-                              <TrendingDown size={15} strokeWidth={1.8} /> Expenses
-                            </div>
-                          </td>
-                          <td className="vc-right vc-bold vc-negative" style={{ fontSize: '14px' }}>₹{summary.expenses.toLocaleString('en-IN')}</td>
-                          <td className="vc-right" style={{ width: 40 }}>
-                            <button className="vc-info-btn-sm" onClick={() => openDrilldown('Expense', 'Expenses')} title="View Details">
-                              <Info size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                        <tr className="pp-hover-row">
-                          <td>
-                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
-                              <Banknote size={15} strokeWidth={1.8} /> Recp Handed (Cash Dep.)
-                            </div>
-                          </td>
-                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.cashDeposited.toLocaleString('en-IN')}</td>
-                          <td className="vc-right"></td>
-                        </tr>
-                        <tr className="pp-hover-row">
-                          <td>
-                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
-                              <Landmark size={15} strokeWidth={1.8} /> Bank Deposit
-                            </div>
-                          </td>
-                          <td className="vc-right vc-bold" style={{ fontSize: '14px' }}>₹{summary.bankDeposit.toLocaleString('en-IN')}</td>
-                          <td className="vc-right"></td>
-                        </tr>
-                        <tr className="vc-ledger-highlight-row pp-hover-row">
-                          <td>
-                            <div className="vc-ledger-label" style={{ fontWeight: 600 }}>
-                              <BarChart3 size={15} strokeWidth={1.8} /> Deficit / Surplus
-                            </div>
-                          </td>
-                          <td className={`vc-right vc-bold ${summary.deficit >= 0 ? 'vc-positive' : 'vc-negative'}`} style={{ fontSize: '14px' }}>
-                            {summary.deficit > 0 ? '+' : ''}₹{summary.deficit.toLocaleString('en-IN')}
-                          </td>
-                          <td className="vc-right"></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Quick Actions Links */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '10px',
-                    padding: '12px 16px',
-                    background: 'var(--bg-surface-2)',
-                    borderTop: '1px solid var(--border-main)',
-                    flexWrap: 'wrap'
-                  }}>
-                    <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => setDepositDrawer({ isOpen: true, tab: 'cash' })}>
-                      <Banknote size={14} strokeWidth={1.6} /> Add Cash Deposit
-                    </button>
-                    <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => setDepositDrawer({ isOpen: true, tab: 'bank' })}>
-                      <Landmark size={14} strokeWidth={1.6} /> Add Bank Deposit
-                    </button>
-                    <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--pp-danger-fg)', borderColor: 'var(--pp-danger-border)' }} onClick={() => setIsExpenseDrawerOpen(true)}>
-                      <TrendingDown size={14} strokeWidth={1.6} /> Add Expense
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <div className="billing-loading">Loading collection data...</div>
+          ) : collection?.records && collection.records.length > 0 ? (
+            <table className="billing-table">
+              <thead>
+                <tr>
+                  <th>Bill No</th>
+                  <th>Patient</th>
+                  <th>Phone</th>
+                  <th>Charges</th>
+                  <th>Received</th>
+                  <th>Balance</th>
+                  <th>Payment Mode</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {collection.records.map((record: any) => (
+                  <tr key={record.id}>
+                    <td data-label="Bill No" className="bill-no">
+                      <div>#{record.billNo || record.id}</div>
+                    </td>
+                    <td data-label="Patient" className="patient-name">
+                      <div>
+                        <button
+                          className="link-btn"
+                          onClick={() => navigate(`/patients/${record.regid}`)}
+                        >
+                          {record.patientName || `Patient ${record.regid}`}
+                        </button>
+                      </div>
+                    </td>
+                    <td data-label="Phone" className="phone">
+                      <div>{record.phone || '—'}</div>
+                    </td>
+                    <td data-label="Charges" className="charges">
+                      <div className="plat-cell-val">
+                        ₹{(record.charges || 0).toLocaleString('en-IN')}
+                      </div>
+                    </td>
+                    <td data-label="Received" className="received success">
+                      <div className="plat-cell-val">
+                        ₹{(record.received || 0).toLocaleString('en-IN')}
+                      </div>
+                    </td>
+                    <td
+                      data-label="Balance"
+                      className={`balance ${(record.balance || 0) > 0 ? 'pending' : 'paid'}`}
+                    >
+                      <div className="plat-cell-val">
+                        ₹{(record.balance || 0).toLocaleString('en-IN')}
+                      </div>
+                    </td>
+                    <td data-label="Mode">
+                      <div className="plat-cell-val">
+                        <span
+                          className={`payment-badge ${record.paymentMode?.toLowerCase() || 'cash'}`}
+                        >
+                          {record.paymentMode || 'Cash'}
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Date" className="date">
+                      <div>
+                        {record.billDate
+                          ? new Date(record.billDate).toLocaleDateString('en-GB')
+                          : '—'}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : (
-            <div className="vc-empty">No data available for this date.</div>
+            <EmptyState
+              icon={DollarSign}
+              title="No collection records"
+              description={`No billing records were found for ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}.`}
+              actionLabel="Go to Today"
+              onAction={handleToday}
+              variant="card"
+              className="my-8"
+            />
           )}
         </>
       )}

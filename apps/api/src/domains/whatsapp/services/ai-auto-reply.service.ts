@@ -12,25 +12,29 @@ export class AiAutoReplyService {
 
   constructor(
     private readonly waRepo: WhatsAppRepository,
-    private readonly gateway: WhatsAppGateway
+    private readonly gateway: WhatsAppGateway,
   ) {}
 
   async execute(
     channel: any,
     conversation: any,
     messageContent: string,
-    senderPhone: string
+    senderPhone: string,
   ): Promise<void> {
     // 1. Skip if already assigned to a real agent
     if (conversation.status === 'assigned' && conversation.assignedTo) {
-      logger.info(`[AI AutoReply] Skipping - conversation ${conversation.id} already assigned to agent ID ${conversation.assignedTo}`);
+      logger.info(
+        `[AI AutoReply] Skipping - conversation ${conversation.id} already assigned to agent ID ${conversation.assignedTo}`,
+      );
       return;
     }
 
     // 2. Fetch AI settings for the channel
     const aiSetting = await this.waRepo.findAiSettings(channel.id);
     if (!aiSetting || !aiSetting.isActive || !aiSetting.apiKey) {
-      logger.info(`[AI AutoReply] AI AutoReply not active or configured for channel ID ${channel.id}`);
+      logger.info(
+        `[AI AutoReply] AI AutoReply not active or configured for channel ID ${channel.id}`,
+      );
       return;
     }
 
@@ -52,10 +56,12 @@ export class AiAutoReplyService {
     if (triggerWords.length > 0 && isFirstMessage) {
       const msgLower = messageContent.toLowerCase().trim();
       const hasMatch = triggerWords.some((word: string) =>
-        msgLower.includes(word.toLowerCase().trim())
+        msgLower.includes(word.toLowerCase().trim()),
       );
       if (!hasMatch) {
-        logger.info(`[AI AutoReply] Incoming message did not match trigger words. Skipping auto-reply.`);
+        logger.info(
+          `[AI AutoReply] Incoming message did not match trigger words. Skipping auto-reply.`,
+        );
         return;
       }
     }
@@ -88,13 +94,14 @@ export class AiAutoReplyService {
     }
 
     // 6. Handle unanswered fallback calculations for escalation
-    const unansweredCount = existingMessages.filter((m: any) =>
-      m.direction === 'outbound' &&
-      m.fromType === 'bot' &&
-      (m.content.includes("I don't have") ||
-       m.content.includes("I'm not sure") ||
-       m.content.includes('cannot find') ||
-       m.content.includes('transfer you'))
+    const unansweredCount = existingMessages.filter(
+      (m: any) =>
+        m.direction === 'outbound' &&
+        m.fromType === 'bot' &&
+        (m.content.includes("I don't have") ||
+          m.content.includes("I'm not sure") ||
+          m.content.includes('cannot find') ||
+          m.content.includes('transfer you')),
     ).length;
 
     const escalationRules = aiSetting.escalationRules || {};
@@ -102,7 +109,8 @@ export class AiAutoReplyService {
 
     // 7. System Prompt Configuration
     const clinicName = channel.name || 'our clinic';
-    const basePrompt = aiSetting.systemPrompt ||
+    const basePrompt =
+      aiSetting.systemPrompt ||
       `You are a professional, caring, and helpful clinical chatbot assistant for ${clinicName}. 
 Your goal is to answer patient inquiries, share details about doctor availabilities, educational FAQs, and general clinic operations.
 You MUST ONLY answer questions based on the provided clinic knowledge base and FAQ. If the answer is not in the knowledge base, be honest and initiate escalation.
@@ -159,7 +167,11 @@ ${unansweredCount >= maxAttempts - 1 ? `- The patient has had ${unansweredCount}
           updatedAt: new Date(),
         });
 
-        if (!aiResponse.toLowerCase().includes('transfer') && !aiResponse.toLowerCase().includes('connect') && !aiResponse.toLowerCase().includes('staff')) {
+        if (
+          !aiResponse.toLowerCase().includes('transfer') &&
+          !aiResponse.toLowerCase().includes('connect') &&
+          !aiResponse.toLowerCase().includes('staff')
+        ) {
           aiResponse += `\n\nI'm transferring you to our medical team. A support representative will be with you shortly.`;
         }
         logger.info(`[AI AutoReply] Escalated conversation ${conversation.id} to human queue`);
@@ -229,7 +241,9 @@ export async function autoReplyPipeline(params: {
   // 2. Fetch AI settings for the channel
   const aiSetting = await repo.findAiSettings(channelId);
   if (!aiSetting || !aiSetting.isActive || !aiSetting.apiKey) {
-    logger.info(`[autoReplyPipeline] AI settings not active or configured for channel ID ${channelId}`);
+    logger.info(
+      `[autoReplyPipeline] AI settings not active or configured for channel ID ${channelId}`,
+    );
     return { handled: false };
   }
 
@@ -249,7 +263,9 @@ export async function autoReplyPipeline(params: {
 
   // 4. Skip if already assigned to a real agent
   if (conversation.status === 'assigned' && conversation.assignedTo) {
-    logger.info(`[autoReplyPipeline] Skipping - conversation ${conversation.id} already assigned to agent ID ${conversation.assignedTo}`);
+    logger.info(
+      `[autoReplyPipeline] Skipping - conversation ${conversation.id} already assigned to agent ID ${conversation.assignedTo}`,
+    );
     return { handled: false };
   }
 
@@ -271,10 +287,12 @@ export async function autoReplyPipeline(params: {
   if (triggerWords.length > 0 && isFirstMessage) {
     const msgLower = messageContent.toLowerCase().trim();
     const hasMatch = triggerWords.some((word: string) =>
-      msgLower.includes(word.toLowerCase().trim())
+      msgLower.includes(word.toLowerCase().trim()),
     );
     if (!hasMatch) {
-      logger.info(`[autoReplyPipeline] Incoming message did not match trigger words. Skipping auto-reply.`);
+      logger.info(
+        `[autoReplyPipeline] Incoming message did not match trigger words. Skipping auto-reply.`,
+      );
       return { handled: false };
     }
   }
@@ -307,13 +325,14 @@ export async function autoReplyPipeline(params: {
   }
 
   // 8. Handle unanswered fallback calculations for escalation
-  const unansweredCount = existingMessages.filter((m: any) =>
-    m.direction === 'outbound' &&
-    m.fromType === 'bot' &&
-    (m.content.includes("I don't have") ||
-     m.content.includes("I'm not sure") ||
-     m.content.includes('cannot find') ||
-     m.content.includes('transfer you'))
+  const unansweredCount = existingMessages.filter(
+    (m: any) =>
+      m.direction === 'outbound' &&
+      m.fromType === 'bot' &&
+      (m.content.includes("I don't have") ||
+        m.content.includes("I'm not sure") ||
+        m.content.includes('cannot find') ||
+        m.content.includes('transfer you')),
   ).length;
 
   const escalationRules = aiSetting.escalationRules || {};
@@ -321,7 +340,8 @@ export async function autoReplyPipeline(params: {
 
   // 9. System Prompt Configuration
   const clinicName = channel.name || 'our clinic';
-  const basePrompt = aiSetting.systemPrompt ||
+  const basePrompt =
+    aiSetting.systemPrompt ||
     `You are a professional, caring, and helpful clinical chatbot assistant for ${clinicName}. 
 Your goal is to answer patient inquiries, share details about doctor availabilities, educational FAQs, and general clinic operations.
 You MUST ONLY answer questions based on the provided clinic knowledge base and FAQ. If the answer is not in the knowledge base, be honest and initiate escalation.
@@ -376,7 +396,11 @@ ${unansweredCount >= maxAttempts - 1 ? `- The patient has had ${unansweredCount}
         updatedAt: new Date(),
       });
 
-      if (!aiResponse.toLowerCase().includes('transfer') && !aiResponse.toLowerCase().includes('connect') && !aiResponse.toLowerCase().includes('staff')) {
+      if (
+        !aiResponse.toLowerCase().includes('transfer') &&
+        !aiResponse.toLowerCase().includes('connect') &&
+        !aiResponse.toLowerCase().includes('staff')
+      ) {
         aiResponse += `\n\nI'm transferring you to our medical team. A support representative will be with you shortly.`;
       }
       logger.info(`[autoReplyPipeline] Escalated conversation ${conversation.id} to human queue`);
@@ -388,4 +412,3 @@ ${unansweredCount >= maxAttempts - 1 ? `- The patient has had ${unansweredCount}
     return { handled: false };
   }
 }
-

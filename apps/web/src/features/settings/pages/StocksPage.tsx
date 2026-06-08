@@ -1,6 +1,25 @@
 import React, { useMemo, useState } from 'react';
-import { Package, Plus, X, RefreshCw, Trash2, Edit2, Info, IndianRupee, Search, Tag, Database, CheckCircle2 } from 'lucide-react';
-import { useStocks, useCreateStock, useUpdateStock, useDeleteStock, usePotencies } from '../hooks/use-settings';
+import {
+  Package,
+  Plus,
+  X,
+  RefreshCw,
+  Trash2,
+  Edit2,
+  Info,
+  IndianRupee,
+  Search,
+  Tag,
+  Database,
+  CheckCircle2,
+} from 'lucide-react';
+import {
+  useStocks,
+  useCreateStock,
+  useUpdateStock,
+  useDeleteStock,
+  usePotencies,
+} from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
 import { CustomSearchSelect } from '@/shared/components/custom-search-select';
 import '../../platform/styles/platform.css';
@@ -50,13 +69,18 @@ export default function StocksPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
 
-  const filtered = useMemo(() => stocks.filter((s: Stock) =>
-    s.name?.toLowerCase().includes(search.toLowerCase()) ||
-    s.description?.toLowerCase().includes(search.toLowerCase()) ||
-    s.category?.toLowerCase().includes(search.toLowerCase()) ||
-    s.potency?.toLowerCase().includes(search.toLowerCase()) ||
-    s.snomedLabel?.toLowerCase().includes(search.toLowerCase())
-  ), [stocks, search]);
+  const filtered = useMemo(
+    () =>
+      stocks.filter(
+        (s: Stock) =>
+          s.name?.toLowerCase().includes(search.toLowerCase()) ||
+          s.description?.toLowerCase().includes(search.toLowerCase()) ||
+          s.category?.toLowerCase().includes(search.toLowerCase()) ||
+          s.potency?.toLowerCase().includes(search.toLowerCase()) ||
+          s.snomedLabel?.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [stocks, search],
+  );
 
   const sortedPotencies = useMemo(() => {
     return [...potencies].sort((a: any, b: any) => {
@@ -76,21 +100,18 @@ export default function StocksPage() {
     return sortedPotencies;
   }, [sortedPotencies]);
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filtered);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filtered);
 
-  const totalValue = useMemo(() => 
-    stocks.reduce((acc: number, s: Stock) => acc + ((s.quantity || 0) * (s.unitPrice || 0)), 0), 
-    [stocks]
+  const totalValue = useMemo(
+    () => stocks.reduce((acc: number, s: Stock) => acc + (s.quantity || 0) * (s.unitPrice || 0), 0),
+    [stocks],
   );
 
-  const lowStockCount = useMemo(() => stocks.filter((s: Stock) => (s.quantity || 0) < 10).length, [stocks]);
+  const lowStockCount = useMemo(
+    () => stocks.filter((s: Stock) => (s.quantity || 0) < 10).length,
+    [stocks],
+  );
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -119,7 +140,7 @@ export default function StocksPage() {
       const payload = {
         ...form,
         quantity: Number(form.quantity),
-        unitPrice: Number(form.unitPrice)
+        unitPrice: Number(form.unitPrice),
       };
 
       if (editingId) {
@@ -146,7 +167,9 @@ export default function StocksPage() {
             <Package size={20} className="color-primary" />
             Inventory & Stock Management
           </h1>
-          <p className="plat-header-sub">Track physical medicine stock, potencies, and unit pricing.</p>
+          <p className="plat-header-sub">
+            Track physical medicine stock, potencies, and unit pricing.
+          </p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
@@ -188,7 +211,7 @@ export default function StocksPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={7} />
         ) : filtered.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Database}
             title="No inventory records found"
             description="Start tracking your clinical medicine stock by adding your first inventory item."
@@ -199,73 +222,90 @@ export default function StocksPage() {
           />
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '40px' }}>#</th>
-                  <th>Medicine Name</th>
-                  <th>Potency / Description</th>
-                  <th>Category</th>
-                  <th>Qty</th>
-                  <th>Unit Price</th>
-                  <th style={{ width: '100px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((item: Stock, idx: number) => (
-                  <tr key={item.id} className="plat-table-row">
-                    <td data-label="#" className="plat-table-cell font-mono text-xs opacity-50">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                    <td data-label="MEDICINE" className="plat-table-cell">
-                      <div className="font-semibold">{item.name}</div>
-                      {item.batchNumber && (
-                        <div className="text-[10px] color-muted mt-0.5">Batch: {item.batchNumber}</div>
-                      )}
-                      {item.snomedLabel && (
-                        <div className="text-[9px] color-primary mt-1 font-medium flex items-center gap-1">
-                          <CheckCircle2 size={10} /> SNOMED: {item.snomedLabel}
-                        </div>
-                      )}
-                    </td>
-                    <td data-label="POTENCY" className="plat-table-cell">
-                      <div className="text-sm">{item.potency || '—'}</div>
-                      <div className="text-[11px] color-muted italic">{item.description || 'No description'}</div>
-                    </td>
-                    <td data-label="CATEGORY" className="plat-table-cell">
-                      <span className="plat-badge plat-badge-default text-[10px] uppercase">{item.category || 'General'}</span>
-                    </td>
-                    <td data-label="QTY" className="plat-table-cell font-mono font-semibold">
-                      <span className={(item.quantity || 0) < 10 ? 'text-red-600' : ''}>
-                        {item.quantity}
-                      </span>
-                    </td>
-                    <td data-label="PRICE" className="plat-table-cell font-mono text-primary font-semibold">
-                      ₹{item.unitPrice || '0'}
-                    </td>
-                    <td className="plat-table-cell">
-                      <div className="flex justify-end gap-2">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(item)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(item.id, item.name)}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '40px' }}>#</th>
+                    <th>Medicine Name</th>
+                    <th>Potency / Description</th>
+                    <th>Category</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th style={{ width: '100px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((item: Stock, idx: number) => (
+                    <tr key={item.id} className="plat-table-row">
+                      <td data-label="#" className="plat-table-cell font-mono text-xs opacity-50">
+                        {(currentPage - 1) * itemsPerPage + idx + 1}
+                      </td>
+                      <td data-label="MEDICINE" className="plat-table-cell">
+                        <div className="font-semibold">{item.name}</div>
+                        {item.batchNumber && (
+                          <div className="text-[10px] color-muted mt-0.5">
+                            Batch: {item.batchNumber}
+                          </div>
+                        )}
+                        {item.snomedLabel && (
+                          <div className="text-[9px] color-primary mt-1 font-medium flex items-center gap-1">
+                            <CheckCircle2 size={10} /> SNOMED: {item.snomedLabel}
+                          </div>
+                        )}
+                      </td>
+                      <td data-label="POTENCY" className="plat-table-cell">
+                        <div className="text-sm">{item.potency || '—'}</div>
+                        <div className="text-[11px] color-muted italic">
+                          {item.description || 'No description'}
+                        </div>
+                      </td>
+                      <td data-label="CATEGORY" className="plat-table-cell">
+                        <span className="plat-badge plat-badge-default text-[10px] uppercase">
+                          {item.category || 'General'}
+                        </span>
+                      </td>
+                      <td data-label="QTY" className="plat-table-cell font-mono font-semibold">
+                        <span className={(item.quantity || 0) < 10 ? 'text-red-600' : ''}>
+                          {item.quantity}
+                        </span>
+                      </td>
+                      <td
+                        data-label="PRICE"
+                        className="plat-table-cell font-mono text-primary font-semibold"
+                      >
+                        ₹{item.unitPrice || '0'}
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon"
+                            onClick={() => handleOpenEdit(item)}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(item.id, item.name)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
@@ -278,42 +318,56 @@ export default function StocksPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-group">
                 <label className="plat-form-label">Medicine Name *</label>
                 <input
                   className="plat-form-input"
                   required
                   value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   placeholder="Enter medicine name"
                 />
               </div>
 
               <div className="plat-form-group">
-                  <label className="plat-form-label">SNOMED Clinical Mapping</label>
-                  <CodeAutocomplete
-                    type="snomed"
-                    placeholder="Search clinical terminology..."
-                    value={form.snomedCodeId ? { id: form.snomedCodeId, term: stocks.find(s => s.snomedCodeId === form.snomedCodeId)?.snomedLabel || '' } as any : null}
-                    onSelect={(code) => {
-                      const snomed = code as SnomedConceptResult;
-                      setForm(f => ({ 
-                        ...f, 
-                        snomedCodeId: snomed ? Number(snomed.id) : null,
-                        name: f.name || (snomed ? snomed.term : '')
-                      }));
-                    }}
-                  />
-                  <p className="text-[10px] color-muted mt-1">Links inventory to standardized clinical terminology.</p>
-                </div>
+                <label className="plat-form-label">SNOMED Clinical Mapping</label>
+                <CodeAutocomplete
+                  type="snomed"
+                  placeholder="Search clinical terminology..."
+                  value={
+                    form.snomedCodeId
+                      ? ({
+                          id: form.snomedCodeId,
+                          term:
+                            stocks.find((s) => s.snomedCodeId === form.snomedCodeId)?.snomedLabel ||
+                            '',
+                        } as any)
+                      : null
+                  }
+                  onSelect={(code) => {
+                    const snomed = code as SnomedConceptResult;
+                    setForm((f) => ({
+                      ...f,
+                      snomedCodeId: snomed ? Number(snomed.id) : null,
+                      name: f.name || (snomed ? snomed.term : ''),
+                    }));
+                  }}
+                />
+                <p className="text-[10px] color-muted mt-1">
+                  Links inventory to standardized clinical terminology.
+                </p>
+              </div>
 
               <div className="plat-form-grid-multi mt-4">
                 <CustomSearchSelect
                   label="Potency"
                   value={form.potency}
                   options={sortedPotencies}
-                  onChange={(val) => setForm(f => ({ ...f, potency: val }))}
+                  onChange={(val) => setForm((f) => ({ ...f, potency: val }))}
                   placeholder="Select Potency"
                 />
                 <div className="plat-form-group">
@@ -321,7 +375,7 @@ export default function StocksPage() {
                   <select
                     className="plat-form-input"
                     value={form.category}
-                    onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                   >
                     <option value="">Select Category</option>
                     <option value="Dilution">Dilution</option>
@@ -340,19 +394,22 @@ export default function StocksPage() {
                   rows={3}
                   style={{ minHeight: '100px' }}
                   value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   placeholder="Indications or diseases..."
                 />
               </div>
 
-              <div className="plat-form-grid-multi mt-4" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+              <div
+                className="plat-form-grid-multi mt-4"
+                style={{ gridTemplateColumns: '1fr 1fr 1fr' }}
+              >
                 <div className="plat-form-group">
                   <label className="plat-form-label">Current Quantity</label>
                   <input
                     type="number"
                     className="plat-form-input"
                     value={form.quantity}
-                    onChange={e => setForm(f => ({ ...f, quantity: Number(e.target.value) }))}
+                    onChange={(e) => setForm((f) => ({ ...f, quantity: Number(e.target.value) }))}
                   />
                 </div>
                 <div className="plat-form-group">
@@ -361,7 +418,7 @@ export default function StocksPage() {
                     type="number"
                     className="plat-form-input"
                     value={form.unitPrice}
-                    onChange={e => setForm(f => ({ ...f, unitPrice: Number(e.target.value) }))}
+                    onChange={(e) => setForm((f) => ({ ...f, unitPrice: Number(e.target.value) }))}
                   />
                 </div>
                 <div className="plat-form-group">
@@ -369,7 +426,7 @@ export default function StocksPage() {
                   <input
                     className="plat-form-input"
                     value={form.batchNumber}
-                    onChange={e => setForm(f => ({ ...f, batchNumber: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, batchNumber: e.target.value }))}
                     placeholder="B-001"
                   />
                 </div>
@@ -377,14 +434,15 @@ export default function StocksPage() {
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
             <button type="submit" className="plat-btn plat-btn-primary">
               {editingId ? 'Update Stock' : 'Add Stock Item'}
             </button>
           </div>
         </form>
       </Drawer>
-
     </div>
   );
 }

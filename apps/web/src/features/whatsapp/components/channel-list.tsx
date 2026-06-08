@@ -9,7 +9,7 @@ export const ChannelList = () => {
   const { data: channels, isLoading } = useChannels();
   const syncTemplatesMutation = useSyncTemplates();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   useEffect(() => {
     const handleOpenModal = () => setIsModalOpen(true);
     window.addEventListener('open-channel-modal', handleOpenModal);
@@ -22,7 +22,12 @@ export const ChannelList = () => {
     return <span className="pp-badge-status status-cancelled">DISCONNECTED</span>;
   };
 
-  if (isLoading) return <div className="p-12 text-center text-muted animate-pulse font-bold tracking-widest uppercase text-xs">Loading Connectivity Matrix...</div>;
+  if (isLoading)
+    return (
+      <div className="p-12 text-center text-muted animate-pulse font-bold tracking-widest uppercase text-xs">
+        Loading Connectivity Matrix...
+      </div>
+    );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -36,7 +41,9 @@ export const ChannelList = () => {
           <div className="col-span-full p-20 bg-[var(--bg-card)] border border-pp-border border-dashed rounded-3xl text-center">
             <Globe className="w-12 h-12 mx-auto mb-4 opacity-10" />
             <h4 className="text-lg font-bold text-main">No Nodes Connected</h4>
-            <p className="text-muted text-sm mt-1 mb-8">Establish a bridge with Meta Cloud API to start messaging.</p>
+            <p className="text-muted text-sm mt-1 mb-8">
+              Establish a bridge with Meta Cloud API to start messaging.
+            </p>
           </div>
         ) : (
           channels?.map((channel: any) => (
@@ -52,8 +59,7 @@ export const ChannelList = () => {
                 <div>
                   <h3 className="text-lg font-bold text-main">{channel.name}</h3>
                   <div className="flex items-center text-xs font-bold text-muted mt-1 uppercase tracking-wider">
-                    <Smartphone className="w-3.5 h-3.5 mr-1.5 opacity-50" />
-                    +{channel.phoneNumber}
+                    <Smartphone className="w-3.5 h-3.5 mr-1.5 opacity-50" />+{channel.phoneNumber}
                   </div>
                 </div>
 
@@ -74,26 +80,35 @@ export const ChannelList = () => {
               </div>
 
               <div className="p-4 bg-pp-bg-subtle/50 border-t border-pp-border flex gap-2">
-                <button 
+                <button
                   className="btn-secondary h-9 flex-1 text-[11px] font-bold"
                   onClick={() => {
                     syncTemplatesMutation.mutate(channel.id, {
                       onSuccess: (result: any) => {
                         const stats = result;
-                        toast({ 
-                          title: 'Meta Templates Synced', 
-                          description: stats?.total 
+                        toast({
+                          title: 'Meta Templates Synced',
+                          description: stats?.total
                             ? `${stats.total} templates: ${stats.created} new, ${stats.updated} updated, ${stats.unchanged} unchanged`
-                            : 'Templates refreshed successfully.'
+                            : 'Templates refreshed successfully.',
                         });
                       },
-                      onError: (err: any) => toast({ title: 'Sync Failed', description: err.message, variant: 'error' })
+                      onError: (err: any) =>
+                        toast({ title: 'Sync Failed', description: err.message, variant: 'error' }),
                     });
                   }}
-                  disabled={syncTemplatesMutation.isPending && syncTemplatesMutation.variables === channel.id}
+                  disabled={
+                    syncTemplatesMutation.isPending &&
+                    syncTemplatesMutation.variables === channel.id
+                  }
                 >
-                  <RefreshCw size={14} className={`mr-1.5 ${(syncTemplatesMutation.isPending && syncTemplatesMutation.variables === channel.id) ? 'animate-spin' : ''}`} />
-                  { (syncTemplatesMutation.isPending && syncTemplatesMutation.variables === channel.id) ? 'Syncing...' : 'Sync Templates' }
+                  <RefreshCw
+                    size={14}
+                    className={`mr-1.5 ${syncTemplatesMutation.isPending && syncTemplatesMutation.variables === channel.id ? 'animate-spin' : ''}`}
+                  />
+                  {syncTemplatesMutation.isPending && syncTemplatesMutation.variables === channel.id
+                    ? 'Syncing...'
+                    : 'Sync Templates'}
                 </button>
                 <button className="btn-ghost h-9 w-9 bg-[var(--bg-card)] border border-pp-border flex items-center justify-center rounded-lg hover:bg-pp-bg-subtle transition-colors">
                   <ShieldCheck size={16} className="text-pp-blue" />

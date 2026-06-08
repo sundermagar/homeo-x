@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';
 import { aiConfig } from '../../../shared/config/ai-config.js';
-import { aiGeminiBreaker, aiGroqBreaker, deepgramBreaker } from '../../../shared/resilience/circuit-breaker.js';
+import {
+  aiGeminiBreaker,
+  aiGroqBreaker,
+  deepgramBreaker,
+} from '../../../shared/resilience/circuit-breaker.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 import { sql } from 'drizzle-orm';
 
@@ -34,9 +38,9 @@ healthRouter.post('/seed-demo-users', async (req, res) => {
   const forceEnable = process.env.ENABLE_DEBUG_ROUTES === 'true';
 
   if (isProd && !forceEnable) {
-    return res.status(403).json({ 
-      success: false, 
-      error: 'Security Breach: Admin tools are disabled in production.' 
+    return res.status(403).json({
+      success: false,
+      error: 'Security Breach: Admin tools are disabled in production.',
     });
   }
 
@@ -44,23 +48,29 @@ healthRouter.post('/seed-demo-users', async (req, res) => {
     // bcrypt hash of "password123" (cost 10)
     const hash = '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xdM0ttR9i0NcMsuG';
     const demoUsers = [
-      { email: 'admin@homxo.in',       name: 'Admin Demo',     type: 'Admin' },
-      { email: 'doctor@homxo.in',      name: 'Dr. Demo',       type: 'Doctor' },
-      { email: 'reception@homxo.in',   name: 'Reception Demo', type: 'Receptionist' },
-      { email: 'clinicadmin@homxo.in', name: 'Clinic Admin',   type: 'Clinicadmin' },
+      { email: 'admin@homxo.in', name: 'Admin Demo', type: 'Admin' },
+      { email: 'doctor@homxo.in', name: 'Dr. Demo', type: 'Doctor' },
+      { email: 'reception@homxo.in', name: 'Reception Demo', type: 'Receptionist' },
+      { email: 'clinicadmin@homxo.in', name: 'Clinic Admin', type: 'Clinicadmin' },
     ];
     const results = [];
     for (const u of demoUsers) {
-      const existing = await req.tenantDb.execute(sql`SELECT id FROM users WHERE email = ${u.email} LIMIT 1`);
+      const existing = await req.tenantDb.execute(
+        sql`SELECT id FROM users WHERE email = ${u.email} LIMIT 1`,
+      );
       if ((existing as any[]).length > 0) {
-        await req.tenantDb.execute(sql`UPDATE users SET password = ${hash}, updated_at = NOW() WHERE email = ${u.email}`);
+        await req.tenantDb.execute(
+          sql`UPDATE users SET password = ${hash}, updated_at = NOW() WHERE email = ${u.email}`,
+        );
         results.push({ email: u.email, action: 'updated' });
       } else {
-        const maxRes = await req.tenantDb.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM users`);
+        const maxRes = await req.tenantDb.execute(
+          sql`SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM users`,
+        );
         const nextId = (maxRes as any[])[0]?.next_id ?? 1;
         await req.tenantDb.execute(
           sql`INSERT INTO users (id, name, context_id, email, password, type, created_at, updated_at)
-              VALUES (${nextId}, ${u.name}, 1, ${u.email}, ${hash}, ${u.type}, NOW(), NOW())`
+              VALUES (${nextId}, ${u.name}, 1, ${u.email}, ${hash}, ${u.type}, NOW(), NOW())`,
         );
         results.push({ email: u.email, action: 'created' });
       }
@@ -77,9 +87,9 @@ healthRouter.post('/reset-admin-password', async (req, res) => {
   const forceEnable = process.env.ENABLE_DEBUG_ROUTES === 'true';
 
   if (isProd && !forceEnable) {
-    return res.status(403).json({ 
-      success: false, 
-      error: 'Security Breach: Admin tools are disabled in production.' 
+    return res.status(403).json({
+      success: false,
+      error: 'Security Breach: Admin tools are disabled in production.',
     });
   }
 
@@ -94,4 +104,3 @@ healthRouter.post('/reset-admin-password', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-

@@ -3,7 +3,11 @@
 // Translated from Ai-Counsultaion NestJS provider to plain class.
 
 import { createLogger } from '../../shared/logger.js';
-import type { AiProviderPort, AiCompletionRequest, AiCompletionResponse } from '../../domains/consultation/ports/ai-provider.port.js';
+import type {
+  AiProviderPort,
+  AiCompletionRequest,
+  AiCompletionResponse,
+} from '../../domains/consultation/ports/ai-provider.port.js';
 
 const logger = createLogger('groq-adapter');
 
@@ -17,10 +21,13 @@ export class GroqAdapter implements AiProviderPort {
     private readonly dailyLimit: number,
   ) {
     const rawKeys = process.env.GROQ_API_KEY || '';
-    const keys = rawKeys.split(',').map(k => k.trim()).filter(Boolean);
+    const keys = rawKeys
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
 
     if (keys.length > 0) {
-      this.clients = keys.map(apiKey => new Groq({ apiKey }));
+      this.clients = keys.map((apiKey) => new Groq({ apiKey }));
       logger.info(`Groq adapter ready: ${model} with ${keys.length} API key(s)`);
     } else {
       logger.warn('GROQ_API_KEY not found in environment');
@@ -48,11 +55,16 @@ export class GroqAdapter implements AiProviderPort {
       try {
         let userContent: any = request.userPrompt;
         if (request.documents && request.documents.length > 0) {
-          userContent = [{ type: 'text', text: request.userPrompt || 'Extract information from these documents:' }];
+          userContent = [
+            {
+              type: 'text',
+              text: request.userPrompt || 'Extract information from these documents:',
+            },
+          ];
           for (const doc of request.documents) {
             userContent.push({
               type: 'image_url',
-              image_url: { url: `data:${doc.mimeType};base64,${doc.base64}` }
+              image_url: { url: `data:${doc.mimeType};base64,${doc.base64}` },
             });
           }
         }
@@ -66,14 +78,14 @@ export class GroqAdapter implements AiProviderPort {
 
         if (request.documents && request.documents.length > 0) {
           const userContent: any[] = [
-            { type: 'text', text: request.userPrompt || 'Analyze this document/image.' }
+            { type: 'text', text: request.userPrompt || 'Analyze this document/image.' },
           ];
           for (const doc of request.documents) {
             userContent.push({
               type: 'image_url',
               image_url: {
-                url: `data:${doc.mimeType || 'image/jpeg'};base64,${doc.base64}`
-              }
+                url: `data:${doc.mimeType || 'image/jpeg'};base64,${doc.base64}`,
+              },
             });
           }
           messages.push({ role: 'user', content: userContent });
@@ -95,7 +107,10 @@ export class GroqAdapter implements AiProviderPort {
         let content = response.choices[0]?.message?.content || '';
 
         if (request.responseFormat === 'json') {
-          content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          content = content
+            .replace(/```json\n?/g, '')
+            .replace(/```\n?/g, '')
+            .trim();
           const startIndex = content.indexOf('{');
           const endIndex = content.lastIndexOf('}');
           if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
@@ -105,14 +120,17 @@ export class GroqAdapter implements AiProviderPort {
 
         const latencyMs = Date.now() - start;
 
-        logger.info({
-          provider: 'groq',
-          model: this.model,
-          keyIndex: currentIdx,
-          latencyMs,
-          inputTokens: response.usage?.prompt_tokens,
-          outputTokens: response.usage?.completion_tokens,
-        }, 'Groq completion successful');
+        logger.info(
+          {
+            provider: 'groq',
+            model: this.model,
+            keyIndex: currentIdx,
+            latencyMs,
+            inputTokens: response.usage?.prompt_tokens,
+            outputTokens: response.usage?.completion_tokens,
+          },
+          'Groq completion successful',
+        );
 
         return {
           content,

@@ -19,7 +19,7 @@ logger.info('Reloading API server... (port sync)');
 async function listenWithFallback(
   server: Server,
   startPort: number,
-  maxAttempts = 10
+  maxAttempts = 10,
 ): Promise<number> {
   let port = startPort;
 
@@ -40,7 +40,9 @@ async function listenWithFallback(
         server.listen(port);
       });
       if (port !== startPort) {
-        logger.warn(`API bound to fallback port ${port}. Frontend proxy targeting ${startPort} (like Vite) will fail with ECONNREFUSED.`);
+        logger.warn(
+          `API bound to fallback port ${port}. Frontend proxy targeting ${startPort} (like Vite) will fail with ECONNREFUSED.`,
+        );
       }
       return port;
     } catch (err) {
@@ -54,6 +56,9 @@ async function listenWithFallback(
   throw new Error(`No available port found from ${startPort} to ${startPort + maxAttempts - 1}`);
 }
 
+import { initBirthdayWishesCron } from './domains/communications/crons/birthday-wishes.cron.js';
+import { initMedicineReminderCron } from './domains/communications/crons/medicine-reminder.cron.js';
+
 async function bootstrap() {
   // Log startup config (non-sensitive)
   logger.info(`Environment: ${appConfig.env}`);
@@ -65,8 +70,12 @@ async function bootstrap() {
   if (tenantDb) {
     try {
       const { sql } = await import('drizzle-orm');
-      await tenantDb.execute(sql`ALTER TABLE "tenant_demo"."investigations" ADD COLUMN IF NOT EXISTS "attachment_url" text`);
-      await tenantDb.execute(sql`ALTER TABLE "tenant_demo"."investigations" ADD COLUMN IF NOT EXISTS "summary" text`);
+      await tenantDb.execute(
+        sql`ALTER TABLE "tenant_demo"."investigations" ADD COLUMN IF NOT EXISTS "attachment_url" text`,
+      );
+      await tenantDb.execute(
+        sql`ALTER TABLE "tenant_demo"."investigations" ADD COLUMN IF NOT EXISTS "summary" text`,
+      );
       logger.info('Migrated investigations table successfully on startup');
     } catch (e) {
       logger.error({ err: e }, 'Failed to migrate investigations table');
@@ -98,6 +107,12 @@ async function bootstrap() {
     scheduler = new JobScheduler(apptRepo, patientRepo, smsUseCase, waRepo, waGateway);
     scheduler.start();
     logger.info('Background job scheduler initialized');
+
+    // Initialize birthday wishes cron
+    initBirthdayWishesCron(appConfig.database.url);
+
+    // Initialize daily medicine reminders cron (8:00 AM)
+    initMedicineReminderCron(appConfig.database.url);
   }
 
   // ─── Global Process Error Handlers ───
@@ -165,11 +180,3 @@ bootstrap().catch((err) => {
   logger.fatal({ err }, 'Failed to start server');
   process.exit(1);
 });
-
-
-
-
-
-
-
-

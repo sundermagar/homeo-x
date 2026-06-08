@@ -28,7 +28,11 @@ export interface CaseSummary {
 export class CaseSummaryEngine {
   constructor(private providerChain: AiProviderChain) {}
 
-  async generateSummary(tenantId: string, userId: string, input: CaseSummaryInput): Promise<CaseSummary> {
+  async generateSummary(
+    tenantId: string,
+    userId: string,
+    input: CaseSummaryInput,
+  ): Promise<CaseSummary> {
     const systemPrompt = `You are a senior homeopathic physician generating a concise case summary.
 Synthesize all clinical data into a structured, editable summary suitable for medical records.
 
@@ -46,7 +50,7 @@ JSON Output:
     const userPrompt = `Clinical Data:
 Observations: ${input.observations.join('; ') || 'None'}
 Clinical Findings: ${input.clinicalFindings.join('; ') || 'None'}
-Selected Remedies: ${input.selectedRemedies.map(r => `${r.name} (${r.score}%)`).join(', ') || 'None'}
+Selected Remedies: ${input.selectedRemedies.map((r) => `${r.name} (${r.score}%)`).join(', ') || 'None'}
 ${input.soapData ? `SOAP: S=${input.soapData.subjective}, O=${input.soapData.objective}, A=${input.soapData.assessment}, P=${input.soapData.plan}` : ''}
 
 Generate a clinical case summary:`;
@@ -62,7 +66,10 @@ Generate a clinical case summary:`;
 
       const parsed = safeJsonParse<CaseSummary>(response.content);
       if (!parsed) {
-        logger.error({ contentPreview: response.content.slice(0, 300) }, 'Case summary: JSON unrecoverable even after repair');
+        logger.error(
+          { contentPreview: response.content.slice(0, 300) },
+          'Case summary: JSON unrecoverable even after repair',
+        );
         throw new Error('Case summary engine returned unparseable JSON');
       }
       return parsed;

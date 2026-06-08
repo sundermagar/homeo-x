@@ -4,9 +4,21 @@ import { CollapsibleSection } from '../../../components/shared/collapsible-secti
 import { Input } from '../../../components/ui/input';
 
 const COMMON_TESTS = [
-  'CBC', 'LFT', 'RFT', 'HbA1c', 'Lipid Panel', 'TFT', 'Urine R/M',
-  'CRP', 'ESR', 'Blood Sugar (F)', 'Blood Sugar (PP)', 'Chest X-Ray',
-  'ECG', 'USG Abdomen', 'Stool R/M',
+  'CBC',
+  'LFT',
+  'RFT',
+  'HbA1c',
+  'Lipid Panel',
+  'TFT',
+  'Urine R/M',
+  'CRP',
+  'ESR',
+  'Blood Sugar (F)',
+  'Blood Sugar (PP)',
+  'Chest X-Ray',
+  'ECG',
+  'USG Abdomen',
+  'Stool R/M',
 ];
 
 interface LabOrdersSectionProps {
@@ -37,7 +49,11 @@ export function LabOrdersSection({ selectedTests, onTestsChange }: LabOrdersSect
     <CollapsibleSection
       id="section-lab"
       title="Lab Orders"
-      subtitle={selectedTests.length > 0 ? `${selectedTests.length} test${selectedTests.length > 1 ? 's' : ''}` : undefined}
+      subtitle={
+        selectedTests.length > 0
+          ? `${selectedTests.length} test${selectedTests.length > 1 ? 's' : ''}`
+          : undefined
+      }
       icon={<FlaskConical className="h-5 w-5" />}
       defaultOpen={false}
     >
@@ -87,7 +103,12 @@ export function LabOrdersSection({ selectedTests, onTestsChange }: LabOrdersSect
           onChange={(e) => setCustomInput(e.target.value)}
           placeholder="Other test..."
           className="text-sm flex-1"
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomTest(); } }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              addCustomTest();
+            }
+          }}
         />
         <button
           type="button"

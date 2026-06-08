@@ -5,29 +5,26 @@ import { pgTable, serial, integer, text, timestamp, date } from 'drizzle-orm/pg-
  * Lives in the public schema (shared across all tenants).
  */
 export const organizations = pgTable('organizations', {
-  id:           serial('id').primaryKey(),
-  name:         text('name').notNull(),
-  email:        text('email').default(''),
-  phone:        text('phone').default(''),
-  address:      text('address').default(''),
-  website:      text('website').default(''),
-  assignedTo:   integer('assigned_to').default(1),
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').default(''),
+  phone: text('phone').default(''),
+  address: text('address').default(''),
+  website: text('website').default(''),
+  assignedTo: integer('assigned_to').default(1),
   connectSince: date('connect_since').default('1990-01-01'),
-  city:         text('city').default(''),
-  description:  text('description').default(''),
-  adminEmail:   text('admin_email').default(''),
+  city: text('city').default(''),
+  description: text('description').default(''),
+  adminEmail: text('admin_email').default(''),
   adminPassword: text('admin_password').default(''),
   registrationFee: integer('registration_fee').default(0),
-  tagLine:      text('tag_line').default(''),
+  tagLine: text('tag_line').default(''),
   registration: text('registration').default(''),
-  logo:         text('logo').default(''),
-  timing:       text('timing').default(''),
-  hfrId:        text('hfr_id'),
-  hfrToken:     text('hfr_token'),
-  deletedAt:    timestamp('deleted_at'),
-  createdAt:    timestamp('created_at').defaultNow(),
-  updatedAt:    timestamp('updated_at').defaultNow(),
-  status:       text('status').default('active').notNull(),
+  logo: text('logo').default(''),
+  timing: text('timing').default(''),
+  deletedAt: timestamp('deleted_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 /**
@@ -37,26 +34,26 @@ export const organizations = pgTable('organizations', {
  * Lives in the public schema.
  */
 export const accounts = pgTable('accounts', {
-  id:          serial('id').primaryKey(),
-  name:        text('name').notNull(),
-  email:       text('email').default(''),
-  password:    text('password').default(''),
-  mobile:      text('mobile').default('').notNull(),
-  mobile2:     text('mobile2').default('').notNull(),
-  gender:      text('gender').default('Male').notNull(),
-  city:        text('city').default('').notNull(),
-  address:     text('address').default('').notNull(),
-  about:       text('about').default('').notNull(),
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').default(''),
+  password: text('password').default(''),
+  mobile: text('mobile').default('').notNull(),
+  mobile2: text('mobile2').default('').notNull(),
+  gender: text('gender').default('Male').notNull(),
+  city: text('city').default('').notNull(),
+  address: text('address').default('').notNull(),
+  about: text('about').default('').notNull(),
   designation: text('designation').default('').notNull(),
-  dept:        integer('dept').default(1).notNull(), // Finance/Accounts dept
-  dateBirth:   date('date_birth'),
-  dateLeft:    date('date_left'),
-  salaryCur:   integer('salary_cur').default(0).notNull(),
-  packages:    text('packages').default('').notNull(),
-  clinicId:    integer('clinic_id'),   // references organizations(id)
-  deletedAt:   timestamp('deleted_at'),
-  createdAt:   timestamp('created_at').defaultNow(),
-  updatedAt:   timestamp('updated_at').defaultNow(),
+  dept: integer('dept').default(1).notNull(), // Finance/Accounts dept
+  dateBirth: date('date_birth'),
+  dateLeft: date('date_left'),
+  salaryCur: integer('salary_cur').default(0).notNull(),
+  packages: text('packages').default('').notNull(),
+  clinicId: integer('clinic_id'), // references organizations(id)
+  deletedAt: timestamp('deleted_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 /**
@@ -65,31 +62,31 @@ export const accounts = pgTable('accounts', {
  * of administrators across all clinics.
  */
 export const clinicadmins = pgTable('clinicadmins', {
-  id:           serial('id').primaryKey(),
-  name:         text('name').notNull(),
-  password:     text('password'),
-  designation:  text('designation').default('Clinic Administrator'),
-  gender:       text('gender').default('Male').notNull(),
-  mobile:       text('mobile').default('').notNull(),
-  mobile2:      text('mobile2').default('').notNull(),
-  email:        text('email').notNull(),
-  dept:         integer('dept').default(4).notNull(),
-  city:         text('city').default('').notNull(),
-  address:      text('address').default('').notNull(),
-  about:        text('about').default('').notNull(),
-  dateBirth:    date('date_birth'),
-  dateLeft:     date('date_left'),
-  salaryCur:    integer('salary_cur').default(0).notNull(),
-  packages:     text('packages').default('').notNull(),
-  clinicId:     integer('clinic_id'), // Reference to organization
-  deletedAt:    timestamp('deleted_at'),
-  createdAt:    timestamp('created_at').defaultNow(),
-  updatedAt:    timestamp('updated_at').defaultNow(),
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  password: text('password'),
+  designation: text('designation').default('Clinic Administrator'),
+  gender: text('gender').default('Male').notNull(),
+  mobile: text('mobile').default('').notNull(),
+  mobile2: text('mobile2').default('').notNull(),
+  email: text('email').notNull(),
+  dept: integer('dept').default(4).notNull(),
+  city: text('city').default('').notNull(),
+  address: text('address').default('').notNull(),
+  about: text('about').default('').notNull(),
+  dateBirth: date('date_birth'),
+  dateLeft: date('date_left'),
+  salaryCur: integer('salary_cur').default(0).notNull(),
+  packages: text('packages').default('').notNull(),
+  clinicId: integer('clinic_id'), // Reference to organization
+  deletedAt: timestamp('deleted_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-export type Organization    = typeof organizations.$inferSelect;
+export type Organization = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
-export type Account         = typeof accounts.$inferSelect;
-export type NewAccount      = typeof accounts.$inferInsert;
-export type ClinicAdmin     = typeof clinicadmins.$inferSelect;
-export type NewClinicAdmin  = typeof clinicadmins.$inferInsert;
+export type Account = typeof accounts.$inferSelect;
+export type NewAccount = typeof accounts.$inferInsert;
+export type ClinicAdmin = typeof clinicadmins.$inferSelect;
+export type NewClinicAdmin = typeof clinicadmins.$inferInsert;

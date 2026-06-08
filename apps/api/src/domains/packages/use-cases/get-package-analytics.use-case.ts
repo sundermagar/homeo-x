@@ -11,18 +11,20 @@ export class GetPackageAnalyticsUseCase {
   async getExpiryReport(fromDate?: string, toDate?: string) {
     const today = new Date();
     const defaultFrom = new Date(today.getFullYear(), today.getMonth(), 1)
-      .toISOString().split('T')[0]!;
+      .toISOString()
+      .split('T')[0]!;
     const defaultTo = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-      .toISOString().split('T')[0]!;
+      .toISOString()
+      .split('T')[0]!;
 
     const from = fromDate ?? defaultFrom;
-    const to   = toDate   ?? defaultTo;
+    const to = toDate ?? defaultTo;
 
     const records = await this.repo.getExpiryAnalytics(from, to);
 
     // Enrich each record with daysRemaining & status
     const todayStr = today.toISOString().split('T')[0]!;
-    const enriched = records.map(r => {
+    const enriched = records.map((r) => {
       const ms = new Date(r.expiryDate).getTime() - new Date(todayStr).getTime();
       const daysRemaining = Math.ceil(ms / 86_400_000);
       return {

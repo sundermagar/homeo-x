@@ -1,6 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useSearchIcd, useSearchLoinc, useSearchProcedures, useSearchSnomed } from '@/shared/hooks/use-terminology';
-import type { IcdCodeResult, LoincCodeResult, ProcedureCodeResult, SnomedConceptResult } from '@/shared/hooks/use-terminology';
+import {
+  useSearchIcd,
+  useSearchLoinc,
+  useSearchProcedures,
+  useSearchSnomed,
+} from '@/shared/hooks/use-terminology';
+import type {
+  IcdCodeResult,
+  LoincCodeResult,
+  ProcedureCodeResult,
+  SnomedConceptResult,
+} from '@/shared/hooks/use-terminology';
 import './code-autocomplete.css';
 
 type CodeType = 'icd' | 'loinc' | 'procedure' | 'snomed';
@@ -80,21 +90,37 @@ export function CodeAutocomplete({
       return icdResults.data || [];
     }
     if (type === 'loinc') {
-      if (loincResults.error) console.error('[Autocomplete] LOINC Search Error:', loincResults.error);
+      if (loincResults.error)
+        console.error('[Autocomplete] LOINC Search Error:', loincResults.error);
       return loincResults.data || [];
     }
     if (type === 'snomed') {
-      if (snomedResults.error) console.error('[Autocomplete] SNOMED Search Error:', snomedResults.error);
+      if (snomedResults.error)
+        console.error('[Autocomplete] SNOMED Search Error:', snomedResults.error);
       return snomedResults.data || [];
     }
     if (procResults.error) console.error('[Autocomplete] Proc Search Error:', procResults.error);
     return procResults.data || [];
-  }, [type, icdResults.data, icdResults.error, loincResults.data, loincResults.error, procResults.data, procResults.error, snomedResults.data, snomedResults.error]);
+  }, [
+    type,
+    icdResults.data,
+    icdResults.error,
+    loincResults.data,
+    loincResults.error,
+    procResults.data,
+    procResults.error,
+    snomedResults.data,
+    snomedResults.error,
+  ]);
 
-  const isLoading = type === 'icd' ? icdResults.isLoading :
-                    type === 'loinc' ? loincResults.isLoading :
-                    type === 'snomed' ? snomedResults.isLoading :
-                    procResults.isLoading;
+  const isLoading =
+    type === 'icd'
+      ? icdResults.isLoading
+      : type === 'loinc'
+        ? loincResults.isLoading
+        : type === 'snomed'
+          ? snomedResults.isLoading
+          : procResults.isLoading;
 
   const results = getResults();
 

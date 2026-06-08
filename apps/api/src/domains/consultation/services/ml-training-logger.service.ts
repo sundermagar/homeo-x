@@ -20,7 +20,7 @@ function getDbForTenant(tenantId: string) {
   let schemaName = 'public';
   if (tenantId && tenantId !== 'default' && tenantId !== 'public') {
     // Look up in hardcoded or dynamically initialized registry
-    const config = TenantRegistry.getAll().find(t => t.slug === tenantId);
+    const config = TenantRegistry.getAll().find((t) => t.slug === tenantId);
     schemaName = config ? config.schemaName : `tenant_${tenantId}`;
   }
 
@@ -73,7 +73,10 @@ export class MlTrainingLoggerService {
           }
           if (rubricMap.size > 0) {
             data.mappedRubrics = [...rubricMap.values()];
-            logger.info({ visitId, rubricCount: rubricMap.size }, '📊 logPhase: Auto-extracted unique rubrics');
+            logger.info(
+              { visitId, rubricCount: rubricMap.size },
+              '📊 logPhase: Auto-extracted unique rubrics',
+            );
           }
         }
       }
@@ -94,10 +97,18 @@ export class MlTrainingLoggerService {
           },
         });
 
-      logger.info({ visitId, tenantId }, '📊 logPhase: Successfully logged/updated ML training log phase');
+      logger.info(
+        { visitId, tenantId },
+        '📊 logPhase: Successfully logged/updated ML training log phase',
+      );
 
       // ─── Trigger Async Embedding Generation ───
-      const shouldRefresh = !!(data.doctorFinalRemedy || data.extractedSymptoms || data.mappedRubrics || data.soapNotes);
+      const shouldRefresh = !!(
+        data.doctorFinalRemedy ||
+        data.extractedSymptoms ||
+        data.mappedRubrics ||
+        data.soapNotes
+      );
       if (shouldRefresh) {
         logger.info({ visitId }, '📊 logPhase: Triggering refreshEmbedding in background');
         this.refreshEmbedding(tenantId, visitId).catch((err) => {
@@ -138,7 +149,10 @@ export class MlTrainingLoggerService {
       const hash = createHash('md5').update(fingerprint).digest('hex');
 
       const [existingEmbedding] = await db
-        .select({ id: mlTrainingEmbeddings.id, fingerprintHash: mlTrainingEmbeddings.fingerprintHash })
+        .select({
+          id: mlTrainingEmbeddings.id,
+          fingerprintHash: mlTrainingEmbeddings.fingerprintHash,
+        })
         .from(mlTrainingEmbeddings)
         .where(eq(mlTrainingEmbeddings.mlTrainingLogId, record.id))
         .limit(1);
@@ -193,19 +207,20 @@ export class MlTrainingLoggerService {
 
     let cleanAnswer = entry.answer || '';
     if (entry.question && cleanAnswer.includes(entry.question)) {
-      const segments = cleanAnswer.split(entry.question).filter(s => s.trim());
+      const segments = cleanAnswer.split(entry.question).filter((s) => s.trim());
       if (segments.length > 0) {
-        const answerSegments = segments.filter(s => !s.trim().includes('?'));
-        cleanAnswer = answerSegments.length > 0 
-          ? answerSegments[answerSegments.length - 1]!.trim()
-          : segments[segments.length - 1]!.trim();
+        const answerSegments = segments.filter((s) => !s.trim().includes('?'));
+        cleanAnswer =
+          answerSegments.length > 0
+            ? answerSegments[answerSegments.length - 1]!.trim()
+            : segments[segments.length - 1]!.trim();
       }
     }
     entry.answer = cleanAnswer;
 
     try {
       const db = getDbForTenant(tenantId);
-      
+
       // Perform an atomic upsert to handle the insert/transcript append safely
       // Query current transcript first to update it atomically
       const existing = await db

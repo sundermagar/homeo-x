@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { Clock, Plus, X, RefreshCw, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useFrequencies, useCreateFrequency, useUpdateFrequency, useDeleteFrequency } from '../hooks/use-settings';
+import {
+  useFrequencies,
+  useCreateFrequency,
+  useUpdateFrequency,
+  useDeleteFrequency,
+} from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -32,20 +37,15 @@ export default function FrequenciesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState('');
 
-  const filtered = frequencies.filter((f: Frequency) =>
-    f.title?.toLowerCase().includes(search.toLowerCase()) ||
-    f.frequency?.toLowerCase().includes(search.toLowerCase()) ||
-    f.duration?.toLowerCase().includes(search.toLowerCase())
+  const filtered = frequencies.filter(
+    (f: Frequency) =>
+      f.title?.toLowerCase().includes(search.toLowerCase()) ||
+      f.frequency?.toLowerCase().includes(search.toLowerCase()) ||
+      f.duration?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filtered);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filtered);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -55,11 +55,11 @@ export default function FrequenciesPage() {
 
   const handleOpenEdit = (freq: Frequency) => {
     setEditingId(freq.id);
-    setForm({ 
-      title: freq.title || '', 
-      frequency: freq.frequency || '', 
-      duration: freq.duration || '', 
-      days: freq.days ?? 1 
+    setForm({
+      title: freq.title || '',
+      frequency: freq.frequency || '',
+      duration: freq.duration || '',
+      days: freq.days ?? 1,
     });
     setIsModalOpen(true);
   };
@@ -82,15 +82,15 @@ export default function FrequenciesPage() {
 
   return (
     <div className="plat-page fade-in">
-
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
             <Clock size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
             Dosage Frequencies
           </h1>
-          <p className="plat-header-sub">Manage how often medicines should be taken (e.g. TDS, OD, BD).</p>
+          <p className="plat-header-sub">
+            Manage how often medicines should be taken (e.g. TDS, OD, BD).
+          </p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
@@ -107,16 +107,14 @@ export default function FrequenciesPage() {
         </div>
         <div className="plat-stat-card">
           <p className="plat-stat-label">Filtered List</p>
-          <p className="plat-stat-value plat-stat-value-success">
-            {filtered.length}
-          </p>
+          <p className="plat-stat-value plat-stat-value-success">{filtered.length}</p>
         </div>
       </div>
 
       <div className="plat-filters">
         <div className="plat-search-wrap">
           <Search size={14} className="plat-search-icon" />
-          <input 
+          <input
             className="plat-form-input plat-search-input"
             placeholder="Search frequencies..."
             value={search}
@@ -129,61 +127,81 @@ export default function FrequenciesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={6} />
         ) : filtered.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={Clock}
-            title={search ? "No matches found" : "No frequencies defined"}
-            description={search ? `No dosage frequencies matching "${search}" were found.` : "Define clinical dosage frequencies (e.g. TDS, BD, OD) to streamline prescriptions."}
-            actionLabel={search ? "Clear Search" : "Add Frequency"}
+            title={search ? 'No matches found' : 'No frequencies defined'}
+            description={
+              search
+                ? `No dosage frequencies matching "${search}" were found.`
+                : 'Define clinical dosage frequencies (e.g. TDS, BD, OD) to streamline prescriptions.'
+            }
+            actionLabel={search ? 'Clear Search' : 'Add Frequency'}
             onAction={search ? () => setSearch('') : handleOpenCreate}
             variant="card"
             className="my-8"
           />
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '60px' }}>ID</th>
-                  <th>Title</th>
-                  <th>Freq. Description</th>
-                  <th>Duration</th>
-                  <th style={{ width: '80px' }}>Days</th>
-                  <th style={{ width: '120px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((freq: Frequency, idx: number) => (
-                  <tr key={freq.id} className="plat-table-row">
-                    <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                    <td data-label="Title" className="plat-table-cell font-semibold">{freq.title || '—'}</td>
-                    <td data-label="Description" className="plat-table-cell">{freq.frequency || '—'}</td>
-                    <td data-label="Duration" className="plat-table-cell">{freq.duration || '—'}</td>
-                    <td data-label="Days" className="plat-table-cell">{freq.days !== undefined ? freq.days : '—'}</td>
-                    <td className="plat-table-cell">
-                      <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(freq)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(freq.id, freq.title || freq.frequency)}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px' }}>ID</th>
+                    <th>Title</th>
+                    <th>Freq. Description</th>
+                    <th>Duration</th>
+                    <th style={{ width: '80px' }}>Days</th>
+                    <th style={{ width: '120px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((freq: Frequency, idx: number) => (
+                    <tr key={freq.id} className="plat-table-row">
+                      <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">
+                        {(currentPage - 1) * itemsPerPage + idx + 1}
+                      </td>
+                      <td data-label="Title" className="plat-table-cell font-semibold">
+                        {freq.title || '—'}
+                      </td>
+                      <td data-label="Description" className="plat-table-cell">
+                        {freq.frequency || '—'}
+                      </td>
+                      <td data-label="Duration" className="plat-table-cell">
+                        {freq.duration || '—'}
+                      </td>
+                      <td data-label="Days" className="plat-table-cell">
+                        {freq.days !== undefined ? freq.days : '—'}
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="flex justify-end gap-3">
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon"
+                            onClick={() => handleOpenEdit(freq)}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(freq.id, freq.title || freq.frequency)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
@@ -196,7 +214,10 @@ export default function FrequenciesPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-grid-multi frequency-form-grid">
                 <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="plat-form-label">Title * (e.g. TDS)</label>
@@ -204,16 +225,18 @@ export default function FrequenciesPage() {
                     className="plat-form-input"
                     required
                     value={form.title}
-                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                     placeholder="e.g. TDS"
                   />
                 </div>
                 <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="plat-form-label">Full Description (e.g. Three times a day)</label>
+                  <label className="plat-form-label">
+                    Full Description (e.g. Three times a day)
+                  </label>
                   <input
                     className="plat-form-input"
                     value={form.frequency}
-                    onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value }))}
                     placeholder="e.g. Three times a day"
                   />
                 </div>
@@ -222,7 +245,7 @@ export default function FrequenciesPage() {
                   <input
                     className="plat-form-input"
                     value={form.duration}
-                    onChange={e => setForm(f => ({ ...f, duration: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
                     placeholder="e.g. 5 Days"
                   />
                 </div>
@@ -232,21 +255,26 @@ export default function FrequenciesPage() {
                     className="plat-form-input"
                     type="number"
                     value={form.days}
-                    onChange={e => setForm(f => ({ ...f, days: Number(e.target.value) }))}
+                    onChange={(e) => setForm((f) => ({ ...f, days: Number(e.target.value) }))}
                   />
                 </div>
               </div>
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={createFreq.isPending || updateFreq.isPending}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
+              disabled={createFreq.isPending || updateFreq.isPending}
+            >
               {editingId ? 'Save Changes' : 'Add Frequency'}
             </button>
           </div>
         </form>
       </Drawer>
-
     </div>
   );
 }

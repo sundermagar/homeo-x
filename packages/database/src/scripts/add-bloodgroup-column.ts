@@ -39,7 +39,7 @@ async function main() {
   console.log('\n🎉 Migration complete!');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('❌ Migration failed:', err);
   process.exit(1);
 });

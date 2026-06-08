@@ -29,6 +29,7 @@ async function main() {
         ALTER TABLE "${schema_name}".case_datas
           ADD COLUMN IF NOT EXISTS assistant_doctor text,
           ADD COLUMN IF NOT EXISTS consultation_fee integer,
+          ADD COLUMN IF NOT EXISTS password_hash varchar(255),
           ADD COLUMN IF NOT EXISTS status text;
       `);
       console.log(`  ✅ ${schema_name}: case_datas columns added`);
@@ -41,7 +42,7 @@ async function main() {
   console.log('\n🎉 Migration complete!');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('❌ Migration failed:', err);
   process.exit(1);
 });

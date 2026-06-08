@@ -58,7 +58,9 @@ rolesRouter.post('/', async (req: Request, res: Response) => {
 
   try {
     // Manual ID generation to avoid RETURNING/sequence issues
-    const maxRes = await req.tenantDb.execute(sql`SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM roles`);
+    const maxRes = await req.tenantDb.execute(
+      sql`SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM roles`,
+    );
     const nextId = (maxRes as any[])[0]?.next_id ?? 1;
 
     await req.tenantDb.execute(sql`
@@ -73,8 +75,10 @@ rolesRouter.post('/', async (req: Request, res: Response) => {
       SELECT id, name FROM permissions WHERE (deleted_at IS NULL OR deleted_at::text = '')
     `);
 
-    const dashboardPerm = (corePerms as any[]).find(p => p.name === 'DASHBOARD_ACCESS' || p.name === 'DASHBOARD_VIEW');
-    const quickPerm    = (corePerms as any[]).find(p => p.name === 'QUICK_ACCESS_VIEW');
+    const dashboardPerm = (corePerms as any[]).find(
+      (p) => p.name === 'DASHBOARD_ACCESS' || p.name === 'DASHBOARD_VIEW',
+    );
+    const quickPerm = (corePerms as any[]).find((p) => p.name === 'QUICK_ACCESS_VIEW');
     const toAssign = [dashboardPerm, quickPerm].filter(Boolean);
 
     for (const p of toAssign) {
@@ -110,7 +114,7 @@ rolesRouter.put('/:id', async (req: Request, res: Response) => {
 
     const [updated] = await req.tenantDb.execute(sql`SELECT * FROM roles WHERE id = ${id}`);
     if (!updated) return sendError(res, 'Role not found', 404);
-    
+
     return sendSuccess(res, updated, 'Role updated');
   } catch (err: any) {
     return sendError(res, err.message, 500);

@@ -8,18 +8,29 @@ interface NumericInputProps extends React.InputHTMLAttributes<HTMLInputElement> 
  * An input component that only allows integer numbers.
  * Filters non-numeric characters on change and paste.
  */
-export const NumericInput: React.FC<NumericInputProps> = ({ 
-  onChange, 
+export const NumericInput: React.FC<NumericInputProps> = ({
+  onChange,
   onValueChange,
   onKeyDown,
-  ...props 
+  ...props
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Allow: backspace, delete, tab, escape, enter, and . (optional, but requested only integers)
     if (
-      ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) ||
+      [
+        'Backspace',
+        'Delete',
+        'Tab',
+        'Escape',
+        'Enter',
+        'ArrowLeft',
+        'ArrowRight',
+        'Home',
+        'End',
+      ].includes(e.key) ||
       // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-      (e.ctrlKey === true || e.metaKey === true) ||
+      e.ctrlKey === true ||
+      e.metaKey === true ||
       // Allow: digits 0-9
       /^[0-9]$/.test(e.key)
     ) {
@@ -32,12 +43,12 @@ export const NumericInput: React.FC<NumericInputProps> = ({
     const value = e.target.value;
     // Strip everything except digits
     const numericValue = value.replace(/\D/g, '');
-    
+
     // Create a synthetic event or call the callback
     if (onValueChange) {
       onValueChange(numericValue);
     }
-    
+
     if (onChange) {
       // Create a modified target with the numeric value
       const newEvent = {
@@ -45,8 +56,8 @@ export const NumericInput: React.FC<NumericInputProps> = ({
         target: {
           ...e.target,
           name: e.target.name,
-          value: numericValue
-        }
+          value: numericValue,
+        },
       } as React.ChangeEvent<HTMLInputElement>;
       onChange(newEvent);
     }
@@ -64,34 +75,35 @@ export const NumericInput: React.FC<NumericInputProps> = ({
         const end = input.selectionEnd || 0;
         const currentVal = input.value;
         const newVal = currentVal.substring(0, start) + strippedData + currentVal.substring(end);
-        
+
         // This is a bit hacky but ensures paste works correctly with filtering
         const syntheticEvent = {
           target: {
             name: input.name,
-            value: newVal
-          }
+            value: newVal,
+          },
         } as React.ChangeEvent<HTMLInputElement>;
-        
+
         if (onValueChange) onValueChange(newVal);
         if (onChange) onChange(syntheticEvent);
       }
     }
   };
 
-  const isPhoneField = (props.type === 'tel' || !props.type) && 
-                       (props.name?.toLowerCase().includes('phone') || 
-                        props.name?.toLowerCase().includes('mobile') ||
-                        props.placeholder?.toLowerCase().includes('phone') ||
-                        props.placeholder?.toLowerCase().includes('mobile') ||
-                        props.placeholder?.match(/^\d{10}$/));
-  
+  const isPhoneField =
+    (props.type === 'tel' || !props.type) &&
+    (props.name?.toLowerCase().includes('phone') ||
+      props.name?.toLowerCase().includes('mobile') ||
+      props.placeholder?.toLowerCase().includes('phone') ||
+      props.placeholder?.toLowerCase().includes('mobile') ||
+      props.placeholder?.match(/^\d{10}$/));
+
   const finalMaxLength = props.maxLength || (isPhoneField ? 10 : undefined);
 
   return (
     <input
       {...props}
-      type={props.type || "tel"}
+      type={props.type || 'tel'}
       inputMode="numeric"
       maxLength={finalMaxLength}
       onKeyDown={handleKeyDown}

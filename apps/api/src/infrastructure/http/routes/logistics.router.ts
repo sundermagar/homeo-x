@@ -4,6 +4,12 @@ import { authMiddleware } from '../middleware/auth.js';
 import { CourierRepositoryPg } from '../../repositories/courier.repository.pg.js';
 import { DispensaryRepositoryPg } from '../../repositories/dispensary.repository.pg.js';
 import { sql } from 'drizzle-orm';
+import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
+import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
+import { SendWhatsAppTemplateUseCase } from '../../../domains/communication/use-cases/send-whatsapp-template.use-case.js';
+import { createLogger } from '../../../shared/logger.js';
+
+const logger = createLogger('logistics-router');
 
 export function createLogisticsRouter(): Router {
   const router = Router();
@@ -19,7 +25,7 @@ export function createLogisticsRouter(): Router {
       const repo = getRepo(req);
       const shipments = await repo.getByPatient(regid);
       res.json({ success: true, data: shipments });
-    })
+    }),
   );
 
   // GET /api/logistics/stickers/pending
@@ -74,7 +80,7 @@ export function createLogisticsRouter(): Router {
       const repo = getRepo(req);
       const shipments = await repo.getQueue(null);
       res.json({ success: true, data: shipments });
-    })
+    }),
   );
 
   // POST /api/logistics
@@ -87,10 +93,10 @@ export function createLogisticsRouter(): Router {
       const shipment = await repo.create({
         caseId: regid,
         postType: type === 'PICKUP' ? 'Pickup' : 'Courier',
-        randId: `${dateNow}${regid}`
+        randId: `${dateNow}${regid}`,
       });
       res.status(201).json({ success: true, data: shipment });
-    })
+    }),
   );
 
   // PATCH /api/logistics/:id
@@ -100,8 +106,43 @@ export function createLogisticsRouter(): Router {
       const id = parseInt(req.params.id as string, 10);
       const repo = getRepo(req);
       const shipment = await repo.assign({ ...req.body, id });
+
+      // Automatically send WhatsApp Courier tracking message if dispatched
+      if (shipment.isAssign === 1 && shipment.pickup !== 1) {
+        try {
+          const details = await repo.getMedicineDetail(id);
+          if (details && details.phone) {
+            const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
+            const waGateway = new WhatsAppCloudGateway(waRepo);
+            const waUseCase = new SendWhatsAppTemplateUseCase(waGateway, waRepo);
+
+            // Using the legacy message or structured template if available
+            // Note: Make sure "medicine_dispatched" template is approved in Meta if you use that name.
+            // Using a generic custom message format here to ensure delivery with fallback text if template missing.
+            await waUseCase.execute({
+              phone: details.phone,
+              templateName: 'medicine_dispatched',
+              language: 'en',
+              components: [
+                {
+                  type: 'body',
+                  parameters: [
+                    { type: 'text', text: details.firstName || 'Patient' },
+                    { type: 'text', text: details.courier || 'Courier' },
+                    { type: 'text', text: details.pcd || 'N/A' },
+                  ]
+                }
+              ]
+            });
+            logger.info(`WhatsApp dispatch notification sent to ${details.phone} for shipment ${id}`);
+          }
+        } catch (err: any) {
+          logger.error(`Failed to send WhatsApp dispatch notification: ${err.message}`);
+        }
+      }
+
       res.json({ success: true, data: shipment });
-    })
+    }),
   );
 
   // GET /api/logistics/couriers
@@ -112,7 +153,7 @@ export function createLogisticsRouter(): Router {
       // Fetch all shipments (recent 100)
       const shipments = await courierRepo.getAllShipments(null);
       res.json({ success: true, data: shipments });
-    })
+    }),
   );
 
   // DELETE /api/logistics/:id
@@ -123,7 +164,7 @@ export function createLogisticsRouter(): Router {
       const repo = getRepo(req);
       await repo.delete(id);
       res.json({ success: true });
-    })
+    }),
   );
 
   return router;

@@ -45,18 +45,26 @@ export class AiProviderChain {
       new GeminiAdapter('gemini-2.0-flash', 1500),
     ];
 
-    const available = this.providers.filter(p => {
+    const available = this.providers.filter((p) => {
       // Check synchronously by examining the adapter's internal state
-      return (p as any).hasKey === true || (p as any).genAIs?.length > 0 || (p as any).clients?.length > 0 || p.name === 'ollama';
+      return (
+        (p as any).hasKey === true ||
+        (p as any).genAIs?.length > 0 ||
+        (p as any).clients?.length > 0 ||
+        p.name === 'ollama'
+      );
     });
-    logger.info(`AI Provider Chain: ${available.length}/${this.providers.length} providers initialized`);
+    logger.info(
+      `AI Provider Chain: ${available.length}/${this.providers.length} providers initialized`,
+    );
   }
 
   async complete(request: AiCompletionRequest): Promise<AiCompletionResponse> {
     // ── Cache check ──
     if (request.useCache !== false) {
-      const docHash = request.documents ? JSON.stringify(request.documents.map(d => d.base64.substring(0, 100))) : '';
-      const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt, d: docHash }));
+      const cacheKey = this.hash(
+        JSON.stringify({ s: request.systemPrompt, u: request.userPrompt }),
+      );
       const cached = responseCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
         logger.info(`Cache hit for key ${cacheKey}`);
@@ -69,7 +77,9 @@ export class AiProviderChain {
     // ── Filter providers if preferred provider is specified ──
     let activeProviders = this.providers;
     if (request.preferredProvider) {
-      activeProviders = this.providers.filter(p => p.name.toLowerCase() === request.preferredProvider?.toLowerCase());
+      activeProviders = this.providers.filter(
+        (p) => p.name.toLowerCase() === request.preferredProvider?.toLowerCase(),
+      );
     }
 
     // ── Failover chain ──
@@ -82,8 +92,13 @@ export class AiProviderChain {
       }
 
       if (request.documents && request.documents.length > 0) {
-        if (provider.name === 'ollama' || (provider.name === 'groq' && !provider.model.includes('vision') && !provider.model.includes('scout'))) {
-          logger.warn(`Provider ${provider.name}/${provider.model} does not support image documents, skipping`);
+        if (
+          provider.name === 'ollama' ||
+          (provider.name === 'groq' && !provider.model.includes('vision'))
+        ) {
+          logger.warn(
+            `Provider ${provider.name}/${provider.model} does not support image documents, skipping`,
+          );
           errors.push(`${provider.name}/${provider.model}: Skipped (does not support images)`);
           continue;
         }
@@ -94,8 +109,9 @@ export class AiProviderChain {
 
         // Cache successful response (1 hour TTL)
         if (request.useCache !== false) {
-          const docHash = request.documents ? JSON.stringify(request.documents.map(d => d.base64.substring(0, 100))) : '';
-          const cacheKey = this.hash(JSON.stringify({ s: request.systemPrompt, u: request.userPrompt, d: docHash }));
+          const cacheKey = this.hash(
+            JSON.stringify({ s: request.systemPrompt, u: request.userPrompt }),
+          );
           responseCache.set(cacheKey, { response, expiresAt: Date.now() + 3600_000 });
           // Evict oldest if over limit
           if (responseCache.size > MAX_CACHE_SIZE) {
@@ -106,7 +122,10 @@ export class AiProviderChain {
 
         return response;
       } catch (error: any) {
-        logger.error({ err: error, errMsg: error.message }, `Provider ${provider.name}/${provider.model} failed`);
+        logger.error(
+          { err: error, errMsg: error.message },
+          `Provider ${provider.name}/${provider.model} failed`,
+        );
         errors.push(`${provider.name}/${provider.model}: ${error.message}`);
         continue;
       }

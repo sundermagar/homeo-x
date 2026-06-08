@@ -15,7 +15,9 @@ interface ListPatientsInput {
 export class ListPatientsUseCase {
   constructor(private readonly patientRepo: PatientRepository) {}
 
-  async execute(input: ListPatientsInput): Promise<Result<{ data: PatientSummary[]; total: number }>> {
+  async execute(
+    input: ListPatientsInput,
+  ): Promise<Result<{ data: PatientSummary[]; total: number }>> {
     const result = await this.patientRepo.findAll(input);
     return ok(result);
   }

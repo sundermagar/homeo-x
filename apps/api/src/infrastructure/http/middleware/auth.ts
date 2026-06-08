@@ -35,11 +35,51 @@ export function authMiddleware(req: Request, _res: Response, next: NextFunction)
 
   // Demo bypass for local testing/prototype
   const DEMO_USERS: Record<string, Partial<AuthTokenPayload>> = {
-    'demo-token-123': { id: 101, email: 'doctor@MMC', name: 'Dr. Demo', type: Role.Doctor, contextId: 1, roleId: 3, roleName: 'Doctor' },
-    'demo-token-101': { id: 101, email: 'doctor@MMC', name: 'Dr. Demo', type: Role.Doctor, contextId: 1, roleId: 3, roleName: 'Doctor' },
-    'demo-token-102': { id: 102, email: 'admin@MMC', name: 'Admin Demo', type: Role.Admin, contextId: 1, roleId: 1, roleName: 'Super Admin' },
-    'demo-token-103': { id: 103, email: 'reception@MMC', name: 'Reception Demo', type: Role.Receptionist, contextId: 1, roleId: 4, roleName: 'Receptionist' },
-    'demo-token-104': { id: 104, email: 'clinicadmin@MMC', name: 'Clinic Admin', type: Role.Clinicadmin, contextId: 1, roleId: 2, roleName: 'Clinic Admin' },
+    'demo-token-123': {
+      id: 101,
+      email: 'doctor@MMC',
+      name: 'Dr. Demo',
+      type: Role.Doctor,
+      contextId: 1,
+      roleId: 1,
+      roleName: 'Doctor',
+    },
+    'demo-token-101': {
+      id: 101,
+      email: 'doctor@MMC',
+      name: 'Dr. Demo',
+      type: Role.Doctor,
+      contextId: 1,
+      roleId: 101,
+      roleName: 'Doctor',
+    },
+    'demo-token-102': {
+      id: 102,
+      email: 'admin@MMC',
+      name: 'Admin Demo',
+      type: Role.Admin,
+      contextId: 1,
+      roleId: 102,
+      roleName: 'Admin',
+    },
+    'demo-token-103': {
+      id: 103,
+      email: 'reception@MMC',
+      name: 'Reception Demo',
+      type: Role.Receptionist,
+      contextId: 1,
+      roleId: 103,
+      roleName: 'Receptionist',
+    },
+    'demo-token-104': {
+      id: 104,
+      email: 'clinicadmin@MMC',
+      name: 'Clinic Admin',
+      type: Role.Clinicadmin,
+      contextId: 1,
+      roleId: 104,
+      roleName: 'Clinicadmin',
+    },
   };
 
   if (DEMO_USERS[token]) {

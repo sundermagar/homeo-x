@@ -13,8 +13,8 @@ import { useAuthStore } from './shared/stores/auth-store';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60_000,    // 2 minutes — reduces refetch storms
-      gcTime: 10 * 60_000,      // 10 minutes — frees memory for unused queries
+      staleTime: 2 * 60_000, // 2 minutes — reduces refetch storms
+      gcTime: 10 * 60_000, // 10 minutes — frees memory for unused queries
       retry: 1,
       refetchOnWindowFocus: false,
     },
@@ -89,7 +89,7 @@ export function App() {
       try {
         const response = await originalFetch(...args);
         if (!response.ok) {
-          const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request)?.url ?? '';
+          const url = typeof args[0] === 'string' ? args[0] : ((args[0] as Request)?.url ?? '');
           const statusTitles: Record<number, string> = {
             400: 'Bad request',
             401: 'Unauthorized',

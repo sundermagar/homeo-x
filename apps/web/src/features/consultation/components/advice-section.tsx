@@ -25,7 +25,12 @@ interface AdviceSectionProps {
   onAdviceChange: (value: string) => void;
 }
 
-export function AdviceSection({ followUp, onFollowUpChange, advice, onAdviceChange }: AdviceSectionProps) {
+export function AdviceSection({
+  followUp,
+  onFollowUpChange,
+  advice,
+  onAdviceChange,
+}: AdviceSectionProps) {
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
 
   const toggleTemplate = (template: string) => {

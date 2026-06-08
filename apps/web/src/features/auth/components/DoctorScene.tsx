@@ -18,7 +18,9 @@ export default function DoctorScene() {
       const dy = (e.clientY - cy) / (rect.height / 2);
       scene.style.transform = `rotateY(${dx * 8}deg) rotateX(${-dy * 6}deg)`;
     };
-    const onLeave = () => { scene.style.transform = 'rotateY(0deg) rotateX(0deg)'; };
+    const onLeave = () => {
+      scene.style.transform = 'rotateY(0deg) rotateX(0deg)';
+    };
 
     parent.addEventListener('mousemove', onMove);
     parent.addEventListener('mouseleave', onLeave);
@@ -62,7 +64,10 @@ export default function DoctorScene() {
           {/* Stethoscope */}
           <path
             d="M90 200 Q85 230 95 245 Q105 258 110 255 Q115 258 125 245 Q135 230 130 200"
-            stroke="#1E3A8A" strokeWidth="4" strokeLinecap="round" fill="none"
+            stroke="#1E3A8A"
+            strokeWidth="4"
+            strokeLinecap="round"
+            fill="none"
           />
           <circle cx="110" cy="258" r="7" fill="#1E3A8A" />
           <circle cx="110" cy="258" r="4" fill="#60A5FA" />
@@ -94,15 +99,39 @@ export default function DoctorScene() {
           <circle cx="100" cy="127" r="1.5" fill="white" />
           <circle cx="126" cy="127" r="1.5" fill="white" />
           {/* Eyebrows */}
-          <path d="M91 120 Q97 116 103 120" stroke="#1C1917" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-          <path d="M117 120 Q123 116 129 120" stroke="#1C1917" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+          <path
+            d="M91 120 Q97 116 103 120"
+            stroke="#1C1917"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <path
+            d="M117 120 Q123 116 129 120"
+            stroke="#1C1917"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            fill="none"
+          />
 
           {/* Nose */}
           <ellipse cx="110" cy="138" rx="4" ry="3" fill="#FDBA74" />
-          <path d="M106 140 Q110 144 114 140" stroke="#F97316" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+          <path
+            d="M106 140 Q110 144 114 140"
+            stroke="#F97316"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            fill="none"
+          />
 
           {/* Smile */}
-          <path d="M100 148 Q110 158 120 148" stroke="#92400E" strokeWidth="2" strokeLinecap="round" fill="none" />
+          <path
+            d="M100 148 Q110 158 120 148"
+            stroke="#92400E"
+            strokeWidth="2"
+            strokeLinecap="round"
+            fill="none"
+          />
 
           {/* Ears */}
           <ellipse cx="72" cy="132" rx="7" ry="9" fill="#FED7AA" />
@@ -137,8 +166,27 @@ export default function DoctorScene() {
           {/* Name badge */}
           <rect x="80" y="195" width="60" height="28" rx="5" fill="white" />
           <rect x="80" y="195" width="60" height="28" rx="5" stroke="#DBEAFE" strokeWidth="1" />
-          <text x="110" y="208" textAnchor="middle" fill="#3B82F6" fontSize="7" fontWeight="700" fontFamily="sans-serif">DR. SMITH</text>
-          <text x="110" y="218" textAnchor="middle" fill="#64748B" fontSize="6" fontFamily="sans-serif">Homeopathy</text>
+          <text
+            x="110"
+            y="208"
+            textAnchor="middle"
+            fill="#3B82F6"
+            fontSize="7"
+            fontWeight="700"
+            fontFamily="sans-serif"
+          >
+            DR. SMITH
+          </text>
+          <text
+            x="110"
+            y="218"
+            textAnchor="middle"
+            fill="#64748B"
+            fontSize="6"
+            fontFamily="sans-serif"
+          >
+            Homeopathy
+          </text>
         </svg>
 
         {/* Floating stat cards */}

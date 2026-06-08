@@ -2,7 +2,11 @@
 // Implements AiProviderPort for local Ollama instances with zero-timeout HTTP handling.
 
 import { createLogger } from '../../shared/logger.js';
-import type { AiProviderPort, AiCompletionRequest, AiCompletionResponse } from '../../domains/consultation/ports/ai-provider.port.js';
+import type {
+  AiProviderPort,
+  AiCompletionRequest,
+  AiCompletionResponse,
+} from '../../domains/consultation/ports/ai-provider.port.js';
 import http from 'node:http';
 import { URL } from 'node:url';
 
@@ -15,7 +19,7 @@ export class OllamaAdapter implements AiProviderPort {
 
   constructor(
     public readonly model: string = 'qwen2.5:1.5b',
-    baseUrl?: string
+    baseUrl?: string,
   ) {
     this.baseUrl = baseUrl || process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
     logger.info(`Ollama adapter initialized for model: ${model} at ${this.baseUrl}`);
@@ -28,7 +32,7 @@ export class OllamaAdapter implements AiProviderPort {
   async isAvailable(): Promise<boolean> {
     // Cache positive result for 5 minutes to avoid re-checking
     // during the 7-phase pipeline (each phase calls isAvailable).
-    if (this.cachedAvailable === true && (Date.now() - this.cachedAvailableAt) < 300_000) {
+    if (this.cachedAvailable === true && Date.now() - this.cachedAvailableAt < 300_000) {
       return true;
     }
     try {
@@ -37,8 +41,10 @@ export class OllamaAdapter implements AiProviderPort {
       const response = await fetch(`${this.baseUrl}/api/tags`, { signal: controller.signal });
       clearTimeout(timer);
       if (!response.ok) return false;
-      const data = await response.json() as any;
-      const found = Array.isArray(data?.models) && data.models.some((m: any) => m.name.includes(this.model) || this.model.includes(m.name));
+      const data = (await response.json()) as any;
+      const found =
+        Array.isArray(data?.models) &&
+        data.models.some((m: any) => m.name.includes(this.model) || this.model.includes(m.name));
       if (found) {
         this.cachedAvailable = true;
         this.cachedAvailableAt = Date.now();
@@ -58,7 +64,7 @@ export class OllamaAdapter implements AiProviderPort {
     return new Promise((resolve, reject) => {
       const parsedUrl = new URL(urlStr);
       const postData = JSON.stringify(body);
-      
+
       const options = {
         hostname: parsedUrl.hostname,
         port: parsedUrl.port || 80,
@@ -66,20 +72,24 @@ export class OllamaAdapter implements AiProviderPort {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData)
+          'Content-Length': Buffer.byteLength(postData),
         },
-        timeout: 0 // Wait infinitely for CPU token generation
+        timeout: 0, // Wait infinitely for CPU token generation
       };
 
       const req = http.request(options, (res) => {
         let rawData = '';
-        res.on('data', (chunk) => { rawData += chunk; });
+        res.on('data', (chunk) => {
+          rawData += chunk;
+        });
         res.on('end', () => {
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             try {
               resolve(JSON.parse(rawData));
             } catch (e) {
-              reject(new Error(`Failed to parse Ollama JSON response: ${rawData.slice(0, 100)}...`));
+              reject(
+                new Error(`Failed to parse Ollama JSON response: ${rawData.slice(0, 100)}...`),
+              );
             }
           } else {
             reject(new Error(`Ollama API error ${res.statusCode}: ${rawData.slice(0, 200)}`));
@@ -92,7 +102,9 @@ export class OllamaAdapter implements AiProviderPort {
         reject(new Error('Ollama request socket timeout'));
       });
 
-      req.on('error', (e) => { reject(e); });
+      req.on('error', (e) => {
+        reject(e);
+      });
       req.write(postData);
       req.end();
     });
@@ -115,7 +127,7 @@ export class OllamaAdapter implements AiProviderPort {
         num_ctx: 2048,
         repeat_penalty: 1.1,
         top_p: 0.8,
-      }
+      },
     };
 
     if (request.responseFormat === 'json') {
@@ -129,23 +141,26 @@ export class OllamaAdapter implements AiProviderPort {
       let content = data.message?.content || '';
 
       if (request.responseFormat === 'json') {
-        content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        
+        content = content
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim();
+
         const firstBrace = content.indexOf('{');
         const firstBracket = content.indexOf('[');
-        
+
         let startChar = '{';
         let endChar = '}';
-        
+
         // If '[' appears first, parse as JSON Array instead of Object
         if (firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
           startChar = '[';
           endChar = ']';
         }
-        
+
         const startIndex = content.indexOf(startChar);
         const endIndex = content.lastIndexOf(endChar);
-        
+
         if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
           content = content.substring(startIndex, endIndex + 1);
         }
@@ -153,13 +168,16 @@ export class OllamaAdapter implements AiProviderPort {
 
       const latencyMs = Date.now() - start;
 
-      logger.info({
-        provider: 'ollama',
-        model: this.model,
-        latencyMs,
-        inputTokens: data.prompt_eval_count,
-        outputTokens: data.eval_count,
-      }, 'Ollama completion successful');
+      logger.info(
+        {
+          provider: 'ollama',
+          model: this.model,
+          latencyMs,
+          inputTokens: data.prompt_eval_count,
+          outputTokens: data.eval_count,
+        },
+        'Ollama completion successful',
+      );
 
       return {
         content,

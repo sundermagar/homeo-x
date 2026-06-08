@@ -1,7 +1,13 @@
 import { Input } from '../../../components/ui/input';
 import { Textarea } from '../../../components/ui/textarea';
 import { Label } from '../../../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select';
 import type { SoapFieldConfig, PrescriptionFieldConfig } from '../../../types/specialty';
 
 interface SpecialtyFieldsProps {
@@ -36,7 +42,9 @@ export function SpecialtyFields({ fields, values, onChange }: SpecialtyFieldsPro
               </SelectTrigger>
               <SelectContent>
                 {field.options.map((opt) => (
-                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  <SelectItem key={opt} value={opt}>
+                    {opt}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

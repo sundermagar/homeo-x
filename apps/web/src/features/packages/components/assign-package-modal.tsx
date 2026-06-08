@@ -13,33 +13,35 @@ interface AssignPackageModalProps {
   onSuccess?: () => void;
 }
 
-export function AssignPackageModal({ 
-  patientId, 
-  patientName, 
+export function AssignPackageModal({
+  patientId,
+  patientName,
   preselectedPlanId,
-  isOpen, 
-  onClose, 
-  onSuccess 
+  isOpen,
+  onClose,
+  onSuccess,
 }: AssignPackageModalProps) {
   const { data: plans = [], isLoading: plansLoading } = usePackagePlans();
   const assignPackage = useAssignPackage();
 
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(preselectedPlanId ?? null);
-  const [startDate, setStartDate] = useState((new Date().toLocaleString("en-CA", { timeZone: "Asia/Kolkata" }).split(',')[0] ?? ''));
+  const [startDate, setStartDate] = useState(
+    new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0] ?? '',
+  );
   const [startFrom, setStartFrom] = useState<'today' | 'expiry'>('today');
   const [notes, setNotes] = useState('');
 
   // Auto-select the first active plan if none is preselected or selected
   useEffect(() => {
     if (!selectedPlanId && plans.length > 0) {
-      const activePlans = plans.filter(p => p.isActive);
+      const activePlans = plans.filter((p) => p.isActive);
       if (activePlans.length > 0) {
         setSelectedPlanId(activePlans[0]?.id ?? null);
       }
     }
   }, [plans, selectedPlanId]);
 
-  const selectedPlan = plans.find(p => p.id === selectedPlanId);
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,14 +63,8 @@ export function AssignPackageModal({
     }
   };
 
-
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      maxWidth="540px"
-      title="Assign Clinical Package"
-    >
+    <Drawer isOpen={isOpen} onClose={onClose} maxWidth="540px" title="Assign Clinical Package">
       <div className="pkg-drawer-header-meta">
         <div className="pkg-drawer-patient">
           <div className="pkg-drawer-avatar">{(patientName?.[0] || 'P').toUpperCase()}</div>
@@ -83,42 +79,60 @@ export function AssignPackageModal({
         <div className="pkg-form-group">
           <label className="pkg-form-label">Select Membership Plan *</label>
           <div className="pkg-plan-selection-grid">
-            {plansLoading ? (
-              [1, 2, 3].map(i => <div key={i} className="pp-skeleton" style={{ height: '72px', borderRadius: '12px' }} />)
-            ) : plans.filter(p => p.isActive).map(plan => (
-              <div 
-                key={plan.id}
-                className={`pkg-plan-card-mini ${selectedPlanId === plan.id ? 'selected' : ''}`}
-                onClick={() => setSelectedPlanId(plan.id)}
-              >
-                <div className="pkg-plan-card-mini-check">
-                  <CheckCircle2 size={16} fill={selectedPlanId === plan.id ? 'var(--pp-blue)' : 'transparent'} stroke={selectedPlanId === plan.id ? 'white' : 'var(--pp-warm-5)'} />
-                </div>
-                <div className="pkg-plan-card-mini-info">
-                  <div className="pkg-plan-card-mini-name">{plan.name}</div>
-                  <div className="pkg-plan-card-mini-meta">
-                    <Clock size={11} /> {plan.durationDays} Days Validity
-                  </div>
-                </div>
-                <div className="pkg-plan-card-mini-price">₹{plan.price.toLocaleString()}</div>
-              </div>
-            ))}
+            {plansLoading
+              ? [1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="pp-skeleton"
+                    style={{ height: '72px', borderRadius: '12px' }}
+                  />
+                ))
+              : plans
+                  .filter((p) => p.isActive)
+                  .map((plan) => (
+                    <div
+                      key={plan.id}
+                      className={`pkg-plan-card-mini ${selectedPlanId === plan.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedPlanId(plan.id)}
+                    >
+                      <div className="pkg-plan-card-mini-check">
+                        <CheckCircle2
+                          size={16}
+                          fill={selectedPlanId === plan.id ? 'var(--pp-blue)' : 'transparent'}
+                          stroke={selectedPlanId === plan.id ? 'white' : 'var(--pp-warm-5)'}
+                        />
+                      </div>
+                      <div className="pkg-plan-card-mini-info">
+                        <div className="pkg-plan-card-mini-name">{plan.name}</div>
+                        <div className="pkg-plan-card-mini-meta">
+                          <Clock size={11} /> {plan.durationDays} Days Validity
+                        </div>
+                      </div>
+                      <div className="pkg-plan-card-mini-price">₹{plan.price.toLocaleString()}</div>
+                    </div>
+                  ))}
           </div>
         </div>
 
         <div className="pkg-form-group">
           <label className="pkg-form-label">Activation Policy</label>
           <div className="pkg-policy-toggle">
-            <button 
-              type="button" 
-              className={startFrom === 'today' ? 'active' : ''} 
-              onClick={() => { setStartFrom('today'); setStartDate((new Date().toLocaleString("en-CA", { timeZone: "Asia/Kolkata" }).split(',')[0] ?? '')); }}
+            <button
+              type="button"
+              className={startFrom === 'today' ? 'active' : ''}
+              onClick={() => {
+                setStartFrom('today');
+                setStartDate(
+                  new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0] ??
+                    '',
+                );
+              }}
             >
               Start From Today
             </button>
-            <button 
-              type="button" 
-              className={startFrom === 'expiry' ? 'active' : ''} 
+            <button
+              type="button"
+              className={startFrom === 'expiry' ? 'active' : ''}
               onClick={() => setStartFrom('expiry')}
             >
               After Current Expiry
@@ -131,55 +145,68 @@ export function AssignPackageModal({
             <label className="pkg-form-label">Start Date</label>
             <div className="pkg-input-icon-wrapper">
               <Calendar size={14} className="pkg-input-icon" />
-              <input 
-                type="date" 
-                className="pkg-form-input" 
-                value={startDate} 
-                onChange={e => setStartDate(e.target.value)}
+              <input
+                type="date"
+                className="pkg-form-input"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
                 disabled={startFrom === 'expiry'}
-                required 
+                required
               />
             </div>
           </div>
           <div className="pkg-form-group">
             <label className="pkg-form-label">Calculated Expiry</label>
             <div className="pkg-computed-expiry-box">
-              {selectedPlan ? (startFrom === 'expiry' ? 'Auto-extended' : (() => {
-                const start = new Date(startDate);
-                const expiry = new Date(start);
-                const months = Math.max(1, Math.round(selectedPlan.durationDays / 30));
-                expiry.setMonth(expiry.getMonth() + months);
-                if (expiry.getDate() !== start.getDate()) {
-                  expiry.setDate(0);
-                }
-                return expiry.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-              })()) : '—'}
+              {selectedPlan
+                ? startFrom === 'expiry'
+                  ? 'Auto-extended'
+                  : (() => {
+                      const start = new Date(startDate);
+                      const expiry = new Date(start);
+                      const months = Math.max(1, Math.round(selectedPlan.durationDays / 30));
+                      expiry.setMonth(expiry.getMonth() + months);
+                      if (expiry.getDate() !== start.getDate()) {
+                        expiry.setDate(0);
+                      }
+                      return expiry.toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      });
+                    })()
+                : '—'}
             </div>
           </div>
         </div>
 
         <div className="pkg-form-group">
           <label className="pkg-form-label">Internal Remarks</label>
-          <textarea 
-            className="pkg-form-input pkg-textarea" 
+          <textarea
+            className="pkg-form-input pkg-textarea"
             placeholder="Add any specific conditions or instructions..."
             value={notes}
-            onChange={e => setNotes(e.target.value)}
+            onChange={(e) => setNotes(e.target.value)}
           />
         </div>
 
         {selectedPlan && (
           <div className="pkg-billing-notice animate-slide-up">
             <Info size={16} />
-            <p>Assigning this package will automatically generate a bill for <strong>₹{selectedPlan.price.toLocaleString()}</strong>.</p>
+            <p>
+              Assigning this package will automatically generate a bill for{' '}
+              <strong>₹{selectedPlan.price.toLocaleString()}</strong>.
+            </p>
           </div>
         )}
 
         <div className="pkg-drawer-footer">
-          <button type="button" className="pp-btn pp-btn-secondary" onClick={onClose}>Cancel</button>
-          <button 
-            type="submit" 
-            className="pp-btn pp-btn-primary" 
+          <button type="button" className="pp-btn pp-btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="pp-btn pp-btn-primary"
             disabled={!selectedPlanId || assignPackage.isPending}
           >
             {assignPackage.isPending ? 'Processing...' : 'Confirm Assignment'}

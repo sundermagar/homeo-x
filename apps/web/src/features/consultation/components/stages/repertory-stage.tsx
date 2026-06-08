@@ -1,6 +1,12 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { Pencil, ArrowLeft, Check, Plus, X, Loader2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../../../components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../../../../components/ui/dialog';
 import type { ScoredRemedy, SuggestedRubric } from '../../../../types/ai';
 
 export interface RemedyRxRow {
@@ -16,19 +22,19 @@ export interface RemedyRxRow {
 function parseDurationToDays(durationStr: string): number {
   if (!durationStr) return 0;
   const cleaned = durationStr.toLowerCase().trim();
-  
+
   const daysMatch = cleaned.match(/^(\d+)\s*day/);
   if (daysMatch) return parseInt(daysMatch[1]!, 10);
-  
+
   const weeksMatch = cleaned.match(/^(\d+)\s*week/);
   if (weeksMatch) return parseInt(weeksMatch[1]!, 10) * 7;
-  
+
   const monthsMatch = cleaned.match(/^(\d+)\s*month/);
   if (monthsMatch) return parseInt(monthsMatch[1]!, 10) * 30;
-  
+
   const bareNumberMatch = cleaned.match(/^(\d+)$/);
   if (bareNumberMatch) return parseInt(bareNumberMatch[1]!, 10);
-  
+
   return 0;
 }
 
@@ -36,7 +42,11 @@ interface RepertoryStageProps {
   selectedRubrics: SuggestedRubric[];
   scoredRemedies: ScoredRemedy[];
   onApplyRemedy?: (remedyName: string, potency: string) => void;
-  onApplyAllRemedies?: (rows: RemedyRxRow[], advice: string, followUp: string) => void | Promise<void>;
+  onApplyAllRemedies?: (
+    rows: RemedyRxRow[],
+    advice: string,
+    followUp: string,
+  ) => void | Promise<void>;
   onComplete?: () => void;
   isCompleting?: boolean;
   aiAdvice?: string;
@@ -84,7 +94,7 @@ export function RepertoryStage({
   // Sync Next Review Date with the maximum prescribed medicine duration
   useEffect(() => {
     if (userEditedFollowUp.current || rxRows.length === 0) return;
-    
+
     let maxDays = 0;
     for (const row of rxRows) {
       const days = parseDurationToDays(row.duration);
@@ -92,7 +102,7 @@ export function RepertoryStage({
         maxDays = days;
       }
     }
-    
+
     if (maxDays > 0) {
       const date = new Date();
       date.setDate(date.getDate() + maxDays);
@@ -113,29 +123,28 @@ export function RepertoryStage({
     return scoredRemedies.slice(0, 4);
   }, [scoredRemedies]);
 
-
   // Toggle a remedy in/out of the selection
   const handleToggleRemedy = (remedy: ScoredRemedy) => {
     const isAlreadySelected = selectedRemedyIds.has(remedy.remedyId);
 
     if (isAlreadySelected) {
       // Remove from selection
-      setSelectedRemedyIds(prev => {
+      setSelectedRemedyIds((prev) => {
         const next = new Set(prev);
         next.delete(remedy.remedyId);
         return next;
       });
-      setRxRows(rows => rows.filter(r => r.remedyId !== remedy.remedyId));
+      setRxRows((rows) => rows.filter((r) => r.remedyId !== remedy.remedyId));
     } else {
       // Add to selection — guard against duplicates explicitly
-      setSelectedRemedyIds(prev => {
+      setSelectedRemedyIds((prev) => {
         const next = new Set(prev);
         next.add(remedy.remedyId);
         return next;
       });
-      setRxRows(rows => {
+      setRxRows((rows) => {
         // Guard: don't add if already present (StrictMode safety)
-        if (rows.some(r => r.remedyId === remedy.remedyId)) return rows;
+        if (rows.some((r) => r.remedyId === remedy.remedyId)) return rows;
         return [
           ...rows,
           {
@@ -149,12 +158,15 @@ export function RepertoryStage({
           },
         ];
       });
-      setTimeout(() => rxAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+      setTimeout(
+        () => rxAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+        200,
+      );
     }
   };
 
   const updateRxRow = (remedyId: string, field: keyof RemedyRxRow, value: string) => {
-    setRxRows(rows => rows.map(r => r.remedyId === remedyId ? { ...r, [field]: value } : r));
+    setRxRows((rows) => rows.map((r) => (r.remedyId === remedyId ? { ...r, [field]: value } : r)));
   };
 
   const todayDate = new Date().toLocaleDateString('en-IN', {
@@ -165,18 +177,16 @@ export function RepertoryStage({
 
   return (
     <div className="space-y-8 pp-fade-in relative">
-      
       {/* ── Progress bar ── */}
       <div className="w-full">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">Step 4 of 4</span>
+          <span className="text-[11px] font-bold text-[#888786] uppercase tracking-widest">
+            Step 4 of 4
+          </span>
           <span className="text-[11px] font-bold text-[#4A4A47]">100%</span>
         </div>
         <div className="w-full h-1.5 bg-[#E3E2DF] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-[#2563EB] rounded-full"
-            style={{ width: '100%' }}
-          />
+          <div className="h-full bg-[#2563EB] rounded-full" style={{ width: '100%' }} />
         </div>
       </div>
 
@@ -187,7 +197,6 @@ export function RepertoryStage({
           Review scored remedies. Select cards to build the final prescription.
         </p>
       </div>
-
 
       {/* ── Selection hint ── */}
       {selectedRemedyIds.size === 0 && (
@@ -203,7 +212,8 @@ export function RepertoryStage({
         <div className="pp-card px-5 py-3 bg-[#EFF6FF] border-[#BFDBFE] flex items-center justify-center gap-2 animate-in zoom-in-95 duration-300">
           <Check className="h-4 w-4 text-[#2563EB] shrink-0" />
           <p className="text-[13px] text-[#1E3A8A] font-bold tracking-tight">
-            {selectedRemedyIds.size} {selectedRemedyIds.size === 1 ? 'remedy' : 'remedies'} added to prescription. Scroll down to review.
+            {selectedRemedyIds.size} {selectedRemedyIds.size === 1 ? 'remedy' : 'remedies'} added to
+            prescription. Scroll down to review.
           </p>
         </div>
       )}
@@ -224,8 +234,8 @@ export function RepertoryStage({
                   isSelected
                     ? 'border-[#2563EB] bg-[#EFF6FF] ring-2 ring-[#BFDBFE] -translate-y-0.5'
                     : isFirst
-                    ? 'bg-white border-[#FDE68A] shadow-sm -translate-y-0.5'
-                    : 'bg-white border-[#E3E2DF] hover:border-[#BFDBFE]'
+                      ? 'bg-white border-[#FDE68A] shadow-sm -translate-y-0.5'
+                      : 'bg-white border-[#E3E2DF] hover:border-[#BFDBFE]'
                 }`}
               >
                 {/* Rank / Selected badge */}
@@ -234,12 +244,14 @@ export function RepertoryStage({
                     isSelected
                       ? 'bg-[#2563EB] text-white'
                       : isFirst
-                      ? 'bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]'
-                      : 'bg-[#FAFAF8] text-[#888786]'
+                        ? 'bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]'
+                        : 'bg-[#FAFAF8] text-[#888786]'
                   }`}
                 >
                   {isSelected ? (
-                    <><Check className="h-3.5 w-3.5" /> ADDED</>
+                    <>
+                      <Check className="h-3.5 w-3.5" /> ADDED
+                    </>
                   ) : isFirst ? (
                     'BEST MATCH'
                   ) : (
@@ -248,9 +260,13 @@ export function RepertoryStage({
                 </span>
 
                 {/* Remedy name */}
-                <h4 className="text-lg font-bold text-[#0F0F0E] pr-28 tracking-tight">{remedy.remedyName}</h4>
+                <h4 className="text-lg font-bold text-[#0F0F0E] pr-28 tracking-tight">
+                  {remedy.remedyName}
+                </h4>
                 {remedy.commonName && (
-                  <p className="text-[11px] font-bold text-[#888786] mt-1 uppercase tracking-widest">{remedy.commonName}</p>
+                  <p className="text-[11px] font-bold text-[#888786] mt-1 uppercase tracking-widest">
+                    {remedy.commonName}
+                  </p>
                 )}
 
                 {/* Score bar */}
@@ -314,14 +330,22 @@ export function RepertoryStage({
 
       {/* ═════════ Prescription Area ═════════ */}
       {rxRows.length > 0 && (
-        <div ref={rxAreaRef} className="rx-area space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-400">
+        <div
+          ref={rxAreaRef}
+          className="rx-area space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-400"
+        >
           <hr className="border-[#E3E2DF]" />
 
           {/* Prescription header */}
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-[15px] font-bold text-[#0F0F0E] tracking-tight">Final Prescription</h3>
-
+              <h3 className="text-[15px] font-bold text-[#0F0F0E] tracking-tight">
+                Final Prescription
+              </h3>
+              <p className="text-[12px] font-medium text-[#4A4A47] mt-1">
+                {rxRows.length} {rxRows.length === 1 ? 'remedy' : 'remedies'} — edit details below
+                before approving
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -346,10 +370,12 @@ export function RepertoryStage({
                 </div>
                 <div>
                   <h4 className="text-[14px] font-bold text-[#0F0F0E] tracking-tight">
-                    {rxRows.map(r => r.remedyName).join(' + ')}
+                    {rxRows.map((r) => r.remedyName).join(' + ')}
                   </h4>
                   <p className="text-[12px] font-medium text-[#4A4A47] mt-1">
-                    {rxRows.map(r => r.potency).join(', ')} <span className="text-[#E3E2DF] px-1">•</span> {rxRows.length} {rxRows.length === 1 ? 'remedy' : 'remedies'}
+                    {rxRows.map((r) => r.potency).join(', ')}{' '}
+                    <span className="text-[#E3E2DF] px-1">•</span> {rxRows.length}{' '}
+                    {rxRows.length === 1 ? 'remedy' : 'remedies'}
                   </p>
                 </div>
               </div>
@@ -363,64 +389,83 @@ export function RepertoryStage({
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b border-[#E3E2DF]">
-                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">Remedy</th>
-                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">Potency</th>
-                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">Dose</th>
-                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">Frequency</th>
-                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">Duration</th>
-                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">Instruction</th>
+                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">
+                      Remedy
+                    </th>
+                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">
+                      Potency
+                    </th>
+                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">
+                      Dose
+                    </th>
+                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">
+                      Frequency
+                    </th>
+                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">
+                      Duration
+                    </th>
+                    <th className="text-left px-4 py-2 text-[10px] font-bold text-[#888786] uppercase tracking-widest">
+                      Instruction
+                    </th>
                     <th className="px-3 py-2" />
                   </tr>
                 </thead>
                 <tbody>
                   {rxRows.map((row) => (
-                    <tr key={row.remedyId} className="border-b border-[#E3E2DF] border-dashed last:border-0 hover:bg-[#FAFAF8] group transition-colors">
+                    <tr
+                      key={row.remedyId}
+                      className="border-b border-[#E3E2DF] border-dashed last:border-0 hover:bg-[#FAFAF8] group transition-colors"
+                    >
                       <td className="px-4 py-3 font-bold text-[#0F0F0E] whitespace-nowrap">
                         <input
                           value={row.remedyName}
-                          onChange={e => updateRxRow(row.remedyId, 'remedyName', e.target.value)}
+                          onChange={(e) => updateRxRow(row.remedyId, 'remedyName', e.target.value)}
                           className="w-48 text-[12px] font-bold text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-2 py-1 outline-none focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#EFF6FF] transition-all"
                         />
                       </td>
                       <td className="px-4 py-3">
                         <input
                           value={row.potency}
-                          onChange={e => updateRxRow(row.remedyId, 'potency', e.target.value)}
+                          onChange={(e) => updateRxRow(row.remedyId, 'potency', e.target.value)}
                           className="w-20 text-[12px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-2 py-1 outline-none focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#EFF6FF] transition-all"
                         />
                       </td>
                       <td className="px-4 py-3">
                         <input
                           value={row.dose}
-                          onChange={e => updateRxRow(row.remedyId, 'dose', e.target.value)}
+                          onChange={(e) => updateRxRow(row.remedyId, 'dose', e.target.value)}
                           className="w-20 text-[12px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-2 py-1 outline-none focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#EFF6FF] transition-all"
                         />
                       </td>
                       <td className="px-4 py-3">
                         <input
                           value={row.frequency}
-                          onChange={e => updateRxRow(row.remedyId, 'frequency', e.target.value)}
+                          onChange={(e) => updateRxRow(row.remedyId, 'frequency', e.target.value)}
                           className="w-28 text-[12px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-2 py-1 outline-none focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#EFF6FF] transition-all"
                         />
                       </td>
                       <td className="px-4 py-3">
                         <input
                           value={row.duration}
-                          onChange={e => updateRxRow(row.remedyId, 'duration', e.target.value)}
+                          onChange={(e) => updateRxRow(row.remedyId, 'duration', e.target.value)}
                           className="w-24 text-[12px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-2 py-1 outline-none focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#EFF6FF] transition-all"
                         />
                       </td>
                       <td className="px-4 py-3">
                         <input
                           value={row.instruction}
-                          onChange={e => updateRxRow(row.remedyId, 'instruction', e.target.value)}
+                          onChange={(e) => updateRxRow(row.remedyId, 'instruction', e.target.value)}
                           className="w-52 text-[12px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-2 py-1 outline-none focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#EFF6FF] transition-all"
                         />
                       </td>
                       <td className="px-3 py-3">
                         <button
                           type="button"
-                          onClick={() => handleToggleRemedy(scoredRemedies.find(r => r.remedyId === row.remedyId)!)}
+                          onClick={() =>
+                            handleToggleRemedy(
+                              scoredRemedies.find((r) => r.remedyId === row.remedyId)!,
+                            )
+                          }
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-[#888786] hover:text-[#DC2626] p-1.5 rounded-md hover:bg-[#FEF2F2]"
                           title="Remove remedy"
                         >
@@ -442,34 +487,62 @@ export function RepertoryStage({
                   <Loader2 className="h-3 w-3 animate-spin" />
                   Generating Notes...
                 </span>
-              ) : (advice || followUp) ? (
-                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-[4px] bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE]">AI Formulated</span>
+              ) : advice || followUp ? (
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-[4px] bg-[#EFF6FF] text-[#2563EB] border border-[#BFDBFE]">
+                  AI Formulated
+                </span>
               ) : null}
             </div>
             <div>
-              <label htmlFor="rx-advice" className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              <label
+                htmlFor="rx-advice"
+                className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5"
+              >
                 Advice / Dietary Instructions
               </label>
               <textarea
                 id="rx-advice"
                 value={advice}
-                onChange={e => { userEditedAdvice.current = true; setAdvice(e.target.value); e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-                onFocus={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-                ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }}
+                onChange={(e) => {
+                  userEditedAdvice.current = true;
+                  setAdvice(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                onFocus={(e) => {
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                ref={(el) => {
+                  if (el) {
+                    el.style.height = 'auto';
+                    el.style.height = el.scrollHeight + 'px';
+                  }
+                }}
                 disabled={isGeneratingAdvice}
-                placeholder={isGeneratingAdvice ? 'AI is generating patient-specific advice...' : 'Enter advice for this patient...'}
+                placeholder={
+                  isGeneratingAdvice
+                    ? 'AI is generating patient-specific advice...'
+                    : 'Enter advice for this patient...'
+                }
                 className={`w-full bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-4 py-3 text-[13px] font-medium text-[#0F0F0E] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white resize-none overflow-hidden min-h-[4rem] transition-all ${isGeneratingAdvice ? 'animate-pulse' : ''}`}
               />
             </div>
             <div>
-              <label htmlFor="rx-followup" className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+              <label
+                htmlFor="rx-followup"
+                className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5"
+              >
                 Next Review Date
               </label>
               <input
                 id="rx-followup"
                 type="date"
                 value={followUp}
-                onChange={e => { userEditedFollowUp.current = true; setFollowUp(e.target.value); }}
+                onChange={(e) => {
+                  userEditedFollowUp.current = true;
+                  setFollowUp(e.target.value);
+                }}
                 disabled={isGeneratingAdvice}
                 className={`w-full max-w-[300px] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 text-[13px] font-medium text-[#0F0F0E] outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all ${isGeneratingAdvice ? 'animate-pulse' : ''}`}
               />
@@ -480,7 +553,10 @@ export function RepertoryStage({
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <button
               className="pp-btn-secondary h-10 w-full sm:w-auto px-4 !text-[13px] flex items-center justify-center gap-2"
-              onClick={() => { setSelectedRemedyIds(new Set()); setRxRows([]); }}
+              onClick={() => {
+                setSelectedRemedyIds(new Set());
+                setRxRows([]);
+              }}
             >
               <ArrowLeft className="h-4 w-4" />
               Clear Selection
@@ -499,7 +575,10 @@ export function RepertoryStage({
           </DialogHeader>
           <div className="p-6 max-h-[60vh] overflow-y-auto space-y-6">
             {editRows.map((row, idx) => (
-              <div key={row.remedyId} className="border-b border-[#E3E2DF] last:border-0 pb-6 mb-6 last:pb-0 last:mb-0 space-y-4">
+              <div
+                key={row.remedyId}
+                className="border-b border-[#E3E2DF] last:border-0 pb-6 mb-6 last:pb-0 last:mb-0 space-y-4"
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] font-black text-[#2563EB] uppercase tracking-widest bg-[#EFF6FF] border border-[#BFDBFE] px-2.5 py-1 rounded-[4px]">
                     Remedy #{idx + 1}: {row.remedyName || 'New Remedy'}
@@ -507,72 +586,106 @@ export function RepertoryStage({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Remedy Name</label>
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+                      Remedy Name
+                    </label>
                     <input
                       value={row.remedyName}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, remedyName: val } : r));
+                        setEditRows((prev) =>
+                          prev.map((r) =>
+                            r.remedyId === row.remedyId ? { ...r, remedyName: val } : r,
+                          ),
+                        );
                       }}
                       className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
                       placeholder="e.g. Lycopodium clavatum"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Potency</label>
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+                      Potency
+                    </label>
                     <input
                       value={row.potency}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, potency: val } : r));
+                        setEditRows((prev) =>
+                          prev.map((r) =>
+                            r.remedyId === row.remedyId ? { ...r, potency: val } : r,
+                          ),
+                        );
                       }}
                       className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
                       placeholder="e.g. 200C"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Dosage</label>
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+                      Dosage
+                    </label>
                     <input
                       value={row.dose}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, dose: val } : r));
+                        setEditRows((prev) =>
+                          prev.map((r) => (r.remedyId === row.remedyId ? { ...r, dose: val } : r)),
+                        );
                       }}
                       className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
                       placeholder="e.g. 2 pills"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Frequency</label>
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+                      Frequency
+                    </label>
                     <input
                       value={row.frequency}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, frequency: val } : r));
+                        setEditRows((prev) =>
+                          prev.map((r) =>
+                            r.remedyId === row.remedyId ? { ...r, frequency: val } : r,
+                          ),
+                        );
                       }}
                       className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
                       placeholder="e.g. Single dose"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Duration</label>
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+                      Duration
+                    </label>
                     <input
                       value={row.duration}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, duration: val } : r));
+                        setEditRows((prev) =>
+                          prev.map((r) =>
+                            r.remedyId === row.remedyId ? { ...r, duration: val } : r,
+                          ),
+                        );
                       }}
                       className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
                       placeholder="e.g. 30 days"
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">Instruction</label>
+                    <label className="block text-[11px] font-bold text-[#888786] uppercase tracking-widest mb-1.5">
+                      Instruction
+                    </label>
                     <input
                       value={row.instruction}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setEditRows(prev => prev.map(r => r.remedyId === row.remedyId ? { ...r, instruction: val } : r));
+                        setEditRows((prev) =>
+                          prev.map((r) =>
+                            r.remedyId === row.remedyId ? { ...r, instruction: val } : r,
+                          ),
+                        );
                       }}
                       className="w-full text-[13px] font-medium text-[#0F0F0E] bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-3 py-2 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#EFF6FF] focus:bg-white transition-all"
                       placeholder="e.g. Dissolve under tongue, empty stomach"

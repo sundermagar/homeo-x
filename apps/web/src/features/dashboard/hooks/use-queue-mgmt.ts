@@ -10,8 +10,12 @@ export function useQueueMgmt() {
   };
 
   const checkIn = useMutation({
-    mutationFn: (dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number }) =>
-      apiClient.post('/appointments/waiting', dto),
+    mutationFn: (dto: {
+      patientId?: number;
+      appointmentId?: number;
+      doctorId?: number;
+      consultationFee?: number;
+    }) => apiClient.post('/appointments/waiting', dto),
     onSuccess: invalidate,
   });
 
@@ -41,6 +45,11 @@ export function useQueueMgmt() {
     skip,
     complete,
     issueToken,
-    isLoading: checkIn.isPending || callNext.isPending || skip.isPending || complete.isPending || issueToken.isPending
+    isLoading:
+      checkIn.isPending ||
+      callNext.isPending ||
+      skip.isPending ||
+      complete.isPending ||
+      issueToken.isPending,
   };
 }

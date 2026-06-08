@@ -49,7 +49,10 @@ export function ConsultationPage() {
   // Start consultation if visit is CHECKED_IN
   useEffect(() => {
     if (visit && visit.status === 'CHECKED_IN' && visitId) {
-      startConsultation.mutateAsync(visitId).then(() => refetch()).catch(() => {});
+      startConsultation
+        .mutateAsync(visitId)
+        .then(() => refetch())
+        .catch(() => {});
     }
   }, [visit?.status]);
 
@@ -74,10 +77,13 @@ export function ConsultationPage() {
           assessment: soapData.assessment || undefined,
           plan: soapData.plan || undefined,
           icdCodes: icdCodes.length > 0 ? icdCodes : undefined,
-          specialtyData: Object.keys(soapData.specialtyData).length > 0 ? soapData.specialtyData : undefined,
+          specialtyData:
+            Object.keys(soapData.specialtyData).length > 0 ? soapData.specialtyData : undefined,
         },
         prescription: (() => {
-          const filledItems = rxData.items.filter((item) => item.medicationName && item.dosage && item.frequency && item.duration);
+          const filledItems = rxData.items.filter(
+            (item) => item.medicationName && item.dosage && item.frequency && item.duration,
+          );
           return filledItems.length > 0
             ? { notes: rxData.notes || undefined, items: filledItems }
             : undefined;
@@ -114,7 +120,13 @@ export function ConsultationPage() {
             : visit.visitNumber
         }
         actions={
-          <Badge variant="outline">{typeof visit.specialty === 'string' ? visit.specialty : String((visit.specialty as any)?.displayName || (visit.specialty as any)?.name || '')}</Badge>
+          <Badge variant="outline">
+            {typeof visit.specialty === 'string'
+              ? visit.specialty
+              : String(
+                  (visit.specialty as any)?.displayName || (visit.specialty as any)?.name || '',
+                )}
+          </Badge>
         }
       />
 
@@ -133,11 +145,11 @@ export function ConsultationPage() {
               }`}
             >
               {i < currentIndex && <CheckCircle className="h-3 w-3" />}
-              <span>{i + 1}. {s.label}</span>
+              <span>
+                {i + 1}. {s.label}
+              </span>
             </button>
-            {i < steps.length - 1 && (
-              <div className="h-px w-6 bg-gray-300" />
-            )}
+            {i < steps.length - 1 && <div className="h-px w-6 bg-gray-300" />}
           </div>
         ))}
       </div>
@@ -172,27 +184,37 @@ export function ConsultationPage() {
             data={soapData}
             onChange={setSoapData}
             specialtyFields={specialtyConfig?.soapFields}
-            aiContext={visitId && visit.chiefComplaint ? {
-              visitId,
-              chiefComplaint: visit.chiefComplaint,
-              specialty: visit.specialty,
-              vitals: visit.vitals ? {
-                heightCm: visit.vitals.heightCm,
-                weightKg: visit.vitals.weightKg,
-                temperatureF: visit.vitals.temperatureF,
-                pulseRate: visit.vitals.pulseRate,
-                systolicBp: visit.vitals.systolicBp,
-                diastolicBp: visit.vitals.diastolicBp,
-              } : undefined,
-              patientAge: patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : undefined,
-              patientGender: patient?.gender,
-              allergies: patient?.allergies,
-            } : undefined}
+            aiContext={
+              visitId && visit.chiefComplaint
+                ? {
+                    visitId,
+                    chiefComplaint: visit.chiefComplaint,
+                    specialty: visit.specialty,
+                    vitals: visit.vitals
+                      ? {
+                          heightCm: visit.vitals.heightCm,
+                          weightKg: visit.vitals.weightKg,
+                          temperatureF: visit.vitals.temperatureF,
+                          pulseRate: visit.vitals.pulseRate,
+                          systolicBp: visit.vitals.systolicBp,
+                          diastolicBp: visit.vitals.diastolicBp,
+                        }
+                      : undefined,
+                    patientAge: patient?.dateOfBirth
+                      ? calculateAge(patient.dateOfBirth)
+                      : undefined,
+                    patientGender: patient?.gender,
+                    allergies: patient?.allergies,
+                  }
+                : undefined
+            }
             externalSuggestion={scribeSuggestion}
             onExternalSuggestionHandled={() => setScribeSuggestion(null)}
           />
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep('vitals')}>Back</Button>
+            <Button variant="outline" onClick={() => setStep('vitals')}>
+              Back
+            </Button>
             <Button onClick={() => setStep('prescription')}>Next: Prescription</Button>
           </div>
         </div>
@@ -203,17 +225,25 @@ export function ConsultationPage() {
           <PrescriptionBuilder
             control={rxForm.control}
             register={rxForm.register}
-            aiContext={soapData.assessment ? {
-              diagnoses: [soapData.assessment],
-              patientAge: patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : undefined,
-              patientGender: patient?.gender,
-              patientWeight: visit.vitals?.weightKg ?? undefined,
-              allergies: patient?.allergies,
-              specialty: visit.specialty,
-            } : undefined}
+            aiContext={
+              soapData.assessment
+                ? {
+                    diagnoses: [soapData.assessment],
+                    patientAge: patient?.dateOfBirth
+                      ? calculateAge(patient.dateOfBirth)
+                      : undefined,
+                    patientGender: patient?.gender,
+                    patientWeight: visit.vitals?.weightKg ?? undefined,
+                    allergies: patient?.allergies,
+                    specialty: visit.specialty,
+                  }
+                : undefined
+            }
           />
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep('soap')}>Back</Button>
+            <Button variant="outline" onClick={() => setStep('soap')}>
+              Back
+            </Button>
             <Button onClick={() => setStep('review')}>Next: Review</Button>
           </div>
         </div>
@@ -224,13 +254,32 @@ export function ConsultationPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
             <h3 className="text-lg font-semibold">Review & Complete</h3>
 
-            {(soapData.subjective || soapData.objective || soapData.assessment || soapData.plan) && (
+            {(soapData.subjective ||
+              soapData.objective ||
+              soapData.assessment ||
+              soapData.plan) && (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-gray-700">SOAP Note</h4>
-                {soapData.subjective && <p className="text-sm"><strong>S:</strong> {soapData.subjective}</p>}
-                {soapData.objective && <p className="text-sm"><strong>O:</strong> {soapData.objective}</p>}
-                {soapData.assessment && <p className="text-sm"><strong>A:</strong> {soapData.assessment}</p>}
-                {soapData.plan && <p className="text-sm"><strong>P:</strong> {soapData.plan}</p>}
+                {soapData.subjective && (
+                  <p className="text-sm">
+                    <strong>S:</strong> {soapData.subjective}
+                  </p>
+                )}
+                {soapData.objective && (
+                  <p className="text-sm">
+                    <strong>O:</strong> {soapData.objective}
+                  </p>
+                )}
+                {soapData.assessment && (
+                  <p className="text-sm">
+                    <strong>A:</strong> {soapData.assessment}
+                  </p>
+                )}
+                {soapData.plan && (
+                  <p className="text-sm">
+                    <strong>P:</strong> {soapData.plan}
+                  </p>
+                )}
               </div>
             )}
 
@@ -249,7 +298,9 @@ export function ConsultationPage() {
           </div>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep('prescription')}>Back</Button>
+            <Button variant="outline" onClick={() => setStep('prescription')}>
+              Back
+            </Button>
             <Button onClick={handleComplete} disabled={completeConsultation.isPending}>
               <CheckCircle className="h-4 w-4" />
               {completeConsultation.isPending ? 'Completing...' : 'Complete Consultation'}

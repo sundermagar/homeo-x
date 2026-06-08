@@ -47,12 +47,15 @@ export async function seedGrowthReferences(db: DbClient) {
 
   console.log('Seeding growth references...');
   for (const row of data) {
-    await db.insert(growthReferences).values({
-      months: row.months,
-      gender: row.gender,
-      idealHeightCm: row.idealHeightCm,
-      idealWeightKg: row.idealWeightKg,
-    }).onConflictDoNothing();
+    await db
+      .insert(growthReferences)
+      .values({
+        months: row.months,
+        gender: row.gender,
+        idealHeightCm: row.idealHeightCm,
+        idealWeightKg: row.idealWeightKg,
+      })
+      .onConflictDoNothing();
   }
   console.log('Growth references seeded.');
 }

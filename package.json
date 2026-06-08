@@ -25,10 +25,12 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },
   "dependencies": {
+    "node-cron": "^4.2.1",
     "turbo": "^2.4.0",
     "typescript": "^5.7.0"
   },
   "devDependencies": {
+    "@types/node-cron": "^3.0.11",
     "prettier": "^3.4.0"
   },
   "engines": {

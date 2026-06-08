@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { StickyNote, Plus, X, RefreshCw, Trash2, Edit2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useStickers, useCreateSticker, useUpdateSticker, useDeleteSticker } from '../hooks/use-settings';
+import {
+  useStickers,
+  useCreateSticker,
+  useUpdateSticker,
+  useDeleteSticker,
+} from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
 import '../../platform/styles/platform.css';
 import '../styles/settings.css';
@@ -25,19 +30,14 @@ export default function StickersPage() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const filteredStickers = stickers.filter((sticker: any) =>
-    sticker.name?.toLowerCase().includes(search.toLowerCase()) ||
-    sticker.detail?.toLowerCase().includes(search.toLowerCase())
+  const filteredStickers = stickers.filter(
+    (sticker: any) =>
+      sticker.name?.toLowerCase().includes(search.toLowerCase()) ||
+      sticker.detail?.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filteredStickers);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filteredStickers);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -48,9 +48,9 @@ export default function StickersPage() {
 
   const handleOpenEdit = (sticker: any) => {
     setEditingId(sticker.id);
-    setForm({ 
-      name: sticker.name, 
-      detail: sticker.detail
+    setForm({
+      name: sticker.name,
+      detail: sticker.detail,
     });
     setError(null);
     setIsModalOpen(true);
@@ -68,7 +68,11 @@ export default function StickersPage() {
       setIsModalOpen(false);
     } catch (err: any) {
       console.error('Sticker Op Error:', err);
-      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Operation failed';
+      const msg =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        'Operation failed';
       setError(msg);
     }
   };
@@ -80,15 +84,15 @@ export default function StickersPage() {
 
   return (
     <div className="plat-page fade-in">
-
-
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
             <StickyNote size={22} style={{ color: 'var(--pp-blue)' }} />
             Medicine Stickers
           </h1>
-          <p className="pp-page-hero-sub">Configure templates for printing medicine dosage stickers.</p>
+          <p className="pp-page-hero-sub">
+            Configure templates for printing medicine dosage stickers.
+          </p>
         </div>
         <div className="pp-page-hero-actions">
           <button className="btn-primary" onClick={handleOpenCreate}>
@@ -111,7 +115,7 @@ export default function StickersPage() {
       <div className="pp-filter-card">
         <div className="pp-filter-search-wrap">
           <Search size={14} />
-          <input 
+          <input
             type="text"
             placeholder="Search sticker templates..."
             className="pp-filter-search-input"
@@ -125,11 +129,15 @@ export default function StickersPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : filteredStickers.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={StickyNote}
-            title={search ? "No matches found" : "No templates found"}
-            description={search ? `No sticker templates matching "${search}" were found.` : "Create a new sticker template to simplify your medicine dispensing workflow."}
-            actionLabel={search ? "Clear Search" : "Add Template"}
+            title={search ? 'No matches found' : 'No templates found'}
+            description={
+              search
+                ? `No sticker templates matching "${search}" were found.`
+                : 'Create a new sticker template to simplify your medicine dispensing workflow.'
+            }
+            actionLabel={search ? 'Clear Search' : 'Add Template'}
             onAction={search ? () => setSearch('') : handleOpenCreate}
             variant="card"
             className="my-8"
@@ -147,9 +155,18 @@ export default function StickersPage() {
               </thead>
               <tbody>
                 {paginatedData.map((sticker: any, idx: number) => (
-                  <tr key={sticker.id} className="pp-hover-row" onClick={() => handleOpenEdit(sticker)} style={{ cursor: 'pointer' }}>
-                    <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
-                    <td data-label="Name" className="plat-table-cell font-semibold">{sticker.name}</td>
+                  <tr
+                    key={sticker.id}
+                    className="pp-hover-row"
+                    onClick={() => handleOpenEdit(sticker)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td data-label="#" className="plat-table-cell font-mono text-xs color-muted">
+                      {(currentPage - 1) * itemsPerPage + idx + 1}
+                    </td>
+                    <td data-label="Name" className="plat-table-cell font-semibold">
+                      {sticker.name}
+                    </td>
                     <td data-label="Detail" className="plat-table-cell text-secondary">
                       <div className="truncate max-w-[280px]" title={sticker.detail}>
                         {sticker.detail}
@@ -157,10 +174,16 @@ export default function StickersPage() {
                     </td>
                     <td data-label="Action" className="plat-table-cell">
                       <div className="flex justify-end gap-3">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(sticker)}>
+                        <button
+                          className="plat-btn plat-btn-sm plat-btn-icon"
+                          onClick={() => handleOpenEdit(sticker)}
+                        >
                           <Edit2 size={13} />
                         </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(sticker.id, sticker.name)}>
+                        <button
+                          className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                          onClick={() => handleDelete(sticker.id, sticker.name)}
+                        >
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -169,21 +192,21 @@ export default function StickersPage() {
                 ))}
               </tbody>
             </table>
-              </>
-            )}
-          </div>
+          </>
+        )}
+      </div>
 
-          {!isLoading && filteredStickers.length > 0 && (
-            <div style={{ marginTop: '20px' }}>
-            <Pagination
-                totalItems={totalItems}
-                itemsPerPage={itemsPerPage}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
-                onLimitChange={setItemsPerPage}
-              />
-          </div>
-          )}
+      {!isLoading && filteredStickers.length > 0 && (
+        <div style={{ marginTop: '20px' }}>
+          <Pagination
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+          />
+        </div>
+      )}
 
       <Drawer
         isOpen={isModalOpen}
@@ -193,10 +216,16 @@ export default function StickersPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
                 {error && (
-                  <div className="plat-alert plat-alert-danger" style={{ marginBottom: '1rem', fontSize: '13px' }}>
+                  <div
+                    className="plat-alert plat-alert-danger"
+                    style={{ marginBottom: '1rem', fontSize: '13px' }}
+                  >
                     {error}
                   </div>
                 )}
@@ -205,7 +234,7 @@ export default function StickersPage() {
                   <input
                     className="plat-form-input"
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     required
                     placeholder="e.g. 5 drops 3 times a day"
                   />
@@ -216,7 +245,7 @@ export default function StickersPage() {
                     className="plat-form-input"
                     style={{ minHeight: '160px' }}
                     value={form.detail}
-                    onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, detail: e.target.value }))}
                     required
                     placeholder="The text that will appear on the sticker..."
                   />
@@ -225,14 +254,19 @@ export default function StickersPage() {
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={createSticker.isPending || updateSticker.isPending}>
+            <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={createSticker.isPending || updateSticker.isPending}
+            >
               {editingId ? 'Save Changes' : 'Create Template'}
             </button>
           </div>
         </form>
       </Drawer>
-
     </div>
   );
 }

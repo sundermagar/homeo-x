@@ -25,10 +25,13 @@ import path from 'path';
 const envPath = path.join(process.cwd(), '../../.env');
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf8');
-  envContent.split('\n').forEach(line => {
+  envContent.split('\n').forEach((line) => {
     const [key, ...values] = line.split('=');
     if (key && values.length > 0) {
-      process.env[key.trim()] = values.join('=').trim().replace(/^["']|["']$/g, '');
+      process.env[key.trim()] = values
+        .join('=')
+        .trim()
+        .replace(/^["']|["']$/g, '');
     }
   });
 }
@@ -82,10 +85,13 @@ async function main() {
       await runSeed('Vaccines', seedVaccines);
       await runSeed('Test Data', seedTestData);
     } catch (err) {
-      console.error(`[Seed] ❌ Failed to seed tenant ${tenant.displayName} (${tenant.schemaName}):`, err);
+      console.error(
+        `[Seed] ❌ Failed to seed tenant ${tenant.displayName} (${tenant.schemaName}):`,
+        err,
+      );
     }
   }
-  
+
   console.log('[Seed] All multi-tenant seeding completed.');
   process.exit(0);
 }

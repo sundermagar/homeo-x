@@ -45,7 +45,7 @@ async function main() {
       bengali_label: n.bengali_label || null,
       french_label: n.french_label || null,
       german_label: n.german_label || null,
-      spanish_label: n.spanish_label || null
+      spanish_label: n.spanish_label || null,
     }));
 
     await sql`
@@ -60,7 +60,9 @@ async function main() {
   console.log('🏗️ Inserting alternatives...');
   const nodeIds = new Set(nodes.map((n: any) => n.id));
   const validAlternatives = alternatives.filter((a: any) => nodeIds.has(a.tree_id));
-  console.log(`  (Filtered out ${alternatives.length - validAlternatives.length} invalid alternatives)`);
+  console.log(
+    `  (Filtered out ${alternatives.length - validAlternatives.length} invalid alternatives)`,
+  );
 
   if (validAlternatives.length > 0) {
     const altBatch = validAlternatives.map((a: any) => ({
@@ -68,7 +70,7 @@ async function main() {
       tree_id: a.tree_id,
       remedy: (a.remedy || '').substring(0, 255),
       potency: (a.potency || '').substring(0, 100) || null,
-      notes: a.notes || null
+      notes: a.notes || null,
     }));
 
     await sql`
@@ -79,12 +81,12 @@ async function main() {
   }
 
   await sql`SELECT setval('public.remedy_tree_nodes_id_seq', (SELECT MAX(id) FROM public.remedy_tree_nodes))`;
-  
+
   await sql.end();
   console.log('\n🎉 Seeding complete!');
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('❌ Seeding failed:', err);
   process.exit(1);
 });

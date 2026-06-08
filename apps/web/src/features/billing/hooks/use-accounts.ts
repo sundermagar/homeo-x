@@ -30,17 +30,17 @@ import type {
 import type { Charge } from '@mmc/types';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
-
 // ─── Additional Charges Hooks ──────────────────────────────────────────────────
 
 export function useAdditionalCharges(query: ListAdditionalChargesQuery) {
   return useQuery({
     queryKey: ['additional-charges', query],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: AdditionalChargeWithPatient[]; total: number }>(
-        '/accounts/additional-charges',
-        { params: query }
-      );
+      const { data } = await apiClient.get<{
+        success: boolean;
+        data: AdditionalChargeWithPatient[];
+        total: number;
+      }>('/accounts/additional-charges', { params: query });
       return data;
     },
   });
@@ -51,7 +51,7 @@ export function useAdditionalCharge(id: number) {
     queryKey: ['additional-charges', id],
     queryFn: async () => {
       const { data } = await apiClient.get<{ success: boolean; data: AdditionalChargeWithPatient }>(
-        `/accounts/additional-charges/${id}`
+        `/accounts/additional-charges/${id}`,
       );
       return data.data;
     },
@@ -63,10 +63,10 @@ export function useCreateAdditionalCharge() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateAdditionalChargeInput) => {
-      const { data } = await apiClient.post<{ success: boolean; data: AdditionalChargeWithPatient }>(
-        '/accounts/additional-charges',
-        input
-      );
+      const { data } = await apiClient.post<{
+        success: boolean;
+        data: AdditionalChargeWithPatient;
+      }>('/accounts/additional-charges', input);
       return data.data;
     },
     onSuccess: (data) => {
@@ -90,7 +90,7 @@ export function useUpdateAdditionalCharge() {
     mutationFn: async ({ id, ...input }: UpdateAdditionalChargeInput & { id: number }) => {
       const { data } = await apiClient.put<{ success: boolean; data: AdditionalChargeWithPatient }>(
         `/accounts/additional-charges/${id}`,
-        input
+        input,
       );
       return data.data;
     },
@@ -139,7 +139,10 @@ export function useCreateDayCharge() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateDayChargeInput) => {
-      const { data } = await apiClient.post<{ success: boolean; data: DayCharge }>('/day-charges', input);
+      const { data } = await apiClient.post<{ success: boolean; data: DayCharge }>(
+        '/day-charges',
+        input,
+      );
       return data.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['day-charges'] }),
@@ -150,7 +153,10 @@ export function useUpdateDayCharge() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...input }: UpdateDayChargeInput & { id: number }) => {
-      const { data } = await apiClient.put<{ success: boolean; data: DayCharge }>(`/day-charges/${id}`, input);
+      const { data } = await apiClient.put<{ success: boolean; data: DayCharge }>(
+        `/day-charges/${id}`,
+        input,
+      );
       return data.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['day-charges'] }),
@@ -173,10 +179,11 @@ export function useBankDeposits(query: ListDepositsQuery) {
   return useQuery({
     queryKey: ['bank-deposits', query],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: BankDeposit[]; total: number }>(
-        '/deposits/bank',
-        { params: query }
-      );
+      const { data } = await apiClient.get<{
+        success: boolean;
+        data: BankDeposit[];
+        total: number;
+      }>('/deposits/bank', { params: query });
       return data;
     },
   });
@@ -186,7 +193,10 @@ export function useCreateBankDeposit() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateBankDepositInput) => {
-      const { data } = await apiClient.post<{ success: boolean; data: BankDeposit }>('/deposits/bank', input);
+      const { data } = await apiClient.post<{ success: boolean; data: BankDeposit }>(
+        '/deposits/bank',
+        input,
+      );
       return data.data;
     },
     onSuccess: () => {
@@ -200,7 +210,10 @@ export function useUpdateBankDeposit() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...input }: UpdateBankDepositInput & { id: number }) => {
-      const { data } = await apiClient.put<{ success: boolean; data: BankDeposit }>(`/deposits/bank/${id}`, input);
+      const { data } = await apiClient.put<{ success: boolean; data: BankDeposit }>(
+        `/deposits/bank/${id}`,
+        input,
+      );
       return data.data;
     },
     onSuccess: () => {
@@ -226,10 +239,11 @@ export function useCashDeposits(query: ListDepositsQuery) {
   return useQuery({
     queryKey: ['cash-deposits', query],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: CashDeposit[]; total: number }>(
-        '/deposits/cash',
-        { params: query }
-      );
+      const { data } = await apiClient.get<{
+        success: boolean;
+        data: CashDeposit[];
+        total: number;
+      }>('/deposits/cash', { params: query });
       return data;
     },
   });
@@ -239,7 +253,10 @@ export function useCreateCashDeposit() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateCashDepositInput) => {
-      const { data } = await apiClient.post<{ success: boolean; data: CashDeposit }>('/deposits/cash', input);
+      const { data } = await apiClient.post<{ success: boolean; data: CashDeposit }>(
+        '/deposits/cash',
+        input,
+      );
       return data.data;
     },
     onSuccess: () => {
@@ -253,7 +270,10 @@ export function useUpdateCashDeposit() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...input }: UpdateCashDepositInput & { id: number }) => {
-      const { data } = await apiClient.put<{ success: boolean; data: CashDeposit }>(`/deposits/cash/${id}`, input);
+      const { data } = await apiClient.put<{ success: boolean; data: CashDeposit }>(
+        `/deposits/cash/${id}`,
+        input,
+      );
       return data.data;
     },
     onSuccess: () => {
@@ -282,10 +302,11 @@ export function useExpenses(query: ListExpensesQuery) {
   return useQuery({
     queryKey: ['expenses', query],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: ExpenseWithHead[]; total: number }>(
-        '/expenses',
-        { params: query }
-      );
+      const { data } = await apiClient.get<{
+        success: boolean;
+        data: ExpenseWithHead[];
+        total: number;
+      }>('/expenses', { params: query });
       return data;
     },
   });
@@ -295,7 +316,9 @@ export function useExpense(id: number) {
   return useQuery({
     queryKey: ['expenses', id],
     queryFn: async () => {
-      const { data } = await apiClient.get<{ success: boolean; data: ExpenseWithHead }>(`/expenses/${id}`);
+      const { data } = await apiClient.get<{ success: boolean; data: ExpenseWithHead }>(
+        `/expenses/${id}`,
+      );
       return data.data;
     },
     enabled: !!id && id > 0,
@@ -306,7 +329,10 @@ export function useCreateExpense() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateExpenseInput) => {
-      const { data } = await apiClient.post<{ success: boolean; data: ExpenseWithHead }>('/expenses', input);
+      const { data } = await apiClient.post<{ success: boolean; data: ExpenseWithHead }>(
+        '/expenses',
+        input,
+      );
       return data.data;
     },
     onSuccess: () => {
@@ -320,7 +346,10 @@ export function useUpdateExpense() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...input }: UpdateExpenseInput & { id: number }) => {
-      const { data } = await apiClient.put<{ success: boolean; data: ExpenseWithHead }>(`/expenses/${id}`, input);
+      const { data } = await apiClient.put<{ success: boolean; data: ExpenseWithHead }>(
+        `/expenses/${id}`,
+        input,
+      );
       return data.data;
     },
     onSuccess: () => {
@@ -350,7 +379,7 @@ export function useExpenseHeads() {
     queryKey: ['expense-heads'],
     queryFn: async () => {
       const { data } = await apiClient.get<{ success: boolean; data: ExpenseHead[] }>(
-        '/accounts/expense-heads'
+        '/accounts/expense-heads',
       );
       return data.data ?? [];
     },
@@ -362,7 +391,7 @@ export function useExpenseHead(id: number) {
     queryKey: ['expense-heads', id],
     queryFn: async () => {
       const { data } = await apiClient.get<{ success: boolean; data: ExpenseHead }>(
-        `/accounts/expense-heads/${id}`
+        `/accounts/expense-heads/${id}`,
       );
       return data.data;
     },
@@ -376,7 +405,7 @@ export function useCreateExpenseHead() {
     mutationFn: async (input: CreateExpenseHeadInput) => {
       const { data } = await apiClient.post<{ success: boolean; data: ExpenseHead }>(
         '/accounts/expense-heads',
-        input
+        input,
       );
       return data.data;
     },
@@ -390,7 +419,7 @@ export function useUpdateExpenseHead() {
     mutationFn: async ({ id, ...input }: UpdateExpenseHeadInput & { id: number }) => {
       const { data } = await apiClient.put<{ success: boolean; data: ExpenseHead }>(
         `/accounts/expense-heads/${id}`,
-        input
+        input,
       );
       return data.data;
     },
@@ -446,7 +475,10 @@ export function useUpdateCharge() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...input }: UpdateChargeInput & { id: number }) => {
-      const { data } = await apiClient.put<{ success: boolean; data: Charge }>(`/charges/${id}`, input);
+      const { data } = await apiClient.put<{ success: boolean; data: Charge }>(
+        `/charges/${id}`,
+        input,
+      );
       return data.data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['charges'] }),

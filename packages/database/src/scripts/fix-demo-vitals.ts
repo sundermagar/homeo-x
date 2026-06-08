@@ -10,9 +10,9 @@ const db = createDbClient(DATABASE_URL, 'tenant_demo');
 
 async function fix() {
   console.log('Fixing tenant_demo vitals table...');
-  
+
   await db.execute(sql`SET search_path TO tenant_demo`);
-  
+
   // Add regid column if missing
   try {
     await db.execute(sql`ALTER TABLE vitals ADD COLUMN IF NOT EXISTS regid INTEGER`);
@@ -31,7 +31,9 @@ async function fix() {
 
   // Backfill regid from appointments
   try {
-    await db.execute(sql`UPDATE vitals v SET regid = a.patient_id FROM appointments a WHERE v.visit_id = a.id AND v.regid IS NULL`);
+    await db.execute(
+      sql`UPDATE vitals v SET regid = a.patient_id FROM appointments a WHERE v.visit_id = a.id AND v.regid IS NULL`,
+    );
     console.log('  ✅ backfilled regid from appointments');
   } catch (e: any) {
     console.log('  ⚠️ backfill:', e.message);

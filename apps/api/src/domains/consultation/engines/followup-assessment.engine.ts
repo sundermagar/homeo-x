@@ -10,17 +10,17 @@ export interface FollowUpAssessment {
   decision: FollowUpDecision;
   improvementPercent: number;
   heringLawObservations: string[];
-  
+
   // Current status
   chiefComplaintStatus: string;
   generalWellbeing: string;
   newSymptoms: string[];
-  
+
   // Remedy advice
   currentRemedyReview: string;
   suggestedAction: string;
   potencyAdjustment?: string;
-  
+
   // Only populated when decision is CHANGE
   alternativeRemedy?: {
     name: string;
@@ -28,7 +28,7 @@ export interface FollowUpAssessment {
     dosage: string;
     reasoning: string;
   };
-  
+
   // General
   dietaryAdvice: string[];
   lifestyleAdvice: string[];
@@ -50,7 +50,7 @@ export class FollowUpAssessmentEngine {
       patientAge?: number;
       patientGender?: string;
       soapData?: { subjective: string; objective: string; assessment: string };
-    }
+    },
   ): Promise<FollowUpAssessment> {
     const systemPrompt = `You are a Senior Homeopathic Physician conducting a FOLLOW-UP assessment.
 
@@ -116,10 +116,14 @@ Chief Complaint: ${input.chiefComplaint || 'Not specified'}
 Previous Prescription: ${input.previousPrescription || 'Not available — assess based on symptom changes only'}
 Patient: ${input.patientAge ? `Age ${input.patientAge}` : 'Unknown age'}${input.patientGender ? `, ${input.patientGender}` : ''}
 
-${input.soapData ? `SOAP from this visit:
+${
+  input.soapData
+    ? `SOAP from this visit:
 - Subjective: ${input.soapData.subjective || 'N/A'}
 - Objective: ${input.soapData.objective || 'N/A'}
-- Assessment: ${input.soapData.assessment || 'N/A'}` : ''}
+- Assessment: ${input.soapData.assessment || 'N/A'}`
+    : ''
+}
 
 TRANSCRIPT OF TODAY'S FOLLOW-UP VISIT:
 """
@@ -140,7 +144,10 @@ Remember: Do NOT suggest a new remedy unless the previous one clearly failed (de
 
       const parsed: any = safeJsonParse(response.content);
       if (!parsed) {
-        logger.error({ contentPreview: response.content.slice(0, 300) }, 'Follow-up assessment: JSON unrecoverable even after repair');
+        logger.error(
+          { contentPreview: response.content.slice(0, 300) },
+          'Follow-up assessment: JSON unrecoverable even after repair',
+        );
         throw new Error('Follow-up engine returned unparseable JSON');
       }
 
@@ -156,7 +163,7 @@ Remember: Do NOT suggest a new remedy unless the previous one clearly failed (de
 
       logger.info(
         { tenantId, decision: parsed.decision, improvement: parsed.improvementPercent },
-        'Follow-up assessment completed'
+        'Follow-up assessment completed',
       );
 
       return parsed;

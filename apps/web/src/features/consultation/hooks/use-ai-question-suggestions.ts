@@ -19,7 +19,7 @@ export interface AiSuggestedQuestion {
 export function useAiQuestionSuggestions(
   segments: TranscriptSegmentLocal[],
   isTranscribing: boolean,
-  mode: 'acute' | 'chronic' | 'followup' = 'acute'
+  mode: 'acute' | 'chronic' | 'followup' = 'acute',
 ) {
   const [questions, setQuestions] = useState<AiSuggestedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -36,45 +36,49 @@ export function useAiQuestionSuggestions(
   // Build transcript text from segments
   const buildTranscriptText = useCallback((segs: TranscriptSegmentLocal[]) => {
     return segs
-      .filter(s => s.isFinal)
-      .map(s => `${s.speaker}: ${s.translatedText || s.text}`)
+      .filter((s) => s.isFinal)
+      .map((s) => `${s.speaker}: ${s.translatedText || s.text}`)
       .join('\n');
   }, []);
 
   // Mark a question as answered when the patient talks about it
   const markAnswered = useCallback((questionId: string) => {
-    setQuestions(prev =>
-      prev.map(q => q.id === questionId ? { ...q, answered: true } : q)
-    );
+    setQuestions((prev) => prev.map((q) => (q.id === questionId ? { ...q, answered: true } : q)));
   }, []);
 
   // Generate questions from transcript
-  const generateQuestions = useCallback(async (segs: TranscriptSegmentLocal[]) => {
-    const transcriptText = buildTranscriptText(segs);
-    if (!transcriptText.trim() || transcriptText.length < 30) return;
+  const generateQuestions = useCallback(
+    async (segs: TranscriptSegmentLocal[]) => {
+      const transcriptText = buildTranscriptText(segs);
+      if (!transcriptText.trim() || transcriptText.length < 30) return;
 
-    // Skip if a request is already in flight. Aborting the previous one wastes
-    // server compute (Ollama keeps generating server-side anyway) and means the
-    // user never sees questions when the model is slow.
-    if (isGeneratingRef.current) {
-      console.log('[AI Discovery] Skipping trigger — previous request still in flight');
-      return;
-    }
+      // Skip if a request is already in flight. Aborting the previous one wastes
+      // server compute (Ollama keeps generating server-side anyway) and means the
+      // user never sees questions when the model is slow.
+      if (isGeneratingRef.current) {
+        console.log('[AI Discovery] Skipping trigger — previous request still in flight');
+        return;
+      }
 
-    abortControllerRef.current = new AbortController();
-    isGeneratingRef.current = true;
+      abortControllerRef.current = new AbortController();
+      isGeneratingRef.current = true;
 
-    console.log('[AI Discovery] Generating questions from transcript...', { transcriptLen: transcriptText.length });
-    setIsGenerating(true);
-    try {
-      const result = await api.post<{ questions: any[] }>(API.AI.SUGGEST_QUESTIONS, {
-        transcript: transcriptText,
-        consultationMode: mode,
-      }, { signal: abortControllerRef.current.signal });
+      console.log('[AI Discovery] Generating questions from transcript...', {
+        transcriptLen: transcriptText.length,
+      });
+      setIsGenerating(true);
+      try {
+        const result = await api.post<{ questions: any[] }>(
+          API.AI.SUGGEST_QUESTIONS,
+          {
+            transcript: transcriptText,
+            consultationMode: mode,
+          },
+          { signal: abortControllerRef.current.signal },
+        );
 
-      if (result.questions && Array.isArray(result.questions)) {
-        const newQuestions: AiSuggestedQuestion[] = result.questions
-          .map((item, idx) => ({
+        if (result.questions && Array.isArray(result.questions)) {
+          const newQuestions: AiSuggestedQuestion[] = result.questions.map((item, idx) => ({
             id: `q-${Date.now()}-${idx}`,
             question: item.question,
             category: item.category,
@@ -82,18 +86,20 @@ export function useAiQuestionSuggestions(
             options: item.options,
           }));
 
-        if (newQuestions.length > 0) {
-          setQuestions(newQuestions);
+          if (newQuestions.length > 0) {
+            setQuestions(newQuestions);
+          }
         }
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        console.error('[AI Discovery] Generation failed:', err);
+      } finally {
+        isGeneratingRef.current = false;
+        setIsGenerating(false);
       }
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      console.error('[AI Discovery] Generation failed:', err);
-    } finally {
-      isGeneratingRef.current = false;
-      setIsGenerating(false);
-    }
-  }, [buildTranscriptText, mode]);
+    },
+    [buildTranscriptText, mode],
+  );
 
   // Trigger generation when segments change
   useEffect(() => {
@@ -116,7 +122,7 @@ export function useAiQuestionSuggestions(
       return;
     }
 
-    const finalSegs = segments.filter(s => s.isFinal);
+    const finalSegs = segments.filter((s) => s.isFinal);
     const lastSeg = finalSegs[finalSegs.length - 1];
 
     if (!lastSeg) return;

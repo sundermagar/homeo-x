@@ -92,7 +92,11 @@ export class AnthropicAdapter implements AiProviderPort {
             // PDFs and other docs use the document content block.
             userContent.push({
               type: 'document',
-              source: { type: 'base64', media_type: doc.mimeType || 'application/pdf', data: doc.base64 },
+              source: {
+                type: 'base64',
+                media_type: doc.mimeType || 'application/pdf',
+                data: doc.base64,
+              },
             });
           }
         }
@@ -117,7 +121,10 @@ export class AnthropicAdapter implements AiProviderPort {
 
       // Post-process to ensure JSON validity if requested
       if (request.responseFormat === 'json') {
-        textOutput = textOutput.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        textOutput = textOutput
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .trim();
       }
 
       const usage: any = response.usage || {};
@@ -125,7 +132,13 @@ export class AnthropicAdapter implements AiProviderPort {
       const cacheCreate = usage.cache_creation_input_tokens ?? 0;
       if (cacheRead > 0 || cacheCreate > 0) {
         logger.info(
-          { model: this.model, cacheRead, cacheCreate, input: usage.input_tokens, output: usage.output_tokens },
+          {
+            model: this.model,
+            cacheRead,
+            cacheCreate,
+            input: usage.input_tokens,
+            output: usage.output_tokens,
+          },
           'Anthropic prompt cache hit/create',
         );
       }
@@ -139,7 +152,6 @@ export class AnthropicAdapter implements AiProviderPort {
         inputTokens: usage.input_tokens,
         outputTokens: usage.output_tokens,
       };
-
     } catch (err: any) {
       logger.error(`Anthropic ${this.model} error: ${err.message}`);
       if (err?.status === 429) {

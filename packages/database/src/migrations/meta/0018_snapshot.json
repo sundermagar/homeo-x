@@ -303,9 +303,7 @@
       "uniqueConstraints": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "nullsNotDistinct": false
         }
       },
@@ -342,10 +340,7 @@
       "compositePrimaryKeys": {
         "permission_role_permission_id_role_id_pk": {
           "name": "permission_role_permission_id_role_id_pk",
-          "columns": [
-            "permission_id",
-            "role_id"
-          ]
+          "columns": ["permission_id", "role_id"]
         }
       },
       "uniqueConstraints": {},
@@ -414,16 +409,12 @@
       "uniqueConstraints": {
         "permissions_name_unique": {
           "name": "permissions_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "nullsNotDistinct": false
         },
         "permissions_slug_unique": {
           "name": "permissions_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "nullsNotDistinct": false
         }
       },
@@ -460,10 +451,7 @@
       "compositePrimaryKeys": {
         "role_user_user_id_role_id_pk": {
           "name": "role_user_user_id_role_id_pk",
-          "columns": [
-            "user_id",
-            "role_id"
-          ]
+          "columns": ["user_id", "role_id"]
         }
       },
       "uniqueConstraints": {},
@@ -526,9 +514,7 @@
       "uniqueConstraints": {
         "roles_name_unique": {
           "name": "roles_name_unique",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "nullsNotDistinct": false
         }
       },
@@ -1557,9 +1543,7 @@
       "uniqueConstraints": {
         "case_datas_regid_unique": {
           "name": "case_datas_regid_unique",
-          "columns": [
-            "regid"
-          ],
+          "columns": ["regid"],
           "nullsNotDistinct": false
         }
       },
@@ -1861,9 +1845,7 @@
       "uniqueConstraints": {
         "homeo_details_regid_unique": {
           "name": "homeo_details_regid_unique",
-          "columns": [
-            "regid"
-          ],
+          "columns": ["regid"],
           "nullsNotDistinct": false
         }
       },
@@ -2338,9 +2320,7 @@
       "uniqueConstraints": {
         "soap_notes_visit_id_unique": {
           "name": "soap_notes_visit_id_unique",
-          "columns": [
-            "visit_id"
-          ],
+          "columns": ["visit_id"],
           "nullsNotDistinct": false
         }
       },
@@ -2458,9 +2438,7 @@
       "uniqueConstraints": {
         "vitals_visit_id_unique": {
           "name": "vitals_visit_id_unique",
-          "columns": [
-            "visit_id"
-          ],
+          "columns": ["visit_id"],
           "nullsNotDistinct": false
         }
       },
@@ -2591,13 +2569,9 @@
         "bills_regid_case_datas_regid_fk": {
           "name": "bills_regid_case_datas_regid_fk",
           "tableFrom": "bills",
-          "columnsFrom": [
-            "regid"
-          ],
+          "columnsFrom": ["regid"],
           "tableTo": "case_datas",
-          "columnsTo": [
-            "regid"
-          ],
+          "columnsTo": ["regid"],
           "onUpdate": "no action",
           "onDelete": "set null"
         }
@@ -2705,26 +2679,18 @@
         "payments_regid_case_datas_regid_fk": {
           "name": "payments_regid_case_datas_regid_fk",
           "tableFrom": "payments",
-          "columnsFrom": [
-            "regid"
-          ],
+          "columnsFrom": ["regid"],
           "tableTo": "case_datas",
-          "columnsTo": [
-            "regid"
-          ],
+          "columnsTo": ["regid"],
           "onUpdate": "no action",
           "onDelete": "set null"
         },
         "payments_bill_id_bills_id_fk": {
           "name": "payments_bill_id_bills_id_fk",
           "tableFrom": "payments",
-          "columnsFrom": [
-            "bill_id"
-          ],
+          "columnsFrom": ["bill_id"],
           "tableTo": "bills",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "set null"
         }
@@ -4370,9 +4336,7 @@
       "uniqueConstraints": {
         "static_pages_slug_unique": {
           "name": "static_pages_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "nullsNotDistinct": false
         }
       },

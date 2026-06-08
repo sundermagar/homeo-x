@@ -37,7 +37,7 @@ describe('usePrescriptionWorkflow', () => {
     expect(mockMutateAsync).not.toHaveBeenCalled();
   });
 
-  it('should automatically select and edit the latest prescription if a today\'s prescription already exists', () => {
+  it("should automatically select and edit the latest prescription if a today's prescription already exists", () => {
     const todayStr = new Date().toDateString();
     const todayIso = new Date().toISOString();
     const existingRxs = [
@@ -114,7 +114,7 @@ describe('usePrescriptionWorkflow', () => {
     mockUsePatientPrescriptions.mockReturnValue({ data: existingRxs, isLoading: false });
 
     const { result } = renderHook(() => usePrescriptionWorkflow(1, 10, todayIso, vi.fn()));
-    
+
     // Ensure editingId is 10 initially
     expect(result.current.editingId).toBe(10);
 
@@ -123,15 +123,15 @@ describe('usePrescriptionWorkflow', () => {
     act(() => {
       promise1 = result.current.startNewRx();
     });
-    
+
     // Check synchronously that editingId is cleared
     expect(result.current.editingId).toBeNull();
-    
+
     // Wait for the async flow to complete
     await act(async () => {
       await promise1;
     });
-    
+
     // Now it should be set to the newly resolved id (123)
     expect(result.current.editingId).toBe(123);
 
@@ -162,4 +162,3 @@ describe('usePrescriptionWorkflow', () => {
     expect(result.current.editingId).toBe(123);
   });
 });
-

@@ -27,7 +27,8 @@ async function run() {
     } else {
       console.log('Creating new user...');
       // Insert with some default values. We'll copy from the reception user if it exists.
-      const baseUser = await sql`SELECT * FROM tenant_demo.users WHERE email = 'reception@MMC' LIMIT 1`;
+      const baseUser =
+        await sql`SELECT * FROM tenant_demo.users WHERE email = 'reception@MMC' LIMIT 1`;
 
       if (baseUser.length > 0) {
         const u = baseUser[0]!;

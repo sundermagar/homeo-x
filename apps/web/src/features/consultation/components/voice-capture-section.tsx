@@ -15,7 +15,11 @@ interface VoiceCaptureSectionProps {
   onSoapGenerated: (suggestion: SoapSuggestion) => void;
 }
 
-export function VoiceCaptureSection({ visitId, aiContext, onSoapGenerated }: VoiceCaptureSectionProps) {
+export function VoiceCaptureSection({
+  visitId,
+  aiContext,
+  onSoapGenerated,
+}: VoiceCaptureSectionProps) {
   return (
     <CollapsibleSection
       id="section-voice"
@@ -24,11 +28,7 @@ export function VoiceCaptureSection({ visitId, aiContext, onSoapGenerated }: Voi
       icon={<Mic className="h-5 w-5" />}
       defaultOpen={true}
     >
-      <AmbientScribe
-        visitId={visitId}
-        aiContext={aiContext}
-        onSoapGenerated={onSoapGenerated}
-      />
+      <AmbientScribe visitId={visitId} aiContext={aiContext} onSoapGenerated={onSoapGenerated} />
     </CollapsibleSection>
   );
 }

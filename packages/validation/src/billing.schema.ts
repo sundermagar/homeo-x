@@ -2,7 +2,15 @@ import { z } from 'zod';
 
 // ─── Shared Enums ─────────────────────────────────────────────────────────────
 
-export const PaymentModeEnum = z.enum(['Cash', 'Card', 'Cheque', 'UPI', 'Online', 'Bank Transfer', 'Referral Bonus']);
+export const PaymentModeEnum = z.enum([
+  'Cash',
+  'Card',
+  'Cheque',
+  'UPI',
+  'Online',
+  'Bank Transfer',
+  'Referral Bonus',
+]);
 
 // ─── Bill Schemas ─────────────────────────────────────────────────────────────
 
@@ -27,7 +35,10 @@ export const updateBillSchema = createBillSchema.partial().omit({ regid: true })
 
 export const listBillsQuerySchema = z.object({
   regid: z.coerce.number().int().positive().optional(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD').optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(1000).default(30),
 });
@@ -53,24 +64,33 @@ export const verifyPaymentSchema = z.object({
   paymentMode: PaymentModeEnum.default('Online'),
 });
 
-export const recordManualPaymentSchema = z.object({
-  regid: z.number().int().positive('Patient Reg ID is required'),
-  billId: z.number().int().positive().optional(),
-  amount: z.number().min(0, 'Amount must be non-negative').optional(),
-  paymentMode: PaymentModeEnum.default('Cash').optional(),
-  splitPayments: z.array(z.object({
-    billId: z.number().int().positive(),
-    amount: z.number().min(0),
-    paymentMode: PaymentModeEnum
-  })).optional(),
-  receivedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  notes: z.string().optional(),
-}).refine(data => data.amount !== undefined || (data.splitPayments && data.splitPayments.length > 0), {
-  message: "Either amount or splitPayments must be provided",
-  path: ["amount"]
-});
-
-
+export const recordManualPaymentSchema = z
+  .object({
+    regid: z.number().int().positive('Patient Reg ID is required'),
+    billId: z.number().int().positive().optional(),
+    amount: z.number().min(0, 'Amount must be non-negative').optional(),
+    paymentMode: PaymentModeEnum.default('Cash').optional(),
+    splitPayments: z
+      .array(
+        z.object({
+          amount: z.number().min(0),
+          paymentMode: PaymentModeEnum,
+        }),
+      )
+      .optional(),
+    receivedDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    notes: z.string().optional(),
+  })
+  .refine(
+    (data) => data.amount !== undefined || (data.splitPayments && data.splitPayments.length > 0),
+    {
+      message: 'Either amount or splitPayments must be provided',
+      path: ['amount'],
+    },
+  );
 
 export const listPaymentsQuerySchema = z.object({
   regid: z.coerce.number().int().positive().optional(),
@@ -104,7 +124,10 @@ export const updateAdditionalChargeSchema = createAdditionalChargeSchema.partial
 
 export const listAdditionalChargesQuerySchema = z.object({
   regid: z.coerce.number().int().positive().optional(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD').optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
@@ -150,7 +173,10 @@ export const updateBankDepositSchema = createBankDepositSchema.partial();
 
 export const listDepositsQuerySchema = z.object({
   type: z.enum(['Bank', 'Cash']).optional(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD').optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
@@ -179,7 +205,10 @@ export type UpdateCashDepositInput = z.infer<typeof updateCashDepositSchema>;
 
 export const createExpenseSchema = z.object({
   dateval: z.string().optional(),
-  expDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD').optional(),
+  expDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
+    .optional(),
   head: z.number().int().positive('Expense head is required'),
   amount: z.number().min(0, 'Amount must be non-negative'),
   detail: z.string().optional(),
@@ -189,8 +218,14 @@ export const updateExpenseSchema = createExpenseSchema.partial();
 
 export const listExpensesQuerySchema = z.object({
   head: z.coerce.number().int().positive().optional(),
-  fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD').optional(),
-  toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD').optional(),
+  fromDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
+    .optional(),
+  toDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
@@ -207,7 +242,10 @@ export const createCustomBillSchema = z.object({
   charges: z.number().min(0, 'Charges must be non-negative'),
   received: z.number().min(0).default(0),
   paymentMode: PaymentModeEnum.default('Cash'),
-  billDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  billDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   notes: z.string().optional(),
   fromDate: z.string().optional(),
   toDate: z.string().optional(),
@@ -227,4 +265,3 @@ export const updateExpenseHeadSchema = createExpenseHeadSchema.partial();
 
 export type CreateExpenseHeadInput = z.infer<typeof createExpenseHeadSchema>;
 export type UpdateExpenseHeadInput = z.infer<typeof updateExpenseHeadSchema>;
-

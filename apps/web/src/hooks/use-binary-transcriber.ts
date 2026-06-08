@@ -45,8 +45,12 @@ export function useBinaryTranscriber({
   // Stable callback refs to prevent closure staleness in socket listeners
   const onTranscriptRef = useRef(onTranscript);
   const onErrorRef = useRef(onError);
-  useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
-  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+  useEffect(() => {
+    onTranscriptRef.current = onTranscript;
+  }, [onTranscript]);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   // Watchdog timing refs
   const lastChunkTimeRef = useRef<number>(Date.now());
@@ -78,98 +82,109 @@ export function useBinaryTranscriber({
     setIsConnecting(false);
   }, []);
 
-  const startRecording = useCallback(async (options?: { audioTrack?: MediaStreamTrack }) => {
-    try {
-      setIsConnecting(true);
-      lastChunkTimeRef.current = Date.now();
-      recordingStartRef.current = Date.now();
+  const startRecording = useCallback(
+    async (options?: { audioTrack?: MediaStreamTrack }) => {
+      try {
+        setIsConnecting(true);
+        lastChunkTimeRef.current = Date.now();
+        recordingStartRef.current = Date.now();
 
-      // 1. Get microphone access or use provided track
-      let stream: MediaStream;
-      if (options?.audioTrack) {
-        console.log('[BinaryTranscriber] Using provided audio track');
-        stream = new MediaStream([options.audioTrack]);
-      } else {
-        console.log('[BinaryTranscriber] Requesting new microphone stream');
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            sampleRate: 16000,
-            channelCount: 1,
-            echoCancellation: true,
-            noiseSuppression: true,
+        // 1. Get microphone access or use provided track
+        let stream: MediaStream;
+        if (options?.audioTrack) {
+          console.log('[BinaryTranscriber] Using provided audio track');
+          stream = new MediaStream([options.audioTrack]);
+        } else {
+          console.log('[BinaryTranscriber] Requesting new microphone stream');
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              sampleRate: 16000,
+              channelCount: 1,
+              echoCancellation: true,
+              noiseSuppression: true,
+            },
+          });
+        }
+        streamRef.current = stream;
+
+        // 2. Connect to Transcription Gateway
+        const baseUrl = import.meta.env['VITE_API_URL'] || window.location.origin;
+        const socket = io(`${baseUrl}/transcription`, {
+          withCredentials: true,
+          extraHeaders: {
+            'ngrok-skip-browser-warning': 'true',
           },
         });
-      }
-      streamRef.current = stream;
+        socketRef.current = socket;
 
-      // 2. Connect to Transcription Gateway
-      const baseUrl = import.meta.env['VITE_API_URL'] || window.location.origin;
-      const socket = io(`${baseUrl}/transcription`, {
-        withCredentials: true,
-        extraHeaders: {
-          'ngrok-skip-browser-warning': 'true'
-        }
-      });
-      socketRef.current = socket;
-
-      socket.on('connect', () => {
-        console.log('[BinaryTranscriber] Socket connected to /transcription');
-        lastChunkTimeRef.current = Date.now();
-        socket.emit('stream:start', { visitId, engine, languageCode, role });
-      });
-
-      socket.on('transcription:result', (result: TranscriptionResult) => {
-        onTranscriptRef.current?.(result);
-      });
-
-      // Handle async translation updates
-      socket.on('transcription:translation', (update: { originalText: string; translatedText: string; timestamp: number; role?: 'DOCTOR' | 'PATIENT' }) => {
-        onTranscriptRef.current?.({
-          visitId,
-          role: update.role || role,
-          text: update.originalText,
-          translatedText: update.translatedText,
-          isFinal: true,
-          engine: 'GOOGLE',
-          timestamp: update.timestamp,
-          isTranslationUpdate: true,
+        socket.on('connect', () => {
+          console.log('[BinaryTranscriber] Socket connected to /transcription');
+          lastChunkTimeRef.current = Date.now();
+          socket.emit('stream:start', { visitId, engine, languageCode, role });
         });
-      });
 
-      socket.on('transcription:error', (err: { message: string }) => {
-        console.error('[Transcription] Fatal server error:', err);
-        onErrorRef.current?.(new Error(err.message || 'Transcription service failed'));
-        setTimeout(() => stopRecording(), 0);
-      });
+        socket.on('transcription:result', (result: TranscriptionResult) => {
+          onTranscriptRef.current?.(result);
+        });
 
-      // 3. Setup AudioContext + AudioWorklet
-      const audioContext = new AudioContext({ sampleRate: 16000 });
-      audioContextRef.current = audioContext;
+        // Handle async translation updates
+        socket.on(
+          'transcription:translation',
+          (update: {
+            originalText: string;
+            translatedText: string;
+            timestamp: number;
+            role?: 'DOCTOR' | 'PATIENT';
+          }) => {
+            onTranscriptRef.current?.({
+              visitId,
+              role: update.role || role,
+              text: update.originalText,
+              translatedText: update.translatedText,
+              isFinal: true,
+              engine: 'GOOGLE',
+              timestamp: update.timestamp,
+              isTranslationUpdate: true,
+            });
+          },
+        );
 
-      // Use absolute path for public asset
-      await audioContext.audioWorklet.addModule('/pcm-processor.js');
+        socket.on('transcription:error', (err: { message: string }) => {
+          console.error('[Transcription] Fatal server error:', err);
+          onErrorRef.current?.(new Error(err.message || 'Transcription service failed'));
+          setTimeout(() => stopRecording(), 0);
+        });
 
-      const source = audioContext.createMediaStreamSource(stream);
-      const workletNode = new AudioWorkletNode(audioContext, 'pcm-processor');
-      workletNodeRef.current = workletNode;
+        // 3. Setup AudioContext + AudioWorklet
+        const audioContext = new AudioContext({ sampleRate: 16000 });
+        audioContextRef.current = audioContext;
 
-      workletNode.port.onmessage = (event) => {
-        lastChunkTimeRef.current = Date.now();
-        if (socketRef.current?.connected && event.data) {
-          socketRef.current.emit('stream:audio', event.data);
-        }
-      };
+        // Use absolute path for public asset
+        await audioContext.audioWorklet.addModule('/pcm-processor.js');
 
-      source.connect(workletNode);
-      
-      setIsRecording(true);
-      setIsConnecting(false);
-    } catch (err) {
-      console.error('Failed to start binary transcription:', err);
-      setIsConnecting(false);
-      onErrorRef.current?.(err);
-    }
-  }, [visitId, engine, languageCode, role]);
+        const source = audioContext.createMediaStreamSource(stream);
+        const workletNode = new AudioWorkletNode(audioContext, 'pcm-processor');
+        workletNodeRef.current = workletNode;
+
+        workletNode.port.onmessage = (event) => {
+          lastChunkTimeRef.current = Date.now();
+          if (socketRef.current?.connected && event.data) {
+            socketRef.current.emit('stream:audio', event.data);
+          }
+        };
+
+        source.connect(workletNode);
+
+        setIsRecording(true);
+        setIsConnecting(false);
+      } catch (err) {
+        console.error('Failed to start binary transcription:', err);
+        setIsConnecting(false);
+        onErrorRef.current?.(err);
+      }
+    },
+    [visitId, engine, languageCode, role],
+  );
 
   // Emergency Defibrillator Watchdog
   useEffect(() => {
@@ -184,7 +199,9 @@ export function useBinaryTranscriber({
 
       const timeSinceLastChunk = Date.now() - lastChunkTimeRef.current;
       if (timeSinceLastChunk > 3000) {
-        console.warn(`[Audio Watchdog] Mic thread flatlined (${timeSinceLastChunk}ms). Rebuilding...`);
+        console.warn(
+          `[Audio Watchdog] Mic thread flatlined (${timeSinceLastChunk}ms). Rebuilding...`,
+        );
         isRebuilding = true;
 
         (async () => {
@@ -203,7 +220,12 @@ export function useBinaryTranscriber({
               const track = currentStream.getAudioTracks()[0];
               if (!track || track.readyState === 'ended' || (track as any).muted) {
                 currentStream = await navigator.mediaDevices.getUserMedia({
-                  audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true },
+                  audio: {
+                    sampleRate: 16000,
+                    channelCount: 1,
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                  },
                 });
                 streamRef.current = currentStream;
               }
@@ -227,7 +249,9 @@ export function useBinaryTranscriber({
           } catch (err) {
             console.error('[Audio Watchdog] Defibrillation failed:', err);
           } finally {
-            setTimeout(() => { isRebuilding = false; }, 2000);
+            setTimeout(() => {
+              isRebuilding = false;
+            }, 2000);
           }
         })();
       }
@@ -237,7 +261,9 @@ export function useBinaryTranscriber({
   }, [isRecording]);
 
   useEffect(() => {
-    return () => { stopRecording(); };
+    return () => {
+      stopRecording();
+    };
   }, [stopRecording]);
 
   return { isRecording, isConnecting, startRecording, stopRecording };

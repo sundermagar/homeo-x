@@ -8,7 +8,7 @@ const logger = createLogger('broadcast-campaign-use-case');
 export class BroadcastCampaignUseCase {
   constructor(
     private readonly waRepo: WhatsAppRepository,
-    private readonly waGateway: WhatsAppGateway
+    private readonly waGateway: WhatsAppGateway,
   ) {}
 
   async execute(campaignId: number): Promise<Result<{ sent: number; failed: number }>> {
@@ -31,8 +31,14 @@ export class BroadcastCampaignUseCase {
       const template = templates.find((t: any) => t.name === templateName);
 
       // Validate: template must exist on Meta (not local-only)
-      if (template && template.whatsappTemplateId && String(template.whatsappTemplateId).startsWith('local_')) {
-        return fail(`Template '${templateName}' is only saved locally. It must be registered and approved in your Meta WhatsApp Business Account before broadcasting. Please create it on Meta and click 'Sync Templates'.`);
+      if (
+        template &&
+        template.whatsappTemplateId &&
+        String(template.whatsappTemplateId).startsWith('local_')
+      ) {
+        return fail(
+          `Template '${templateName}' is only saved locally. It must be registered and approved in your Meta WhatsApp Business Account before broadcasting. Please create it on Meta and click 'Sync Templates'.`,
+        );
       }
 
       const recipients = await this.waRepo.listRecipients(campaignId);
@@ -41,19 +47,27 @@ export class BroadcastCampaignUseCase {
 
       for (const recipient of recipients) {
         // Skip already processed
-        if (recipient.status === 'sent' || recipient.status === 'delivered' || recipient.status === 'read') {
+        if (
+          recipient.status === 'sent' ||
+          recipient.status === 'delivered' ||
+          recipient.status === 'read'
+        ) {
           continue;
         }
 
         // Build template components with recipient-specific parameters
         const components: any[] = [];
-        if (recipient.templateParams && Array.isArray(recipient.templateParams) && recipient.templateParams.length > 0) {
+        if (
+          recipient.templateParams &&
+          Array.isArray(recipient.templateParams) &&
+          recipient.templateParams.length > 0
+        ) {
           components.push({
             type: 'body',
             parameters: recipient.templateParams.map((param: string) => ({
               type: 'text',
-              text: param || ''
-            }))
+              text: param || '',
+            })),
           });
         }
 
@@ -63,7 +77,7 @@ export class BroadcastCampaignUseCase {
           recipient.phone,
           templateName,
           templateLanguage,
-          components
+          components,
         );
 
         if (result.success) {
@@ -98,9 +112,10 @@ export class BroadcastCampaignUseCase {
         failedCount,
       });
 
-      logger.info(`Campaign ${campaignId} broadcast finished. Sent: ${sentCount}, Failed: ${failedCount}`);
+      logger.info(
+        `Campaign ${campaignId} broadcast finished. Sent: ${sentCount}, Failed: ${failedCount}`,
+      );
       return ok({ sent: sentCount, failed: failedCount });
-
     } catch (err: any) {
       logger.error(`Campaign broadcast error: ${err.message}`);
       return fail(err.message);

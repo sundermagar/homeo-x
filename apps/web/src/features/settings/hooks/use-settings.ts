@@ -32,15 +32,24 @@ function makeSettingsHooks<T>(resource: string) {
     useGet: (id: number) => useQuery({ queryKey: [...LIST_KEY, id], queryFn: () => api.get(id) }),
     useCreate: () => {
       const qc = useQueryClient();
-      return useMutation({ mutationFn: api.create, onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }) });
+      return useMutation({
+        mutationFn: api.create,
+        onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
+      });
     },
     useUpdate: () => {
       const qc = useQueryClient();
-      return useMutation({ mutationFn: api.update, onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }) });
+      return useMutation({
+        mutationFn: api.update,
+        onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
+      });
     },
     useRemove: () => {
       const qc = useQueryClient();
-      return useMutation({ mutationFn: api.remove, onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }) });
+      return useMutation({
+        mutationFn: api.remove,
+        onSuccess: () => qc.invalidateQueries({ queryKey: LIST_KEY }),
+      });
     },
   };
 }
@@ -49,19 +58,19 @@ function makeSettingsHooks<T>(resource: string) {
 
 export const departmentHooks = makeSettingsHooks<any>('departments');
 export const dispensaryHooks = makeSettingsHooks<any>('dispensaries');
-export const referralHooks   = makeSettingsHooks<any>('referrals');
-export const stickerHooks    = makeSettingsHooks<any>('stickers');
-export const medicineHooks   = makeSettingsHooks<any>('medicines');
-export const potencyHooks    = makeSettingsHooks<any>('potencies');
-export const frequencyHooks  = makeSettingsHooks<any>('frequencies');
-export const faqHooks        = makeSettingsHooks<any>('cms/faqs');
+export const referralHooks = makeSettingsHooks<any>('referrals');
+export const stickerHooks = makeSettingsHooks<any>('stickers');
+export const medicineHooks = makeSettingsHooks<any>('medicines');
+export const potencyHooks = makeSettingsHooks<any>('potencies');
+export const frequencyHooks = makeSettingsHooks<any>('frequencies');
+export const faqHooks = makeSettingsHooks<any>('cms/faqs');
 export const staticPageHooks = makeSettingsHooks<any>('cms/pages');
-export const pdfHooks        = makeSettingsHooks<any>('pdf');
+export const pdfHooks = makeSettingsHooks<any>('pdf');
 
-export const messageHooks    = makeSettingsHooks<any>('message-templates');
-export const packageHooks    = makeSettingsHooks<any>('packages');
-export const courierHooks    = makeSettingsHooks<any>('couriers');
-export const stockHooks      = makeSettingsHooks<any>('stocks');
+export const messageHooks = makeSettingsHooks<any>('message-templates');
+export const packageHooks = makeSettingsHooks<any>('packages');
+export const courierHooks = makeSettingsHooks<any>('couriers');
+export const stockHooks = makeSettingsHooks<any>('stocks');
 
 export function useStockLogs(medicineId?: number) {
   return useQuery({
@@ -70,21 +79,26 @@ export function useStockLogs(medicineId?: number) {
       const q = medicineId ? `?medicineId=${medicineId}` : '';
       const { data } = await apiClient.get(`/settings/stock-logs${q}`);
       return data.data ?? data;
-    }
+    },
   });
 }
 
 export function useAddStock() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { medicineId: number; quantity: number; changeType: string; reason?: string }) => {
+    mutationFn: async (payload: {
+      medicineId: number;
+      quantity: number;
+      changeType: string;
+      reason?: string;
+    }) => {
       const { data } = await apiClient.post('/settings/stock-logs', payload);
       return data.data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['settings', 'stock-logs'] });
       qc.invalidateQueries({ queryKey: ['settings', 'medicines'] });
-    }
+    },
   });
 }
 
@@ -96,30 +110,109 @@ export function useDeleteStockLog() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['settings', 'stock-logs'] });
-    }
+    },
   });
 }
 
-export const vaccineHooks    = makeSettingsHooks<any>('vaccines');
+export const vaccineHooks = makeSettingsHooks<any>('vaccines');
 export const packagePeriodHooks = makeSettingsHooks<any>('package-periods');
 export const callStatusHooks = makeSettingsHooks<any>('call-statuses');
 
 // ─── Named convenience exports (recommended way to use) ───────────────────────
-export const { useList: useDepartments, useCreate: useCreateDepartment, useUpdate: useUpdateDepartment, useRemove: useDeleteDepartment } = departmentHooks;
-export const { useList: useDispensaries, useCreate: useCreateDispensary, useUpdate: useUpdateDispensary, useRemove: useDeleteDispensary } = dispensaryHooks;
-export const { useList: useReferrals, useCreate: useCreateReferral, useUpdate: useUpdateReferral, useRemove: useDeleteReferral } = referralHooks;
-export const { useList: useStickers, useCreate: useCreateSticker, useUpdate: useUpdateSticker, useRemove: useDeleteSticker } = stickerHooks;
-export const { useList: useMedicines, useCreate: useCreateMedicine, useUpdate: useUpdateMedicine, useRemove: useDeleteMedicine } = medicineHooks;
-export const { useList: usePotencies, useCreate: useCreatePotency, useUpdate: useUpdatePotency, useRemove: useDeletePotency } = potencyHooks;
-export const { useList: useFrequencies, useCreate: useCreateFrequency, useUpdate: useUpdateFrequency, useRemove: useDeleteFrequency } = frequencyHooks;
-export const { useList: useFaqs, useCreate: useCreateFaq, useUpdate: useUpdateFaq, useRemove: useDeleteFaq } = faqHooks;
-export const { useList: useStaticPages, useCreate: useCreateStaticPage, useUpdate: useUpdateStaticPage, useRemove: useDeleteStaticPage } = staticPageHooks;
-export const { useList: usePdfSettings, useCreate: useCreatePdfSetting, useUpdate: useUpdatePdfSetting, useRemove: useDeletePdfSetting } = pdfHooks;
+export const {
+  useList: useDepartments,
+  useCreate: useCreateDepartment,
+  useUpdate: useUpdateDepartment,
+  useRemove: useDeleteDepartment,
+} = departmentHooks;
+export const {
+  useList: useDispensaries,
+  useCreate: useCreateDispensary,
+  useUpdate: useUpdateDispensary,
+  useRemove: useDeleteDispensary,
+} = dispensaryHooks;
+export const {
+  useList: useReferrals,
+  useCreate: useCreateReferral,
+  useUpdate: useUpdateReferral,
+  useRemove: useDeleteReferral,
+} = referralHooks;
+export const {
+  useList: useStickers,
+  useCreate: useCreateSticker,
+  useUpdate: useUpdateSticker,
+  useRemove: useDeleteSticker,
+} = stickerHooks;
+export const {
+  useList: useMedicines,
+  useCreate: useCreateMedicine,
+  useUpdate: useUpdateMedicine,
+  useRemove: useDeleteMedicine,
+} = medicineHooks;
+export const {
+  useList: usePotencies,
+  useCreate: useCreatePotency,
+  useUpdate: useUpdatePotency,
+  useRemove: useDeletePotency,
+} = potencyHooks;
+export const {
+  useList: useFrequencies,
+  useCreate: useCreateFrequency,
+  useUpdate: useUpdateFrequency,
+  useRemove: useDeleteFrequency,
+} = frequencyHooks;
+export const {
+  useList: useFaqs,
+  useCreate: useCreateFaq,
+  useUpdate: useUpdateFaq,
+  useRemove: useDeleteFaq,
+} = faqHooks;
+export const {
+  useList: useStaticPages,
+  useCreate: useCreateStaticPage,
+  useUpdate: useUpdateStaticPage,
+  useRemove: useDeleteStaticPage,
+} = staticPageHooks;
+export const {
+  useList: usePdfSettings,
+  useCreate: useCreatePdfSetting,
+  useUpdate: useUpdatePdfSetting,
+  useRemove: useDeletePdfSetting,
+} = pdfHooks;
 
-export const { useList: useMessageTemplates, useCreate: useCreateMessageTemplate, useUpdate: useUpdateMessageTemplate, useRemove: useDeleteMessageTemplate } = messageHooks;
-export const { useList: usePackagePlans, useCreate: useCreatePackagePlan, useUpdate: useUpdatePackagePlan, useRemove: useDeletePackagePlan } = packageHooks;
-export const { useList: useCouriers, useCreate: useCreateCourier, useUpdate: useUpdateCourier, useRemove: useDeleteCourier } = courierHooks;
-export const { useList: useStocks, useCreate: useCreateStock, useUpdate: useUpdateStock, useRemove: useDeleteStock } = stockHooks;
-export const { useList: useVaccines, useCreate: useCreateVaccine, useUpdate: useUpdateVaccine, useRemove: useDeleteVaccine } = vaccineHooks;
-export const { useList: usePackagePeriods, useCreate: useCreatePackagePeriod, useUpdate: useUpdatePackagePeriod, useRemove: useDeletePackagePeriod } = packagePeriodHooks;
-export const { useList: useCallStatuses, useCreate: useCreateCallStatus, useUpdate: useUpdateCallStatus, useRemove: useDeleteCallStatus } = callStatusHooks;
+export const {
+  useList: useMessageTemplates,
+  useCreate: useCreateMessageTemplate,
+  useUpdate: useUpdateMessageTemplate,
+  useRemove: useDeleteMessageTemplate,
+} = messageHooks;
+export const {
+  useList: usePackagePlans,
+  useCreate: useCreatePackagePlan,
+  useUpdate: useUpdatePackagePlan,
+  useRemove: useDeletePackagePlan,
+} = packageHooks;
+export const {
+  useList: useCouriers,
+  useCreate: useCreateCourier,
+  useUpdate: useUpdateCourier,
+  useRemove: useDeleteCourier,
+} = courierHooks;
+export const {
+  useList: useStocks,
+  useCreate: useCreateStock,
+  useUpdate: useUpdateStock,
+  useRemove: useDeleteStock,
+} = stockHooks;
+export const {
+  useList: useVaccines,
+  useCreate: useCreateVaccine,
+  useUpdate: useUpdateVaccine,
+  useRemove: useDeleteVaccine,
+} = vaccineHooks;
+export const {
+  useList: usePackagePeriods,
+  useCreate: useCreatePackagePeriod,
+  useUpdate: useUpdatePackagePeriod,
+  useRemove: useDeletePackagePeriod,
+} = packagePeriodHooks;

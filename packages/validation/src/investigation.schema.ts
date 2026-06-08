@@ -1,11 +1,15 @@
 import { z } from 'zod';
 
 // Shared numeric validation: optional, nullable, can be string or number (for flexibility from UI inputs)
-const numericField = z.union([z.string(), z.number()]).optional().nullable().transform(v => {
-  if (v === null || v === undefined || v === '') return null;
-  const parsed = Number(v);
-  return isNaN(parsed) ? null : parsed;
-});
+const numericField = z
+  .union([z.string(), z.number()])
+  .optional()
+  .nullable()
+  .transform((v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const parsed = Number(v);
+    return isNaN(parsed) ? null : parsed;
+  });
 
 const textField = z.string().optional().nullable();
 
@@ -66,40 +70,55 @@ export const renalProfileSchema = z.object({
 
 export const genericInvestigationSchema = z.record(z.any()); // Fallback for unstructured types
 
-export const saveInvestigationSchema = z.object({
-  regid: z.coerce.number().positive(),
-  visitId: z.coerce.number().positive().optional(),
-  type: z.enum([
-    'CBC', 'Diabetes Profile', 'Liver Profile', 'Renal Profile', 
-    'Urine', 'Stool', 'Arthritis', 'Endocrine', 'X-ray - CT - MRI',
-    'USG Female', 'USG Male', 'Immunology', 'Lipid Profile',
-    'Cardiac Profile', 'Serology', 'Semen Analysis', 'Specific'
-  ]),
-  data: z.any(), // We will refine this in the backend based on 'type'
-  investDate: z.string().optional(),
-  summary: z.string().optional(),
-  attachmentUrl: z.string().optional(),
-}).superRefine((val, ctx) => {
-  // Conditionally validate `data` based on `type`
-  let schemaToUse = genericInvestigationSchema;
-  
-  if (val.type === 'CBC') schemaToUse = cbcSchema.passthrough() as any;
-  else if (val.type === 'Diabetes Profile') schemaToUse = diabetesSchema.passthrough() as any;
-  else if (val.type === 'Liver Profile') schemaToUse = liverProfileSchema.passthrough() as any;
-  else if (val.type === 'Renal Profile') schemaToUse = renalProfileSchema.passthrough() as any;
+export const saveInvestigationSchema = z
+  .object({
+    regid: z.coerce.number().positive(),
+    visitId: z.coerce.number().positive().optional(),
+    type: z.enum([
+      'CBC',
+      'Diabetes Profile',
+      'Liver Profile',
+      'Renal Profile',
+      'Urine',
+      'Stool',
+      'Arthritis',
+      'Endocrine',
+      'X-ray - CT - MRI',
+      'USG Female',
+      'USG Male',
+      'Immunology',
+      'Lipid Profile',
+      'Cardiac Profile',
+      'Serology',
+      'Semen Analysis',
+      'Specific',
+    ]),
+    data: z.any().optional().default({}), // We will refine this in the backend based on 'type'
+    investDate: z.string().optional(),
+    attachmentUrl: z.string().optional(),
+    summary: z.string().optional(),
+  })
+  .superRefine((val, ctx) => {
+    // Conditionally validate `data` based on `type`
+    let schemaToUse = genericInvestigationSchema;
 
-  const result = schemaToUse.safeParse(val.data);
-  if (!result.success) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: `Invalid structured data for ${val.type}: ${result.error.message}`,
-      path: ['data'],
-    });
-  } else {
-    // Override data with parsed/coerced values
-    val.data = result.data;
-  }
-});
+    if (val.type === 'CBC') schemaToUse = cbcSchema as any;
+    else if (val.type === 'Diabetes Profile') schemaToUse = diabetesSchema as any;
+    else if (val.type === 'Liver Profile') schemaToUse = liverProfileSchema as any;
+    else if (val.type === 'Renal Profile') schemaToUse = renalProfileSchema as any;
+
+    const result = schemaToUse.safeParse(val.data);
+    if (!result.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Invalid structured data for ${val.type}: ${result.error.message}`,
+        path: ['data'],
+      });
+    } else {
+      // Override data with parsed/coerced values
+      val.data = result.data;
+    }
+  });
 
 export type SaveInvestigationInput = z.infer<typeof saveInvestigationSchema>;
 export type CbcData = z.infer<typeof cbcSchema>;

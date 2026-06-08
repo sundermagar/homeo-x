@@ -1,6 +1,15 @@
-import { pgTable, serial, varchar, integer, real, timestamp, text, date } from 'drizzle-orm/pg-core';
-import { patients } from './patients.js';
-import { procedureCodes } from './clinical-codes.js';
+import {
+  pgTable,
+  serial,
+  varchar,
+  integer,
+  real,
+  timestamp,
+  text,
+  date,
+} from 'drizzle-orm/pg-core';
+import { patients } from './patients';
+import { procedureCodes } from './clinical-codes';
 
 export const bills = pgTable('bills', {
   id: serial('id').primaryKey(),

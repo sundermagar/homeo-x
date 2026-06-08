@@ -15,12 +15,16 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
     <div className="flex flex-col lg:flex-row gap-8 animate-in fade-in duration-500 max-w-5xl mx-auto">
       {/* ═══ LEFT: PATIENT DEMOGRAPHICS ═══ */}
       <div className="w-full lg:w-72 shrink-0 space-y-5">
-        <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Patient Demographics</span>
+        <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+          Patient Demographics
+        </span>
 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Name</label>
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                Name
+              </label>
               <Input
                 readOnly
                 value={patient ? `${patient.firstName} ${patient.lastName}` : '—'}
@@ -28,7 +32,9 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
               />
             </div>
             <div>
-              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Age</label>
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                Age
+              </label>
               <Input
                 readOnly
                 value={patientAge ? `${patientAge} years` : '—'}
@@ -39,7 +45,9 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Gender</label>
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                Gender
+              </label>
               <Input
                 readOnly
                 value={patient?.gender || '—'}
@@ -47,7 +55,9 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
               />
             </div>
             <div>
-              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Marital Status</label>
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                Marital Status
+              </label>
               <Input
                 readOnly
                 value="—"
@@ -58,7 +68,9 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Occupation</label>
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                Occupation
+              </label>
               <Input
                 readOnly
                 value="—"
@@ -66,7 +78,9 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
               />
             </div>
             <div>
-              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Education</label>
+              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+                Education
+              </label>
               <Input
                 readOnly
                 value="—"
@@ -76,7 +90,9 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
           </div>
 
           <div>
-            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Domicile / Origin</label>
+            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+              Domicile / Origin
+            </label>
             <Input
               readOnly
               value="—"
@@ -85,7 +101,9 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
           </div>
 
           <div>
-            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Chief complaint & duration</label>
+            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
+              Chief complaint & duration
+            </label>
             <Input
               readOnly
               value={visit.chiefComplaint || '—'}
@@ -96,12 +114,17 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
 
         {/* Consultation Mode */}
         <div className="space-y-2 pt-2">
-          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Consultation Mode</span>
+          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+            Consultation Mode
+          </span>
           <div className="flex gap-2">
             {[
               { label: 'Audio only', active: visit.visitType === 'AUDIO' },
               { label: 'Audio + Video', active: visit.visitType === 'VIDEO' },
-              { label: 'In-person', active: !visit.visitType || !['AUDIO', 'VIDEO'].includes(visit.visitType as string) },
+              {
+                label: 'In-person',
+                active: !visit.visitType || !['AUDIO', 'VIDEO'].includes(visit.visitType as string),
+              },
             ].map((mode) => (
               <span
                 key={mode.label}
@@ -119,7 +142,9 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
 
         {/* AI Toggles */}
         <div className="space-y-2 pt-2">
-          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">AI Assistance</span>
+          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+            AI Assistance
+          </span>
           <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
             <input type="checkbox" defaultChecked className="rounded border-gray-300" />
             Auto-transcription
@@ -154,8 +179,6 @@ export function IntakeStage({ patient, visit, patientAge, onNext }: IntakeStageP
             Start the consultation to begin AI-powered timeline extraction
           </p>
         </div>
-
-
       </div>
 
       {/* ═══ RIGHT: CONSULTATION HISTORY ═══ */}

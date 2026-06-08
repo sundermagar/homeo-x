@@ -41,15 +41,17 @@ async function main() {
   console.log('┌─────────────────────────────────────────────────────┐');
   console.log('│  1. STORED EMBEDDINGS OVERVIEW                      │');
   console.log('└─────────────────────────────────────────────────────┘');
-  console.table(records.map(r => ({
-    id: r['id'],
-    visit_id: r['visit_id'],
-    mode: r['consultation_mode'],
-    model: r['embedding_model'],
-    has_embedding: r['has_embedding'],
-    dimensions: r['dimensions'],
-    updated: r['updated_at'],
-  })));
+  console.table(
+    records.map((r) => ({
+      id: r['id'],
+      visit_id: r['visit_id'],
+      mode: r['consultation_mode'],
+      model: r['embedding_model'],
+      has_embedding: r['has_embedding'],
+      dimensions: r['dimensions'],
+      updated: r['updated_at'],
+    })),
+  );
 
   // ── 2. Show first few values of each embedding vector ──
   console.log('\n┌─────────────────────────────────────────────────────┐');
@@ -69,8 +71,18 @@ async function main() {
     const vals = v['vector_values'] as number[];
     console.log(`\n  Visit ${v['visit_id']} (id=${v['id']}):`);
     console.log(`  Total dimensions: ${vals.length}`);
-    console.log(`  First 10 values: [${vals.slice(0, 10).map(n => Number(n).toFixed(6)).join(', ')}]`);
-    console.log(`  Last 5 values:   [${vals.slice(-5).map(n => Number(n).toFixed(6)).join(', ')}]`);
+    console.log(
+      `  First 10 values: [${vals
+        .slice(0, 10)
+        .map((n) => Number(n).toFixed(6))
+        .join(', ')}]`,
+    );
+    console.log(
+      `  Last 5 values:   [${vals
+        .slice(-5)
+        .map((n) => Number(n).toFixed(6))
+        .join(', ')}]`,
+    );
   }
 
   // ── 3. Cosine similarity between all pairs ──
@@ -96,9 +108,13 @@ async function main() {
 
     for (const s of similarities) {
       const sim = (Number(s['cosine_similarity']) * 100).toFixed(2);
-      console.log(`\n  Visit ${s['visit_a']} (${s['mode_a']}) ↔ Visit ${s['visit_b']} (${s['mode_b']})`);
+      console.log(
+        `\n  Visit ${s['visit_a']} (${s['mode_a']}) ↔ Visit ${s['visit_b']} (${s['mode_b']})`,
+      );
       console.log(`  Cosine Similarity: ${sim}%`);
-      console.log(`  ${ Number(sim) > 80 ? '🟢 Very similar' : Number(sim) > 60 ? '🟡 Somewhat similar' : '🔴 Different cases' }`);
+      console.log(
+        `  ${Number(sim) > 80 ? '🟢 Very similar' : Number(sim) > 60 ? '🟡 Somewhat similar' : '🔴 Different cases'}`,
+      );
     }
   }
 
@@ -129,7 +145,9 @@ async function main() {
       console.log(`    → Visit ${r['visit_id']} (${r['consultation_mode']}) — ${sim}% similar`);
     }
   } else {
-    console.log('\n  (No embeddings to compare against — add more consultations or run backfill-embeddings)');
+    console.log(
+      '\n  (No embeddings to compare against — add more consultations or run backfill-embeddings)',
+    );
   }
 
   // ── 5. Show the clinical fingerprint text used for each embedding ──
@@ -168,9 +186,10 @@ async function main() {
     }
 
     if (f['ai_suggested_remedy']) {
-      const remedy = typeof f['ai_suggested_remedy'] === 'string'
-        ? f['ai_suggested_remedy']
-        : JSON.stringify(f['ai_suggested_remedy']).replace(/"/g, '');
+      const remedy =
+        typeof f['ai_suggested_remedy'] === 'string'
+          ? f['ai_suggested_remedy']
+          : JSON.stringify(f['ai_suggested_remedy']).replace(/"/g, '');
       console.log(`  AI Remedy: ${remedy}`);
     }
 

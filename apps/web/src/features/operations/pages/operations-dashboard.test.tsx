@@ -25,7 +25,7 @@ describe('OperationsDashboard', () => {
     render(
       <MemoryRouter initialEntries={['/operations?tab=logistics']}>
         <OperationsDashboard />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText('Logistics & Couriers')).toBeDefined();
@@ -42,7 +42,7 @@ describe('OperationsDashboard', () => {
     render(
       <MemoryRouter initialEntries={['/operations?tab=crm']}>
         <OperationsDashboard />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText('Lead Pipeline')).toBeDefined();

@@ -14,11 +14,11 @@ import type {
   Prescription,
   FullCaseData,
   VaccineMaster,
-  CaseReminder
+  CaseReminder,
 } from '../../domains/medical-case/ports/medical-case.repository.js';
 
 export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   async findById(id: number): Promise<MedicalCase | null> {
     const [row] = await this.db
@@ -80,7 +80,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     if (search) {
       const searchTerms = `%${search}%`;
       query = query.where(
-        sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`
+        sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`,
       );
     }
 
@@ -141,7 +141,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           mobile: schema.patients.mobile1,
           gender: schema.patients.gender,
           address: schema.patients.address,
-          dateOfBirth: schema.patients.dateOfBirth,
+          dateOfBirth: sql<string>`COALESCE(${schema.patients.dob}::text, ${schema.patients.dateOfBirth})`,
           city: schema.patients.city,
           state: schema.patients.state,
           doctorName: sql<string>`COALESCE(
@@ -194,10 +194,9 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           mobile: patient.mobile1,
           gender: patient.gender,
           address: patient.address,
-          dateOfBirth: patient.dateOfBirth,
+          dateOfBirth: patient.dob || patient.dateOfBirth || '',
           city: patient.city,
-          state: patient.state,
-          doctorName: patient.doctorName,
+          state: patient.state, 
         };
       }
 
@@ -215,8 +214,6 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     }
   }
 
-
-
   async getUnifiedCaseData(regid: number): Promise<FullCaseData | null> {
     try {
       const medicalCases = await this.db
@@ -233,8 +230,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           email: schema.patients.email,
           gender: schema.patients.gender,
           address: schema.patients.address,
-          dateOfBirth: schema.patients.dateOfBirth,
-          abhaId: schema.patients.abhaId,
+          dateOfBirth: sql<string>`COALESCE(${schema.patients.dob}::text, ${schema.patients.dateOfBirth})`,
           city: schema.patients.city,
           state: schema.patients.state,
           doctorName: sql<string>`COALESCE(
@@ -254,7 +250,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         .where(eq(schema.medicalCases.regid, regid))
         .orderBy(desc(schema.medicalCases.createdAt));
 
-      let activeCase = medicalCases.find(c => c.status === 'Active') || medicalCases[0];
+      let activeCase = medicalCases.find((c) => c.status === 'Active') || medicalCases[0];
 
       // If no medical case exists, fetch patient info to build a fallback medicalCase object
       // This allows clinical history (vitals, notes, prescriptions) to be visible even for patients without a visit record.
@@ -270,8 +266,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             email: schema.patients.email,
             gender: schema.patients.gender,
             address: schema.patients.address,
-            dateOfBirth: schema.patients.dateOfBirth,
-            abhaId: schema.patients.abhaId,
+            dateOfBirth: sql<string>`COALESCE(${schema.patients.dob}::text, ${schema.patients.dateOfBirth})`,
             city: schema.patients.city,
             state: schema.patients.state,
             referedBy: schema.patients.referedBy,
@@ -301,8 +296,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           email: patient.email,
           gender: patient.gender,
           address: patient.address,
-          dateOfBirth: patient.dateOfBirth,
-          abhaId: patient.abhaId,
+          dateOfBirth: patient.dateOfBirth, // Already COALESCE'd in the select above
           city: patient.city,
           state: patient.state,
           doctorName: patient.doctorName || '—',
@@ -331,7 +325,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         additionalChargesRes,
         paymentsRes,
         modernPaymentsRes,
-        activePackageRes
+        activePackageRes,
       ] = await Promise.all([
         // Vitals: Fetch all vitals for this patient by regid
         this.db
@@ -378,10 +372,27 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           .orderBy(desc(schema.legacySoapNotes.id)),
 
         this.getHomeoDetails(regid),
-        this.db.select().from(schema.caseNotes).where(and(eq(schema.caseNotes.regid, regid), isNull(schema.caseNotes.deletedAt))).orderBy(desc(schema.caseNotes.createdAt)),
-        this.db.select().from(schema.caseExamination).where(and(eq(schema.caseExamination.regid, regid), isNull(schema.caseExamination.deletedAt))),
-        this.db.select().from(schema.caseImages).where(and(eq(schema.caseImages.regid, regid), isNull(schema.caseImages.deletedAt))),
-        this.db.select().from(schema.investigations).where(and(eq(schema.investigations.regid, regid), isNull(schema.investigations.deletedAt))),
+        this.db
+          .select()
+          .from(schema.caseNotes)
+          .where(and(eq(schema.caseNotes.regid, regid), isNull(schema.caseNotes.deletedAt)))
+          .orderBy(desc(schema.caseNotes.createdAt)),
+        this.db
+          .select()
+          .from(schema.caseExamination)
+          .where(
+            and(eq(schema.caseExamination.regid, regid), isNull(schema.caseExamination.deletedAt)),
+          ),
+        this.db
+          .select()
+          .from(schema.caseImages)
+          .where(and(eq(schema.caseImages.regid, regid), isNull(schema.caseImages.deletedAt))),
+        this.db
+          .select()
+          .from(schema.investigations)
+          .where(
+            and(eq(schema.investigations.regid, regid), isNull(schema.investigations.deletedAt)),
+          ),
 
         // Legacy Prescriptions: Detailed fetch with joins
         this.db
@@ -406,37 +417,52 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             prescription: schema.legacyPrescriptions.rxprescription,
           })
           .from(schema.legacyPrescriptions)
-          .leftJoin(schema.medicines, eq(schema.legacyPrescriptions.medicineId, schema.medicines.id))
+          .leftJoin(
+            schema.medicines,
+            eq(schema.legacyPrescriptions.medicineId, schema.medicines.id),
+          )
           .leftJoin(schema.potencies, eq(schema.legacyPrescriptions.potencyId, schema.potencies.id))
-          .leftJoin(schema.frequencies, eq(schema.legacyPrescriptions.frequencyId, schema.frequencies.id))
-          .where(and(
-            eq(schema.legacyPrescriptions.regid, regid),
-            // deleted_at is varchar in legacy DB despite Drizzle schema saying timestamp
-            sql`(${schema.legacyPrescriptions.deletedAt} IS NULL OR CAST(${schema.legacyPrescriptions.deletedAt} AS text) = '')`
-          ))
+          .leftJoin(
+            schema.frequencies,
+            eq(schema.legacyPrescriptions.frequencyId, schema.frequencies.id),
+          )
+          .where(
+            and(
+              eq(schema.legacyPrescriptions.regid, regid),
+              // deleted_at is varchar in legacy DB despite Drizzle schema saying timestamp
+              sql`(${schema.legacyPrescriptions.deletedAt} IS NULL OR CAST(${schema.legacyPrescriptions.deletedAt} AS text) = '')`,
+            ),
+          )
           .orderBy(desc(schema.legacyPrescriptions.createdAt)),
 
-
         // AI Prescriptions: Raw fetch for the newer text-based table (may not exist in all tenants)
-        this.db.execute(sql`SELECT * FROM "prescriptions" WHERE "regid" = ${regid} ORDER BY "id" DESC`).catch(() => []) as Promise<any[]>,
+        this.db
+          .execute(sql`SELECT * FROM "prescriptions" WHERE "regid" = ${regid} ORDER BY "id" DESC`)
+          .catch(() => []) as Promise<any[]>,
 
         this.getVaccines(regid),
         this.getReminders(regid),
 
         this.getAdditionalCharges(regid),
 
-        this.db.select({
-          totalCharges: sql<number>`SUM(${schema.billLegacy.charges})::int`,
-          totalReceived: sql<number>`SUM(${schema.billLegacy.received})::int`
-        })
+        this.db
+          .select({
+            totalCharges: sql<number>`SUM(${schema.billLegacy.charges})::int`,
+            totalReceived: sql<number>`SUM(${schema.billLegacy.received})::int`,
+          })
           .from(schema.billLegacy)
-          .where(and(
-            eq(schema.billLegacy.regid, regid),
-            sql`(${schema.billLegacy.deletedAt} IS NULL OR CAST(${schema.billLegacy.deletedAt} AS text) = '')`
-          )),
+          .where(
+            and(
+              eq(schema.billLegacy.regid, regid),
+              sql`(${schema.billLegacy.deletedAt} IS NULL OR CAST(${schema.billLegacy.deletedAt} AS text) = '')`,
+            ),
+          ),
 
         // Billing Aggregation: Modern (Full rows for detailed breakdown)
-        this.db.select().from(schema.bills).where(and(eq(schema.bills.regid, regid), isNull(schema.bills.deletedAt))),
+        this.db
+          .select()
+          .from(schema.bills)
+          .where(and(eq(schema.bills.regid, regid), isNull(schema.bills.deletedAt))),
 
         // Active Package
         this.db
@@ -455,70 +481,85 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             coversMedicine: sql<boolean>`true`,
           })
           .from(schema.patientPackages)
-          .leftJoin(schema.packagePlans, eq(schema.patientPackages.packageId, schema.packagePlans.id))
+          .leftJoin(
+            schema.packagePlans,
+            eq(schema.patientPackages.packageId, schema.packagePlans.id),
+          )
           .where(
             and(
               eq(schema.patientPackages.regid, regid),
               eq(schema.patientPackages.status, 'Active'),
               gte(schema.patientPackages.expiryDate, new Date().toISOString().substring(0, 10)),
-              isNull(schema.patientPackages.deletedAt)
-            )
+              isNull(schema.patientPackages.deletedAt),
+            ),
           )
-          .limit(1)
+          .limit(1),
       ]);
 
       const legacyAdditionalRows = additionalChargesRes as any[];
       const modernBills = (modernPaymentsRes as any[]) || [];
       const legacySums = (paymentsRes as any)[0];
 
-      const modernRegularBills = modernBills.filter(b => b.billType !== 'Custom' && b.billType !== 'Additional');
-      const modernCustomBills = modernBills.filter(b => b.billType === 'Custom');
+      const modernRegularBills = modernBills.filter(
+        (b) => b.billType !== 'Custom' && b.billType !== 'Additional',
+      );
+      const modernCustomBills = modernBills.filter((b) => b.billType === 'Custom');
 
-      const totalRegular = (legacySums?.totalCharges || 0) + modernRegularBills.reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
+      const totalRegular =
+        (legacySums?.totalCharges || 0) +
+        modernRegularBills.reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
 
       // Combine legacy additional and modern custom bills
       const combinedAdditional = [
-        ...legacyAdditionalRows.map(r => ({
+        ...legacyAdditionalRows.map((r) => ({
           id: r.id,
           name: r.name,
           amount: r.amount,
           price: r.price,
           quantity: r.quantity,
           notes: null,
-          createdAt: r.createdAt
+          createdAt: r.createdAt,
         })),
-        ...modernCustomBills.map(b => ({
+        ...modernCustomBills.map((b) => ({
           id: b.id,
           name: b.customTitle || 'Additional Charge',
           amount: b.charges,
           price: b.charges,
           quantity: 1,
           notes: b.notes,
-          createdAt: b.createdAt
-        }))
+          createdAt: b.createdAt,
+        })),
       ];
 
-      const totalAdditional = combinedAdditional.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+      const totalAdditional = combinedAdditional.reduce(
+        (sum, row) => sum + (Number(row.amount) || 0),
+        0,
+      );
       const totalBill = totalRegular + totalAdditional;
 
-      const totalPaid = (legacySums?.totalReceived || 0) + modernBills.reduce((sum, b) => sum + (Number(b.received) || 0), 0);
+      const totalPaid =
+        (legacySums?.totalReceived || 0) +
+        modernBills.reduce((sum, b) => sum + (Number(b.received) || 0), 0);
       const balance = totalBill - totalPaid;
 
       // Normalize AI prescriptions into the standard Prescription interface for UI consistency
-      const normalizedAiRx: Prescription[] = (aiPrescriptions || []).map(row => ({
-        id: row.id,
-        regid: row.regid,
-        visitId: row.consultation_id,
-        dateval: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
-        remedyName: row.remedy,
-        potencyId: null, // text-based legacy field
-        frequencyId: null, // text-based legacy field
-        days: parseInt(row.duration) || null,
-        instructions: row.instructions,
-        // These fields are often expected by the UI for AI-generated remedies
-        potency: row.potency,
-        frequency: row.frequency,
-      } as any));
+      const normalizedAiRx: Prescription[] = (aiPrescriptions || []).map(
+        (row) =>
+          ({
+            id: row.id,
+            regid: row.regid,
+            visitId: row.consultation_id,
+            dateval: row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : null,
+            remedyName: row.remedy,
+            potencyId: null, // text-based legacy field
+            frequencyId: null, // text-based legacy field
+            days: parseInt(row.duration) || null,
+            instructions: row.instructions,
+            // These fields are often expected by the UI for AI-generated remedies
+            potency: row.potency,
+            frequency: row.frequency,
+          }) as any,
+      );
 
       const allPrescriptions = [...(legacyPrescriptions as Prescription[])];
 
@@ -529,7 +570,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           regularCharges: totalRegular,
           totalAdditionalCharges: totalAdditional,
           paidAmount: totalPaid,
-          outstandingBalance: balance
+          outstandingBalance: balance,
         } as MedicalCase,
         vitals: vitalsRows as Vitals[],
         soap: soapRows as SoapNotes[],
@@ -545,7 +586,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         activePackage: (activePackageRes as any[])[0] || null,
       };
     } catch (err: any) {
-      console.error(`💥 [MedicalCaseRepositoryPg] Error in getUnifiedCaseData for regid ${regid}:`, err);
+      console.error(
+        `💥 [MedicalCaseRepositoryPg] Error in getUnifiedCaseData for regid ${regid}:`,
+        err,
+      );
       throw err; // Re-throw to be caught by Express error handler
     }
   }
@@ -553,8 +597,11 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   private async patchConstraint(table: string, column: string) {
     const constraintName = `${table}_${column}_unique`;
     try {
-      console.log(`[MedicalCaseRepositoryPg] 🔧 Self-healing: Patching missing UNIQUE constraint ${constraintName}...`);
-      await this.db.execute(sql.raw(`
+      console.log(
+        `[MedicalCaseRepositoryPg] 🔧 Self-healing: Patching missing UNIQUE constraint ${constraintName}...`,
+      );
+      await this.db.execute(
+        sql.raw(`
         DO $$
         BEGIN
           IF NOT EXISTS (
@@ -563,33 +610,35 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             ALTER TABLE "${table}" ADD CONSTRAINT "${constraintName}" UNIQUE("${column}");
           END IF;
         END $$
-      `));
+      `),
+      );
     } catch (err: any) {
-      console.error(`[MedicalCaseRepositoryPg] ❌ Self-healing failed for ${constraintName}:`, err.message);
+      console.error(
+        `[MedicalCaseRepositoryPg] ❌ Self-healing failed for ${constraintName}:`,
+        err.message,
+      );
       throw err;
     }
   }
 
   async saveVitals(data: Partial<Vitals>): Promise<void> {
     try {
-      await this.db
-        .insert(schema.vitals)
-        .values({
-          regid: (data as any).regid,
-          visitId: data.visitId || null,
-          heightCm: data.heightCm,
-          weightKg: data.weightKg,
-          bmi: data.bmi,
-          temperatureF: data.temperatureF,
-          pulseRate: data.pulseRate,
-          systolicBp: data.systolicBp,
-          diastolicBp: data.diastolicBp,
-          respiratoryRate: data.respiratoryRate,
-          oxygenSaturation: data.oxygenSaturation,
-          bloodSugar: data.bloodSugar,
-          notes: data.notes,
-          recordedAt: data.recordedAt || new Date(),
-        });
+      await this.db.insert(schema.vitals).values({
+        regid: (data as any).regid,
+        visitId: data.visitId || null,
+        heightCm: data.heightCm,
+        weightKg: data.weightKg,
+        bmi: data.bmi,
+        temperatureF: data.temperatureF,
+        pulseRate: data.pulseRate,
+        systolicBp: data.systolicBp,
+        diastolicBp: data.diastolicBp,
+        respiratoryRate: data.respiratoryRate,
+        oxygenSaturation: data.oxygenSaturation,
+        bloodSugar: data.bloodSugar,
+        notes: data.notes,
+        recordedAt: data.recordedAt || new Date(),
+      });
     } catch (err: any) {
       console.error('💥 [MedicalCaseRepositoryPg] Error in saveVitals:', err);
       throw err;
@@ -620,7 +669,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           timeZone: 'Asia/Kolkata',
           year: 'numeric',
           month: '2-digit',
-          day: '2-digit'
+          day: '2-digit',
         }).format(d);
       } catch (e) {
         const year = d.getFullYear();
@@ -632,9 +681,14 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
 
     try {
       // Self-healing: Safely drop incorrect unique constraint soap_notes_visit_id_unique if it exists in the tenant's schema
-      await this.db.execute(sql`ALTER TABLE soap_notes DROP CONSTRAINT IF EXISTS soap_notes_visit_id_unique;`).catch((dropErr: any) => {
-        console.warn('[MedicalCaseRepositoryPg] Failed to drop soap_notes_visit_id_unique constraint:', dropErr.message);
-      });
+      await this.db
+        .execute(sql`ALTER TABLE soap_notes DROP CONSTRAINT IF EXISTS soap_notes_visit_id_unique;`)
+        .catch((dropErr: any) => {
+          console.warn(
+            '[MedicalCaseRepositoryPg] Failed to drop soap_notes_visit_id_unique constraint:',
+            dropErr.message,
+          );
+        });
 
       if (data.id) {
         // Explicit update by ID
@@ -653,20 +707,21 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           .where(eq(schema.legacySoapNotes.id, Number(data.id)));
       } else {
         // Find existing rows for this visitId
-        const existingRows = (data.visitId !== undefined && data.visitId !== null)
-          ? await this.db
-            .select({
-              id: schema.legacySoapNotes.id,
-              createdAt: schema.legacySoapNotes.createdAt
-            })
-            .from(schema.legacySoapNotes)
-            .where(eq(schema.legacySoapNotes.visitId, data.visitId!))
-          : [];
+        const existingRows =
+          data.visitId !== undefined && data.visitId !== null
+            ? await this.db
+                .select({
+                  id: schema.legacySoapNotes.id,
+                  createdAt: schema.legacySoapNotes.createdAt,
+                })
+                .from(schema.legacySoapNotes)
+                .where(eq(schema.legacySoapNotes.visitId, data.visitId!))
+            : [];
 
         // Check if there is an existing SOAP note for this visit on the SAME day
         const targetDate = data.createdAt ? new Date(data.createdAt) : new Date();
         const targetStr = toClinicDateString(targetDate);
-        const existing = existingRows.find(row => {
+        const existing = existingRows.find((row) => {
           const rowDate = row.createdAt ? new Date(row.createdAt) : null;
           return rowDate && toClinicDateString(rowDate) === targetStr;
         });
@@ -687,20 +742,18 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             })
             .where(eq(schema.legacySoapNotes.id, existing.id));
         } else {
-          await this.db
-            .insert(schema.legacySoapNotes)
-            .values({
-              regid: (data as any).regid,
-              visitId: data.visitId!,
-              subjective: data.subjective,
-              objective: data.objective,
-              assessment: data.assessment,
-              plan: data.plan,
-              advice: data.advice,
-              followUp: data.followUp,
-              icdCodes: data.icdCodes,
-              createdAt: (data as any).createdAt ? new Date((data as any).createdAt) : new Date(),
-            });
+          await this.db.insert(schema.legacySoapNotes).values({
+            regid: (data as any).regid,
+            visitId: data.visitId!,
+            subjective: data.subjective,
+            objective: data.objective,
+            assessment: data.assessment,
+            plan: data.plan,
+            advice: data.advice,
+            followUp: data.followUp,
+            icdCodes: data.icdCodes,
+            createdAt: (data as any).createdAt ? new Date((data as any).createdAt) : new Date(),
+          });
         }
       }
     } catch (err: any) {
@@ -713,10 +766,9 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     const [row] = await this.db
       .select()
       .from(schema.legacySoapNotes)
-      .where(and(
-        eq(schema.legacySoapNotes.regid, regid),
-        eq(schema.legacySoapNotes.visitId, visitId)
-      ))
+      .where(
+        and(eq(schema.legacySoapNotes.regid, regid), eq(schema.legacySoapNotes.visitId, visitId)),
+      )
       .limit(1);
 
     return (row as SoapNotes) || null;
@@ -739,10 +791,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     if ((schema.homeoDetails as any).thermal) setClause.thermal = data.thermal;
     if ((schema.homeoDetails as any).constitutional) setClause.constitutional = data.constitutional;
 
-    const execute = () => this.db
-      .insert(schema.homeoDetails)
-      .values(homeoData)
-      .onConflictDoUpdate({
+    const execute = () =>
+      this.db.insert(schema.homeoDetails).values(homeoData).onConflictDoUpdate({
         target: schema.homeoDetails.regid,
         set: setClause,
       });
@@ -770,7 +820,6 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     return (row as HomeoDetails) || null;
   }
 
-
   async saveNote(data: Partial<CaseNote>): Promise<void> {
     if (data.id) {
       await this.db.update(schema.caseNotes).set(data).where(eq(schema.caseNotes.id, data.id));
@@ -786,12 +835,18 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async deleteNote(id: number): Promise<void> {
-    await this.db.update(schema.caseNotes).set({ deletedAt: new Date() }).where(eq(schema.caseNotes.id, id));
+    await this.db
+      .update(schema.caseNotes)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.caseNotes.id, id));
   }
 
   async saveExamination(data: Partial<CaseExamination>): Promise<void> {
     if (data.id) {
-      await this.db.update(schema.caseExamination).set(data).where(eq(schema.caseExamination.id, data.id));
+      await this.db
+        .update(schema.caseExamination)
+        .set(data)
+        .where(eq(schema.caseExamination.id, data.id));
     } else {
       await this.db.insert(schema.caseExamination).values({
         regid: data.regid!,
@@ -804,32 +859,47 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async deleteExamination(id: number): Promise<void> {
-    await this.db.update(schema.caseExamination).set({ deletedAt: new Date() }).where(eq(schema.caseExamination.id, id));
+    await this.db
+      .update(schema.caseExamination)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.caseExamination.id, id));
   }
 
   async saveImage(data: Partial<CaseImage>): Promise<number> {
     if (data.id) {
       const updateData: any = { ...data };
       delete updateData.id;
-      await this.db.update(schema.caseImages).set(updateData).where(eq(schema.caseImages.id, data.id));
+      await this.db
+        .update(schema.caseImages)
+        .set(updateData)
+        .where(eq(schema.caseImages.id, data.id));
       return data.id;
     }
-    const [row] = await this.db.insert(schema.caseImages).values({
-      regid: data.regid!,
-      picture: data.picture!,
-      description: data.description,
-      createdAt: new Date(),
-    }).returning({ id: schema.caseImages.id });
+    const [row] = await this.db
+      .insert(schema.caseImages)
+      .values({
+        regid: data.regid!,
+        picture: data.picture!,
+        description: data.description,
+        createdAt: new Date(),
+      })
+      .returning({ id: schema.caseImages.id });
     return row?.id ?? 0;
   }
 
   async deleteImage(id: number): Promise<void> {
-    await this.db.update(schema.caseImages).set({ deletedAt: new Date() }).where(eq(schema.caseImages.id, id));
+    await this.db
+      .update(schema.caseImages)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.caseImages.id, id));
   }
 
   async saveInvestigation(data: Partial<Investigation>): Promise<void> {
     if (data.id) {
-      await this.db.update(schema.investigations).set(data).where(eq(schema.investigations.id, data.id));
+      await this.db
+        .update(schema.investigations)
+        .set(data)
+        .where(eq(schema.investigations.id, data.id));
     } else {
       await this.db.insert(schema.investigations).values({
         regid: data.regid!,
@@ -844,12 +914,18 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async deleteInvestigation(id: number, type: string): Promise<void> {
-    await this.db.update(schema.investigations).set({ deletedAt: new Date() }).where(eq(schema.investigations.id, id));
+    await this.db
+      .update(schema.investigations)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.investigations.id, id));
   }
 
   async savePrescription(data: Partial<Prescription>): Promise<void> {
     if (data.id) {
-      await this.db.update(schema.legacyPrescriptions).set(data).where(eq(schema.legacyPrescriptions.id, data.id));
+      await this.db
+        .update(schema.legacyPrescriptions)
+        .set(data)
+        .where(eq(schema.legacyPrescriptions.id, data.id));
     } else {
       await this.db.insert(schema.legacyPrescriptions).values({
         regid: data.regid!,
@@ -870,7 +946,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async deletePrescription(id: number): Promise<void> {
-    await this.db.update(schema.legacyPrescriptions).set({ deletedAt: new Date() }).where(eq(schema.legacyPrescriptions.id, id));
+    await this.db
+      .update(schema.legacyPrescriptions)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.legacyPrescriptions.id, id));
   }
 
   // ─── Vaccines ───
@@ -892,12 +971,15 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async getMasterVaccines() {
-    return await this.db.select().from(schema.vaccineMaster) as unknown as VaccineMaster[];
+    return (await this.db.select().from(schema.vaccineMaster)) as unknown as VaccineMaster[];
   }
 
   async saveVaccine(data: Partial<any>) {
     if (data.id) {
-      await this.db.update(schema.caseVaccines).set(data).where(eq(schema.caseVaccines.id, data.id));
+      await this.db
+        .update(schema.caseVaccines)
+        .set(data)
+        .where(eq(schema.caseVaccines.id, data.id));
     } else {
       await this.db.insert(schema.caseVaccines).values({ ...data, createdAt: new Date() } as any);
     }
@@ -926,7 +1008,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     }
 
     if (id) {
-      await this.db.update(schema.caseReminders).set(reminderData).where(eq(schema.caseReminders.id, id));
+      await this.db
+        .update(schema.caseReminders)
+        .set(reminderData)
+        .where(eq(schema.caseReminders.id, id));
     } else {
       await this.db.insert(schema.caseReminders).values(reminderData);
     }
@@ -987,7 +1072,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
 
   async saveAdditionalCharge(data: Partial<any>) {
     if (data.id) {
-      await this.db.update(schema.additionalChargesLegacy).set(data).where(eq(schema.additionalChargesLegacy.id, data.id));
+      await this.db
+        .update(schema.additionalChargesLegacy)
+        .set(data)
+        .where(eq(schema.additionalChargesLegacy.id, data.id));
     } else {
       await this.db.insert(schema.additionalChargesLegacy).values({
         regid: data.regid!,
@@ -999,6 +1087,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async deleteAdditionalCharge(id: number) {
-    await this.db.delete(schema.additionalChargesLegacy).where(eq(schema.additionalChargesLegacy.id, id));
+    await this.db
+      .delete(schema.additionalChargesLegacy)
+      .where(eq(schema.additionalChargesLegacy.id, id));
   }
 }

@@ -16,7 +16,10 @@ export interface PatientBalance {
 
 export interface BillingRepository {
   findById(id: number): Promise<Bill | null>;
-  findAll(params: ListBillsQuery, clinicId?: number): Promise<{ data: BillWithPatient[]; total: number }>;
+  findAll(
+    params: ListBillsQuery,
+    clinicId?: number,
+  ): Promise<{ data: BillWithPatient[]; total: number }>;
   findByRegid(regid: number): Promise<PatientBillSummary>;
   findDailyCollection(date: string, clinicId?: number): Promise<DailyCollectionSummary>;
   getPatientBalances(clinicId?: number): Promise<PatientBalance[]>;

@@ -3,14 +3,27 @@ import { AppointmentStatus, type UpdateAppointmentDto } from '@mmc/types';
 import { type Result, ok, fail } from '../../../shared/result.js';
 import type { NotificationsRepository } from '../../communication/ports/notifications.repository.js';
 import { triggerNotification } from '../../../infrastructure/http/notification-trigger.js';
+import type { SendWhatsAppTemplateUseCase } from '../../communication/use-cases/send-whatsapp-template.use-case.js';
+import { createLogger } from '../../../shared/logger.js';
+import jwt from 'jsonwebtoken';
+import { appConfig } from '../../../shared/config/app-config.js';
+
+const logger = createLogger('manage-appointment');
 
 export class ManageAppointmentUseCase {
   constructor(
     private readonly repo: AppointmentRepository,
     private readonly notifRepo?: NotificationsRepository,
+    private readonly whatsapp?: SendWhatsAppTemplateUseCase,
   ) {}
 
-  private async notifyDoctor(doctorId: number, clinicId: number | undefined, type: 'APPOINTMENT_REMINDER' | 'APPOINTMENT_CANCELLED' | 'VISIT_COMPLETED', title: string, message: string): Promise<void> {
+  private async notifyDoctor(
+    doctorId: number,
+    clinicId: number | undefined,
+    type: 'APPOINTMENT_REMINDER' | 'APPOINTMENT_CANCELLED' | 'VISIT_COMPLETED',
+    title: string,
+    message: string,
+  ): Promise<void> {
     if (!this.notifRepo) return;
     const userId = this.notifRepo.resolveUserIdForDoctor
       ? await this.notifRepo.resolveUserIdForDoctor(doctorId)
@@ -45,7 +58,11 @@ export class ManageAppointmentUseCase {
     return ok(undefined);
   }
 
-  async updateStatus(id: number, status: string, cancellationReason?: string): Promise<Result<void>> {
+  async updateStatus(
+    id: number,
+    status: string,
+    cancellationReason?: string,
+  ): Promise<Result<void>> {
     const appt = await this.repo.findById(id);
     if (!appt) return fail('Appointment not found', 'NOT_FOUND');
 
@@ -56,7 +73,9 @@ export class ManageAppointmentUseCase {
 
     await this.repo.updateStatus(id, status, cancellationReason);
 
-    if ([AppointmentStatus.Cancelled, AppointmentStatus.Absent].includes(status as AppointmentStatus)) {
+    if (
+      [AppointmentStatus.Cancelled, AppointmentStatus.Absent].includes(status as AppointmentStatus)
+    ) {
       if (appt.doctorId && appt.bookingDate) {
         await this.repo.promoteWaitlist(appt.doctorId, appt.bookingDate, appt.bookingTime);
 
@@ -79,6 +98,27 @@ export class ManageAppointmentUseCase {
           'Visit Completed',
           `Consultation for ${appt.patientName || 'Patient'} marked complete.`,
         );
+      }
+    } else if (status === AppointmentStatus.Confirmed) {
+      if (this.whatsapp && appt.phone && appt.patientName) {
+        // Build the secure public vitals link using JWT
+        const payload = {
+          patientId: appt.patientId || null,
+          appointmentId: id,
+          patientName: appt.patientName
+        };
+        const token = jwt.sign(payload, appConfig.jwt.secret as jwt.Secret, { expiresIn: '24h' });
+        const vitalsLink = `https://app.mmchomeotech.com/portal/vitals?token=${token}`;
+        
+        this.whatsapp.sendAppointmentConfirmation({
+          phone: appt.phone,
+          patientName: appt.patientName,
+          date: appt.bookingDate || '',
+          time: appt.bookingTime || '',
+          clinicName: 'MMC Clinic',
+          clinicId: appt.clinicId || 1,
+          vitalsLink: vitalsLink,
+        }).catch(err => logger.error(`WhatsApp confirmation failed: ${err.message}`));
       }
     }
     return ok(undefined);

@@ -26,11 +26,7 @@ export function GlobalHeader({ onMenuClick }: HeaderProps) {
     <header className="gh-bar">
       {/* Left: Menu Toggle (Mobile) + Breadcrumbs */}
       <div className="gh-left">
-        <button
-          onClick={onMenuClick}
-          className="gh-menu-btn mobile-only"
-          aria-label="Open menu"
-        >
+        <button onClick={onMenuClick} className="gh-menu-btn mobile-only" aria-label="Open menu">
           <Menu size={24} />
         </button>
         <h2 className="gh-breadcrumb">{getBreadcrumb()}</h2>
@@ -48,9 +44,7 @@ export function GlobalHeader({ onMenuClick }: HeaderProps) {
             <div className="gh-profile-name">{user?.name || 'Doctor'}</div>
             <div className="gh-profile-role">Primary Physician</div>
           </div>
-          <div className="gh-avatar">
-            {user?.name?.[0] || 'D'}
-          </div>
+          <div className="gh-avatar">{user?.name?.[0] || 'D'}</div>
         </div>
       </div>
     </header>

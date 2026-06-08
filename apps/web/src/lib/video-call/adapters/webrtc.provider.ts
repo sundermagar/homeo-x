@@ -11,16 +11,16 @@ export class WebRTCProvider implements VideoProvider {
   }
 
   init(config: any) {
-    console.log("WebRTC initialized", config);
+    console.log('WebRTC initialized', config);
   }
 
   async join(roomId: string, _credentials?: any) {
-    console.log("Joining WebRTC room:", roomId);
+    console.log('Joining WebRTC room:', roomId);
     this.callbacks?.onConnected?.(true);
   }
 
   async leave() {
-    console.log("Leaving WebRTC");
+    console.log('Leaving WebRTC');
     this.callbacks?.onConnected?.(false);
   }
 
@@ -42,4 +42,3 @@ export class WebRTCProvider implements VideoProvider {
     this.callbacks?.onCameraStateChanged?.(this.isCameraOn);
   }
 }
-

@@ -3,9 +3,9 @@ import { and, eq, lte, desc } from 'drizzle-orm';
 import { AppError } from '../../../shared/errors.js';
 
 export class AnalyzeVitalsUseCase {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
-  async execute(input: { dob: string, gender: string, heightCm: number, weightKg: number }) {
+  async execute(input: { dob: string; gender: string; heightCm: number; weightKg: number }) {
     const { dob, gender, heightCm, weightKg } = input;
 
     if (!dob || typeof dob !== 'string') {
@@ -48,7 +48,11 @@ export class AnalyzeVitalsUseCase {
 
     // Age Limit Check: WHO Growth Standards typically apply up to 20 years
     if (ageYears >= 18) {
-      throw new AppError(400, 'Growth analytics is only supported for patients up to 20 years of age.', 'AGE_LIMIT_EXCEEDED');
+      throw new AppError(
+        400,
+        'Growth analytics is only supported for patients up to 20 years of age.',
+        'AGE_LIMIT_EXCEEDED',
+      );
     }
 
     // Fetch ideal reference (matching legacy query)
@@ -65,8 +69,10 @@ export class AnalyzeVitalsUseCase {
     const expectedHeight = reference?.idealHeightCm ? parseFloat(reference.idealHeightCm) : null;
     const expectedWeight = reference?.idealWeightKg ? parseFloat(reference.idealWeightKg) : null;
 
-    let heightAnalysis = null, heightStatus = null;
-    let weightAnalysis = null, weightStatus = null;
+    let heightAnalysis = null,
+      heightStatus = null;
+    let weightAnalysis = null,
+      weightStatus = null;
 
     if (expectedHeight) {
       const hDiff = actualHeight - expectedHeight;
@@ -106,7 +112,7 @@ export class AnalyzeVitalsUseCase {
         weightAnalysis,
         weightStatus,
         bmi: parseFloat(bmi.toFixed(2)),
-      }
+      },
     };
   }
 }

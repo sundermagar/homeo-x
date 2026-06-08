@@ -4,6 +4,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 import { createLogger } from '../../../shared/logger.js';
 import { AccessToken } from 'livekit-server-sdk';
+import { sql } from 'drizzle-orm';
 
 const logger = createLogger('video-call-router');
 export const videoCallRouter: Router = Router();
@@ -14,13 +15,28 @@ function getUserId(req: Request): string {
 
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || 'devkey';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || 'secret';
-const LIVEKIT_URL = process.env.LIVEKIT_URL || process.env.VITE_LIVEKIT_URL || 'ws://127.0.0.1:7880';
+const LIVEKIT_URL =
+  process.env.LIVEKIT_URL || process.env.VITE_LIVEKIT_URL || 'ws://127.0.0.1:7880';
 
 // POST /api/video-call/token
 videoCallRouter.post('/token', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { visitId, role = 'host' } = req.body;
+    const { visitId, role = 'host', mode } = req.body;
     if (!visitId) throw new Error('Missing visitId');
+
+    // Sync mode (AUDIO/VIDEO) to database so the patient portal gets the correct default
+    if (mode && (req as any).tenantDb) {
+      try {
+        const visitType = mode.toUpperCase() === 'AUDIO' ? 'AUDIO' : 'VIDEO';
+        await (req as any).tenantDb.execute(sql`
+          UPDATE appointments 
+          SET visit_type = ${visitType}, updated_at = NOW() 
+          WHERE id = ${visitId}
+        `);
+      } catch (err) {
+        logger.warn({ visitId, err: (err as any)?.message }, 'Failed to sync call mode to appointment');
+      }
+    }
 
     const uid = getUserId(req);
     const roomName = `visit-${visitId}`;
@@ -34,7 +50,7 @@ videoCallRouter.post('/token', async (req: Request, res: Response, next: NextFun
     at.addGrant({
       roomJoin: true,
       room: roomName,
-      canPublish: true, 
+      canPublish: true,
       canSubscribe: true,
     });
 
@@ -44,41 +60,48 @@ videoCallRouter.post('/token', async (req: Request, res: Response, next: NextFun
       token,
       channel: LIVEKIT_URL, // UI livekit adapter maps generic 'channel' argument to URL
       appId: 'livekit',
-      uid: 1, 
+      uid: 1,
       visitId,
       patientJoinLink: `/meet/${visitId}`,
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET /api/video-call/patient-token/:roomId
-videoCallRouter.get('/patient-token/:roomId', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { roomId } = req.params;
-    const roomName = `visit-${roomId}`;
-    const uid = `patient-${Date.now()}`;
+videoCallRouter.get(
+  '/patient-token/:roomId',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { roomId } = req.params;
+      const roomName = `visit-${roomId}`;
+      const uid = `patient-${Date.now()}`;
 
-    const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-      identity: uid,
-      name: 'patient',
-    });
+      const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+        identity: uid,
+        name: 'patient',
+      });
 
-    at.addGrant({
-      roomJoin: true,
-      room: roomName,
-      canPublish: true,
-      canSubscribe: true,
-    });
+      at.addGrant({
+        roomJoin: true,
+        room: roomName,
+        canPublish: true,
+        canSubscribe: true,
+      });
 
-    const token = await at.toJwt();
+      const token = await at.toJwt();
 
-    sendSuccess(res, {
-      token,
-      channel: LIVEKIT_URL,
-      appId: 'livekit',
-      uid: 2, 
-      visitId: roomId,
-      patientJoinLink: `/meet/${roomId}`,
-    });
-  } catch (err) { next(err); }
-});
+      sendSuccess(res, {
+        token,
+        channel: LIVEKIT_URL,
+        appId: 'livekit',
+        uid: 2,
+        visitId: roomId,
+        patientJoinLink: `/meet/${roomId}`,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);

@@ -29,43 +29,43 @@ async function getRepo(req: Request) {
 }
 
 const USER_COLUMNS: { col: string; type: string }[] = [
-  { col: 'title',                  type: 'text' },
-  { col: 'firstname',              type: 'text' },
-  { col: 'middlename',             type: 'text' },
-  { col: 'surname',                type: 'text' },
-  { col: 'gender',                 type: 'text' },
-  { col: 'mobile',                 type: 'text' },
-  { col: 'mobile2',                type: 'text' },
-  { col: 'city',                   type: 'text' },
-  { col: 'address',                type: 'text' },
-  { col: 'permanent_address',      type: 'text' },
-  { col: 'about',                  type: 'text' },
-  { col: 'date_birth',             type: 'date' },
-  { col: 'date_left',              type: 'date' },
-  { col: 'joiningdate',            type: 'date' },
-  { col: 'designation',            type: 'text' },
-  { col: 'dept',                   type: 'integer' },
-  { col: 'qualification',          type: 'text' },
-  { col: 'institute',              type: 'text' },
-  { col: 'passed_out',             type: 'text' },
-  { col: 'registration_id',        type: 'text' },
-  { col: 'consultation_fee',       type: 'real' },
-  { col: 'salary_cur',             type: 'real' },
-  { col: 'aadharnumber',           type: 'text' },
-  { col: 'pannumber',              type: 'text' },
-  { col: 'profilepic',             type: 'text' },
+  { col: 'title', type: 'text' },
+  { col: 'firstname', type: 'text' },
+  { col: 'middlename', type: 'text' },
+  { col: 'surname', type: 'text' },
+  { col: 'gender', type: 'text' },
+  { col: 'mobile', type: 'text' },
+  { col: 'mobile2', type: 'text' },
+  { col: 'city', type: 'text' },
+  { col: 'address', type: 'text' },
+  { col: 'permanent_address', type: 'text' },
+  { col: 'about', type: 'text' },
+  { col: 'date_birth', type: 'date' },
+  { col: 'date_left', type: 'date' },
+  { col: 'joiningdate', type: 'date' },
+  { col: 'designation', type: 'text' },
+  { col: 'dept', type: 'integer' },
+  { col: 'qualification', type: 'text' },
+  { col: 'institute', type: 'text' },
+  { col: 'passed_out', type: 'text' },
+  { col: 'registration_id', type: 'text' },
+  { col: 'consultation_fee', type: 'real' },
+  { col: 'salary_cur', type: 'real' },
+  { col: 'aadharnumber', type: 'text' },
+  { col: 'pannumber', type: 'text' },
+  { col: 'profilepic', type: 'text' },
   { col: 'registration_certificate', type: 'text' },
-  { col: 'aadhar_card',            type: 'text' },
-  { col: 'pan_card',               type: 'text' },
-  { col: 'appointment_letter',     type: 'text' },
-  { col: '10_document',            type: 'text' },
-  { col: '12_document',            type: 'text' },
-  { col: 'bhms_document',          type: 'text' },
-  { col: 'role_id',               type: 'integer' },
-  { col: 'role_name',             type: 'text' },
-  { col: 'is_active',             type: 'boolean' },
-  { col: 'phone',                 type: 'text' },
-  { col: 'md_document',            type: 'text' },
+  { col: 'aadhar_card', type: 'text' },
+  { col: 'pan_card', type: 'text' },
+  { col: 'appointment_letter', type: 'text' },
+  { col: '10_document', type: 'text' },
+  { col: '12_document', type: 'text' },
+  { col: 'bhms_document', type: 'text' },
+  { col: 'role_id', type: 'integer' },
+  { col: 'role_name', type: 'text' },
+  { col: 'is_active', type: 'boolean' },
+  { col: 'phone', type: 'text' },
+  { col: 'md_document', type: 'text' },
 ];
 
 /**
@@ -77,7 +77,11 @@ async function ensureUsersColumns(db: DbClient): Promise<void> {
     try {
       const typeClause = type === 'integer' ? 'integer' : type === 'real' ? 'real' : 'text';
       const defaultClause = type === 'real' ? ' DEFAULT 0' : type === 'integer' ? ' DEFAULT 0' : '';
-      await db.execute(sql.raw(`ALTER TABLE users ADD COLUMN IF NOT EXISTS "${col}" ${typeClause}${defaultClause}`));
+      await db.execute(
+        sql.raw(
+          `ALTER TABLE users ADD COLUMN IF NOT EXISTS "${col}" ${typeClause}${defaultClause}`,
+        ),
+      );
     } catch {
       // column already exists or other issue — skip
     }
@@ -94,7 +98,13 @@ staffRouter.get('/', async (req: Request, res: Response) => {
   try {
     const category = parseCategory(req.query.category);
     if (!category) {
-      res.status(400).json({ success: false, message: 'Invalid or missing category. Must be one of: doctor, employee, receptionist, clinicadmin, account' });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            'Invalid or missing category. Must be one of: doctor, employee, receptionist, clinicadmin, account',
+        });
       return;
     }
     const { search, page = '1', limit = '30', sortBy, sortOrder } = req.query;
@@ -127,7 +137,10 @@ staffRouter.get('/:id', async (req: Request, res: Response) => {
       return;
     }
     const id = Number(req.params.id);
-    if (isNaN(id)) { res.status(400).json({ success: false, message: 'Invalid id' }); return; }
+    if (isNaN(id)) {
+      res.status(400).json({ success: false, message: 'Invalid id' });
+      return;
+    }
     const repo = await getRepo(req);
     const uc = new GetStaffUseCase(repo);
     const result = await uc.execute(category, id);
@@ -163,18 +176,23 @@ staffRouter.post('/', async (req: Request, res: Response) => {
     const parsed = createStaffSchema.safeParse(req.body);
     if (!parsed.success) {
       const fieldErrors = parsed.error.flatten().fieldErrors;
-      console.error(`[StaffRouter] VALIDATION FAILED for category: ${req.body.category}`, JSON.stringify(fieldErrors, null, 2));
+      console.error(
+        `[StaffRouter] VALIDATION FAILED for category: ${req.body.category}`,
+        JSON.stringify(fieldErrors, null, 2),
+      );
       res.status(400).json({ success: false, message: 'Validation failed', errors: fieldErrors });
       return;
     }
-    
+
     // Auto-generate a secure password if welcome email is requested but password is left blank
     if (parsed.data.sendWelcomeEmail && !parsed.data.password) {
       // 8-character random string + 'X1!' to ensure it meets any basic complexity rules
       parsed.data.password = Math.random().toString(36).slice(-8) + 'X1!';
     }
-    
-    logger.info(`Creating new staff member: ${parsed.data.name} (Category: ${parsed.data.category})`);
+
+    logger.info(
+      `Creating new staff member: ${parsed.data.name} (Category: ${parsed.data.category})`,
+    );
 
     // Ensure users table has all required columns before mirroring
     await ensureUsersColumns(req.tenantDb);
@@ -188,17 +206,25 @@ staffRouter.post('/', async (req: Request, res: Response) => {
       // Send Welcome Email if requested and email/password are present
       if (parsed.data.sendWelcomeEmail && parsed.data.email && parsed.data.password) {
         try {
-          const staffName = parsed.data.name || [parsed.data.firstname, parsed.data.middlename, parsed.data.surname].filter(Boolean).join(' ') || 'User';
+          const staffName =
+            parsed.data.name ||
+            [parsed.data.firstname, parsed.data.middlename, parsed.data.surname]
+              .filter(Boolean)
+              .join(' ') ||
+            'User';
           await emailService.sendWelcomeCredentials(
             parsed.data.email,
             staffName,
             parsed.data.category,
             parsed.data.password,
-            false // not clinic
+            false, // not clinic
           );
           logger.info({ email: parsed.data.email }, 'Staff welcome email sent successfully');
         } catch (emailErr: any) {
-          logger.error({ err: emailErr.message, email: parsed.data.email }, 'Failed to send staff welcome email');
+          logger.error(
+            { err: emailErr.message, email: parsed.data.email },
+            'Failed to send staff welcome email',
+          );
         }
       }
 
@@ -222,11 +248,22 @@ staffRouter.put('/:id', async (req: Request, res: Response) => {
       return;
     }
     const id = Number(req.params.id);
-    if (isNaN(id)) { res.status(400).json({ success: false, message: 'Invalid id' }); return; }
+    if (isNaN(id)) {
+      res.status(400).json({ success: false, message: 'Invalid id' });
+      return;
+    }
     const parsed = updateStaffSchema.safeParse(req.body);
     if (!parsed.success) {
-      logger.error(`Validation failed for staff update ${id}: ${JSON.stringify(parsed.error.flatten().fieldErrors)}`);
-      res.status(400).json({ success: false, message: 'Validation failed', errors: parsed.error.flatten().fieldErrors });
+      logger.error(
+        `Validation failed for staff update ${id}: ${JSON.stringify(parsed.error.flatten().fieldErrors)}`,
+      );
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: 'Validation failed',
+          errors: parsed.error.flatten().fieldErrors,
+        });
       return;
     }
     logger.info(`Updating staff member: ${id} (Category: ${category})`);
@@ -255,7 +292,10 @@ staffRouter.delete('/:id', async (req: Request, res: Response) => {
       return;
     }
     const id = Number(req.params.id);
-    if (isNaN(id)) { res.status(400).json({ success: false, message: 'Invalid id' }); return; }
+    if (isNaN(id)) {
+      res.status(400).json({ success: false, message: 'Invalid id' });
+      return;
+    }
     const repo = await getRepo(req);
     const uc = new DeleteStaffUseCase(repo);
     const result = await uc.execute(category, id);

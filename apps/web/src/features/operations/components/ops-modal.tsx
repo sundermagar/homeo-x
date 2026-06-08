@@ -20,9 +20,7 @@ export function OpsModal({ isOpen, onClose, title, children }: OpsModalProps) {
             <X size={18} />
           </button>
         </div>
-        <div className="ops-modal-body">
-          {children}
-        </div>
+        <div className="ops-modal-body">{children}</div>
       </div>
     </div>
   );

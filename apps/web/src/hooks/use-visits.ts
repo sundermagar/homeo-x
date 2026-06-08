@@ -49,8 +49,7 @@ export function useCreateVisit() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateVisitInput) =>
-      api.post<Visit>(API.VISITS, data),
+    mutationFn: (data: CreateVisitInput) => api.post<Visit>(API.VISITS, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['visits'] });
       qc.invalidateQueries({ queryKey: ['queue'] });

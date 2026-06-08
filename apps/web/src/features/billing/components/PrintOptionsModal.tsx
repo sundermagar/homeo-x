@@ -10,10 +10,36 @@ interface PrintOptionsModalProps {
 export function PrintOptionsModal({ bill, onClose, onPrint }: PrintOptionsModalProps) {
   return (
     <div className="plat-modal-overlay" style={{ zIndex: 9999 }}>
-      <div className="plat-modal-content animate-fade-in" style={{ maxWidth: '480px', padding: 0, overflow: 'hidden', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+      <div
+        className="plat-modal-content animate-fade-in"
+        style={{
+          maxWidth: '480px',
+          padding: 0,
+          overflow: 'hidden',
+          border: '1px solid rgba(226, 232, 240, 0.8)',
+        }}
+      >
         {/* Header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>Print Options</h2>
+        <div
+          style={{
+            padding: '20px 24px',
+            borderBottom: '1px solid #f1f5f9',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#fff',
+          }}
+        >
+          <h2
+            style={{
+              fontSize: '18px',
+              fontWeight: 800,
+              color: '#0f172a',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Print Options
+          </h2>
           <button
             onClick={onClose}
             style={{
@@ -27,20 +53,55 @@ export function PrintOptionsModal({ bill, onClose, onPrint }: PrintOptionsModalP
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = 'var(--pp-danger-fg)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#64748b'; }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = '#fee2e2';
+              e.currentTarget.style.color = 'var(--pp-danger-fg)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.color = '#64748b';
+            }}
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Active Record Summary */}
-        <div style={{ padding: '20px 24px', background: 'linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%)', borderBottom: '1px solid #bae6fd' }}>
-          <div style={{ fontSize: '10px', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Active Record Summary</div>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#0c4a6e' }}>{bill.patientName}</div>
-          <div style={{ fontSize: '12px', color: '#0369a1', marginTop: '4px', opacity: 0.8, fontWeight: 500 }}>Bill No: #{bill.billNo} • Amount: ₹{bill.charges.toLocaleString()}</div>
+        <div
+          style={{
+            padding: '20px 24px',
+            background: 'linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%)',
+            borderBottom: '1px solid #bae6fd',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '10px',
+              fontWeight: 800,
+              color: '#0284c7',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              marginBottom: '6px',
+            }}
+          >
+            Active Record Summary
+          </div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: '#0c4a6e' }}>
+            {bill.patientName}
+          </div>
+          <div
+            style={{
+              fontSize: '12px',
+              color: '#0369a1',
+              marginTop: '4px',
+              opacity: 0.8,
+              fontWeight: 500,
+            }}
+          >
+            Bill No: #{bill.billNo} • Amount: ₹{bill.charges.toLocaleString()}
+          </div>
         </div>
 
         {/* Options List */}
@@ -78,7 +139,17 @@ export function PrintOptionsModal({ bill, onClose, onPrint }: PrintOptionsModalP
   );
 }
 
-function PrintOption({ icon, title, desc, onClick }: { icon: React.ReactNode, title: string, desc: string, onClick: () => void }) {
+function PrintOption({
+  icon,
+  title,
+  desc,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
@@ -96,26 +167,30 @@ function PrintOption({ icon, title, desc, onClick }: { icon: React.ReactNode, ti
         cursor: 'pointer',
         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
       }}
     >
-      <div style={{
-        width: '42px',
-        height: '42px',
-        borderRadius: '10px',
-        background: '#f8fafc',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#64748b',
-        border: '1px solid #f1f5f9',
-        transition: 'all 0.2s'
-      }}>
+      <div
+        style={{
+          width: '42px',
+          height: '42px',
+          borderRadius: '10px',
+          background: '#f8fafc',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#64748b',
+          border: '1px solid #f1f5f9',
+          transition: 'all 0.2s',
+        }}
+      >
         {icon}
       </div>
       <div>
         <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{title}</div>
-        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', fontWeight: 500 }}>{desc}</div>
+        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', fontWeight: 500 }}>
+          {desc}
+        </div>
       </div>
       <style>{`
         .print-option-btn:hover {

@@ -10,9 +10,9 @@ export enum CircuitState {
 
 interface CircuitBreakerOptions {
   name: string;
-  failureThreshold: number;     // Number of failures before opening
-  resetTimeoutMs: number;       // How long to wait before trying again
-  halfOpenMaxAttempts: number;  // Attempts allowed in half-open state
+  failureThreshold: number; // Number of failures before opening
+  resetTimeoutMs: number; // How long to wait before trying again
+  halfOpenMaxAttempts: number; // Attempts allowed in half-open state
 }
 
 /**
@@ -34,13 +34,20 @@ export class CircuitBreaker {
         this.halfOpenAttempts = 0;
         logger.info(`[${this.options.name}] Circuit → HALF_OPEN`);
       } else {
-        throw new Error(`Circuit breaker OPEN for ${this.options.name}. Service temporarily unavailable.`);
+        throw new Error(
+          `Circuit breaker OPEN for ${this.options.name}. Service temporarily unavailable.`,
+        );
       }
     }
 
-    if (this.state === CircuitState.HalfOpen && this.halfOpenAttempts >= this.options.halfOpenMaxAttempts) {
+    if (
+      this.state === CircuitState.HalfOpen &&
+      this.halfOpenAttempts >= this.options.halfOpenMaxAttempts
+    ) {
       this.trip();
-      throw new Error(`Circuit breaker re-OPENED for ${this.options.name}. Half-open attempts exhausted.`);
+      throw new Error(
+        `Circuit breaker re-OPENED for ${this.options.name}. Half-open attempts exhausted.`,
+      );
     }
 
     try {
@@ -78,14 +85,48 @@ export class CircuitBreaker {
   }
 
   getState(): { state: CircuitState; failureCount: number; lastFailure: number | null } {
-    return { state: this.state, failureCount: this.failureCount, lastFailure: this.lastFailureTime };
+    return {
+      state: this.state,
+      failureCount: this.failureCount,
+      lastFailure: this.lastFailureTime,
+    };
   }
 }
 
 // Pre-configured breakers for known external services
-export const aiGeminiBreaker = new CircuitBreaker({ name: 'gemini', failureThreshold: 5, resetTimeoutMs: 60_000, halfOpenMaxAttempts: 2 });
-export const aiGroqBreaker = new CircuitBreaker({ name: 'groq', failureThreshold: 5, resetTimeoutMs: 60_000, halfOpenMaxAttempts: 2 });
-export const deepgramBreaker = new CircuitBreaker({ name: 'deepgram', failureThreshold: 3, resetTimeoutMs: 30_000, halfOpenMaxAttempts: 1 });
-export const smsBreaker = new CircuitBreaker({ name: 'sms', failureThreshold: 3, resetTimeoutMs: 120_000, halfOpenMaxAttempts: 1 });
-export const whatsappBreaker = new CircuitBreaker({ name: 'whatsapp', failureThreshold: 3, resetTimeoutMs: 120_000, halfOpenMaxAttempts: 1 });
-export const razorpayBreaker = new CircuitBreaker({ name: 'razorpay', failureThreshold: 3, resetTimeoutMs: 60_000, halfOpenMaxAttempts: 1 });
+export const aiGeminiBreaker = new CircuitBreaker({
+  name: 'gemini',
+  failureThreshold: 5,
+  resetTimeoutMs: 60_000,
+  halfOpenMaxAttempts: 2,
+});
+export const aiGroqBreaker = new CircuitBreaker({
+  name: 'groq',
+  failureThreshold: 5,
+  resetTimeoutMs: 60_000,
+  halfOpenMaxAttempts: 2,
+});
+export const deepgramBreaker = new CircuitBreaker({
+  name: 'deepgram',
+  failureThreshold: 3,
+  resetTimeoutMs: 30_000,
+  halfOpenMaxAttempts: 1,
+});
+export const smsBreaker = new CircuitBreaker({
+  name: 'sms',
+  failureThreshold: 3,
+  resetTimeoutMs: 120_000,
+  halfOpenMaxAttempts: 1,
+});
+export const whatsappBreaker = new CircuitBreaker({
+  name: 'whatsapp',
+  failureThreshold: 3,
+  resetTimeoutMs: 120_000,
+  halfOpenMaxAttempts: 1,
+});
+export const razorpayBreaker = new CircuitBreaker({
+  name: 'razorpay',
+  failureThreshold: 3,
+  resetTimeoutMs: 60_000,
+  halfOpenMaxAttempts: 1,
+});

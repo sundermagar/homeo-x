@@ -20,8 +20,7 @@ export function createCourierRouter(): Router {
       const repo = getRepo(req);
       const user = (req as any).user;
       const date = req.query.date as string | undefined;
-      const search = req.query.search as string | undefined;
-      
+
       // Determine clinic_id based on user role (matches legacy logic)
       let clinicId: number | null = null;
       if (user?.contextId) {
@@ -30,7 +29,7 @@ export function createCourierRouter(): Router {
 
       const queue = await repo.getQueue(clinicId, date, search);
       res.json({ success: true, data: queue });
-    })
+    }),
   );
 
   /**
@@ -45,7 +44,7 @@ export function createCourierRouter(): Router {
       const repo = getRepo(req);
       const entries = await repo.getByPatient(regid);
       res.json({ success: true, data: entries });
-    })
+    }),
   );
 
   /**
@@ -58,7 +57,7 @@ export function createCourierRouter(): Router {
       const repo = getRepo(req);
       const count = await repo.getUnreadCount();
       res.json({ success: true, data: { count } });
-    })
+    }),
   );
 
   /**
@@ -72,7 +71,7 @@ export function createCourierRouter(): Router {
       const repo = getRepo(req);
       const entry = await repo.create(req.body);
       res.status(201).json({ success: true, data: entry });
-    })
+    }),
   );
 
   /**
@@ -87,7 +86,7 @@ export function createCourierRouter(): Router {
       const repo = getRepo(req);
       const entry = await repo.assign({ ...req.body, id });
       res.json({ success: true, data: entry });
-    })
+    }),
   );
 
   /**
@@ -106,7 +105,7 @@ export function createCourierRouter(): Router {
       } else {
         res.json({ success: true, data: detail });
       }
-    })
+    }),
   );
 
   /**
@@ -120,7 +119,7 @@ export function createCourierRouter(): Router {
       const repo = getRepo(req);
       const count = await repo.markAllRead();
       res.json({ success: true, data: { updated: count } });
-    })
+    }),
   );
 
   return router;

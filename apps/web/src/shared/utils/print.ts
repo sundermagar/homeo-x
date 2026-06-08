@@ -7,12 +7,17 @@ export interface PrintOptions {
 }
 
 export const printBill = (bill: BillWithPatient, org: Organization, options: PrintOptions = {}) => {
-  const effectiveTemplate = options.template ?? (
-    bill.billType === 'Package' ? 'package' :
-      bill.billType === 'Custom' ? 'comprehensive' :
-        'standard'
-  );
-  const { template = effectiveTemplate, showLetterhead = true } = { ...options, template: effectiveTemplate };
+  const effectiveTemplate =
+    options.template ??
+    (bill.billType === 'Package'
+      ? 'package'
+      : bill.billType === 'Custom'
+        ? 'comprehensive'
+        : 'standard');
+  const { template = effectiveTemplate, showLetterhead = true } = {
+    ...options,
+    template: effectiveTemplate,
+  };
   const balance = bill.balance || 0;
   const isPaid = balance <= 0;
 
@@ -20,7 +25,7 @@ export const printBill = (bill: BillWithPatient, org: Organization, options: Pri
     standard: 'Standard Transaction Receipt',
     pharmacy: 'Pharmacy / Medicinal Bill',
     package: 'Clinical Program / Package',
-    comprehensive: 'Statement of Account'
+    comprehensive: 'Statement of Account',
   }[template];
 
   let bodyRows = '';
@@ -415,29 +420,32 @@ export const printPrescription = (caseData: any, org: Organization) => {
   }
 };
 
-export const printAppointmentSlip = (appointment: {
-  patientName: string;
-  phone: string;
-  doctorName: string;
-  bookingDate: string;
-  bookingTime: string;
-  consultationFee: string;
-  visitType: string;
-  tokenNo?: number;
-  regid?: number;
-  notes?: string;
-}, org: {
-  name: string;
-  tagLine?: string;
-  address?: string;
-  address2?: string;
-  phone?: string;
-  email?: string;
-  registration?: string;
-  timing?: string;
-  logo?: string;
-  website?: string;
-}) => {
+export const printAppointmentSlip = (
+  appointment: {
+    patientName: string;
+    phone: string;
+    doctorName: string;
+    bookingDate: string;
+    bookingTime: string;
+    consultationFee: string;
+    visitType: string;
+    tokenNo?: number;
+    regid?: number;
+    notes?: string;
+  },
+  org: {
+    name: string;
+    tagLine?: string;
+    address?: string;
+    address2?: string;
+    phone?: string;
+    email?: string;
+    registration?: string;
+    timing?: string;
+    logo?: string;
+    website?: string;
+  },
+) => {
   const formattedDate = appointment.bookingDate
     ? format(new Date(appointment.bookingDate + 'T00:00:00'), 'EEEE, dd MMMM yyyy')
     : 'N/A';
@@ -510,10 +518,11 @@ export const printAppointmentSlip = (appointment: {
           <div class="letterhead">
             <div class="letterhead-band"></div>
             <div class="letterhead-row">
-              ${org.logo
-      ? `<img src="${org.logo}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
-      : `<div class="letterhead-logo-fallback">${(org.name || 'C').charAt(0).toUpperCase()}</div>`
-    }
+              ${
+                org.logo
+                  ? `<img src="${org.logo}" alt="" class="letterhead-logo" onerror="this.style.display='none'" />`
+                  : `<div class="letterhead-logo-fallback">${(org.name || 'C').charAt(0).toUpperCase()}</div>`
+              }
               <div class="letterhead-title">
                 <div class="clinic-name">${org.name}</div>
                 ${org.tagLine ? `<div class="clinic-tagline">${org.tagLine}</div>` : ''}
@@ -542,11 +551,15 @@ export const printAppointmentSlip = (appointment: {
               <p class="p-name">${appointment.patientName || 'Patient'}</p>
               <p class="p-sub">${appointment.phone ? `+91 ${appointment.phone}` : ''} ${appointment.regid ? `| Reg ID: #${appointment.regid}` : ''}</p>
             </div>
-            ${appointment.tokenNo ? `
+            ${
+              appointment.tokenNo
+                ? `
             <div class="token-box">
               <p class="token-label">Token No.</p>
               <p class="token-value">${String(appointment.tokenNo).padStart(2, '0')}</p>
-            </div>` : ''}
+            </div>`
+                : ''
+            }
           </div>
 
           <div class="details-grid">
@@ -580,7 +593,9 @@ export const printAppointmentSlip = (appointment: {
             </div>
           </div>
 
-          ${appointment.consultationFee ? `
+          ${
+            appointment.consultationFee
+              ? `
           <div class="fee-bar">
             <div>
               <p class="fee-label">Consultation Fee</p>
@@ -589,13 +604,19 @@ export const printAppointmentSlip = (appointment: {
             <div>
               <p class="fee-value">₹${Number(appointment.consultationFee).toLocaleString()}</p>
             </div>
-          </div>` : ''}
+          </div>`
+              : ''
+          }
 
-          ${appointment.notes ? `
+          ${
+            appointment.notes
+              ? `
           <div style="margin-bottom: 15px;">
             <p style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px;">Booking Notes</p>
             <div style="background: #f8fafc; padding: 12px; border-radius: 10px; font-size: 12px; color: #334155; border: 1px solid #f1f5f9; white-space: pre-wrap;">${appointment.notes}</div>
-          </div>` : ''}
+          </div>`
+              : ''
+          }
 
           <div class="instructions">
             <p class="instructions-title">Patient Instructions</p>
@@ -619,75 +640,5 @@ export const printAppointmentSlip = (appointment: {
   if (printWindow) {
     printWindow.document.write(html);
     printWindow.document.close();
-  }
-};
-
-export const printThermalStickers = (stickerData: any, clinicName: string) => {
-  const labelsHtml = stickerData.medicines.map((med: any) => `
-    <div class="thermal-label">
-      <div class="thermal-header">${clinicName}</div>
-      <div class="thermal-row">
-        <span class="thermal-patient-name">${stickerData.patientName}</span>
-        <span>ID: ${stickerData.caseId}</span>
-      </div>
-      <div class="thermal-row" style="font-size: 7px;">
-        <span>Date: ${new Date(stickerData.dateval).toLocaleDateString('en-IN')}</span>
-      </div>
-      <div class="thermal-remedy">${med.remedy} ${med.potency}</div>
-      <div class="thermal-footer">
-        <span>Freq: ${med.frequency}</span>
-        <span>Days: ${med.days}</span>
-      </div>
-    </div>
-  `).join('');
-
-  const html = `
-    <html>
-      <head>
-        <title>Print Stickers - ${stickerData.patientName}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-          * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
-          
-          /* Screen preview styles */
-          body { padding: 40px; background: #f1f5f9; display: flex; flex-direction: column; align-items: center; gap: 20px; }
-          .thermal-label {
-            width: 50mm; height: 25mm; padding: 1mm 2mm; background: white;
-            display: flex; flex-direction: column; justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden;
-          }
-          .thermal-header { font-size: 8px; font-weight: 800; text-align: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 1mm; margin-bottom: 0.5mm; text-transform: uppercase; }
-          .thermal-row { display: flex; justify-content: space-between; font-size: 8px; line-height: 1.2; }
-          .thermal-patient-name { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30mm; }
-          .thermal-remedy { font-weight: 800; font-size: 11px; text-align: center; padding: 1mm 0; }
-          .thermal-footer { display: flex; justify-content: space-between; font-size: 7px; font-weight: 700; border-top: 1px dashed #cbd5e1; padding-top: 0.5mm; }
-
-          @media print {
-            body { padding: 0; background: white; display: block; }
-            .no-print { display: none !important; }
-            @page { size: 50mm 25mm; margin: 0; }
-            .thermal-label {
-              width: 50mm; height: 25mm; box-shadow: none; border-radius: 0; margin: 0;
-              page-break-after: always;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="no-print" style="margin-bottom: 20px; text-align: center; width: 100%;">
-          <button onclick="window.print()" style="padding: 10px 20px; background: #0f172a; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 13px;">Print Labels</button>
-        </div>
-        ${labelsHtml}
-      </body>
-    </html>
-  `;
-
-  const printWindow = window.open('', '_blank');
-  if (printWindow) {
-    printWindow.document.write(html);
-    printWindow.document.close();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
   }
 };

@@ -41,8 +41,7 @@ export function useAddSegments() {
 export function usePauseSession() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (sessionId: string) =>
-      api.patch<ScribingSession>(API.SCRIBING.PAUSE(sessionId)),
+    mutationFn: (sessionId: string) => api.patch<ScribingSession>(API.SCRIBING.PAUSE(sessionId)),
     onSuccess: (result) => {
       qc.setQueryData(['scribing-session', result.visitId], result);
     },
@@ -52,8 +51,7 @@ export function usePauseSession() {
 export function useResumeSession() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (sessionId: string) =>
-      api.patch<ScribingSession>(API.SCRIBING.RESUME(sessionId)),
+    mutationFn: (sessionId: string) => api.patch<ScribingSession>(API.SCRIBING.RESUME(sessionId)),
     onSuccess: (result) => {
       qc.setQueryData(['scribing-session', result.visitId], result);
     },
@@ -63,8 +61,7 @@ export function useResumeSession() {
 export function useEndSession() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (sessionId: string) =>
-      api.patch<ScribingSession>(API.SCRIBING.END(sessionId)),
+    mutationFn: (sessionId: string) => api.patch<ScribingSession>(API.SCRIBING.END(sessionId)),
     onSuccess: (result) => {
       qc.setQueryData(['scribing-session', result.visitId], result);
     },
@@ -87,14 +84,19 @@ export function usePublicScribingSession(visitId: string) {
     queryKey: ['scribing-session-public', visitId],
     queryFn: () => api.get<ScribingSession>(API.SCRIBING.PUBLIC(visitId)),
     enabled: !!visitId,
-    refetchInterval: 5000, 
+    refetchInterval: 5000,
   });
 }
 
 export function useGenerateSoapFromTranscript() {
   return useMutation({
-    mutationFn: ({ sessionId, data }: { sessionId: string; data: GenerateSoapFromTranscriptInput }) =>
-      api.post<SoapSuggestion>(API.SCRIBING.GENERATE_SOAP(sessionId), data),
+    mutationFn: ({
+      sessionId,
+      data,
+    }: {
+      sessionId: string;
+      data: GenerateSoapFromTranscriptInput;
+    }) => api.post<SoapSuggestion>(API.SCRIBING.GENERATE_SOAP(sessionId), data),
   });
 }
 

@@ -1,7 +1,27 @@
 import React, { useMemo, useState } from 'react';
-import { MapPin, Plus, X, RefreshCw, Trash2, Edit2, Phone, Mail, User, Briefcase, Calendar, Info, Search, ShieldCheck } from 'lucide-react';
+import {
+  MapPin,
+  Plus,
+  X,
+  RefreshCw,
+  Trash2,
+  Edit2,
+  Phone,
+  Mail,
+  User,
+  Briefcase,
+  Calendar,
+  Info,
+  Search,
+  ShieldCheck,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useDispensaries, useCreateDispensary, useUpdateDispensary, useDeleteDispensary } from '../hooks/use-settings';
+import {
+  useDispensaries,
+  useCreateDispensary,
+  useUpdateDispensary,
+  useDeleteDispensary,
+} from '../hooks/use-settings';
 import { Drawer } from '@/shared/components/drawer';
 import { NumericInput } from '@/shared/components/NumericInput';
 import '../../platform/styles/platform.css';
@@ -45,7 +65,7 @@ const EMPTY_FORM = {
   dept: '',
   dateBirth: '',
   contactNumber: '',
-  isActive: true
+  isActive: true,
 };
 
 export default function DispensariesPage() {
@@ -59,22 +79,24 @@ export default function DispensariesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredItems = useMemo(() => dispensaries.filter((d: Dispensary) =>
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (d.email && d.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (d.city && d.city.toLowerCase().includes(searchQuery.toLowerCase()))
-  ), [dispensaries, searchQuery]);
+  const filteredItems = useMemo(
+    () =>
+      dispensaries.filter(
+        (d: Dispensary) =>
+          d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (d.email && d.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (d.city && d.city.toLowerCase().includes(searchQuery.toLowerCase())),
+      ),
+    [dispensaries, searchQuery],
+  );
 
-  const {
-    currentPage,
-    setCurrentPage,
-    itemsPerPage,
-    setItemsPerPage,
-    paginatedData,
-    totalItems
-  } = usePagination(filteredItems);
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, paginatedData, totalItems } =
+    usePagination(filteredItems);
 
-  const activeStaffCount = useMemo(() => dispensaries.filter((d: Dispensary) => d.isActive).length, [dispensaries]);
+  const activeStaffCount = useMemo(
+    () => dispensaries.filter((d: Dispensary) => d.isActive).length,
+    [dispensaries],
+  );
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -99,7 +121,7 @@ export default function DispensariesPage() {
       dept: disp.dept || '',
       dateBirth: disp.dateBirth ? disp.dateBirth.substring(0, 10) : '',
       contactNumber: disp.contactNumber || '',
-      isActive: disp.isActive ?? true
+      isActive: disp.isActive ?? true,
     });
     setIsModalOpen(true);
   };
@@ -119,21 +141,22 @@ export default function DispensariesPage() {
   };
 
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Permanently remove pharmacist "${name}"? Access will be revoked immediately.`)) return;
+    if (!confirm(`Permanently remove pharmacist "${name}"? Access will be revoked immediately.`))
+      return;
     await deleteDisp.mutateAsync(id);
   };
 
   return (
     <div className="plat-page fade-in">
-
-
       <div className="plat-header">
         <div>
           <h1 className="plat-header-title">
             <ShieldCheck size={20} className="color-primary" />
             Pharmacy & Dispensary Registry
           </h1>
-          <p className="plat-header-sub">Manage pharmaceutical staff, access credentials, and station assignments.</p>
+          <p className="plat-header-sub">
+            Manage pharmaceutical staff, access credentials, and station assignments.
+          </p>
         </div>
         <div className="plat-header-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
@@ -169,80 +192,102 @@ export default function DispensariesPage() {
         {isLoading ? (
           <TableSkeleton rows={5} columns={6} />
         ) : filteredItems.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             icon={MapPin}
-            title={searchQuery ? "No matches found" : "No dispensary staff found"}
-            description={searchQuery ? `No pharmacy staff matching "${searchQuery}" were found.` : "Register your first pharmacy staff member to begin managing clinical dispensaries."}
-            actionLabel={searchQuery ? "Clear Search" : "Add Staff Account"}
+            title={searchQuery ? 'No matches found' : 'No dispensary staff found'}
+            description={
+              searchQuery
+                ? `No pharmacy staff matching "${searchQuery}" were found.`
+                : 'Register your first pharmacy staff member to begin managing clinical dispensaries.'
+            }
+            actionLabel={searchQuery ? 'Clear Search' : 'Add Staff Account'}
             onAction={searchQuery ? () => setSearchQuery('') : handleOpenCreate}
             variant="card"
             className="my-8"
           />
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '40px' }}>#</th>
-                  <th>Identity Profile</th>
-                  <th>Contact Details</th>
-                  <th>Station & Role</th>
-                  <th style={{ width: '100px' }}>Access</th>
-                  <th style={{ width: '100px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((disp: Dispensary, index: number) => (
-                  <tr key={disp.id} className="plat-table-row">
-                    <td className="plat-table-cell color-muted font-mono text-xs">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                    <td className="plat-table-cell">
-                      <div className="font-bold text-[14px]">{disp.name}</div>
-                      <div className="text-[11px] color-muted flex items-center gap-1 italic">
-                        <User size={10} className="opacity-60" /> {disp.gender || 'Not Specified'}
-                      </div>
-                    </td>
-                    <td className="plat-table-cell">
-                      <div className="flex flex-col gap-1">
-                        {disp.email && <div className="text-[11px] font-mono flex items-center gap-1.5"><Mail size={12} className="color-muted" /> {disp.email}</div>}
-                        {disp.mobile && <div className="text-[11px] font-mono flex items-center gap-1.5"><Phone size={12} className="color-muted" /> {disp.mobile}</div>}
-                      </div>
-                    </td>
-                    <td className="plat-table-cell">
-                      <div className="font-bold text-[12px]">{disp.designation || 'Staff'}</div>
-                      <div className="text-[10px] color-muted uppercase font-black flex items-center gap-1">
-                        <MapPin size={10} /> {disp.city || 'Station N/A'}
-                      </div>
-                    </td>
-                    <td className="plat-table-cell">
-                      <span className={`plat-badge ${disp.isActive ? 'plat-badge-primary' : 'plat-badge-default'}`}>
-                        {disp.isActive ? 'Authorized' : 'Suspended'}
-                      </span>
-                    </td>
-                    <td className="plat-table-cell">
-                      <div className="flex justify-end gap-2">
-                        <button className="plat-btn plat-btn-sm plat-btn-icon" onClick={() => handleOpenEdit(disp)}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger" onClick={() => handleDelete(disp.id, disp.name)}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+            <div className="plat-table-container">
+              <table className="plat-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '40px' }}>#</th>
+                    <th>Identity Profile</th>
+                    <th>Contact Details</th>
+                    <th>Station & Role</th>
+                    <th style={{ width: '100px' }}>Access</th>
+                    <th style={{ width: '100px' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ marginTop: '20px' }}>
-            <Pagination
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLimitChange={setItemsPerPage}
-          />
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedData.map((disp: Dispensary, index: number) => (
+                    <tr key={disp.id} className="plat-table-row">
+                      <td className="plat-table-cell color-muted font-mono text-xs">
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="font-bold text-[14px]">{disp.name}</div>
+                        <div className="text-[11px] color-muted flex items-center gap-1 italic">
+                          <User size={10} className="opacity-60" /> {disp.gender || 'Not Specified'}
+                        </div>
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="flex flex-col gap-1">
+                          {disp.email && (
+                            <div className="text-[11px] font-mono flex items-center gap-1.5">
+                              <Mail size={12} className="color-muted" /> {disp.email}
+                            </div>
+                          )}
+                          {disp.mobile && (
+                            <div className="text-[11px] font-mono flex items-center gap-1.5">
+                              <Phone size={12} className="color-muted" /> {disp.mobile}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="font-bold text-[12px]">{disp.designation || 'Staff'}</div>
+                        <div className="text-[10px] color-muted uppercase font-black flex items-center gap-1">
+                          <MapPin size={10} /> {disp.city || 'Station N/A'}
+                        </div>
+                      </td>
+                      <td className="plat-table-cell">
+                        <span
+                          className={`plat-badge ${disp.isActive ? 'plat-badge-primary' : 'plat-badge-default'}`}
+                        >
+                          {disp.isActive ? 'Authorized' : 'Suspended'}
+                        </span>
+                      </td>
+                      <td className="plat-table-cell">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon"
+                            onClick={() => handleOpenEdit(disp)}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
+                            onClick={() => handleDelete(disp.id, disp.name)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              <Pagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onLimitChange={setItemsPerPage}
+              />
+            </div>
           </>
         )}
       </div>
@@ -255,21 +300,27 @@ export default function DispensariesPage() {
       >
         <form onSubmit={handleSubmit}>
           <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+            <div
+              className="plat-form-section"
+              style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+            >
               <div className="plat-form-grid-multi" style={{ gridTemplateColumns: '1fr' }}>
                 <div className="plat-form-group">
                   <label className="plat-form-label">Full Account Name *</label>
                   <input
                     className="plat-form-input"
                     value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     required
                     placeholder="e.g. Pharmacy Manager"
                   />
                 </div>
               </div>
 
-              <div className="plat-form-grid-multi mt-4" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <div
+                className="plat-form-grid-multi mt-4"
+                style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}
+              >
                 <div className="plat-form-group">
                   <label className="plat-form-label">Official Email</label>
                   <div className="plat-input-wrapper">
@@ -278,7 +329,7 @@ export default function DispensariesPage() {
                       type="email"
                       className="plat-form-input"
                       value={form.email}
-                      onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                       placeholder="email@clinic.com"
                     />
                   </div>
@@ -293,7 +344,7 @@ export default function DispensariesPage() {
                         type="password"
                         className="plat-form-input"
                         value={form.password}
-                        onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                        onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                         required={!editingId}
                         placeholder="Security credential"
                       />
@@ -306,7 +357,7 @@ export default function DispensariesPage() {
                   <select
                     className="plat-form-input"
                     value={form.gender}
-                    onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
+                    onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
                   >
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -322,7 +373,7 @@ export default function DispensariesPage() {
                       className="plat-form-input"
                       name="mobile"
                       value={form.mobile}
-                      onChange={e => setForm(f => ({ ...f, mobile: e.target.value }))}
+                      onChange={(e) => setForm((f) => ({ ...f, mobile: e.target.value }))}
                       placeholder="Contact number"
                     />
                   </div>
@@ -335,7 +386,7 @@ export default function DispensariesPage() {
                     <input
                       className="plat-form-input"
                       value={form.city}
-                      onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
+                      onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
                       placeholder="City assigned"
                     />
                   </div>
@@ -348,7 +399,7 @@ export default function DispensariesPage() {
                     <input
                       className="plat-form-input"
                       value={form.designation}
-                      onChange={e => setForm(f => ({ ...f, designation: e.target.value }))}
+                      onChange={(e) => setForm((f) => ({ ...f, designation: e.target.value }))}
                       placeholder="e.g. Pharmacist In-Charge"
                     />
                   </div>
@@ -359,15 +410,21 @@ export default function DispensariesPage() {
                 <input
                   type="checkbox"
                   checked={form.isActive}
-                  onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
+                  onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                 />
                 <span className="plat-checkbox-label">Authorized for System Access</span>
               </label>
             </div>
           </div>
           <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="plat-btn plat-btn-primary" disabled={createDisp.isPending || updateDisp.isPending}>
+            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="plat-btn plat-btn-primary"
+              disabled={createDisp.isPending || updateDisp.isPending}
+            >
               {editingId ? 'Save Profile' : 'Register Account'}
             </button>
           </div>

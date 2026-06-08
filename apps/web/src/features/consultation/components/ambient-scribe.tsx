@@ -36,13 +36,18 @@ function formatElapsed(ms: number): string {
   return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 }
 
-export function AmbientScribe({ visitId, aiContext, onSoapGenerated, onTranscriptUpdate }: AmbientScribeProps) {
+export function AmbientScribe({
+  visitId,
+  aiContext,
+  onSoapGenerated,
+  onTranscriptUpdate,
+}: AmbientScribeProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [segments, setSegments] = useState<TranscriptSegmentLocal[]>([]);
   const [interimText, setInterimText] = useState('');
   const [currentSpeaker, setCurrentSpeaker] = useState<SpeakerLabel>('DOCTOR');
   const [elapsedMs, setElapsedMs] = useState(0);
-  
+
   const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const sessionStartRef = useRef(0);
   const nextSequenceRef = useRef(0);
@@ -60,69 +65,70 @@ export function AmbientScribe({ visitId, aiContext, onSoapGenerated, onTranscrip
   const generateSoap = useGenerateSoapFromTranscript();
   const { data: existingSession } = useScribingSession(visitId);
 
-  const onTranscriptResult = useCallback((result: any) => {
-    // Handle async translation updates: update existing segment, don't add new one
-    if (result.isTranslationUpdate) {
-      setSegments(prev => 
-        prev.map(seg => 
-          seg.text === result.text 
-            ? { ...seg, translatedText: result.translatedText }
-            : seg
-        )
-      );
-      return;
-    }
-
-    if (result.isFinal) {
-      const segment: TranscriptSegmentLocal = {
-        sequenceNumber: nextSequenceRef.current++,
-        text: result.text,
-        translatedText: result.translatedText,
-        speaker: currentSpeaker,
-        confidence: 0.95,
-        startTimeMs: 0,
-        endTimeMs: 0,
-        isFinal: true,
-        timestamp: result.timestamp,
-      };
-      
-      setSegments(prev => {
-        const newSegments = [...prev, segment];
-        
-        // Notify parent of transcript updates
-        const fullText = newSegments
-          .map((s) => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.text}`)
-          .join('\n');
-        onTranscriptUpdate?.(fullText);
-        
-        return newSegments;
-      });
-      
-      setInterimText('');
-      
-      // Sync with backend
-      if (sessionId) {
-        addSegments.mutate({
-          sessionId,
-          data: { segments: [segment] },
-        });
+  const onTranscriptResult = useCallback(
+    (result: any) => {
+      // Handle async translation updates: update existing segment, don't add new one
+      if (result.isTranslationUpdate) {
+        setSegments((prev) =>
+          prev.map((seg) =>
+            seg.text === result.text ? { ...seg, translatedText: result.translatedText } : seg,
+          ),
+        );
+        return;
       }
-    } else {
-      setInterimText(result.translatedText || result.text);
-    }
-  }, [currentSpeaker, sessionId, addSegments, onTranscriptUpdate]);
+
+      if (result.isFinal) {
+        const segment: TranscriptSegmentLocal = {
+          sequenceNumber: nextSequenceRef.current++,
+          text: result.text,
+          translatedText: result.translatedText,
+          speaker: currentSpeaker,
+          confidence: 0.95,
+          startTimeMs: 0,
+          endTimeMs: 0,
+          isFinal: true,
+          timestamp: result.timestamp,
+        };
+
+        setSegments((prev) => {
+          const newSegments = [...prev, segment];
+
+          // Notify parent of transcript updates
+          const fullText = newSegments
+            .map((s) => `${s.speaker === 'DOCTOR' ? 'Doctor' : 'Patient'}: ${s.text}`)
+            .join('\n');
+          onTranscriptUpdate?.(fullText);
+
+          return newSegments;
+        });
+
+        setInterimText('');
+
+        // Sync with backend
+        if (sessionId) {
+          addSegments.mutate({
+            sessionId,
+            data: { segments: [segment] },
+          });
+        }
+      } else {
+        setInterimText(result.translatedText || result.text);
+      }
+    },
+    [currentSpeaker, sessionId, addSegments, onTranscriptUpdate],
+  );
 
   const binaryTranscriber = useBinaryTranscriber({
     visitId,
     engine: 'GOOGLE',
     onTranscript: onTranscriptResult,
     onError: (err) => {
-      toast({ 
-        title: 'Transcription Error', 
-        description: err.message || 'Connection lost to high-power server', 
-        variant: 'error' 
+      toast({
+        title: 'Transcription Error',
+        description: err.message || 'Connection lost to high-power server',
+        variant: 'error',
       });
-    }
+    },
   });
 
   const isRecording = binaryTranscriber.isRecording;
@@ -247,10 +253,17 @@ export function AmbientScribe({ visitId, aiContext, onSoapGenerated, onTranscrip
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               <Mic className="h-4 w-4 mr-1.5" />
-              {binaryTranscriber.isConnecting ? 'Initializing Server...' : 'Start Clinical Scribing'}
+              {binaryTranscriber.isConnecting
+                ? 'Initializing Server...'
+                : 'Start Clinical Scribing'}
             </Button>
           ) : (
-            <Button onClick={handleStop} size="sm" variant="outline" className="text-red-600 border-red-300">
+            <Button
+              onClick={handleStop}
+              size="sm"
+              variant="outline"
+              className="text-red-600 border-red-300"
+            >
               <Square className="h-3.5 w-3.5 mr-1.5" />
               Stop and Save
             </Button>
@@ -258,7 +271,9 @@ export function AmbientScribe({ visitId, aiContext, onSoapGenerated, onTranscrip
 
           {isRecording && (
             <div className="flex items-center gap-1 ml-auto">
-              <span className="text-[10px] uppercase text-gray-400 font-semibold mr-1">Speaker:</span>
+              <span className="text-[10px] uppercase text-gray-400 font-semibold mr-1">
+                Speaker:
+              </span>
               {(['DOCTOR', 'PATIENT'] as SpeakerLabel[]).map((role) => (
                 <button
                   key={role}
@@ -291,12 +306,12 @@ export function AmbientScribe({ visitId, aiContext, onSoapGenerated, onTranscrip
         {segments.length > 0 && (
           <div className="flex items-center justify-between pt-2 border-t">
             <div className="flex flex-col">
-               <span className="text-[10px] text-gray-400 uppercase font-bold">Progress</span>
-               <span className="text-xs font-medium text-slate-600">
+              <span className="text-[10px] text-gray-400 uppercase font-bold">Progress</span>
+              <span className="text-xs font-medium text-slate-600">
                 {segments.length} segment{segments.length !== 1 ? 's' : ''} captured
               </span>
             </div>
-            
+
             <Button
               onClick={handleGenerateSoap}
               disabled={generateSoap.isPending || isRecording}

@@ -8,7 +8,6 @@ import { useState, useMemo, Fragment } from 'react';
 import { useRecordPayment, usePatientBills, useUpdateCharges, useDeleteBill } from '../hooks/use-billing';
 import { Drawer } from '@/shared/components/drawer';
 
-
 interface BillingTableProps {
   bills: BillWithPatient[];
   isLoading: boolean;
@@ -17,10 +16,9 @@ interface BillingTableProps {
 
 export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
   const { data: orgs = [] } = useOrganizations();
-  const user = useAuthStore(s => s.user);
-  const myOrg = orgs.find(o => o.id === user?.contextId) || orgs[0];
+  const user = useAuthStore((s) => s.user);
+  const myOrg = orgs.find((o) => o.id === user?.contextId) || orgs[0];
   const recordPayment = useRecordPayment();
-  const updateCharges = useUpdateCharges();
 
   const [printingBill, setPrintingBill] = useState<BillWithPatient | null>(null);
   const [receivingBill, setReceivingBill] = useState<BillWithPatient | null>(null);
@@ -463,72 +461,150 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                 <th>Reg ID</th>
                 <th>Date</th>
                 <th>Patient</th>
-                <th>Mode</th>
-                <th>Charges Breakdown</th>
-                <th>Total</th>
-                <th>Received</th>
-                <th>Balance</th>
-                <th>Action</th>
+                <th style={{ width: '100px' }}>Mode</th>
+                <th style={{ width: '110px' }}>Charges</th>
+                <th style={{ width: '110px' }}>Received</th>
+                <th style={{ width: '110px' }}>Balance</th>
+                <th style={{ width: '220px', textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
-              {groupedBills.map((group) => {
-                const isExpanded = selectedGroup?.regid === group.regid;
-                return (
-                  <Fragment key={`group-${group.regid}`}>
-                    <tr onClick={() => setSelectedGroup(group)} style={{ cursor: 'pointer', background: isExpanded ? 'var(--bg-surface-2)' : undefined }}>
-                      <td data-label="Reg ID">
-                        <span className="appt-cell-id">#{group.regid}</span>
-                      </td>
-                      <td data-label="Date">
-                        <div className="appt-cell-name">{group.billDate ? format(new Date(group.billDate), 'dd-MM-yyyy') : '—'}</div>
-                      </td>
-                      <td data-label="Patient">
-                        <div className="appt-cell-name">{group.patientName ? group.patientName.replace(/\b\w/g, c => c.toUpperCase()) : '—'}</div>
-                      </td>
-                      <td data-label="Mode">
-                        {Array.from(group.paymentModes).map(mode => (
-                          <span key={mode} className={`bill-badge ${mode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}>
-                            {mode}
-                          </span>
-                        ))}
-                        {group.paymentModes.size === 0 && <span className="appt-cell-slash">—</span>}
-                      </td>
-                      <td data-label="Charges Breakdown">
-                        <div className="appt-cell-phone" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          <span>Reg: <strong>₹{group.registrationCharge}</strong></span>
-                          <span>Med: <strong>₹{group.medicineDaysCharge}</strong></span>
-                          {group.packageCharge > 0 && <span>Pkg: <strong>₹{group.packageCharge}</strong></span>}
-                          {group.additionalCharge > 0 && <span>Add: <strong>₹{group.additionalCharge}</strong></span>}
-                        </div>
-                      </td>
-                      <td data-label="Total">
-                        <span className="appt-cell-name" style={{ color: 'var(--pp-blue)', fontFamily: 'var(--pp-font-mono)' }}>₹{group.totalCharges.toLocaleString()}</span>
-                      </td>
-                      <td data-label="Received">
-                        <span className="appt-cell-name" style={{ color: 'var(--pp-success-fg)', fontFamily: 'var(--pp-font-mono)' }}>₹{group.totalReceived.toLocaleString()}</span>
-                      </td>
-                      <td data-label="Balance">
-                        <span className="appt-cell-name" style={{ color: group.totalBalance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)', fontFamily: 'var(--pp-font-mono)' }}>
-                          {group.totalBalance > 0 ? `₹${group.totalBalance.toLocaleString()}` : '—'}
-                        </span>
-                      </td>
-                      <td data-label="Action" onClick={(e) => e.stopPropagation()}>
-                        <div className="appt-kebab-wrap" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+              {bills.map((bill) => (
+                <tr key={bill.id}>
+                  <td
+                    data-label="Bill #"
+                    style={{ fontFamily: 'var(--pp-font-mono)', fontWeight: 600 }}
+                  >
+                    <div>#{bill.billNo}</div>
+                  </td>
+                  <td
+                    data-label="Date"
+                    style={{
+                      fontFamily: 'var(--pp-font-mono)',
+                      fontSize: '0.78rem',
+                      color: 'var(--pp-text-3)',
+                    }}
+                  >
+                    <div>{bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : '—'}</div>
+                  </td>
+                  <td data-label="Patient" style={{ fontWeight: 500 }}>
+                    <div>
+                      {bill.patientName
+                        ? bill.patientName.replace(/\b\w/g, (c) => c.toUpperCase())
+                        : '—'}
+                    </div>
+                  </td>
+                  <td data-label="Mode">
+                    <div className="plat-cell-val">
+                      <span
+                        className={`bill-badge ${bill.paymentMode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}
+                      >
+                        {bill.paymentMode ?? '—'}
+                      </span>
+                    </div>
+                  </td>
+                  <td
+                    data-label="Charges"
+                    style={{
+                      fontFamily: 'var(--pp-font-mono)',
+                      fontWeight: 600,
+                      color: 'var(--pp-blue)',
+                    }}
+                  >
+                    <div className="plat-cell-val">₹{bill.charges.toLocaleString()}</div>
+                  </td>
+                  <td
+                    data-label="Received"
+                    style={{
+                      fontFamily: 'var(--pp-font-mono)',
+                      fontWeight: 600,
+                      color: 'var(--pp-success-fg)',
+                    }}
+                  >
+                    <div className="plat-cell-val">₹{bill.received.toLocaleString()}</div>
+                  </td>
+                  <td
+                    data-label="Balance"
+                    style={{
+                      fontFamily: 'var(--pp-font-mono)',
+                      fontWeight: 600,
+                      color: bill.balance > 0 ? 'var(--pp-danger-fg)' : 'var(--pp-text-3)',
+                    }}
+                  >
+                    <div className="plat-cell-val">
+                      {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}
+                    </div>
+                  </td>
+                  <td data-label="Action" style={{ textAlign: 'right' }}>
+                    <div className="plat-cell-val">
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 6,
+                          justifyContent: 'flex-end',
+                          alignItems: 'center',
+                          width: '100%',
+                        }}
+                      >
+                        {bill.balance > 0 && (
                           <button
-                            className="appt-kebab-btn"
-                            style={{ color: 'var(--pp-blue)' }}
-                            onClick={() => setSelectedGroup(group)}
-                            title="View Details"
+                            className="bill-btn bill-btn-primary"
+                            style={{
+                              height: 32,
+                              padding: '0 12px',
+                              borderRadius: 8,
+                              fontSize: 11,
+                              fontWeight: 700,
+                            }}
+                            onClick={() => {
+                              setReceivingBill(bill);
+                              setReceiveAmount(bill.balance);
+                            }}
                           >
                             <Eye size={15} />
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </Fragment>
-                );
-              })}
+                        )}
+
+                        <button
+                          className="bill-btn bill-btn-sm"
+                          style={{
+                            height: 32,
+                            padding: '0 10px',
+                            borderRadius: 8,
+                            background: 'var(--bg-surface-2)',
+                            border: '1px solid var(--border-main)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                          onClick={() => setPrintingBill(bill)}
+                        >
+                          <Printer size={12} />
+                          <span style={{ fontSize: 11, fontWeight: 700 }}>Print</span>
+                        </button>
+
+                        <button
+                          className="bill-btn bill-btn-sm"
+                          style={{
+                            color: 'var(--pp-blue)',
+                            border: 'none',
+                            background: 'none',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontSize: 11,
+                            padding: '0 8px',
+                          }}
+                          onClick={() => {
+                            if (myOrg) printBill(bill, myOrg);
+                          }}
+                        >
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -543,12 +619,26 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       >
         {(receivingBill || receivingGroup) && (
           <div className="bill-form">
-            <div style={{ marginBottom: 16, padding: 16, background: 'var(--bg-surface-2)', borderRadius: 16 }}>
+            <div
+              style={{
+                marginBottom: 16,
+                padding: 16,
+                background: 'var(--bg-surface-2)',
+                borderRadius: 16,
+              }}
+            >
               <div style={{ fontSize: '0.75rem', color: 'var(--pp-text-3)', fontWeight: 700 }}>
                 {receivingBill ? `Bill #${receivingBill.billNo}` : 'All Unpaid Invoices'} • {receivingBill ? receivingBill.patientName : receivingGroup.patientName}
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 850, color: 'var(--pp-blue)', marginTop: 4 }}>
-                Balance: ₹{(receivingBill ? receivingBill.balance : receivingGroup.totalBalance).toLocaleString()}
+              <div
+                style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 850,
+                  color: 'var(--pp-blue)',
+                  marginTop: 4,
+                }}
+              >
+                Balance: ₹{receivingBill.balance.toLocaleString()}
               </div>
             </div>
 
@@ -559,38 +649,34 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                 className="bill-form-input"
                 style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }}
                 value={receiveAmount}
-                onChange={e => setReceiveAmount(Number(e.target.value))}
+                onChange={(e) => setReceiveAmount(Number(e.target.value))}
               />
             </div>
 
             <div className="bill-form-group" style={{ marginTop: 16 }}>
               <label className="bill-form-label">Payment Mode</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <button
                   className={`bill-view-toggle-btn ${paymentMode === 'Cash' ? 'is-active' : ''}`}
                   onClick={() => setPaymentMode('Cash')}
-                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                  style={{
+                    justifyContent: 'center',
+                    height: 40,
+                    borderRadius: 12,
+                    border: '1px solid var(--pp-warm-4)',
+                  }}
                 >
                   <DollarSign size={14} /> Cash
                 </button>
                 <button
-                  className={`bill-view-toggle-btn ${paymentMode === 'UPI' ? 'is-active' : ''}`}
-                  onClick={() => setPaymentMode('UPI')}
-                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
-                >
-                  <CreditCard size={14} /> UPI
-                </button>
-                <button
-                  className={`bill-view-toggle-btn ${paymentMode === 'Card' ? 'is-active' : ''}`}
-                  onClick={() => setPaymentMode('Card')}
-                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
-                >
-                  <CreditCard size={14} /> Card
-                </button>
-                <button
                   className={`bill-view-toggle-btn ${paymentMode === 'Online' ? 'is-active' : ''}`}
                   onClick={() => setPaymentMode('Online')}
-                  style={{ flex: '1 1 30%', justifyContent: 'center', height: 40, borderRadius: 12, border: '1px solid var(--pp-warm-4)', fontSize: '0.8rem' }}
+                  style={{
+                    justifyContent: 'center',
+                    height: 40,
+                    borderRadius: 12,
+                    border: '1px solid var(--pp-warm-4)',
+                  }}
                 >
                   <CreditCard size={14} /> Online
                 </button>
@@ -606,7 +692,13 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
 
             <button
               className="bill-btn bill-btn-primary"
-              style={{ width: '100%', marginTop: 24, height: 48, borderRadius: 14, fontSize: '0.95rem' }}
+              style={{
+                width: '100%',
+                marginTop: 24,
+                height: 48,
+                borderRadius: 14,
+                fontSize: '0.95rem',
+              }}
               disabled={recordPayment.isPending}
               onClick={receivingBill ? handleReceivePayment : handleReceiveGroupPayment}
             >
@@ -625,19 +717,64 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       >
         {printingBill && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ padding: 20, background: 'var(--pp-blue-tint)', borderRadius: 20, border: '1px solid var(--pp-blue-border)' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--pp-blue)', fontWeight: 800, textTransform: 'uppercase', marginBottom: 6, letterSpacing: '0.05em' }}>Selected Record</div>
-              <div style={{ fontWeight: 850, fontSize: '1.1rem', color: 'var(--pp-ink)' }}>{printingBill.patientName}</div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', fontWeight: 600, marginTop: 4 }}>Bill No: #{printingBill.billNo} • Amount: ₹{printingBill.charges.toLocaleString()}</div>
+            <div
+              style={{
+                padding: 20,
+                background: 'var(--pp-blue-tint)',
+                borderRadius: 20,
+                border: '1px solid var(--pp-blue-border)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.7rem',
+                  color: 'var(--pp-blue)',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  marginBottom: 6,
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Selected Record
+              </div>
+              <div style={{ fontWeight: 850, fontSize: '1.1rem', color: 'var(--pp-ink)' }}>
+                {printingBill.patientName}
+              </div>
+              <div
+                style={{
+                  fontSize: '0.85rem',
+                  color: 'var(--pp-text-3)',
+                  fontWeight: 600,
+                  marginTop: 4,
+                }}
+              >
+                Bill No: #{printingBill.billNo} • Amount: ₹{printingBill.charges.toLocaleString()}
+              </div>
             </div>
 
             <div style={{ display: 'grid', gap: '12px' }}>
               {[
-                { id: 'standard', label: 'Standard Receipt', sub: 'Professional bill with clinic branding' },
-                { id: 'pharmacy', label: 'Pharmacy Layout', sub: 'Optimized for medicine and stock items' },
-                { id: 'package', label: 'Package Invoice', sub: 'Summary of treatment plans and bundles' },
-                { id: 'comprehensive', label: 'Full Statement', sub: 'Detailed clinical history and payments' },
-              ].map(opt => (
+                {
+                  id: 'standard',
+                  label: 'Standard Receipt',
+                  sub: 'Professional bill with clinic branding',
+                },
+                {
+                  id: 'pharmacy',
+                  label: 'Pharmacy Layout',
+                  sub: 'Optimized for medicine and stock items',
+                },
+                {
+                  id: 'package',
+                  label: 'Package Invoice',
+                  sub: 'Summary of treatment plans and bundles',
+                },
+                {
+                  id: 'comprehensive',
+                  label: 'Full Statement',
+                  sub: 'Detailed clinical history and payments',
+                },
+              ].map((opt) => (
                 <button
                   key={opt.id}
                   className="bill-print-option"
@@ -650,12 +787,16 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                     flexDirection: 'column',
                     gap: 4,
                     transition: 'all 0.2s ease',
-                    boxShadow: 'var(--pp-shadow-sm)'
+                    boxShadow: 'var(--pp-shadow-sm)',
                   }}
                   onClick={() => handlePrint(opt.id)}
                 >
-                  <div style={{ fontWeight: 850, color: 'var(--pp-ink)', fontSize: '1rem' }}>{opt.label}</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>{opt.sub}</div>
+                  <div style={{ fontWeight: 850, color: 'var(--pp-ink)', fontSize: '1rem' }}>
+                    {opt.label}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--pp-text-3)', fontWeight: 500 }}>
+                    {opt.sub}
+                  </div>
                 </button>
               ))}
             </div>

@@ -22,14 +22,14 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
     address: account?.address ?? '',
     about: account?.about ?? '',
     designation: account?.designation ?? '',
-    clinicId: account?.clinicId as number | undefined ?? undefined,
+    clinicId: (account?.clinicId as number | undefined) ?? undefined,
     sendWelcomeEmail: false,
   });
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const isPending = createAccount.isPending || updateAccount.isPending;
   const set = (key: string, val: string | number | boolean | undefined) =>
-    setForm(f => ({ ...f, [key]: val }));
+    setForm((f) => ({ ...f, [key]: val }));
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -54,7 +54,10 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
       <form onSubmit={handleSubmit}>
         <div className="plat-modal-body" style={{ padding: 0 }}>
           {/* Section 1: Professional Identity */}
-          <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
+          <div
+            className="plat-form-section"
+            style={{ border: 'none', boxShadow: 'none', padding: 0 }}
+          >
             <h4 className="plat-form-section-title">Manager Identity</h4>
             <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <div className="plat-form-group" style={{ gridColumn: 'span 2' }}>
@@ -93,7 +96,9 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                 <select
                   className="plat-form-input"
                   value={form.clinicId ?? ''}
-                  onChange={(e) => set('clinicId', e.target.value ? parseInt(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    set('clinicId', e.target.value ? parseInt(e.target.value) : undefined)
+                  }
                 >
                   <option value="">— No specific clinic —</option>
                   {organizations.map((o) => (
@@ -106,7 +111,10 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
             </div>
           </div>
           {/* Section 2: Contact & Access */}
-          <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0, marginTop: '24px' }}>
+          <div
+            className="plat-form-section"
+            style={{ border: 'none', boxShadow: 'none', padding: 0, marginTop: '24px' }}
+          >
             <h4 className="plat-form-section-title">Contact & Access</h4>
             <div className="plat-form-grid-multi" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <div className="plat-form-group">
@@ -150,9 +158,7 @@ export function AccountModal({ mode, account, organizations, onClose }: AccountM
                       checked={form.sendWelcomeEmail}
                       onChange={(e) => set('sendWelcomeEmail', e.target.checked)}
                     />
-                    <span className="plat-checkbox-label">
-                      Send welcome email with credentials
-                    </span>
+                    <span className="plat-checkbox-label">Send welcome email with credentials</span>
                   </label>
                 </div>
               )}

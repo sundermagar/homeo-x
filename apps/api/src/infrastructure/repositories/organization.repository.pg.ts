@@ -5,7 +5,7 @@ import type { Organization, CreateOrganizationInput, UpdateOrganizationInput } f
 import type { OrganizationRepository } from '../../domains/platform/ports/organization.repository.js';
 
 export class OrganizationRepositoryPg implements OrganizationRepository {
-  constructor(private readonly db: DbClient) { }
+  constructor(private readonly db: DbClient) {}
 
   async findAll(): Promise<Organization[]> {
     const rows = await this.db

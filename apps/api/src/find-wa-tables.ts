@@ -9,7 +9,9 @@ import { sql } from 'drizzle-orm';
 
 async function main() {
   const db = createDbClient(process.env.DATABASE_URL!, 'public');
-  const rows = await db.execute(sql`SELECT DISTINCT schemaname FROM pg_tables WHERE schemaname LIKE 'tenant_%' ORDER BY schemaname`);
+  const rows = await db.execute(
+    sql`SELECT DISTINCT schemaname FROM pg_tables WHERE schemaname LIKE 'tenant_%' ORDER BY schemaname`,
+  );
   console.log(JSON.stringify(rows, null, 2));
   process.exit(0);
 }

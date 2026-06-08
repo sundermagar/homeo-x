@@ -24,4 +24,3 @@ export const legacyPublicTableManifest = [
   'users',
   'vitals',
 ] as const;
-

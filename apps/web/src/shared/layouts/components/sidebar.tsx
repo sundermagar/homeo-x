@@ -1,10 +1,28 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import {
-  LayoutDashboard, Users, UsersRound, Calendar, FileText,
-  LogOut, X, Briefcase, ChevronDown, ChevronRight, Circle,
-  BarChart3, Stethoscope, Receipt, Settings, MessageCircle, Truck,
-  Bot, MessageSquare, Send, Zap, Globe
+  LayoutDashboard,
+  Users,
+  UsersRound,
+  Calendar,
+  FileText,
+  LogOut,
+  X,
+  Briefcase,
+  ChevronDown,
+  ChevronRight,
+  Circle,
+  BarChart3,
+  Stethoscope,
+  Receipt,
+  Settings,
+  MessageCircle,
+  Truck,
+  Bot,
+  MessageSquare,
+  Send,
+  Zap,
+  Globe,
 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { useQuery } from '@tanstack/react-query';
@@ -41,7 +59,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
     'Operations Hub': location.pathname.includes('/operations'),
-    'WhatsApp Pro': location.pathname.includes('/communications/whatsapp')
+    'WhatsApp Pro': location.pathname.includes('/communications/whatsapp'),
   });
 
   const { data: unreadResponse } = useQuery({
@@ -51,12 +69,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       return data.data as { count: number };
     },
     refetchInterval: 5 * 60_000, // Refresh every 5 min (remote DB is slow)
-    enabled: !!user
+    enabled: !!user,
   });
   const unreadCount = unreadResponse?.count || 0;
 
   const toggleFolder = (label: string) => {
-    setExpandedFolders(prev => ({ ...prev, [label]: !prev[label] }));
+    setExpandedFolders((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
   // Normalize the user's role — demo tokens may use uppercase or camelCase
@@ -104,7 +122,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { label: 'AI Analysis', path: '/clinical/ai-analysis' },
         { label: 'Height & Weight Check', path: '/vitals-check' },
         { label: 'Medical Case List', path: '/medical-cases' },
-      ]
+      ],
     },
     {
       label: 'Appointments',
@@ -141,16 +159,44 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: <MessageCircle size={20} className="text-pp-blue" />,
       roles: [...ADMIN_ROLES, 'Doctor', 'Receptionist'],
       subItems: [
-        { label: 'Dashboard', path: '/communications/whatsapp/overview', icon: <LayoutDashboard size={14} />, roles: ADMIN_ROLES },
-        { label: 'Team Inbox', path: '/communications/whatsapp/inbox', icon: <MessageSquare size={14} /> },
+        {
+          label: 'Dashboard',
+          path: '/communications/whatsapp/overview',
+          icon: <LayoutDashboard size={14} />,
+        },
+        {
+          label: 'Team Inbox',
+          path: '/communications/whatsapp/inbox',
+          icon: <MessageSquare size={14} />,
+        },
         { label: 'Contacts', path: '/communications/whatsapp/contacts', icon: <Users size={14} /> },
-        { label: 'Campaigns', path: '/communications/whatsapp/campaigns', icon: <Send size={14} />, roles: ADMIN_ROLES },
-        { label: 'Templates', path: '/communications/whatsapp/templates', icon: <FileText size={14} />, roles: ADMIN_ROLES },
-        { label: 'Automations', path: '/communications/whatsapp/automations', icon: <Zap size={14} />, roles: ADMIN_ROLES },
-        { label: 'AI Chatbot', path: '/communications/whatsapp/chatbots', icon: <Bot size={14} />, roles: ADMIN_ROLES },
-        { label: 'Analytics', path: '/communications/whatsapp/analytics', icon: <BarChart3 size={14} />, roles: ADMIN_ROLES },
-        { label: 'Widget Builder', path: '/communications/whatsapp/widget-builder', icon: <Bot size={14} />, roles: ADMIN_ROLES },
-      ]
+        {
+          label: 'Campaigns',
+          path: '/communications/whatsapp/campaigns',
+          icon: <Send size={14} />,
+        },
+        {
+          label: 'Templates',
+          path: '/communications/whatsapp/templates',
+          icon: <FileText size={14} />,
+        },
+        {
+          label: 'Automations',
+          path: '/communications/whatsapp/automations',
+          icon: <Zap size={14} />,
+        },
+        { label: 'AI Chatbot', path: '/communications/whatsapp/chatbots', icon: <Bot size={14} /> },
+        {
+          label: 'Analytics',
+          path: '/communications/whatsapp/analytics',
+          icon: <BarChart3 size={14} />,
+        },
+        {
+          label: 'Widget Builder',
+          path: '/communications/whatsapp/widget-builder',
+          icon: <Bot size={14} />,
+        },
+      ],
     },
     {
       label: 'Communications',
@@ -159,7 +205,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       subItems: [
         { label: 'Birthday Greetings', path: '/communications/birthdays' },
         { label: 'SMS Reports', path: '/communications/reports' },
-      ]
+      ],
     },
     {
       label: 'Operations Hub',
@@ -170,21 +216,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         { label: 'Lead CRM & Promos', path: '/operations?tab=crm' },
         { label: 'Medical Knowledge base', path: '/operations?tab=knowledge' },
         // { label: 'Global Data Tools', path: '/operations?tab=tools' },
-      ]
+      ],
     },
   ];
 
   // Filter items by role
-  const visibleItems = menuItems.filter(item =>
-    !item.roles || item.roles.includes(normalizedRole)
+  const visibleItems = menuItems.filter(
+    (item) => !item.roles || item.roles.includes(normalizedRole),
   );
 
   return (
     <>
       {/* Mobile Backdrop */}
-      {isOpen && (
-        <div className="sb-backdrop" onClick={onClose} />
-      )}
+      {isOpen && <div className="sb-backdrop" onClick={onClose} />}
 
       <div className="sb-container" data-open={isOpen}>
         {/* Brand & Close Button (Mobile) */}
@@ -209,27 +253,26 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div key={item.label}>
               {item.subItems ? (
                 <>
-                  <button
-                    onClick={() => toggleFolder(item.label)}
-                    className="sb-folder-btn"
-                  >
+                  <button onClick={() => toggleFolder(item.label)} className="sb-folder-btn">
                     <div className="sb-nav-item-inner">
                       {item.icon}
                       <span>{item.label}</span>
                     </div>
-                    {expandedFolders[item.label] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    {expandedFolders[item.label] ? (
+                      <ChevronDown size={16} />
+                    ) : (
+                      <ChevronRight size={16} />
+                    )}
                   </button>
                   {expandedFolders[item.label] && (
                     <div className="sb-sub-nav">
-                      {item.subItems
-                         .filter(sub => !sub.roles || sub.roles.includes(normalizedRole))
-                         .map(subItem => (
+                      {item.subItems.map((subItem) => (
                         <NavLink
                           key={subItem.label}
                           to={subItem.path}
                           onClick={onClose}
                           className={({ isActive }) => {
-                            // For paths with query params (like /operations?tab=), 
+                            // For paths with query params (like /operations?tab=),
                             // we need a strict match of path + search.
                             const currentFull = location.pathname + location.search;
                             const isMatch = subItem.path.includes('?')

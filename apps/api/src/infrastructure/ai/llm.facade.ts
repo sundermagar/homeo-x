@@ -12,14 +12,11 @@ export class LLMFacade {
 
   constructor() {
     const isStubMode = process.env.AI_STUB_MODE === 'true';
-    
+
     if (isStubMode) {
       this.chain = [new StubProvider()];
     } else {
-      this.chain = [
-        new GeminiProvider(),
-        new StubProvider(),
-      ];
+      this.chain = [new GeminiProvider(), new StubProvider()];
     }
   }
 
@@ -37,7 +34,9 @@ export class LLMFacade {
     throw new Error('All AI providers unavailable');
   }
 
-  async *analyzeStream(req: AIAnalysisRequestParams): AsyncGenerator<{ chunk: string; provider: string }> {
+  async *analyzeStream(
+    req: AIAnalysisRequestParams,
+  ): AsyncGenerator<{ chunk: string; provider: string }> {
     for (const provider of this.chain) {
       if (!provider.isAvailable()) continue;
       try {

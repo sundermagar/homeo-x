@@ -101,21 +101,22 @@ The exporter itself lives in [apps/api/src/scripts/export-training-data.ts](../a
 ## How RAG fits into training
 
 Each training example is a 3-message ChatML conversation:
+
 1. **system** — the fixed homeopathy reasoning prompt from `prompts/system.txt`
 2. **user** — the current patient (symptoms, modalities, mode) **plus 2 most-similar past cases** retrieved via pgvector cosine kNN
 3. **assistant** — the doctor's actual final remedy + rubrics (ground truth)
 
-The model learns to *use* retrieved similar cases when reasoning — same pattern that inference will follow once deployed.
+The model learns to _use_ retrieved similar cases when reasoning — same pattern that inference will follow once deployed.
 
 ---
 
 ## What to expect on a 16GB / Intel Iris Xe PC
 
-| Dataset size | Approx training time | RAM peak |
-|---|---|---|
-| 100 cases × 3 epochs | 2-4 hours | ~8GB |
-| 500 cases × 3 epochs | 10-15 hours | ~9GB |
-| 2000 cases × 3 epochs | 40-60 hours | ~10GB |
+| Dataset size          | Approx training time | RAM peak |
+| --------------------- | -------------------- | -------- |
+| 100 cases × 3 epochs  | 2-4 hours            | ~8GB     |
+| 500 cases × 3 epochs  | 10-15 hours          | ~9GB     |
+| 2000 cases × 3 epochs | 40-60 hours          | ~10GB    |
 
 LoRA keeps memory low; the bottleneck is CPU throughput. Run overnight or over a weekend. PC stays usable but warm. Background jobs are fine; avoid running other heavy AI processes simultaneously.
 
@@ -146,10 +147,10 @@ The deploy step is left manual on purpose — you review `eval_report.json` befo
 
 ## Troubleshooting
 
-| Symptom | Fix |
-|---|---|
-| `train.jsonl missing` | run `pnpm train:export` first |
-| `eligible rows: 0` | no rows have all of `doctor_final_remedy`, `extracted_symptoms`, `mapped_rubrics`, `soap_notes`. Doctors must approve consultations. |
-| OOM during training | reduce `--max-seq-length` to 1024, or `--lora-r 4`, or close other apps |
-| `convert_hf_to_gguf.py not found` | clone llama.cpp and pass `--llama-cpp` |
-| eval regressed | inspect `output/qwen-homeo-v{N}/eval_report.json` — often means too little new data; skip deploy this week |
+| Symptom                           | Fix                                                                                                                                  |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `train.jsonl missing`             | run `pnpm train:export` first                                                                                                        |
+| `eligible rows: 0`                | no rows have all of `doctor_final_remedy`, `extracted_symptoms`, `mapped_rubrics`, `soap_notes`. Doctors must approve consultations. |
+| OOM during training               | reduce `--max-seq-length` to 1024, or `--lora-r 4`, or close other apps                                                              |
+| `convert_hf_to_gguf.py not found` | clone llama.cpp and pass `--llama-cpp`                                                                                               |
+| eval regressed                    | inspect `output/qwen-homeo-v{N}/eval_report.json` — often means too little new data; skip deploy this week                           |

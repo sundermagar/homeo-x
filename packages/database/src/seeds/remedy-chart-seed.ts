@@ -9,8 +9,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const BLACKLIST = new Set([
-  'unnamed', 'no', 'yes', 'other', 'n/a', 'nil', '-', '.', '0', '1',
-  'none', 'undefined', 'null', 'test', 'demo'
+  'unnamed',
+  'no',
+  'yes',
+  'other',
+  'n/a',
+  'nil',
+  '-',
+  '.',
+  '0',
+  '1',
+  'none',
+  'undefined',
+  'null',
+  'test',
+  'demo',
 ]);
 
 function isTrashLabel(label: string | null): boolean {
@@ -40,8 +53,15 @@ export async function seedRemedyChart(db: any) {
       return;
     }
   }
-  
-  const legacyData = JSON.parse(fs.readFileSync(fs.existsSync(dataPath) ? dataPath : path.resolve(__dirname, 'comprehensive_remedy_data.json'), 'utf-8'));
+
+  const legacyData = JSON.parse(
+    fs.readFileSync(
+      fs.existsSync(dataPath)
+        ? dataPath
+        : path.resolve(__dirname, 'comprehensive_remedy_data.json'),
+      'utf-8',
+    ),
+  );
   const { tree: rawTree, alternatives: rawAlts } = legacyData;
 
   // ── PASS 1: Build id→node map ─────────────────────────────────────────────
@@ -52,11 +72,13 @@ export async function seedRemedyChart(db: any) {
 
     // Collect translations for description
     const translations = [
-      node.hindi    && `Hindi: ${node.hindi}`,
+      node.hindi && `Hindi: ${node.hindi}`,
       node.gujarati && `Gujarati: ${node.gujarati}`,
-      node.punjabi  && `Punjabi: ${node.punjabi}`,
-      node.marathi  && `Marathi: ${node.marathi}`,
-    ].filter(Boolean).join(' | ');
+      node.punjabi && `Punjabi: ${node.punjabi}`,
+      node.marathi && `Marathi: ${node.marathi}`,
+    ]
+      .filter(Boolean)
+      .join(' | ');
 
     allNodesMap.set(nid, {
       id: nid,
@@ -72,7 +94,7 @@ export async function seedRemedyChart(db: any) {
     const label = (node.label || '').trim().toLowerCase();
     // Special case: allow 'yes' and 'no' for diagnostic trees
     const isStructural = label === 'yes' || label === 'no';
-    
+
     if (isStructural || !isTrashLabel(node.label)) {
       keptIds.add(Number(node.id));
     }
@@ -83,11 +105,14 @@ export async function seedRemedyChart(db: any) {
     const node = allNodesMap.get(nid);
     let currPid = node.parentId;
     let depth = 0;
-    
+
     // Reparent orphaned nodes to the nearest valid ancestor
     while (currPid !== 0 && !keptIds.has(currPid) && depth < 30) {
       const parentNode = allNodesMap.get(currPid);
-      if (!parentNode) { currPid = 0; break; }
+      if (!parentNode) {
+        currPid = 0;
+        break;
+      }
       currPid = parentNode.parentId;
       depth++;
     }
@@ -116,14 +141,17 @@ export async function seedRemedyChart(db: any) {
   const sanitizedAlts: any[] = [];
   for (const alt of rawAlts) {
     if (isTrashLabel(alt.remedy)) continue;
-    
+
     let currTid = Number(alt.tree_id ?? 0);
     let depth = 0;
-    
+
     // Ensure the alternative attaches to a valid node (or its nearest ancestor)
     while (currTid !== 0 && !keptIds.has(currTid) && depth < 30) {
       const pnode = allNodesMap.get(currTid);
-      if (!pnode) { currTid = 0; break; }
+      if (!pnode) {
+        currTid = 0;
+        break;
+      }
       currTid = pnode.parentId;
       depth++;
     }
@@ -132,14 +160,16 @@ export async function seedRemedyChart(db: any) {
     const remedy = (alt.remedy || '').trim().substring(0, 255);
     const notes = [
       alt.symptoms || '',
-      alt.better   ? `Better: ${alt.better}`   : '',
-      alt.worse    ? `Worse: ${alt.worse}`     : '',
-    ].filter(Boolean).join('\n');
+      alt.better ? `Better: ${alt.better}` : '',
+      alt.worse ? `Worse: ${alt.worse}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
 
-    sanitizedAlts.push({ 
-      treeId: currTid, 
-      remedy, 
-      notes: notes.trim() || null 
+    sanitizedAlts.push({
+      treeId: currTid,
+      remedy,
+      notes: notes.trim() || null,
     });
   }
 
@@ -150,8 +180,12 @@ export async function seedRemedyChart(db: any) {
   }
 
   // 7. Sync Sequences
-  await db.execute(sql`SELECT setval(pg_get_serial_sequence('remedy_tree_nodes', 'id'), (SELECT COALESCE(MAX(id), 1) FROM remedy_tree_nodes))`);
-  await db.execute(sql`SELECT setval(pg_get_serial_sequence('remedy_alternatives', 'id'), (SELECT COALESCE(MAX(id), 1) FROM remedy_alternatives))`);
+  await db.execute(
+    sql`SELECT setval(pg_get_serial_sequence('remedy_tree_nodes', 'id'), (SELECT COALESCE(MAX(id), 1) FROM remedy_tree_nodes))`,
+  );
+  await db.execute(
+    sql`SELECT setval(pg_get_serial_sequence('remedy_alternatives', 'id'), (SELECT COALESCE(MAX(id), 1) FROM remedy_alternatives))`,
+  );
 
   console.log('✅ AI Remedy Chart seeding complete (Optimized Hierarchy)!');
 }

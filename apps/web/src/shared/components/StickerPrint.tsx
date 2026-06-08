@@ -20,7 +20,7 @@ export const StickerPrint = React.forwardRef<HTMLDivElement, StickerPrintProps>(
     date,
     consultationFee,
     tokenNo,
-    clinicName = 'Homoeo Home'
+    clinicName = 'Homoeo Home',
   } = props;
 
   return (
@@ -89,14 +89,16 @@ export const StickerPrint = React.forwardRef<HTMLDivElement, StickerPrintProps>(
             }
           }
         `}</style>
-        
+
         <div className="sticker-header">{clinicName}</div>
-        
+
         <div className="sticker-body">
           <div className="sticker-patient-name">{patientName}</div>
           <div className="sticker-row">
             <span>ID: {regid}</span>
-            <span>{gender}/{age}</span>
+            <span>
+              {gender}/{age}
+            </span>
           </div>
           <div className="sticker-row">
             <span>Date: {date}</span>
