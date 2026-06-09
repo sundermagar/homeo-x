@@ -16,6 +16,7 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { sql, eq, and } from 'drizzle-orm';
 import * as schema from '@mmc/database/schema';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 import { createLogger } from '../../../shared/logger.js';
 import { mlTrainingLogger } from '../../../domains/consultation/services/ml-training-logger.service.js';
@@ -385,6 +386,79 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
       mlTrainingLogger.logPhase((req as any).tenantSlug || (req as any).tenantId || 'default', String(visitId), {
         doctorFinalRemedy: normalizedRemedies,
       });
+    }
+
+    const billingRepo = new BillingRepositoryPg(db);
+    const patientRegid = appt.patientId ?? appt.unregisteredPatientId;
+    const requestedConsultationFee = Number(req.body?.consultationFee ?? appt.consultationFee ?? 0);
+    const medicineCharge = Number(req.body?.medicineCharge ?? 0);
+    const packageCharge = Number(req.body?.packageCharge ?? 0);
+    const packageName = String(req.body?.packageName ?? 'Package Charge').trim();
+    const paymentMode = String(req.body?.paymentMode ?? 'Cash') as
+      | 'Cash'
+      | 'Card'
+      | 'Cheque'
+      | 'UPI'
+      | 'Online'
+      | 'Bank Transfer'
+      | 'Referral Bonus';
+    const billDate = String(appt.bookingDate ?? new Date().toISOString().split('T')[0]);
+
+    if (patientRegid) {
+      try {
+        const patientBills = await billingRepo.findByRegid(patientRegid);
+        const billDateToMatch = String(appt.bookingDate ?? new Date().toISOString().split('T')[0]);
+        const alreadyBilled = patientBills.bills.some((bill: any) =>
+          bill.billType === 'Consultation'
+          && bill.doctorId === appt.doctorId
+          && bill.charges === requestedConsultationFee
+          && bill.billDate === billDateToMatch
+        );
+
+        if (requestedConsultationFee > 0 && !alreadyBilled) {
+          const billNo = await billingRepo.nextBillNo();
+          await billingRepo.create({
+            regid: patientRegid,
+            billNo,
+            billDate,
+            charges: requestedConsultationFee,
+            received: 0,
+            paymentMode,
+            billType: 'Consultation',
+            doctorId: appt.doctorId ?? undefined,
+          });
+        }
+
+        if (medicineCharge > 0) {
+          const billNo = await billingRepo.nextBillNo();
+          await billingRepo.create({
+            regid: patientRegid,
+            billNo,
+            billDate,
+            charges: medicineCharge,
+            received: 0,
+            paymentMode,
+            billType: 'Additional',
+            customTitle: 'Medicine Charge',
+          });
+        }
+
+        if (packageCharge > 0) {
+          const billNo = await billingRepo.nextBillNo();
+          await billingRepo.create({
+            regid: patientRegid,
+            billNo,
+            billDate,
+            charges: packageCharge,
+            received: 0,
+            paymentMode,
+            billType: 'Additional',
+            customTitle: packageName || 'Package Charge',
+          });
+        }
+      } catch (err: any) {
+        logger.warn({ visitId, err: err?.message || err }, 'Failed to generate consultation billing entries — non-fatal');
+      }
     }
 
     logger.info(

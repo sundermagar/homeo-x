@@ -33,6 +33,7 @@ export function useCompleteConsultation() {
       qc.invalidateQueries({ queryKey: ['consultation-summary', variables.visitId] });
       qc.invalidateQueries({ queryKey: ['queue'] });
       qc.invalidateQueries({ queryKey: ['visits'] });
+      qc.invalidateQueries({ queryKey: ['billing'] });
       
       // Invalidate remedy-chart prescriptions to update patient detail page history
       if (data?.visit?.patientId) {

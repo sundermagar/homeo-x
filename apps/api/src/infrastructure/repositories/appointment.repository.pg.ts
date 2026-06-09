@@ -787,6 +787,34 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     }));
   }
 
+  async findWaitlistEntryById(waitlistId: number): Promise<WaitlistEntry | null> {
+    const [row] = await this.db.select()
+      .from(schema.waitlist)
+      .where(eq(schema.waitlist.id, waitlistId))
+      .limit(1);
+
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      patientId: row.patientId,
+      unregisteredPatientId: row.unregisteredPatientId,
+      appointmentId: row.appointmentId,
+      doctorId: row.doctorId,
+      waitingNumber: row.waitingNumber,
+      date: row.date,
+      status: row.status,
+      consultationFee: row.consultationFee?.toString() || null,
+      checkedInAt: row.checkedInAt,
+      calledAt: row.calledAt,
+      completedAt: row.completedAt,
+      clinicId: row.clinicId,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      deletedAt: row.deletedAt,
+    };
+  }
+
   async addToWaitlist(dto: { patientId?: number; appointmentId?: number; doctorId?: number; consultationFee?: number; clinicId?: number }): Promise<number> {
     const today = todayLocalYMD();
     const cid = dto.clinicId;

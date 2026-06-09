@@ -311,7 +311,7 @@ appointmentsRouter.post('/waiting/:id/call-next', asyncHandler(async (req, res) 
 
 // POST /api/appointments/waiting/:id/complete
 appointmentsRouter.post('/waiting/:id/complete', asyncHandler(async (req, res) => {
-  const queueMgmt = new QueueManagementUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  const queueMgmt = new QueueManagementUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb), new BillingRepositoryPg(req.tenantDb));
   await queueMgmt.completeVisit(Number(req.params.id));
   DashboardRepositoryPg.clearQueueCache();
   const io = (req as any).io;
