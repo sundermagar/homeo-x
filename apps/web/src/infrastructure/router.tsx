@@ -125,6 +125,11 @@ const PatientMeetPage = lazy(() => import('@/features/consultation/patient-meet-
 const PrivacyPolicyPage = lazy(() => import('@/features/legal/pages/privacy-policy-page'));
 const TermsOfServicePage = lazy(() => import('@/features/legal/pages/terms-of-service-page'));
 
+// Patient Portal
+const PatientPortalEntry = lazy(() => import('@/features/auth/pages/patient-portal-entry'));
+const PatientTrackSelection = lazy(() => import('@/features/dashboard/pages/patient-track-selection'));
+const NewCaseLanding = lazy(() => import('@/features/dashboard/pages/new-case-landing'));
+
 const WhatsAppIndexRedirect = () => {
   const rawType = useAuthStore((s) => (s.user as any)?.type || (s.user as any)?.role);
   const userRole = rawType?.toLowerCase().replace(/\s/g, '');
@@ -146,6 +151,11 @@ export function AppRouter() {
           <Route path="/meet/:roomId" element={<PatientMeetPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+
+          {/* Patient Portal (separate entry flow — isolated from /login) */}
+          <Route path="/portal" element={<PatientPortalEntry />} />
+          <Route path="/portal/select-track" element={<PatientTrackSelection />} />
+          <Route path="/portal/new-case" element={<NewCaseLanding />} />
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
