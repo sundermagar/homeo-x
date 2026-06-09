@@ -55,6 +55,7 @@ export interface WaitlistEntry {
   clinicId: number | null;
   // Joined fields
   patientName?: string;
+  doctorName?: string;
   patientMobile?: string;
   balance?: string;
   billId?: number;

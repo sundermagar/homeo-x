@@ -116,10 +116,8 @@ function buildCommands(
     // ── Patient Module ────────────────────────────────────────────────────────
     nav('Patients', '/patients', <Users size={16} />, ALL,
       ['patient', 'registry', 'people', 'contacts']),
-    nav('Patient Queue', '/patients/queue', <ClipboardList size={16} />, ALL,
-      ['queue', 'patient queue', 'waitlist']),
-    nav('Family Groups', '/family-groups', <UsersRound size={16} />, ALL,
-      ['family', 'group', 'members']),
+
+
 
     // ── Appointments ──────────────────────────────────────────────────────────
     nav('Appointments', '/appointments', <Calendar size={16} />, ALL,

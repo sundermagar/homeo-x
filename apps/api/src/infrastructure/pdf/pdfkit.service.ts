@@ -276,66 +276,102 @@ export class PdfkitServiceAdapter {
         // Header
         await this.drawHeader(doc, data);
         
-        doc.fontSize(10).font('Helvetica-Bold').fillColor('#6366F1').text('Clinical Case Summary', { align: 'center' });
-        doc.moveDown(1);
+        // Document Title
+        doc.rect(40, doc.y, 515, 24).fill('#F1F5F9');
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#3B82F6').text('CLINICAL CASE SUMMARY', 40, doc.y - 17, { align: 'center', width: 515 });
+        doc.moveDown(1.5);
 
-        // Patient Info Section
-        doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Patient Information');
-        doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
-        doc.moveDown(0.5);
-        doc.font('Helvetica').fontSize(10).fillColor('#334155');
-        doc.text(`Name: ${data.patient.name} (${data.patient.regid})`);
-        doc.text(`Age/Gender: ${data.patient.age || ''} / ${data.patient.gender || ''}`);
-        doc.text(`Phone: ${data.patient.phone || ''}`);
-        doc.moveDown(1);
+        // Patient Info Block
+        const startY = doc.y;
+        doc.rect(40, startY, 515, 45).fill('#FAFAF9');
+        doc.moveTo(40, startY).lineTo(555, startY).strokeColor('#E2E8F0').lineWidth(1).stroke();
+        doc.moveTo(40, startY + 45).lineTo(555, startY + 45).strokeColor('#E2E8F0').lineWidth(1).stroke();
+
+        doc.font('Helvetica-Bold').fontSize(8).fillColor('#94A3B8').text('PATIENT INFO', 50, startY + 8);
+        doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text(`${data.patient.name.toUpperCase()} (ID: ${data.patient.regid})`, 50, startY + 20);
+        
+        doc.font('Helvetica').fontSize(9).fillColor('#475569');
+        doc.text(`Age/Gender: ${data.patient.age || 'N/A'} / ${data.patient.gender || 'N/A'}`, 250, startY + 22);
+        doc.text(`Phone: ${data.patient.phone || 'N/A'}`, 400, startY + 22);
+        
+        doc.y = startY + 65;
 
         // Latest Vitals
         if (data.vitals && data.vitals.length > 0) {
           const v = data.vitals[0];
-          doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Latest Vitals');
-          doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
-          doc.moveDown(0.5);
-          doc.font('Helvetica').fontSize(10).fillColor('#334155');
-          doc.text(`BP: ${v.systolicBp || '-'}/${v.diastolicBp || '-'} mmHg  |  Pulse: ${v.pulseRate || '-'} bpm  |  Temp: ${v.temperatureF || '-'} F`);
-          doc.text(`BMI: ${v.bmi || '-'} (Weight: ${v.weightKg || '-'} kg, Height: ${v.heightCm || '-'} cm)`);
-          doc.moveDown(1);
+          doc.font('Helvetica-Bold').fontSize(10).fillColor('#2563EB').text('LATEST VITALS', 40, doc.y);
+          doc.moveDown(0.3);
+          doc.rect(40, doc.y, 515, 24).fill('#EFF6FF');
+          doc.font('Helvetica').fontSize(9).fillColor('#1E293B');
+          doc.text(`BP: ${v.systolicBp || '-'}/${v.diastolicBp || '-'} mmHg   |   Pulse: ${v.pulseRate || '-'} bpm   |   Temp: ${v.temperatureF || '-'} °F   |   Weight: ${v.weightKg || '-'} kg`, 50, doc.y - 16);
+          doc.y += 15;
         }
 
         // Homeo Evaluation
         if (data.homeo) {
-          doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Homeopathic Evaluation');
-          doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
+          doc.font('Helvetica-Bold').fontSize(10).fillColor('#2563EB').text('HOMEOPATHIC EVALUATION', 40, doc.y);
+          doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
           doc.moveDown(0.5);
-          doc.font('Helvetica').fontSize(10).fillColor('#334155');
-          doc.text(`Thermal: ${data.homeo.thermal || '-'}`);
-          doc.text(`Constitutional: ${data.homeo.constitutional || '-'}`);
+          
+          doc.font('Helvetica-Bold').fontSize(9).fillColor('#475569').text('Thermal: ', { continued: true });
+          doc.font('Helvetica').fillColor('#1E293B').text(`${data.homeo.thermal || 'Not Specified'}`);
+          
+          doc.font('Helvetica-Bold').fontSize(9).fillColor('#475569').text('Constitutional: ', { continued: true });
+          doc.font('Helvetica').fillColor('#1E293B').text(`${data.homeo.constitutional || 'Not Specified'}`);
+          
           doc.moveDown(1);
         }
 
-        // Recent Follow-up History
+        // Recent Follow-up Notes
         if (data.notes && data.notes.length > 0) {
-          doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Recent Follow-up Notes');
-          doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
+          doc.font('Helvetica-Bold').fontSize(10).fillColor('#2563EB').text('RECENT FOLLOW-UP NOTES', 40, doc.y);
+          doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
           doc.moveDown(0.5);
-          doc.font('Helvetica').fontSize(9).fillColor('#334155');
+          
           data.notes.slice(0, 5).forEach(n => {
-            doc.font('Helvetica-Bold').text(`${n.dateval || 'N/A'}:`, { continued: true });
-            doc.font('Helvetica').text(` ${n.notes}`);
+            const yBefore = doc.y;
+            doc.font('Helvetica-Bold').fontSize(8).fillColor('#94A3B8').text(n.dateval || 'Date N/A', 40, doc.y);
+            doc.font('Helvetica').fontSize(9).fillColor('#334155').text(n.notes, 120, yBefore, { width: 435 });
+            doc.moveDown(0.5);
           });
           doc.moveDown(1);
         }
 
-        // Active Prescriptions
+        // Active Prescriptions Table
         if (data.prescriptions && data.prescriptions.length > 0) {
-          doc.font('Helvetica-Bold').fontSize(12).fillColor('#1E293B').text('Active Prescriptions');
-          doc.moveTo(40, doc.y).lineTo(550, doc.y).strokeColor('#E2E8F0').lineWidth(1).stroke();
+          doc.font('Helvetica-Bold').fontSize(10).fillColor('#2563EB').text('ACTIVE PRESCRIPTIONS', 40, doc.y);
           doc.moveDown(0.5);
-          doc.font('Helvetica').fontSize(9).fillColor('#334155');
-          data.prescriptions.slice(0, 10).forEach(p => {
-            doc.text(`${p.medicine || 'Remedy'} ${p.potency || ''} — ${p.frequency || ''} for ${p.days || '0'} days`);
+
+          let y = doc.y;
+          doc.rect(40, y, 515, 20).fill('#F1F5F9');
+          doc.font('Helvetica-Bold').fontSize(8).fillColor('#475569');
+          doc.text('MEDICINE / REMEDY', 45, y + 6, { width: 200 });
+          doc.text('POTENCY', 250, y + 6, { width: 100 });
+          doc.text('FREQUENCY', 350, y + 6, { width: 100 });
+          doc.text('DAYS', 450, y + 6, { width: 60 });
+          
+          y += 24;
+          doc.font('Helvetica').fontSize(9).fillColor('#1E293B');
+
+          data.prescriptions.slice(0, 10).forEach((p, idx) => {
+            if (idx % 2 !== 0) {
+              doc.rect(40, y - 4, 515, 20).fill('#F8FAFC');
+              doc.fillColor('#1E293B');
+            }
+            doc.text(p.medicine || '—', 45, y, { width: 200 });
+            doc.text(p.potency || '—', 250, y, { width: 100 });
+            doc.text(p.frequency || '—', 350, y, { width: 100 });
+            doc.text(String(p.days || '—'), 450, y, { width: 60 });
+            
+            y += 20;
           });
-          doc.moveDown(1);
+          
+          doc.y = y + 10;
         }
+
+        // Footer
+        const pageHeight = doc.page.height;
+        doc.fontSize(8).fillColor('#94A3B8').text('This is a computer generated clinical summary.', 40, pageHeight - 40, { align: 'center' });
 
         doc.end();
         res.on('finish', resolve);

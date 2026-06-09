@@ -189,7 +189,7 @@ export default function PatientListPage() {
         <Edit2 size={14} /> Edit Patient
       </button>
       <button className="appt-kebab-item" onClick={() => { navigate(`/patients/${p.regid}`); closeMenu(); }}>
-        <Users size={14} /> Manage Family
+        <User size={14} /> Detail
       </button>
       <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName, p.regid); closeMenu(); }}>
         <MessageCircle size={14} /> WhatsApp
