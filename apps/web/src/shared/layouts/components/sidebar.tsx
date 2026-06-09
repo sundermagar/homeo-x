@@ -118,12 +118,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       path: '/billing',
       roles: [...ADMIN_ROLES, 'Doctor', 'Receptionist'],
     },
-    {
-      label: 'Family Groups',
-      icon: <UsersRound size={20} />,
-      path: '/family-groups',
-      roles: ALL_ROLES,
-    },
+
     {
       label: 'Staff & Admin',
       icon: <Briefcase size={20} />,

@@ -28,10 +28,10 @@ export class BookAppointmentUseCase {
     if (dto.doctorId && this.staffRepo) {
       const doctor = await this.staffRepo.findById('doctor', dto.doctorId);
       if (doctor?.consultationFee !== null && doctor?.consultationFee !== undefined) {
-        return doctor.consultationFee;
+        return Number(doctor.consultationFee);
       }
     }
-    return dto.consultationFee;
+    return dto.consultationFee !== undefined ? Number(dto.consultationFee) : undefined;
   }
 
   async execute(dto: CreateAppointmentDto): Promise<Result<{ id: number; tokenNo?: number }>> {
@@ -121,7 +121,7 @@ export class BookAppointmentUseCase {
       }
     }
 
-    if (this.billingRepo && fee && fee > 0) {
+    if (this.billingRepo && fee !== undefined && fee >= 0) {
       try {
         const billRegid = patientId || unregisteredPatientId;
         if (billRegid) {

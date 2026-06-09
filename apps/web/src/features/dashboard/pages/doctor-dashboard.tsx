@@ -400,8 +400,8 @@ export function DoctorDashboard() {
             <div className="dd-timeline-meta">ASSIGNED TO YOU</div>
           </div>
           <div>
-            {todayAppts.filter(a => a.doctorId === user?.id || !a.doctorId).length > 0 ? (
-              todayAppts.filter(a => a.doctorId === user?.id || !a.doctorId).slice(0, 5).map(a => {
+            {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation')).length > 0 ? (
+              todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation')).slice(0, 5).map(a => {
                 const initials = (a.patientName || '').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
                 return (
                   <div key={a.id} className="dd-list-item">
@@ -414,7 +414,7 @@ export function DoctorDashboard() {
                 );
               })
             ) : (
-              <div style={{ color: '#94a3b8', fontSize: 13, padding: 16 }}>No patients assigned</div>
+              <div style={{ color: '#94a3b8', fontSize: 13, padding: 16 }}>No patients in queue</div>
             )}
           </div>
         </div>
