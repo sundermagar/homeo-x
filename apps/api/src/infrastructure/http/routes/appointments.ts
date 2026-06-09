@@ -13,6 +13,8 @@ import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
 import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg.js';
 import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
 import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { StaffRepositoryPg } from '../../repositories/staff.repository.pg.js';
 import { SendWhatsAppTemplateUseCase } from '../../../domains/communication/use-cases/send-whatsapp-template.use-case.js';
 import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
 import { asyncHandler } from '../middleware/async-handler.js';
@@ -221,8 +223,10 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
   
   const smsUc = new SendSmsUseCase(commRepo, smsGateway);
   const waUc = new SendWhatsAppTemplateUseCase(waGateway as any, waRepo);
+  const billingRepo = new BillingRepositoryPg(req.tenantDb);
   
-  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo, notifRepo, waUc);
+  const staffRepo = new StaffRepositoryPg(req.tenantDb);
+  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo, notifRepo, waUc, billingRepo, staffRepo);
   const clinicId = (req as any).user?.contextId;
   const result = await bookAppt.execute({ ...req.body, clinicId });
 

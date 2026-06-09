@@ -77,7 +77,13 @@ import { createDbClient, warmDbPools, TenantRegistry } from '@mmc/database';
 export async function createApp(): Promise<{ app: Express; server: HttpServer; io: SocketIOServer; tenantDb: any; publicDb: any }> {
   const app: Express = express();
   const server: HttpServer = createServer(app);
-  const io: SocketIOServer = new SocketIOServer(server);
+  const io: SocketIOServer = new SocketIOServer(server, {
+    cors: {
+      origin: appConfig.cors.origins,
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
+  });
 
   // Audit System initialization
   const publicDb = createDbClient(process.env.DATABASE_URL!);
