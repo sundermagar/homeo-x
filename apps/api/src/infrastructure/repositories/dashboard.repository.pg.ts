@@ -448,7 +448,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           v.oxygen_saturation,
           v.notes as vital_notes,
           rx.first_medication as rx_medication,
-          rx.status as rx_status
+          rx.status as rx_status,
+          pay.payment_status
         FROM (
           SELECT
             tw.wl_id,
@@ -518,6 +519,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           FROM prescriptions p
           ORDER BY p.consultation_id, p.id DESC
         ) rx ON rx.consultation_id::text = q.visit_id::text
+        LEFT JOIN (
+          SELECT regid, 'Paid' as payment_status FROM receipt WHERE created_at >= ${today}::timestamp AND created_at < (${today}::date + interval '1 day') AND (deleted_at IS NULL OR deleted_at::text = '') AND CAST(NULLIF(amount::text, '') AS numeric) > 0 GROUP BY regid
+          UNION
+          SELECT regid, 'Paid' as payment_status FROM bills WHERE bill_date = ${today}::date AND (deleted_at IS NULL OR deleted_at::text = '') AND received >= charges AND charges > 0 GROUP BY regid
+        ) pay ON pay.regid = COALESCE(p.regid, p.id, q.patient_id)
         ORDER BY q.token_no ASC NULLS LAST, q.id ASC
       `);
       const allRows = result as any[];
@@ -554,6 +560,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         gender: undefined,
         rxMedication: r.rx_medication ? r.rx_medication.trim() : undefined,
         rxStatus: r.rx_status,
+        paymentStatus: r.payment_status,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
         visitId: r.visit_id,

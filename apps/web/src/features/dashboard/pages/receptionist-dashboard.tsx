@@ -458,8 +458,8 @@ export function ReceptionistDashboard() {
         </button>
       </div>
 
-      {/* ── 3. MIDDLE ROW: New Patients + Finance Queue ── */}
-      <div className="rd-dual-grid">
+      {/* ── 3. ROW 1: New Patients + Finance Queue + Dispatch/Birthdays ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr 1fr', gap: '16px', marginBottom: '16px' }}>
 
         {/* Today's New Patients */}
         <div className="rd-compact-card">
@@ -530,12 +530,12 @@ export function ReceptionistDashboard() {
                 const billBg = hasBills ? (isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(194, 65, 12, 0.1)') : 'var(--bg-surface-2)';
 
                 return (
-                  <div key={i} style={{ marginBottom: 8 }}>
-                    <div className="appt-grid-card-minimal animate-fade-in" style={{ padding: '10px 12px', gap: '8px', display: 'flex', flexDirection: 'column' }}>
+                  <div key={i} style={{ marginBottom: 6 }}>
+                    <div className="appt-grid-card-minimal animate-fade-in" style={{ padding: '8px 10px', gap: '6px', display: 'flex', flexDirection: 'column' }}>
                       {/* Top Row: Token & Name */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--pp-success-fg)', fontSize: 11, fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
+                          <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--pp-success-fg)', fontSize: 11, fontWeight: 800, padding: '1px 5px', borderRadius: 4 }}>
                             {a.tokenNo ? `#${a.tokenNo}` : (a.patientName?.charAt(0) || 'U')}
                           </div>
                           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>{a.patientName || 'Unknown Patient'}</span>
@@ -548,10 +548,10 @@ export function ReceptionistDashboard() {
                       {/* Middle Row: Doctor, Badges & Action Button */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(59, 130, 246, 0.08)', color: 'var(--pp-blue)', padding: '2px 6px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(59, 130, 246, 0.08)', color: 'var(--pp-blue)', padding: '1px 5px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
                             <User size={10} /> {a.doctorName || 'No Doctor'}
                           </div>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', background: billBg, color: billColor, padding: '2px 6px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', background: billBg, color: billColor, padding: '1px 5px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
                             {billStatusText}
                           </div>
                           <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
@@ -565,10 +565,10 @@ export function ReceptionistDashboard() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 4,
-                            padding: '4px 10px',
+                            gap: 3,
+                            padding: '3px 8px',
                             borderRadius: 6,
-                            fontSize: 11,
+                            fontSize: 10.5,
                             background: totalBalance > 0 ? '#c2410c' : (hasBills ? 'var(--bg-surface-2)' : 'var(--pp-blue)'),
                             color: totalBalance > 0 ? 'white' : (hasBills ? 'var(--text-main)' : 'white'),
                             border: totalBalance > 0 ? 'none' : (hasBills ? '1px solid var(--border-main)' : 'none'),
@@ -600,13 +600,161 @@ export function ReceptionistDashboard() {
             )}
           </div>
         </div>
+
+        {/* Dispatch & Birthdays Combined */}
+        <div className="rd-compact-card" style={{ display: 'flex', flexDirection: 'column' }}>
+          {/* Dispatch Queue List */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-main)' }}>
+            <div className="cad-sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              DISPATCH QUEUE
+              <span className="dash-badge badge-primary">{pendingDispatch.length} PENDING</span>
+            </div>
+            <div className="cad-queue-list" style={{ paddingRight: '4px' }}>
+              {isQueueLoading ? (
+                <div className="cad-sidebar-empty">Loading dispatch queue...</div>
+              ) : pendingDispatch.length === 0 ? (
+                <div className="cad-sidebar-empty">
+                  <Package size={20} style={{ opacity: 0.3 }} />
+                  <p>No pending dispatch</p>
+                </div>
+              ) : (
+                <>
+                  {pendingDispatch.map((item: any) => (
+                    <div key={item.id} className="cad-queue-item">
+                      <div className="cad-queue-avatar" style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', border: 'none' }}>
+                        <Package size={14} />
+                      </div>
+                      <div className="cad-queue-info">
+                        <div className="cad-queue-name">{item.patientName || 'Unknown Patient'}</div>
+                        <div className="cad-queue-meta">#{item.caseId} · {item.postType}</div>
+                      </div>
+                      <button
+                        className="dash-action-btn"
+                        style={{ border: '1px solid var(--pp-blue-border)', color: 'var(--pp-blue)' }}
+                        onClick={() => {
+                          setAssignModal(item);
+                          setAssignPcd('');
+                          setAssignCourier('');
+                          setAssignPickup(false);
+                          setPickupBy('patient');
+                          setRelativeName('');
+                          setRelativePhone('');
+                        }}
+                        title="Assign dispatch details"
+                      >
+                        <ArrowUpRight size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Birthday List */}
+          <div style={{ padding: '12px 16px' }}>
+            <div className="cad-sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              TODAY'S BIRTHDAYS
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {birthdays.length > 0 && selectedBirthdays.size > 0 && (
+                  <button
+                    className="dash-action-btn"
+                    style={{
+                      background: '#25D366',
+                      color: 'white',
+                      border: 'none',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      cursor: sendingBulk ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      opacity: sendingBulk ? 0.6 : 1,
+                    }}
+                    onClick={handleBulkBirthdayWhatsApp}
+                    disabled={sendingBulk}
+                    title="Send birthday wishes to selected"
+                  >
+                    <Send size={10} /> {sendingBulk ? 'Sending...' : `Send (${selectedBirthdays.size})`}
+                  </button>
+                )}
+                <span className="dash-badge badge-primary">{birthdays.length}</span>
+              </div>
+            </div>
+            
+            <div className="cad-queue-list" style={{ paddingRight: '4px' }}>
+              {birthdays.length === 0 ? (
+                <div className="cad-sidebar-empty">
+                  <Cake size={20} style={{ opacity: 0.3 }} />
+                  <p>No birthdays today</p>
+                </div>
+              ) : (
+                <>
+                  {/* Select All Row */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '8px 0',
+                      borderBottom: '1px solid var(--pp-warm-1)',
+                      cursor: 'pointer',
+                    }}
+                    onClick={toggleSelectAllBirthdays}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={allBirthdaysSelected}
+                      onChange={toggleSelectAllBirthdays}
+                      style={{ width: 14, height: 14, accentColor: '#ec4899', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Select All ({validBirthdays.length})
+                    </span>
+                  </div>
+
+                  {birthdays.map((b: BirthdayPatient) => {
+                    const name = `${b.first_name || ''} ${b.surname || ''}`.trim() || 'Unknown';
+                    const phone = b.mobile1 || b.phone || '';
+                    const isSelected = selectedBirthdays.has(b.regid);
+                    return (
+                      <div key={b.regid} className="cad-queue-item" style={{ background: isSelected ? 'rgba(236, 72, 153, 0.04)' : undefined }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleBirthdaySelect(b.regid)}
+                          disabled={!phone}
+                          style={{ width: 14, height: 14, accentColor: '#ec4899', cursor: phone ? 'pointer' : 'not-allowed', flexShrink: 0 }}
+                        />
+                        <div className="cad-queue-avatar" style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899', border: 'none' }}>
+                          {name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="cad-queue-info">
+                          <div className="cad-queue-name">{name}</div>
+                          <div className="cad-queue-meta">#{b.regid} · {formatDob(b.dob)}</div>
+                        </div>
+                        <button
+                          className="dash-action-btn"
+                          onClick={() => handleBirthdayWhatsApp(phone, name)}
+                          title={`Send WhatsApp to ${phone}`}
+                        >
+                          <MessageCircle size={13} style={{ color: 'var(--pp-text-3)' }} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* ── 4. BOTTOM ROW: Today's Appointments + Birthday List ────────────── */}
-      <div className="rd-bottom-row-grid">
-        {/* Today's Appointments (Table) */}
-        <div className="dash-card">
-          <div className="dash-card-header">
+      {/* ── 4. ROW 2: Today's Appointments (Table) ────────────── */}
+      <div className="dash-card" style={{ marginBottom: '16px' }}>
+        <div className="dash-card-header">
             <h3 className="dash-section-title">
               <Calendar size={16} style={{ marginRight: 8, color: 'var(--pp-blue)' }} /> Today's Appointments
             </h3>
@@ -752,160 +900,9 @@ export function ReceptionistDashboard() {
               </table>
             </div>
           </div>
-        </div>
-
-        {/* Right Column Stack */}
-        <aside className="cad-sidebar">
-          
-          {/* Dispatch Queue List */}
-          <div className="cad-sidebar-section" style={{ padding: '16px' }}>
-            <div className="cad-sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              DISPATCH QUEUE
-              <span className="dash-badge badge-primary">{pendingDispatch.length} Pending</span>
-            </div>
-            <div className="cad-queue-list" style={{ maxHeight: '200px' }}>
-              {isQueueLoading ? (
-                <div className="cad-sidebar-empty">Loading dispatch queue...</div>
-              ) : pendingDispatch.length === 0 ? (
-                <div className="cad-sidebar-empty">
-                  <Package size={20} style={{ opacity: 0.3 }} />
-                  <p>No pending dispatch</p>
-                </div>
-              ) : (
-                <>
-                  {pendingDispatch.map((item: any) => (
-                    <div key={item.id} className="cad-queue-item">
-                      <div className="cad-queue-avatar" style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', border: 'none' }}>
-                        <Package size={14} />
-                      </div>
-                      <div className="cad-queue-info">
-                        <div className="cad-queue-name">{item.patientName || 'Unknown Patient'}</div>
-                        <div className="cad-queue-meta">#{item.caseId} · {item.postType}</div>
-                      </div>
-                      <button
-                        className="dash-action-btn"
-                        style={{ border: '1px solid var(--pp-blue-border)', color: 'var(--pp-blue)' }}
-                        onClick={() => {
-                          setAssignModal(item);
-                          setAssignPcd('');
-                          setAssignCourier('');
-                          setAssignPickup(false);
-                          setPickupBy('patient');
-                          setRelativeName('');
-                          setRelativePhone('');
-                        }}
-                        title="Assign dispatch details"
-                      >
-                        <ArrowUpRight size={13} />
-                      </button>
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Birthday List */}
-          <div className="cad-sidebar-section" style={{ padding: '16px' }}>
-            <div className="cad-sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              TODAY'S BIRTHDAYS
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {birthdays.length > 0 && selectedBirthdays.size > 0 && (
-                  <button
-                    className="dash-action-btn"
-                    style={{
-                      background: '#25D366',
-                      color: 'white',
-                      border: 'none',
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                      fontSize: 9,
-                      fontWeight: 700,
-                      cursor: sendingBulk ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      opacity: sendingBulk ? 0.6 : 1,
-                    }}
-                    onClick={handleBulkBirthdayWhatsApp}
-                    disabled={sendingBulk}
-                    title="Send birthday wishes to selected"
-                  >
-                    <Send size={10} /> {sendingBulk ? 'Sending...' : `Send (${selectedBirthdays.size})`}
-                  </button>
-                )}
-                <span className="dash-badge badge-primary">{birthdays.length}</span>
-              </div>
-            </div>
-            
-            <div className="cad-queue-list" style={{ maxHeight: '200px' }}>
-              {birthdays.length === 0 ? (
-                <div className="cad-sidebar-empty">
-                  <Cake size={20} style={{ opacity: 0.3 }} />
-                  <p>No birthdays today</p>
-                </div>
-              ) : (
-                <>
-                  {/* Select All Row */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '8px 0',
-                      borderBottom: '1px solid var(--pp-warm-1)',
-                      cursor: 'pointer',
-                    }}
-                    onClick={toggleSelectAllBirthdays}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={allBirthdaysSelected}
-                      onChange={toggleSelectAllBirthdays}
-                      style={{ width: 14, height: 14, accentColor: '#ec4899', cursor: 'pointer' }}
-                    />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Select All ({validBirthdays.length})
-                    </span>
-                  </div>
-
-                  {birthdays.map((b: BirthdayPatient) => {
-                    const name = `${b.first_name || ''} ${b.surname || ''}`.trim() || 'Unknown';
-                    const phone = b.mobile1 || b.phone || '';
-                    const isSelected = selectedBirthdays.has(b.regid);
-                    return (
-                      <div key={b.regid} className="cad-queue-item" style={{ background: isSelected ? 'rgba(236, 72, 153, 0.04)' : undefined }}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleBirthdaySelect(b.regid)}
-                          disabled={!phone}
-                          style={{ width: 14, height: 14, accentColor: '#ec4899', cursor: phone ? 'pointer' : 'not-allowed', flexShrink: 0 }}
-                        />
-                        <div className="cad-queue-avatar" style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899', border: 'none' }}>
-                          {name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="cad-queue-info">
-                          <div className="cad-queue-name">{name}</div>
-                          <div className="cad-queue-meta">#{b.regid} · {formatDob(b.dob)}</div>
-                        </div>
-                        <button
-                          className="dash-action-btn"
-                          onClick={() => handleBirthdayWhatsApp(phone, name)}
-                          title={`Send WhatsApp to ${phone}`}
-                        >
-                          <MessageCircle size={13} style={{ color: 'var(--pp-text-3)' }} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-          </div>
-
-        </aside>
       </div>
+
+
 
       {/* ── Drawers & Modals ───────────────────────────────────────────── */}
       <PatientFormDrawer

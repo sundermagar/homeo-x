@@ -1462,7 +1462,7 @@ button.pp-link:hover {
 }
 
 .rd-compact-card-header {
-  padding: 10px 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border-main);
   display: flex;
   justify-content: space-between;
@@ -1483,7 +1483,7 @@ button.pp-link:hover {
 
 .rd-compact-card-body {
   padding: 0;
-  max-height: 220px;
+  max-height: 500px;
   overflow-y: auto;
 }
 
@@ -2218,3 +2218,4 @@ button.pp-link:hover {
 }
 .dd-list-pill.blue { background: var(--primary-faded); color: var(--primary); }
 .dd-list-pill.orange { background: #ffedd5; color: #c2410c; }
+.dd-list-pill.green { background: #dcfce7; color: #166534; }

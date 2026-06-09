@@ -120,6 +120,7 @@ export interface QueueItem {
   notes?: string;
   rxMedication?: string;
   rxStatus?: string;
+  paymentStatus?: string;
   age?: number;
   gender?: string;
   createdAt: Date | string;

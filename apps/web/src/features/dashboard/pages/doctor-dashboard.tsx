@@ -400,18 +400,20 @@ export function DoctorDashboard() {
           </div>
           <div>
             {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation')).length > 0 ? (
-              todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation')).slice(0, 5).map(a => {
-                const initials = (a.patientName || '').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-                return (
-                  <div key={a.id} className="dd-list-item">
-                    <div className="dd-list-avatar blue">{initials}</div>
-                    <div className="dd-list-info">
-                      <div className="dd-list-name">{a.patientName}</div>
-                      <div className="dd-list-sub">MRN-{a.regid} · {a.notes || 'Routine checkup'}</div>
+              <div style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 4 }} className="db-scroll">
+                {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation')).map(a => {
+                  const initials = (a.patientName || '').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+                  return (
+                    <div key={a.id} className="dd-list-item">
+                      <div className="dd-list-avatar blue">{initials}</div>
+                      <div className="dd-list-info">
+                        <div className="dd-list-name">{a.patientName}</div>
+                        <div className="dd-list-sub">MRN-{a.regid} · {a.notes || 'Routine checkup'}</div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             ) : (
               <div style={{ color: '#94a3b8', fontSize: 13, padding: 16 }}>No patients in queue</div>
             )}
@@ -426,29 +428,43 @@ export function DoctorDashboard() {
           </div>
           <div>
             {todayAppts.filter(a => a.status === 'Completed').length > 0 ? (
-              todayAppts.filter(a => a.status === 'Completed').slice(0, 5).map(a => {
-                const hasRx = !!a.rxMedication;
-                const pillText = hasRx ? a.rxMedication : 'reception billing';
-                const pillClass = hasRx ? 'blue' : 'orange';
-                const statusPill = hasRx ? (a.rxStatus || 'settled') : '';
+              <div style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 4 }} className="db-scroll">
+                {todayAppts.filter(a => a.status === 'Completed').map(a => {
+                  const hasRx = !!a.rxMedication;
+                  const isPaid = a.paymentStatus === 'Paid';
+                  
+                  let pillText = 'reception billing';
+                  let pillClass = 'orange';
+                  let statusPill = '';
+                  
+                  if (hasRx) {
+                    pillText = a.rxMedication || '';
+                    pillClass = 'blue';
+                    statusPill = a.rxStatus || 'settled';
+                  } else if (isPaid) {
+                    pillText = 'payment collected';
+                    pillClass = 'green';
+                    statusPill = 'settled';
+                  }
 
-                return (
-                  <div key={a.id} className="dd-list-item">
-                    <div className="dd-list-avatar blue" style={{ width: 32, height: 32, fontSize: 12 }}>
-                      #{a.tokenNo || '—'}
-                    </div>
-                    <div className="dd-list-info">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <div className="dd-list-name">{a.patientName}</div>
-                        {statusPill && <div className={`dd-list-pill blue`}>{statusPill}</div>}
+                  return (
+                    <div key={a.id} className="dd-list-item">
+                      <div className="dd-list-avatar blue" style={{ width: 32, height: 32, fontSize: 12 }}>
+                        #{a.tokenNo || '—'}
                       </div>
-                      <div>
-                        <span className={`dd-list-pill ${pillClass}`}>{pillText}</span>
+                      <div className="dd-list-info">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <div className="dd-list-name">{a.patientName}</div>
+                          {statusPill && <div className={`dd-list-pill ${isPaid && !hasRx ? 'green' : 'blue'}`}>{statusPill}</div>}
+                        </div>
+                        <div>
+                          <span className={`dd-list-pill ${pillClass}`}>{pillText}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             ) : (
               <div style={{ color: '#94a3b8', fontSize: 13, padding: 16 }}>No downstream prescriptions</div>
             )}

@@ -65,6 +65,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       regid: number;
       patientName: string;
       billDate: string | null;
+      consultationCharge: number;
       registrationCharge: number;
       medicineDaysCharge: number;
       packageCharge: number;
@@ -82,6 +83,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
           regid: bill.regid,
           patientName: bill.patientName ?? '',
           billDate: bill.billDate,
+          consultationCharge: 0,
           registrationCharge: 0,
           medicineDaysCharge: 0,
           packageCharge: 0,
@@ -116,7 +118,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       } else if (bill.billType === 'Registration') {
         group.registrationCharge += chargeAmount;
       } else if (isConsultation) {
-        group.registrationCharge += chargeAmount;
+        group.consultationCharge += chargeAmount;
       } else if (bill.billType !== 'Custom') {
         group.registrationCharge += chargeAmount;
       }
@@ -223,6 +225,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
           totalCharges: 0,
           totalReceived: 0,
           totalBalance: 0,
+          consultationCharge: 0,
           registrationCharge: 0,
           medicineDaysCharge: 0,
           packageCharge: 0,
@@ -251,8 +254,8 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
         group.packageCharge += chargeAmount;
       } else if (bill.billType === 'Registration') {
         group.registrationCharge += chargeAmount;
-      } else if (bill.billType === 'Consultation') {
-        group.registrationCharge += chargeAmount;
+      } else if (bill.billType === 'Consultation' && !isMedicine) {
+        group.consultationCharge += chargeAmount;
       } else if (bill.billType !== 'Custom') {
         group.registrationCharge += chargeAmount;
       }
@@ -308,8 +311,9 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
           {[
-            { label: 'Consultation Fee', val: group.registrationCharge, color: 'var(--pp-blue)' },
+            { label: 'Consultation Fee', val: group.consultationCharge, color: 'var(--pp-blue)' },
             { label: 'Medicine', val: group.medicineDaysCharge, color: 'var(--pp-warning-fg)' },
+            { label: 'Registration Fee', val: group.registrationCharge, color: 'var(--pp-teal)' },
             { label: 'Package Treatment Plans', val: group.packageCharge, color: 'var(--pp-success-fg)' },
             { label: 'Additional Charges / Services', val: group.additionalCharge, color: 'var(--pp-purple)' }
           ].map((item, idx) => {
@@ -512,7 +516,8 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                       </td>
                       <td data-label="Charges Breakdown">
                         <div className="appt-cell-phone" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          <span>Reg: <strong>₹{group.registrationCharge}</strong></span>
+                          {group.consultationCharge > 0 && <span>Con: <strong>₹{group.consultationCharge}</strong></span>}
+                          {group.registrationCharge > 0 && <span>Reg: <strong>₹{group.registrationCharge}</strong></span>}
                           <span>Med: <strong>₹{group.medicineDaysCharge}</strong></span>
                           {group.packageCharge > 0 && <span>Pkg: <strong>₹{group.packageCharge}</strong></span>}
                           {group.additionalCharge > 0 && <span>Add: <strong>₹{group.additionalCharge}</strong></span>}
@@ -774,8 +779,9 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                   <div style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--pp-warm-2)', paddingBottom: 8 }}>Itemized Charges Breakdown</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {[
-                      { label: 'Consultation Fee', val: selectedGroup.registrationCharge, color: 'var(--pp-blue)' },
+                      { label: 'Consultation Fee', val: selectedGroup.consultationCharge, color: 'var(--pp-blue)' },
                       { label: 'Medicine', val: selectedGroup.medicineDaysCharge, color: 'var(--pp-warning-fg)' },
+                      { label: 'Registration Fee', val: selectedGroup.registrationCharge, color: 'var(--pp-teal)' },
                       { label: 'Package Treatment Plans', val: selectedGroup.packageCharge, color: 'var(--pp-success-fg)' },
                       { label: 'Additional Charges / Services', val: selectedGroup.additionalCharge, color: 'var(--pp-purple)' }
                     ].map((item, idx) => {
