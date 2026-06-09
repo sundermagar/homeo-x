@@ -468,6 +468,7 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
       try {
         const courierRepo = new CourierRepositoryPg(db);
         const randId = 'RX' + Date.now();
+        const rxItems = req.body?.prescription?.items || [];
         for (const item of rxItems) {
           await courierRepo.create({
             caseId: patientRegid,

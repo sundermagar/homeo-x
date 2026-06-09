@@ -234,7 +234,6 @@ export function CourierQueuePage() {
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={14} strokeWidth={1.6} className="text-secondary" />
             <input
               type="date"
               className="pp-input"
