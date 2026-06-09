@@ -815,12 +815,18 @@ export default function MedicalCaseDetailPage() {
     // Sum of received amount for all bills on this date
     const currentPaid = dayBills.reduce((sum: number, b: any) => sum + (Number(b.received) || 0), 0);
 
-    // Sum of all regular bills currently saved in the database for today (excluding custom, additional, and package bills)
+    const isMedicineBill = (bill: any) => {
+      const description = ((bill.customTitle || bill.treatment || bill.billType) as string || '').toLowerCase();
+      return description.includes('medicine');
+    };
+
+    // Sum of all regular bills currently saved in the database for today (excluding custom, additional, package, and medicine bills)
     const savedRegularBillsSum = dayBills
       .filter(b =>
         b.billType !== 'Custom' &&
         (b.billType as string) !== 'Additional' &&
-        !b.treatment?.startsWith('Package:')
+        !b.treatment?.startsWith('Package:') &&
+        !isMedicineBill(b)
       )
       .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
 
@@ -852,16 +858,19 @@ export default function MedicalCaseDetailPage() {
       ? 0
       : rawEffectiveDaysCharge;
 
-    // Sum of all explicit Registration bills
-    const registrationBillSum = dayBills
-      .filter(b => b.billType === 'Registration')
+    // Sum of all explicit consultation/registration bills
+    const consultationBillSum = dayBills
+      .filter(b =>
+        b.billType === 'Registration' ||
+        (b.billType === 'Consultation' && !isMedicineBill(b))
+      )
       .reduce((sum, b) => sum + (Number(b.charges) || 0), 0);
 
-    // 4. Registration Charge (shown as "Registration Charge" row in UI)
+    // 4. Consultation Fee (shown as "Consultation Fee" row in UI)
     const originalRegular = medicalCase?.consultationFee || 0;
     
     const regular = (() => {
-      // If the session is active, the registration charge IS the consultation fee.
+      // If the session is active, the consultation fee is the pending amount.
       // We must return this so it syncs correctly to the backend pending-bills.
       if (!isCompleted) {
         return originalRegular;
@@ -869,8 +878,8 @@ export default function MedicalCaseDetailPage() {
       
       // If completed, we show what was actually finalized.
       // In the new system, we have explicit Registration bills.
-      if (registrationBillSum > 0) {
-        return registrationBillSum;
+      if (consultationBillSum > 0) {
+        return consultationBillSum;
       }
       
       // Legacy fallback: unified Consultation bill where we extract registration
@@ -910,7 +919,7 @@ export default function MedicalCaseDetailPage() {
       return fullData?.activePackage?.packageName ?? activePackage?.packageName;
     })();
 
-    // 5. Total Bill Amount = Registration Charge (regular) + Medicine Days Charge + Additional Charges + Package Price
+    // 5. Total Bill Amount = Consultation Fee + Medicine + Additional Charges + Package Price
     const currentTotal = regular + effectiveDaysCharge + additional + packagePrice;
     const currentBalance = currentTotal - currentPaid;
 
@@ -1391,8 +1400,8 @@ export default function MedicalCaseDetailPage() {
                 <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
                   {(() => {
                     const rows = [
-                      { label: 'Registration Charge', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
-                      { label: 'Medicine Days Charge', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
+                      { label: 'Consultation Fee', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
+                      { label: 'Medicine', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
                       ...(billingValues.hasActivePackage ? [{
                         label: 'Package Plan',
                         value: billingValues.packagePrice,

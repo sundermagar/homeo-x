@@ -536,7 +536,7 @@ export function ReceptionistDashboard() {
           </div>
 
           <div className="rd-table-wrap">
-            <div className="pp-table-container db-scroll" style={{ overflowY: 'auto' }}>
+            <div className="pp-table-container pp-table-scroll db-scroll" style={{ overflowY: 'auto' }}>
               <table className="pp-table">
                 <thead>
                   <tr>

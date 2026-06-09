@@ -56,11 +56,11 @@ export interface WaitlistEntry {
   // Joined fields
   patientName?: string;
   patientMobile?: string;
-  doctorName?: string;
   balance?: string;
   billId?: number;
   packageName?: string;
   packageExpiry?: string;
+  deletedAt?: Date | null;
 
   rowcolor?: number;
   createdAt: Date;

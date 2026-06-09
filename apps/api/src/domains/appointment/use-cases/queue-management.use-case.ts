@@ -2,6 +2,7 @@ import type { AppointmentRepository } from '../ports/appointment.repository.js';
 import type { WaitlistEntry } from '@mmc/types';
 import { type Result, ok } from '../../../shared/result.js';
 import type { NotificationsRepository } from '../../communication/ports/notifications.repository.js';
+import type { BillingRepository } from '../../billing/ports/billing.repository.js';
 import type { NotificationType } from '@mmc/types';
 import { triggerNotification } from '../../../infrastructure/http/notification-trigger.js';
 
@@ -9,6 +10,7 @@ export class QueueManagementUseCase {
   constructor(
     private readonly repo: AppointmentRepository,
     private readonly notifRepo?: NotificationsRepository,
+    private readonly billingRepo?: BillingRepository,
   ) {}
 
   private async notifyDoctorForWaitlist(
@@ -67,7 +69,40 @@ export class QueueManagementUseCase {
     return ok(undefined);
   }
 
+  private async createConsultationBill(waitlistEntry: WaitlistEntry): Promise<void> {
+    if (!this.billingRepo) return;
+
+    const regid = waitlistEntry.patientId ?? waitlistEntry.unregisteredPatientId;
+    const fee = Number(waitlistEntry.consultationFee ?? 0);
+    if (!regid || fee <= 0) return;
+
+    const billDate = new Date().toISOString().split('T')[0];
+    const patientBills = await this.billingRepo.findByRegid(regid);
+    const alreadyBilled = patientBills.bills.some((bill) =>
+      bill.billType === 'Consultation'
+      && bill.doctorId === waitlistEntry.doctorId
+      && bill.charges === fee
+      && bill.billDate === billDate
+    );
+
+    if (alreadyBilled) return;
+
+    const billNo = await this.billingRepo.nextBillNo();
+    await this.billingRepo.create({
+      regid,
+      billNo,
+      billDate,
+      charges: fee,
+      received: 0,
+      paymentMode: 'Cash',
+      billType: 'Consultation',
+      doctorId: waitlistEntry.doctorId ?? undefined,
+    });
+  }
+
   async completeVisit(waitlistId: number): Promise<Result<void>> {
+    const waitlistEntry = await this.repo.findWaitlistEntryById(waitlistId);
+
     await this.notifyDoctorForWaitlist(
       waitlistId,
       'VISIT_COMPLETED',
@@ -75,6 +110,16 @@ export class QueueManagementUseCase {
       ({ patientName }) => `Consultation for ${patientName} marked complete.`,
     );
     await this.repo.completeWaitlistEntry(waitlistId);
+
+    if (waitlistEntry) {
+      try {
+        await this.createConsultationBill(waitlistEntry);
+      } catch (err: any) {
+        // non-fatal: complete the visit even if auto-billing fails
+        console.warn('[QueueManagementUseCase] Failed to generate consultation bill on completion:', err?.message || err);
+      }
+    }
+
     return ok(undefined);
   }
 

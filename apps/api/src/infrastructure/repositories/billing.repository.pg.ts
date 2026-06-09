@@ -212,7 +212,7 @@ export class BillingRepositoryPg implements BillingRepository {
       .values({
         regid: data.regid,
         billNo: data.billNo,
-        billDate: new Date().toISOString().split('T')[0],
+        billDate: data.billDate ? data.billDate : new Date().toISOString().split('T')[0],
         charges: data.charges,
         received: data.received ?? 0,
         balance,

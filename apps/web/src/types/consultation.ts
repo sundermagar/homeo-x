@@ -49,6 +49,11 @@ export interface CompleteConsultationInput {
     notes?: string;
     items: CreatePrescriptionItemInput[];
   };
+  consultationFee?: number;
+  medicineCharge?: number;
+  packageCharge?: number;
+  packageName?: string;
+  paymentMode?: string;
   labOrders?: Array<{
     testName: string;
     testCode?: string;

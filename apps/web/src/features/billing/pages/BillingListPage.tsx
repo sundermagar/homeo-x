@@ -88,7 +88,7 @@ export default function BillingListPage() {
         b.billDate ? format(new Date(b.billDate), 'yyyy-MM-dd') : '—',
         `"${b.patientName || ''}"`,
         b.regid,
-        (b.billType as string) === 'Additional' ? 'Additional' : b.treatment?.startsWith('Package:') ? 'Package' : b.billType === 'Registration' ? 'Registration' : b.billType === 'Consultation' ? 'Medicine Days' : b.billType || 'Consultation',
+        (b.billType as string) === 'Additional' ? 'Additional' : b.treatment?.startsWith('Package:') ? 'Package' : b.billType === 'Registration' ? 'Registration' : b.billType === 'Consultation' ? 'Consultation' : b.billType || 'Consultation',
         b.paymentMode || '—',
         b.charges,
         b.received,
@@ -149,7 +149,7 @@ export default function BillingListPage() {
                   <td>${b.billDate ? format(new Date(b.billDate), 'yyyy-MM-dd') : '—'}</td>
                   <td>${b.patientName || '—'}</td>
                   <td>${b.regid}</td>
-                  <td>${(b.billType as string) === 'Additional' ? 'Additional' : b.treatment?.startsWith('Package:') ? 'Package' : b.billType === 'Registration' ? 'Registration' : b.billType === 'Consultation' ? 'Medicine Days' : b.billType || 'Consultation'}</td>
+                  <td>${(b.billType as string) === 'Additional' ? 'Additional' : b.treatment?.startsWith('Package:') ? 'Package' : b.billType === 'Registration' ? 'Registration' : b.billType === 'Consultation' ? 'Consultation' : b.billType || 'Consultation'}</td>
                   <td>${b.paymentMode || '—'}</td>
                   <td class="right">${b.charges.toLocaleString('en-IN')}</td>
                   <td class="right">${b.received.toLocaleString('en-IN')}</td>
@@ -314,7 +314,7 @@ export default function BillingListPage() {
               </div>
               <div style={{ display: 'grid', gap: 10, fontSize: '13px' }}>
                 <div><strong>Patient:</strong> {bill.patientName}</div>
-                <div><strong>Type:</strong> <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>{(bill.billType as string) === 'Additional' ? 'Additional' : bill.treatment?.startsWith('Package:') ? 'Package' : bill.billType === 'Registration' ? 'Registration' : bill.billType === 'Consultation' ? 'Medicine Days' : bill.billType || 'Consultation'}</span></div>
+                <div><strong>Type:</strong> <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>{(bill.billType as string) === 'Additional' ? 'Additional' : bill.treatment?.startsWith('Package:') ? 'Package' : bill.billType === 'Registration' ? 'Registration' : bill.billType === 'Consultation' ? 'Consultation' : bill.billType || 'Consultation'}</span></div>
                 <div><strong>Mode:</strong> <span className={`bill-badge ${bill.paymentMode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}>{bill.paymentMode ?? '—'}</span></div>
                 <div><strong>Charges:</strong> ₹{bill.charges.toLocaleString()}</div>
                 <div><strong>Received:</strong> ₹{bill.received.toLocaleString()}</div>
