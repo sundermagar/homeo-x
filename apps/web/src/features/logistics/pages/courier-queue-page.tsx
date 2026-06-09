@@ -68,6 +68,9 @@ export function CourierQueuePage() {
   const [assignCourier, setAssignCourier] = useState('');
   const [assignPickup, setAssignPickup] = useState(false);
   const [assignSendWhatsapp, setAssignSendWhatsapp] = useState(true);
+  const [pickupBy, setPickupBy] = useState<'patient' | 'relative'>('patient');
+  const [relativeName, setRelativeName] = useState('');
+  const [relativePhone, setRelativePhone] = useState('');
 
   const { data: queue = [], isLoading } = useQuery({
     queryKey: ['courier-queue', selectedDate, debouncedSearch],
@@ -101,7 +104,11 @@ export function CourierQueuePage() {
         
         let textMessage = '';
         if (variables.pickup) {
-          textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines are ready for pickup at the clinic.\n\nRegards,\nMMC HomeoTech`;
+          if (pickupBy === 'relative') {
+            textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines have been picked up by your relative/representative: *${relativeName}*${relativePhone ? ` (${relativePhone})` : ''}.\n\nRegards,\nMMC HomeoTech`;
+          } else {
+            textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines have been picked up at the clinic.\n\nRegards,\nMMC HomeoTech`;
+          }
         } else {
           textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines have been dispatched via *${variables.courier || 'DTDC'}* and the POD number is *${variables.pcd || 'N/A'}*.\n\nFor tracking, log on to the courier tracking website.\n\nRegards,\nMMC HomeoTech`;
         }
@@ -120,6 +127,9 @@ export function CourierQueuePage() {
       setAssignCourier('');
       setAssignPickup(false);
       setAssignSendWhatsapp(true);
+      setPickupBy('patient');
+      setRelativeName('');
+      setRelativePhone('');
     }
   });
 
@@ -127,9 +137,9 @@ export function CourierQueuePage() {
     if (!assignModal) return;
     assignMutation.mutate({
       id: assignModal.id,
-      pcd: assignPcd || undefined,
-      courier: assignCourier || undefined,
-      pickup: assignPickup ? 1 : 0,
+      pcd: assignModal.postType === 'Pickup' ? relativePhone : (assignPcd || undefined),
+      courier: assignModal.postType === 'Pickup' ? (pickupBy === 'relative' ? relativeName : 'Patient') : (assignCourier || undefined),
+      pickup: assignModal.postType === 'Pickup' ? 1 : (assignPickup ? 1 : 0),
     });
   };
 
@@ -375,100 +385,178 @@ export function CourierQueuePage() {
 
 
       {/* ─── Assign Drawer ─── */}
-      {assignModal && (
-        <div className="courier-modal-overlay" onClick={() => setAssignModal(null)}>
-          <div className="courier-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="courier-modal-header">
-              <h3>
-                {assignModal.postType === 'Courier' ? (
-                  <><Truck size={20} /> Assign Dispatch Details</>
-                ) : (
-                  <><MapPin size={20} /> Confirm Pickup</>
-                )}
-              </h3>
-              <button onClick={() => setAssignModal(null)}><X size={18} /></button>
+      <Drawer
+        isOpen={!!assignModal}
+        onClose={() => {
+          setAssignModal(null);
+          setAssignPcd('');
+          setAssignCourier('');
+          setAssignPickup(false);
+          setAssignSendWhatsapp(true);
+          setPickupBy('patient');
+          setRelativeName('');
+          setRelativePhone('');
+        }}
+        title={
+          assignModal?.postType === 'Courier' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Truck size={20} /> Assign Dispatch Details
             </div>
-            <div className="courier-modal-body">
-              <div className="modal-patient-info">
-                <span className="modal-label">Patient:</span>
-                <span className="modal-value">{assignModal.patientName || 'Unknown'} (#{assignModal.caseId})</span>
-              </div>
-              {assignModal.remedy && (
-                <div className="modal-patient-info">
-                  <span className="modal-label">Remedy:</span>
-                  <span className="modal-value">{assignModal.remedy} {assignModal.potency} — {assignModal.days} days</span>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MapPin size={20} /> Confirm Pickup
+            </div>
+          )
+        }
+        maxWidth="500px"
+      >
+        {assignModal && (
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-card)' }}>
+            <div className="courier-modal-body" style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
+              <div style={{ background: 'var(--pp-warm-1)', border: '1px solid var(--pp-warm-4)', borderRadius: '12px', padding: '16px', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: assignModal.remedy ? '12px' : '0' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16 }}>
+                    {assignModal.patientName?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--pp-ink)' }}>{assignModal.patientName || 'Unknown'}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--pp-text-3)', fontWeight: 600 }}>Case #{assignModal.caseId}</div>
+                  </div>
                 </div>
-              )}
+                {assignModal.remedy && (
+                  <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--pp-warm-2)' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Prescribed Remedy</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--pp-ink)' }}>{assignModal.remedy} {assignModal.potency} — {assignModal.days} days</div>
+                  </div>
+                )}
+              </div>
 
               {assignModal.postType === 'Courier' ? (
-                <>
-                  <div className="modal-field">
-                    <label>POD (Tracking Number) <span className="required">*</span></label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div className="modal-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--pp-ink)' }}>POD (Tracking Number) <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
                     <input
                       type="text"
                       placeholder="Enter POD / Tracking Number"
                       value={assignPcd}
                       onChange={(e) => setAssignPcd(e.target.value)}
-                      className="modal-input"
+                      className="pp-input"
+                      style={{ padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--pp-warm-4)', background: 'var(--bg-card)' }}
                       autoFocus
                     />
                   </div>
-                  <div className="modal-field">
-                    <label>Courier Company <span className="required">*</span></label>
+                  <div className="modal-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--pp-ink)' }}>Courier Company <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
                     <input
                       type="text"
                       placeholder="e.g. DTDC, BlueDart, Delhivery"
                       value={assignCourier}
                       onChange={(e) => setAssignCourier(e.target.value)}
-                      className="modal-input"
+                      className="pp-input"
+                      style={{ padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--pp-warm-4)', background: 'var(--bg-card)' }}
                     />
                   </div>
-                </>
+                </div>
               ) : (
-                <div className="modal-field">
-                  <label className="pickup-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={assignPickup}
-                      onChange={(e) => setAssignPickup(e.target.checked)}
-                    />
-                    <span>Medicine Picked up by {assignModal.patientName || 'Patient'}</span>
-                  </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--pp-ink)' }}>Who picked up the medicine?</div>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '12px 16px', borderRadius: '10px', border: pickupBy === 'patient' ? '1px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)', background: pickupBy === 'patient' ? 'var(--pp-blue-tint)' : 'var(--bg-card)', transition: 'all 0.2s' }}>
+                      <input
+                        type="radio"
+                        name="pickupBy"
+                        checked={pickupBy === 'patient'}
+                        onChange={() => setPickupBy('patient')}
+                        style={{ accentColor: 'var(--pp-blue)', width: 16, height: 16 }}
+                      />
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: pickupBy === 'patient' ? 'var(--pp-blue)' : 'var(--pp-ink)' }}>Patient Themself</span>
+                    </label>
+                    <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '12px 16px', borderRadius: '10px', border: pickupBy === 'relative' ? '1px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)', background: pickupBy === 'relative' ? 'var(--pp-blue-tint)' : 'var(--bg-card)', transition: 'all 0.2s' }}>
+                      <input
+                        type="radio"
+                        name="pickupBy"
+                        checked={pickupBy === 'relative'}
+                        onChange={() => setPickupBy('relative')}
+                        style={{ accentColor: 'var(--pp-blue)', width: 16, height: 16 }}
+                      />
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: pickupBy === 'relative' ? 'var(--pp-blue)' : 'var(--pp-ink)' }}>Relative / Other</span>
+                    </label>
+                  </div>
+                  
+                  {pickupBy === 'relative' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', background: 'var(--pp-warm-1)', borderRadius: '12px', border: '1px solid var(--pp-warm-2)' }}>
+                      <div className="modal-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--pp-ink)' }}>Relative's Name <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+                        <input
+                          type="text"
+                          placeholder="Enter relative's name"
+                          value={relativeName}
+                          onChange={(e) => setRelativeName(e.target.value)}
+                          className="pp-input"
+                          style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--pp-warm-4)', background: 'var(--bg-card)' }}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="modal-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--pp-ink)' }}>Relative's Phone (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 9876543210"
+                          value={relativePhone}
+                          onChange={(e) => setRelativePhone(e.target.value)}
+                          className="pp-input"
+                          style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--pp-warm-4)', background: 'var(--bg-card)' }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               
-              <div style={{ marginTop: '32px', padding: '16px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', margin: 0 }}>
+              <label style={{ marginTop: '32px', display: 'flex', alignItems: 'flex-start', gap: '14px', cursor: 'pointer', padding: '16px', borderRadius: '12px', background: assignSendWhatsapp ? 'rgba(34, 197, 94, 0.08)' : 'var(--pp-warm-1)', border: assignSendWhatsapp ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--pp-warm-4)', transition: 'all 0.2s' }}>
                   <input
                     type="checkbox"
                     checked={assignSendWhatsapp}
                     onChange={(e) => setAssignSendWhatsapp(e.target.checked)}
-                    style={{ marginTop: '3px', width: '16px', height: '16px', accentColor: '#22c55e' }}
+                    style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#16a34a' }}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>Send WhatsApp Notification</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      Automatically message {assignModal.phone || 'the patient'} with tracking details.
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: assignSendWhatsapp ? '#16a34a' : 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <MessageCircle size={14} /> Send WhatsApp Notification
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--pp-text-3)', marginTop: '4px', lineHeight: 1.4, fontWeight: 500 }}>
+                      Automatically message {assignModal.phone ? `+91 ${assignModal.phone.replace(/\D/g, '')}` : 'the patient'} with tracking details once assigned.
                     </span>
                   </div>
-                </label>
-              </div>
+              </label>
             </div>
-            <div className="courier-modal-footer">
-              <button className="modal-btn modal-btn-cancel" onClick={() => setAssignModal(null)}>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-main)', background: 'var(--bg-card)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                className="btn-ghost" 
+                onClick={() => {
+                  setAssignModal(null);
+                  setAssignPcd('');
+                  setAssignCourier('');
+                  setAssignPickup(false);
+                  setAssignSendWhatsapp(true);
+                  setPickupBy('patient');
+                  setRelativeName('');
+                  setRelativePhone('');
+                }}
+              >
                 Cancel
               </button>
               <button
-                className="modal-btn modal-btn-save"
+                className="btn-primary"
                 onClick={handleAssign}
-                disabled={assignMutation.isPending || (assignModal.postType === 'Courier' && (!assignPcd || !assignCourier))}
+                disabled={assignMutation.isPending || (assignModal.postType === 'Courier' && (!assignPcd || !assignCourier)) || (assignModal.postType === 'Pickup' && pickupBy === 'relative' && !relativeName)}
               >
                 {assignMutation.isPending ? 'Saving...' : 'Save & Assign'}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Drawer>
 
       {/* ─── Message Modal ─── */}
       {messageModal && (
@@ -553,7 +641,7 @@ export function CourierQueuePage() {
             )}
           </div>
         }
-        maxWidth="600px"
+        maxWidth="800px"
       >
         <div style={{ padding: '0', background: 'var(--pp-bg-subtle)', flex: 1, display: 'flex', flexDirection: 'column' }}>
           {historyModal?.entries.length === 0 ? (
@@ -568,8 +656,8 @@ export function CourierQueuePage() {
                   <thead>
                     <tr>
                       <th>Date</th>
-                      <th>POD / Tracking</th>
-                      <th>Courier</th>
+                      <th>POD / Contact</th>
+                      <th>Courier / Person</th>
                       <th>Type</th>
                       <th>Status</th>
                     </tr>
@@ -577,16 +665,22 @@ export function CourierQueuePage() {
                   <tbody>
                     {historyModal?.entries.map((e) => (
                       <tr key={e.id}>
-                        <td data-label="Date">
+                        <td data-label="Date" style={{ whiteSpace: 'nowrap' }}>
                           <span className="appt-cell-phone">
                             {e.createdAt ? new Date(e.createdAt as string).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : e.currentdate}
                           </span>
                         </td>
-                        <td data-label="POD / Tracking">
+                        <td data-label="POD / Contact">
                           <span className="appt-cell-phone font-mono">{e.pcd || '—'}</span>
                         </td>
-                        <td data-label="Courier">
-                          <span className="text-secondary" style={{ fontSize: '13px' }}>{e.courier || '—'}</span>
+                        <td data-label="Courier / Person">
+                          {e.postType === 'Pickup' ? (
+                            <span className="text-secondary" style={{ fontSize: '13px', fontWeight: 600 }}>
+                              {e.courier === 'Patient' ? 'Patient' : (e.courier ? `Relative: ${e.courier}` : 'Patient')}
+                            </span>
+                          ) : (
+                            <span className="text-secondary" style={{ fontSize: '13px' }}>{e.courier || '—'}</span>
+                          )}
                         </td>
                         <td data-label="Type">
                           <span className={`appt-badge ${e.postType === 'Courier' ? 'appt-badge-wait' : 'appt-badge-done'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>

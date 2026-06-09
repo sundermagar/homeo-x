@@ -89,13 +89,13 @@ export default function AppointmentListPage() {
     };
   }, [openMenuId]);
 
-  const todayQuery = useTodayAppointments();
+  const todayQuery = useTodayAppointments(isDoctor ? user?.id : undefined);
   const listQuery = useAppointments({
     search: search || undefined,
     status: status || undefined,
     from_date: fromDate || (tab === 'all' ? undefined : today),
     to_date: toDate || (tab === 'all' ? undefined : today),
-    doctor_id: undefined,
+    doctor_id: isDoctor ? user?.id : undefined,
     page,
     limit: pageSize,
   });
