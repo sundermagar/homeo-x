@@ -11,7 +11,7 @@ import { ContextSidebar } from '../components/v2/context-sidebar';
 import { CallRail } from '../components/v2/call-rail';
 import { SearchableSelect } from '../../medical-case/components/searchable-select';
 import { useRemedyLookups } from '../../medical-case/hooks/use-remedy-chart';
-import { useDayCharges } from '../../billing/hooks/use-accounts';
+import { useDayCharges, useCreateAdditionalCharge } from '../../billing/hooks/use-accounts';
 import { VitalsModal } from '../components/v2/vitals-modal';
 import { CompareVisitsModal } from '../components/v2/compare-visits-modal';
 import { PrescribeWizardModal } from '../components/v2/prescribe-wizard-modal';
@@ -418,9 +418,29 @@ export function HomeopathyConsultationLayoutV2({
   };
 
   // ── Prescribe ──
-  const handleConfirmPrescribe = useCallback(() => {
-    state.handleCompleteWithData(state.rxItems, state.advice, state.followUp);
-  }, [state]);
+  const createAdditionalCharge = useCreateAdditionalCharge();
+  const handleConfirmPrescribe = useCallback(async (billingData: { consultationFee: number; medicineCharge: number; additionalCharges: { name: string; price: number; quantity: number }[] }) => {
+    // 1. Complete the consultation (creates consultation + medicine bill entries)
+    await state.handleCompleteWithData(state.rxItems, state.advice, state.followUp, billingData);
+
+    // 2. Save each additional charge entry via the accounts API (same as case history)
+    const regid = (patient as any)?.regid;
+    if (regid && billingData.additionalCharges.length > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      await Promise.allSettled(
+        billingData.additionalCharges.map((ac) =>
+          createAdditionalCharge.mutateAsync({
+            regid: Number(regid),
+            additionalName: ac.name,
+            additionalPrice: ac.price,
+            receivedPrice: 0,
+            additionalQuantity: ac.quantity,
+            dateval: today,
+          })
+        )
+      );
+    }
+  }, [state, patient, createAdditionalCharge]);
 
   // ── Derived patient display ──
   const rawFirst = ((patient as any)?.firstName || '').trim();
@@ -763,6 +783,7 @@ export function HomeopathyConsultationLayoutV2({
         completed={state.showCompleted}
         visit={visit}
         patient={patient}
+        defaultConsultationFee={(visit as any)?.consultationFee ? Number((visit as any).consultationFee) : undefined}
         onClose={() => setPrescribeOpen(false)}
         onConfirm={handleConfirmPrescribe}
         onNextPatient={handleNextPatient}

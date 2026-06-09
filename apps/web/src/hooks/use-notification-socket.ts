@@ -1,7 +1,7 @@
 // ─── useNotificationSocket ─────────────────────────────────────────────────
 // Subscribes to real-time notifications via Socket.io.
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getSocket } from '@/infrastructure/socket';
 import { useAuthStore } from '@/shared/stores/auth-store';
@@ -73,13 +73,16 @@ export function useNotificationSocket() {
   const queryClient = useQueryClient();
   const token = useAuthStore((state) => state.token);
   const userId = useAuthStore((state) => state.user?.id);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (!token || !userId) {
+      setIsConnected(false);
       return () => undefined;
     }
 
     const socket = getSocket();
+    setIsConnected(socket.connected);
     socket.connect();
 
     const handleNew = (notification: SocketNotification) => {
@@ -111,6 +114,7 @@ export function useNotificationSocket() {
 
     const handleConnected = (data: { userId: number }) => {
       console.debug('[Socket] Notification namespace connected for user', data.userId);
+      setIsConnected(true);
     };
 
     const handleError = (err: { message?: string }) => {
@@ -123,6 +127,7 @@ export function useNotificationSocket() {
 
     const handleDisconnect = (reason: string) => {
       console.warn('[Socket] Notification disconnected:', reason);
+      setIsConnected(false);
     };
 
     socket.on('notification:new', handleNew);
@@ -140,6 +145,5 @@ export function useNotificationSocket() {
     };
   }, [queryClient, token, userId]);
 
-  const socket = token && userId ? getSocket() : null;
-  return { isConnected: Boolean(socket?.connected) };
+  return { isConnected };
 }

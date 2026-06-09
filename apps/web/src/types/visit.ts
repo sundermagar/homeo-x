@@ -44,6 +44,7 @@ export interface Vitals {
   diastolicBp?: number;
   respiratoryRate?: number;
   oxygenSaturation?: number;
+  bloodSugar?: number;
   lmpDate?: string;
   notes?: string;
   recordedAt: string;

@@ -126,7 +126,7 @@ export interface UseConsultationStateReturn {
 
   handleSaveDraft: () => Promise<void>;
   handleComplete: () => Promise<void>;
-  handleCompleteWithData: (overrideRxItems: CreatePrescriptionItemInput[], overrideAdvice: string, overrideFollowUp: string) => Promise<void>;
+  handleCompleteWithData: (overrideRxItems: CreatePrescriptionItemInput[], overrideAdvice: string, overrideFollowUp: string, billingData?: { consultationFee?: number; medicineCharge?: number; paymentMode?: string }) => Promise<void>;
   handleVoiceUsed: () => void;
   sttLanguage: 'en-IN' | 'hi-IN';
   handleTemplateUsed: () => void;
@@ -567,6 +567,7 @@ export function useConsultationState({
     overrideRxItems: typeof rxItems,
     overrideAdvice: string,
     overrideFollowUp: string,
+    billingData?: { consultationFee?: number; medicineCharge?: number; paymentMode?: string },
   ) => {
     if (!visitId) return;
     const base = buildPayload();
@@ -586,6 +587,10 @@ export function useConsultationState({
       prescription: filledItems.length > 0
         ? { notes: rxNotes || undefined, items: filledItems }
         : base.prescription,
+      // Billing fields — passed through directly to the backend
+      consultationFee: billingData?.consultationFee,
+      medicineCharge: billingData?.medicineCharge,
+      paymentMode: billingData?.paymentMode,
     };
 
     try {
