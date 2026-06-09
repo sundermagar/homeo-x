@@ -19,13 +19,29 @@ export function getSocket(): Socket {
   const token = useAuthStore.getState().token;
   const userId = useAuthStore.getState().user?.id;
 
-  socket = io(`${getSocketUrl()}/notifications`, {
-    auth: { token, userId },
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-  });
+  if (!token || !userId) {
+    if (!socket) {
+      socket = io(`${getSocketUrl()}/notifications`, {
+        auth: { token, userId },
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        autoConnect: false,
+      });
+    }
+    return socket;
+  }
+
+  if (!socket) {
+    socket = io(`${getSocketUrl()}/notifications`, {
+      auth: { token, userId },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+  }
 
   return socket;
 }

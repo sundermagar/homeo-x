@@ -18,7 +18,7 @@ export function FinalizeConsultationModal({
   regid, 
   visitId, 
   prescriptions, 
-  defaultConsultationFee = 500,
+  defaultConsultationFee = 0,
   defaultMedicineDaysCharge = 0,
   activePackageName,
   onClose 
@@ -110,7 +110,7 @@ export function FinalizeConsultationModal({
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
             <div className="mc-legacy-input-group">
-              <label>Base Consultation Fee (₹)</label>
+              <label>Additional Doctor Fee (if any) (₹)</label>
               <input 
                 type="number" 
                 value={fee} 

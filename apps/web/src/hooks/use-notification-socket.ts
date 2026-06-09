@@ -1,9 +1,10 @@
 // ─── useNotificationSocket ─────────────────────────────────────────────────
 // Subscribes to real-time notifications via Socket.io.
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { getSocket, disconnectSocket } from '@/infrastructure/socket';
+import { getSocket } from '@/infrastructure/socket';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import { toast } from '@/hooks/use-toast';
 
 export interface SocketNotification {
@@ -70,15 +71,20 @@ const playNotificationSound = () => {
 
 export function useNotificationSocket() {
   const queryClient = useQueryClient();
+  const token = useAuthStore((state) => state.token);
+  const userId = useAuthStore((state) => state.user?.id);
 
   useEffect(() => {
+    if (!token || !userId) {
+      return () => undefined;
+    }
+
     const socket = getSocket();
+    socket.connect();
 
     const handleNew = (notification: SocketNotification) => {
-      // Play premium sound immediately
       playNotificationSound();
 
-      // Show visual toast
       toast({
         title: notification.title,
         description: notification.message,
@@ -87,7 +93,6 @@ export function useNotificationSocket() {
           : (notification.type === 'error' || notification.type === 'warning') ? 'error' : 'default',
       });
 
-      // Optimistically prepend notification & increment unread badge count
       queryClient.setQueryData(['notifications', { limit: 20, offset: 0 }], (old: any) => {
         if (!old) return old;
         return {
@@ -101,23 +106,40 @@ export function useNotificationSocket() {
         return { unreadCount: (old.unreadCount ?? 0) + 1 };
       });
 
-      // Refetch notifications in background for perfect server-client sync
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     };
 
+    const handleConnected = (data: { userId: number }) => {
+      console.debug('[Socket] Notification namespace connected for user', data.userId);
+    };
+
+    const handleError = (err: { message?: string }) => {
+      console.warn('[Socket] Notification error:', err?.message ?? err);
+    };
+
+    const handleConnectError = (err: Error) => {
+      console.warn('[Socket] Notification connect_error:', err.message);
+    };
+
+    const handleDisconnect = (reason: string) => {
+      console.warn('[Socket] Notification disconnected:', reason);
+    };
+
     socket.on('notification:new', handleNew);
-    socket.on('connected', (data: { userId: number }) => {
-    });
-    socket.on('error', (err: { message: string }) => {
-      console.warn('[Socket] Notification error:', err.message);
-    });
+    socket.on('connected', handleConnected);
+    socket.on('error', handleError);
+    socket.on('connect_error', handleConnectError);
+    socket.on('disconnect', handleDisconnect);
 
     return () => {
       socket.off('notification:new', handleNew);
-      socket.off('connected');
-      socket.off('error');
+      socket.off('connected', handleConnected);
+      socket.off('error', handleError);
+      socket.off('connect_error', handleConnectError);
+      socket.off('disconnect', handleDisconnect);
     };
-  }, [queryClient]);
+  }, [queryClient, token, userId]);
 
-  return { isConnected: getSocket().connected };
+  const socket = token && userId ? getSocket() : null;
+  return { isConnected: Boolean(socket?.connected) };
 }
