@@ -29,8 +29,9 @@ export class DashboardUseCases {
     };
 
     try {
-      const isAdmin = ['superadmin', 'admin', 'clinicadmin'].includes((user.type || '').toLowerCase());
-      const isDoctor = !isAdmin && (user.type || '').toLowerCase() === 'doctor';
+      const rawRole = (user.type || '').toLowerCase();
+      const isAdmin = ['superadmin', 'admin', 'clinicadmin'].includes(rawRole);
+      const isDoctor = !isAdmin && (rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr'));
       // Appointments store the legacy doctors.id, which doesn't always match the logged-in users.id.
       // Resolve to the correct id so queries return real data instead of empty results.
       const doctorId = isDoctor

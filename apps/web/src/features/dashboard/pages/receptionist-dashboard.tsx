@@ -5,6 +5,7 @@ import {
   Calendar,
   Activity,
   Clock,
+  Package,
   Phone,
   ArrowUpRight,
   UserPlus,
@@ -23,10 +24,12 @@ import {
   CheckCircle2,
   Send,
   MessageSquare,
-  User
+  User,
+  Truck,
+  MapPin
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDashboard } from '../hooks/use-dashboard';
 import { useQueueMgmt } from '../hooks/use-queue-mgmt';
 import { useUpdateStatus, useIssueToken, useAddToWaitlist } from '../../appointments/hooks/use-appointments';
@@ -42,8 +45,10 @@ import { useBills } from '../../billing/hooks/use-billing';
 import { apiClient } from '@/infrastructure/api-client';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { toast } from '@/hooks/use-toast';
+import { Drawer } from '@/shared/components/drawer';
 import type { BirthdayPatient } from '@mmc/types';
 import './role-dashboards.css';
+import './clinic-admin-dashboard.css';
 
 function fmt(n: number): string {
   if (!n && n !== 0) return '₹0';
@@ -87,11 +92,82 @@ export function ReceptionistDashboard() {
     }
   });
 
+  const { data: dispatchQueue = [], isLoading: isQueueLoading } = useQuery({
+    queryKey: ['dashboard-courier-queue'],
+    queryFn: async () => {
+      const d = new Date().toISOString().split('T')[0];
+      const { data } = await apiClient.get(`/courier/queue?date=${d}`);
+      return data.data || [];
+    }
+  });
+  const pendingDispatch = dispatchQueue.filter((e: any) => e.isAssign === 0);
+
   const [vitalsTarget, setVitalsTarget] = useState<{ regid: number; visitId: number } | null>(null);
   // Report upload modal state
   const [uploadTarget, setUploadTarget] = useState<{ regid: number; name: string } | null>(null);
   // Assign package modal state
   const [assignPackageTarget, setAssignPackageTarget] = useState<{ regid: number; name: string } | null>(null);
+
+  // Assign courier state
+  const queryClient = useQueryClient();
+  const [assignModal, setAssignModal] = useState<any>(null);
+  const [assignPcd, setAssignPcd] = useState('');
+  const [assignCourier, setAssignCourier] = useState('');
+  const [assignPickup, setAssignPickup] = useState(false);
+  const [assignSendWhatsapp, setAssignSendWhatsapp] = useState(true);
+  const [pickupBy, setPickupBy] = useState<'patient' | 'relative'>('patient');
+  const [relativeName, setRelativeName] = useState('');
+  const [relativePhone, setRelativePhone] = useState('');
+
+  const assignMutation = useMutation({
+    mutationFn: async (input: any) => {
+      await apiClient.patch(`/courier/${input.id}/assign`, input);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-courier-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['courier-queue'] });
+      
+      if (assignSendWhatsapp && assignModal?.phone && (variables.pcd || variables.pickup)) {
+        const phone = assignModal.phone.replace(/\D/g, '');
+        const finalPhone = phone.startsWith('91') ? phone : '91' + phone;
+        
+        let textMessage = '';
+        if (variables.pickup) {
+          if (pickupBy === 'relative') {
+            textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines have been picked up by your relative/representative: *${relativeName}*${relativePhone ? ` (${relativePhone})` : ''}.\n\nRegards,\nMMC HomeoTech`;
+          } else {
+            textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines have been picked up at the clinic.\n\nRegards,\nMMC HomeoTech`;
+          }
+        } else {
+          textMessage = `Dear ${assignModal.patientName || 'Patient'},\n\nYour medicines have been dispatched via *${variables.courier || 'DTDC'}* and the POD number is *${variables.pcd || 'N/A'}*.\n\nFor tracking, log on to the courier tracking website.\n\nRegards,\nMMC HomeoTech`;
+        }
+        
+        sendText.mutate({ phone: finalPhone, message: textMessage }, {
+          onSuccess: () => toast({ description: '✅ Dispatch details saved and WhatsApp message sent!', variant: 'success' }),
+          onError: (err: any) => toast({ description: '❌ Dispatch saved, but failed to send WhatsApp: ' + (err.response?.data?.message || err.message), variant: 'error' })
+        });
+      }
+
+      setAssignModal(null);
+      setAssignPcd('');
+      setAssignCourier('');
+      setAssignPickup(false);
+      setAssignSendWhatsapp(true);
+      setPickupBy('patient');
+      setRelativeName('');
+      setRelativePhone('');
+    }
+  });
+
+  const handleAssign = () => {
+    if (!assignModal) return;
+    assignMutation.mutate({
+      id: assignModal.id,
+      pcd: assignModal.postType === 'Pickup' ? relativePhone : (assignPcd || undefined),
+      courier: assignModal.postType === 'Pickup' ? (pickupBy === 'relative' ? relativeName : 'Patient') : (assignCourier || undefined),
+      pickup: assignModal.postType === 'Pickup' ? 1 : (assignPickup ? 1 : 0),
+    });
+  };
 
   const { useSendText } = useWhatsApp();
   const sendText = useSendText();
@@ -382,8 +458,8 @@ export function ReceptionistDashboard() {
         </button>
       </div>
 
-      {/* ── 3. MIDDLE ROW: New Patients + Finance Queue ── */}
-      <div className="rd-dual-grid">
+      {/* ── 3. ROW 1: New Patients + Finance Queue + Dispatch/Birthdays ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr 1fr', gap: '16px', marginBottom: '16px' }}>
 
         {/* Today's New Patients */}
         <div className="rd-compact-card">
@@ -454,12 +530,12 @@ export function ReceptionistDashboard() {
                 const billBg = hasBills ? (isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(194, 65, 12, 0.1)') : 'var(--bg-surface-2)';
 
                 return (
-                  <div key={i} style={{ marginBottom: 8 }}>
-                    <div className="appt-grid-card-minimal animate-fade-in" style={{ padding: '10px 12px', gap: '8px', display: 'flex', flexDirection: 'column' }}>
+                  <div key={i} style={{ marginBottom: 6 }}>
+                    <div className="appt-grid-card-minimal animate-fade-in" style={{ padding: '8px 10px', gap: '6px', display: 'flex', flexDirection: 'column' }}>
                       {/* Top Row: Token & Name */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--pp-success-fg)', fontSize: 11, fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
+                          <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--pp-success-fg)', fontSize: 11, fontWeight: 800, padding: '1px 5px', borderRadius: 4 }}>
                             {a.tokenNo ? `#${a.tokenNo}` : (a.patientName?.charAt(0) || 'U')}
                           </div>
                           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>{a.patientName || 'Unknown Patient'}</span>
@@ -472,10 +548,10 @@ export function ReceptionistDashboard() {
                       {/* Middle Row: Doctor, Badges & Action Button */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(59, 130, 246, 0.08)', color: 'var(--pp-blue)', padding: '2px 6px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(59, 130, 246, 0.08)', color: 'var(--pp-blue)', padding: '1px 5px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
                             <User size={10} /> {a.doctorName || 'No Doctor'}
                           </div>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', background: billBg, color: billColor, padding: '2px 6px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', background: billBg, color: billColor, padding: '1px 5px', borderRadius: 10, fontSize: 10, fontWeight: 600 }}>
                             {billStatusText}
                           </div>
                           <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
@@ -489,10 +565,10 @@ export function ReceptionistDashboard() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 4,
-                            padding: '4px 10px',
+                            gap: 3,
+                            padding: '3px 8px',
                             borderRadius: 6,
-                            fontSize: 11,
+                            fontSize: 10.5,
                             background: totalBalance > 0 ? '#c2410c' : (hasBills ? 'var(--bg-surface-2)' : 'var(--pp-blue)'),
                             color: totalBalance > 0 ? 'white' : (hasBills ? 'var(--text-main)' : 'white'),
                             border: totalBalance > 0 ? 'none' : (hasBills ? '1px solid var(--border-main)' : 'none'),
@@ -524,13 +600,161 @@ export function ReceptionistDashboard() {
             )}
           </div>
         </div>
+
+        {/* Dispatch & Birthdays Combined */}
+        <div className="rd-compact-card" style={{ display: 'flex', flexDirection: 'column' }}>
+          {/* Dispatch Queue List */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-main)' }}>
+            <div className="cad-sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              DISPATCH QUEUE
+              <span className="dash-badge badge-primary">{pendingDispatch.length} PENDING</span>
+            </div>
+            <div className="cad-queue-list" style={{ paddingRight: '4px' }}>
+              {isQueueLoading ? (
+                <div className="cad-sidebar-empty">Loading dispatch queue...</div>
+              ) : pendingDispatch.length === 0 ? (
+                <div className="cad-sidebar-empty">
+                  <Package size={20} style={{ opacity: 0.3 }} />
+                  <p>No pending dispatch</p>
+                </div>
+              ) : (
+                <>
+                  {pendingDispatch.map((item: any) => (
+                    <div key={item.id} className="cad-queue-item">
+                      <div className="cad-queue-avatar" style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', border: 'none' }}>
+                        <Package size={14} />
+                      </div>
+                      <div className="cad-queue-info">
+                        <div className="cad-queue-name">{item.patientName || 'Unknown Patient'}</div>
+                        <div className="cad-queue-meta">#{item.caseId} · {item.postType}</div>
+                      </div>
+                      <button
+                        className="dash-action-btn"
+                        style={{ border: '1px solid var(--pp-blue-border)', color: 'var(--pp-blue)' }}
+                        onClick={() => {
+                          setAssignModal(item);
+                          setAssignPcd('');
+                          setAssignCourier('');
+                          setAssignPickup(false);
+                          setPickupBy('patient');
+                          setRelativeName('');
+                          setRelativePhone('');
+                        }}
+                        title="Assign dispatch details"
+                      >
+                        <ArrowUpRight size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Birthday List */}
+          <div style={{ padding: '12px 16px' }}>
+            <div className="cad-sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              TODAY'S BIRTHDAYS
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {birthdays.length > 0 && selectedBirthdays.size > 0 && (
+                  <button
+                    className="dash-action-btn"
+                    style={{
+                      background: '#25D366',
+                      color: 'white',
+                      border: 'none',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      cursor: sendingBulk ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      opacity: sendingBulk ? 0.6 : 1,
+                    }}
+                    onClick={handleBulkBirthdayWhatsApp}
+                    disabled={sendingBulk}
+                    title="Send birthday wishes to selected"
+                  >
+                    <Send size={10} /> {sendingBulk ? 'Sending...' : `Send (${selectedBirthdays.size})`}
+                  </button>
+                )}
+                <span className="dash-badge badge-primary">{birthdays.length}</span>
+              </div>
+            </div>
+            
+            <div className="cad-queue-list" style={{ paddingRight: '4px' }}>
+              {birthdays.length === 0 ? (
+                <div className="cad-sidebar-empty">
+                  <Cake size={20} style={{ opacity: 0.3 }} />
+                  <p>No birthdays today</p>
+                </div>
+              ) : (
+                <>
+                  {/* Select All Row */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '8px 0',
+                      borderBottom: '1px solid var(--pp-warm-1)',
+                      cursor: 'pointer',
+                    }}
+                    onClick={toggleSelectAllBirthdays}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={allBirthdaysSelected}
+                      onChange={toggleSelectAllBirthdays}
+                      style={{ width: 14, height: 14, accentColor: '#ec4899', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Select All ({validBirthdays.length})
+                    </span>
+                  </div>
+
+                  {birthdays.map((b: BirthdayPatient) => {
+                    const name = `${b.first_name || ''} ${b.surname || ''}`.trim() || 'Unknown';
+                    const phone = b.mobile1 || b.phone || '';
+                    const isSelected = selectedBirthdays.has(b.regid);
+                    return (
+                      <div key={b.regid} className="cad-queue-item" style={{ background: isSelected ? 'rgba(236, 72, 153, 0.04)' : undefined }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleBirthdaySelect(b.regid)}
+                          disabled={!phone}
+                          style={{ width: 14, height: 14, accentColor: '#ec4899', cursor: phone ? 'pointer' : 'not-allowed', flexShrink: 0 }}
+                        />
+                        <div className="cad-queue-avatar" style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899', border: 'none' }}>
+                          {name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="cad-queue-info">
+                          <div className="cad-queue-name">{name}</div>
+                          <div className="cad-queue-meta">#{b.regid} · {formatDob(b.dob)}</div>
+                        </div>
+                        <button
+                          className="dash-action-btn"
+                          onClick={() => handleBirthdayWhatsApp(phone, name)}
+                          title={`Send WhatsApp to ${phone}`}
+                        >
+                          <MessageCircle size={13} style={{ color: 'var(--pp-text-3)' }} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* ── 4. BOTTOM ROW: Today's Appointments + Birthday List ────────────── */}
-      <div className="rd-bottom-row-grid">
-        {/* Today's Appointments (Table) */}
-        <div className="dash-card">
-          <div className="dash-card-header">
+      {/* ── 4. ROW 2: Today's Appointments (Table) ────────────── */}
+      <div className="dash-card" style={{ marginBottom: '16px' }}>
+        <div className="dash-card-header">
             <h3 className="dash-section-title">
               <Calendar size={16} style={{ marginRight: 8, color: 'var(--pp-blue)' }} /> Today's Appointments
             </h3>
@@ -676,113 +900,9 @@ export function ReceptionistDashboard() {
               </table>
             </div>
           </div>
-        </div>
-
-        {/* Birthday List */}
-        <div className="rd-compact-card">
-          <div className="rd-compact-card-header">
-            <div className="rd-compact-card-title">
-              <Cake size={14} style={{ color: '#ec4899' }} /> Today's Birthdays
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {birthdays.length > 0 && selectedBirthdays.size > 0 && (
-                <button
-                  className="dash-action-btn"
-                  style={{
-                    background: '#25D366',
-                    color: 'white',
-                    border: 'none',
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    cursor: sendingBulk ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    opacity: sendingBulk ? 0.6 : 1,
-                  }}
-                  onClick={handleBulkBirthdayWhatsApp}
-                  disabled={sendingBulk}
-                  title="Send birthday wishes to selected"
-                >
-                  <Send size={11} /> {sendingBulk ? 'Sending...' : `Send (${selectedBirthdays.size})`}
-                </button>
-              )}
-              <span className="dash-badge badge-primary">{birthdays.length}</span>
-            </div>
-          </div>
-          <div className="rd-compact-card-body db-scroll" style={{ maxHeight: '360px' }}>
-            {birthdays.length === 0 ? (
-              <div className="rd-empty">🎂 No birthdays today</div>
-            ) : (
-              <>
-                {/* Select All Row */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '8px 20px',
-                    borderBottom: '1px solid var(--pp-warm-2)',
-                    background: 'var(--pp-warm-1)',
-                    cursor: 'pointer',
-                  }}
-                  onClick={toggleSelectAllBirthdays}
-                >
-                  <input
-                    type="checkbox"
-                    checked={allBirthdaysSelected}
-                    onChange={toggleSelectAllBirthdays}
-                    style={{ width: 16, height: 16, accentColor: '#ec4899', cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Select All ({validBirthdays.length})
-                  </span>
-                </div>
-
-                {birthdays.map((b: BirthdayPatient) => {
-                  const name = `${b.first_name || ''} ${b.surname || ''}`.trim() || 'Unknown';
-                  const phone = b.mobile1 || b.phone || '';
-                  const isSelected = selectedBirthdays.has(b.regid);
-                  return (
-                    <div key={b.regid} className="rd-list-item" style={{ background: isSelected ? 'rgba(236, 72, 153, 0.04)' : undefined }}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleBirthdaySelect(b.regid)}
-                        disabled={!phone}
-                        style={{ width: 16, height: 16, accentColor: '#ec4899', cursor: phone ? 'pointer' : 'not-allowed', flexShrink: 0 }}
-                      />
-                      <div className="rd-list-avatar" style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }}>
-                        {name.charAt(0)}
-                      </div>
-                      <div className="rd-list-info">
-                        <div className="rd-list-name">{name}</div>
-                        <div className="rd-list-sub">
-                          #{b.regid} · {formatDob(b.dob || b.date_birth)}
-                        </div>
-                      </div>
-                      <div className="rd-list-actions">
-                        {phone && (
-                          <button
-                            className="rd-action-pill green"
-                            title="WhatsApp Greeting"
-                            onClick={() => handleBirthdayWhatsApp(phone, name)}
-                            disabled={sendText.isPending}
-                          >
-                            <MessageCircle size={13} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </>
-            )}
-          </div>
-        </div>
       </div>
+
+
 
       {/* ── Drawers & Modals ───────────────────────────────────────────── */}
       <PatientFormDrawer
@@ -835,6 +955,181 @@ export function ReceptionistDashboard() {
           }}
         />
       )}
+
+      {/* ─── Assign Dispatch Drawer ─── */}
+      <Drawer
+        isOpen={!!assignModal}
+        onClose={() => {
+          setAssignModal(null);
+          setAssignPcd('');
+          setAssignCourier('');
+          setAssignPickup(false);
+          setAssignSendWhatsapp(true);
+          setPickupBy('patient');
+          setRelativeName('');
+          setRelativePhone('');
+        }}
+        title={
+          assignModal?.postType === 'Courier' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Truck size={20} /> Assign Dispatch Details
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MapPin size={20} /> Confirm Pickup
+            </div>
+          )
+        }
+        maxWidth="500px"
+      >
+        {assignModal && (
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-card)' }}>
+            <div className="courier-modal-body" style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
+              <div style={{ background: 'var(--pp-warm-1)', border: '1px solid var(--pp-warm-4)', borderRadius: '12px', padding: '16px', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: assignModal.remedy ? '12px' : '0' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16 }}>
+                    {assignModal.patientName?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--pp-ink)' }}>{assignModal.patientName || 'Unknown'}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--pp-text-3)', fontWeight: 600 }}>Case #{assignModal.caseId}</div>
+                  </div>
+                </div>
+                {assignModal.remedy && (
+                  <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--pp-warm-2)' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Prescribed Remedy</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--pp-ink)' }}>{assignModal.remedy} {assignModal.potency} — {assignModal.days} days</div>
+                  </div>
+                )}
+              </div>
+
+              {assignModal.postType === 'Courier' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div className="modal-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--pp-ink)' }}>POD (Tracking Number) <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+                    <input
+                      type="text"
+                      placeholder="Enter POD / Tracking Number"
+                      value={assignPcd}
+                      onChange={(e) => setAssignPcd(e.target.value)}
+                      className="pp-input"
+                      style={{ padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--pp-warm-4)', background: 'var(--bg-card)' }}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="modal-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--pp-ink)' }}>Courier Company <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+                    <input
+                      type="text"
+                      placeholder="e.g. DTDC, BlueDart, Delhivery"
+                      value={assignCourier}
+                      onChange={(e) => setAssignCourier(e.target.value)}
+                      className="pp-input"
+                      style={{ padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--pp-warm-4)', background: 'var(--bg-card)' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--pp-ink)' }}>Who picked up the medicine?</div>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '12px 16px', borderRadius: '10px', border: pickupBy === 'patient' ? '1px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)', background: pickupBy === 'patient' ? 'var(--pp-blue-tint)' : 'var(--bg-card)', transition: 'all 0.2s' }}>
+                      <input
+                        type="radio"
+                        name="pickupBy"
+                        checked={pickupBy === 'patient'}
+                        onChange={() => setPickupBy('patient')}
+                        style={{ accentColor: 'var(--pp-blue)', width: 16, height: 16 }}
+                      />
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: pickupBy === 'patient' ? 'var(--pp-blue)' : 'var(--pp-ink)' }}>Patient Themself</span>
+                    </label>
+                    <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '12px 16px', borderRadius: '10px', border: pickupBy === 'relative' ? '1px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)', background: pickupBy === 'relative' ? 'var(--pp-blue-tint)' : 'var(--bg-card)', transition: 'all 0.2s' }}>
+                      <input
+                        type="radio"
+                        name="pickupBy"
+                        checked={pickupBy === 'relative'}
+                        onChange={() => setPickupBy('relative')}
+                        style={{ accentColor: 'var(--pp-blue)', width: 16, height: 16 }}
+                      />
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: pickupBy === 'relative' ? 'var(--pp-blue)' : 'var(--pp-ink)' }}>Relative / Other</span>
+                    </label>
+                  </div>
+                  
+                  {pickupBy === 'relative' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', background: 'var(--pp-warm-1)', borderRadius: '12px', border: '1px solid var(--pp-warm-2)' }}>
+                      <div className="modal-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--pp-ink)' }}>Relative's Name <span style={{ color: 'var(--pp-danger-fg)' }}>*</span></label>
+                        <input
+                          type="text"
+                          placeholder="Enter relative's name"
+                          value={relativeName}
+                          onChange={(e) => setRelativeName(e.target.value)}
+                          className="pp-input"
+                          style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--pp-warm-4)', background: 'var(--bg-card)' }}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="modal-field" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--pp-ink)' }}>Relative's Phone (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 9876543210"
+                          value={relativePhone}
+                          onChange={(e) => setRelativePhone(e.target.value)}
+                          className="pp-input"
+                          style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--pp-warm-4)', background: 'var(--bg-card)' }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <label style={{ marginTop: '32px', display: 'flex', alignItems: 'flex-start', gap: '14px', cursor: 'pointer', padding: '16px', borderRadius: '12px', background: assignSendWhatsapp ? 'rgba(34, 197, 94, 0.08)' : 'var(--pp-warm-1)', border: assignSendWhatsapp ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--pp-warm-4)', transition: 'all 0.2s' }}>
+                  <input
+                    type="checkbox"
+                    checked={assignSendWhatsapp}
+                    onChange={(e) => setAssignSendWhatsapp(e.target.checked)}
+                    style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#16a34a' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: assignSendWhatsapp ? '#16a34a' : 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <MessageCircle size={14} /> Send WhatsApp Notification
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--pp-text-3)', marginTop: '4px', lineHeight: 1.4, fontWeight: 500 }}>
+                      Automatically message {assignModal.phone ? `+91 ${assignModal.phone.replace(/\D/g, '')}` : 'the patient'} with tracking details once assigned.
+                    </span>
+                  </div>
+              </label>
+            </div>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-main)', background: 'var(--bg-card)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                className="btn-ghost" 
+                onClick={() => {
+                  setAssignModal(null);
+                  setAssignPcd('');
+                  setAssignCourier('');
+                  setAssignPickup(false);
+                  setAssignSendWhatsapp(true);
+                  setPickupBy('patient');
+                  setRelativeName('');
+                  setRelativePhone('');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleAssign}
+                disabled={assignMutation.isPending || (assignModal.postType === 'Courier' && (!assignPcd || !assignCourier)) || (assignModal.postType === 'Pickup' && pickupBy === 'relative' && !relativeName)}
+              >
+                {assignMutation.isPending ? 'Saving...' : 'Save & Assign'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Drawer>
+
     </div>
   );
 }

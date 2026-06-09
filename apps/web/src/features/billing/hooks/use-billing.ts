@@ -153,6 +153,7 @@ export function useUpdateCharges() {
     onSuccess: (updatedBill) => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       if (updatedBill.regid) {
         queryClient.invalidateQueries({ queryKey: ['bills', 'patient', updatedBill.regid] });
       }
@@ -170,6 +171,7 @@ export function useCreateBill() {
     onSuccess: (newBill) => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['bills', 'patient', newBill.regid] });
       queryClient.refetchQueries({ queryKey: ['medical-case', 'full', newBill.regid] });
       queryClient.refetchQueries({ queryKey: ['medical-case', 'full', String(newBill.regid)] });
@@ -187,6 +189,7 @@ export function useCreateCustomBill() {
     onSuccess: (newBill) => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['bills', 'patient', newBill.regid] });
       queryClient.refetchQueries({ queryKey: ['medical-case', 'full', newBill.regid] });
       queryClient.refetchQueries({ queryKey: ['medical-case', 'full', String(newBill.regid)] });
@@ -204,6 +207,7 @@ export function useRecordPayment() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['billing', 'daily'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['bills', 'patient', variables.regid] });
       queryClient.refetchQueries({ queryKey: ['medical-case', 'full', variables.regid] });
       queryClient.refetchQueries({ queryKey: ['medical-case', 'full', String(variables.regid)] });

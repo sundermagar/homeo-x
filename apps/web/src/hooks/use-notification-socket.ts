@@ -75,6 +75,12 @@ export function useNotificationSocket() {
   const userId = useAuthStore((state) => state.user?.id);
   const [isConnected, setIsConnected] = useState(false);
 
+  const invalidateRealtimeQueries = () => {
+    ['dashboard', 'appointments', 'bills', 'billing', 'queue', 'visit', 'patient'].forEach((key) => {
+      queryClient.invalidateQueries({ queryKey: [key] });
+    });
+  };
+
   useEffect(() => {
     if (!token || !userId) {
       setIsConnected(false);
@@ -110,6 +116,7 @@ export function useNotificationSocket() {
       });
 
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      invalidateRealtimeQueries();
     };
 
     const handleConnected = (data: { userId: number }) => {
@@ -130,7 +137,15 @@ export function useNotificationSocket() {
       setIsConnected(false);
     };
 
+    const handleExternalUpdate = () => {
+      invalidateRealtimeQueries();
+    };
+
     socket.on('notification:new', handleNew);
+    socket.on('billing:update', handleExternalUpdate);
+    socket.on('appointment:update', handleExternalUpdate);
+    socket.on('visit:update', handleExternalUpdate);
+    socket.on('queueUpdated', handleExternalUpdate);
     socket.on('connected', handleConnected);
     socket.on('error', handleError);
     socket.on('connect_error', handleConnectError);
@@ -138,6 +153,10 @@ export function useNotificationSocket() {
 
     return () => {
       socket.off('notification:new', handleNew);
+      socket.off('billing:update', handleExternalUpdate);
+      socket.off('appointment:update', handleExternalUpdate);
+      socket.off('visit:update', handleExternalUpdate);
+      socket.off('queueUpdated', handleExternalUpdate);
       socket.off('connected', handleConnected);
       socket.off('error', handleError);
       socket.off('connect_error', handleConnectError);

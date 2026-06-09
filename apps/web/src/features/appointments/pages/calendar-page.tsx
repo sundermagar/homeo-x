@@ -6,6 +6,7 @@ import { AppointmentForm } from '../components/appointment-form';
 import { Drawer } from '@/shared/components/drawer';
 import { apiClient } from '@/infrastructure/api-client';
 import { EmptyState } from '@/components/shared/empty-state';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import '../styles/appointments.css';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -38,10 +39,14 @@ export default function CalendarPage() {
   const toDate      = fmtDate(year, month, daysInMonth);
   const todayISO    = fmtDate(now.getFullYear(), now.getMonth(), now.getDate());
 
+  const user = useAuthStore((s) => s.user);
+  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
+  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
+
   const { data, isLoading, refetch } = useAppointments({
     from_date: fromDate,
     to_date:   toDate,
-    doctor_id: doctorFilter ? Number(doctorFilter) : undefined,
+    doctor_id: isDoctor ? user?.id : (doctorFilter ? Number(doctorFilter) : undefined),
     limit: 100,
   });
 
