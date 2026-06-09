@@ -15,6 +15,7 @@ const Loading = () => (
 );
 
 // Common Feature Modules
+const ClinicTimingsPage = lazy(() => import('@/features/settings/pages/clinic-timings-page'));
 const LoginPage = lazy(() => import('@/features/auth/pages/login-page'));
 const DashboardPage = lazy(() => import('@/features/dashboard/pages/dashboard-page'));
 // Multi-stage consultation flow (Patient info → Conversation → Totality → Repertory → Prescription)
@@ -244,6 +245,7 @@ export function AppRouter() {
 
               {/* ─── Settings ─── */}
               <Route path="/settings" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><Navigate to="/settings/departments" replace /></RoleGuard>} />
+              <Route path="/settings/timings" element={<RoleGuard allowed={['Clinicadmin']}><ClinicTimingsPage /></RoleGuard>} />
               <Route path="/settings/departments" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><DepartmentsPage /></RoleGuard>} />
               <Route path="/settings/medicines" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><MedicinesPage /></RoleGuard>} />
               <Route path="/settings/dispensaries" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><DispensariesPage /></RoleGuard>} />

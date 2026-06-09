@@ -390,6 +390,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         OR a.booking_date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
       )`;
 
+      try {
       const result = await this.db.execute(sql`
         WITH today_waitlist AS (
           SELECT
@@ -430,6 +431,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             q.manual_name,
             'Practitioner'
           ) as doctor_name,
+          q.a_booking_date as booking_date,
+          q.a_visit_type as visit_type,
+          pkg.package_name,
+          pkg.package_expiry,
           v.systolic_bp,
           v.diastolic_bp,
           v.weight_kg,
@@ -438,7 +443,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           v.pulse_rate,
           v.respiratory_rate,
           v.oxygen_saturation,
-          v.notes as vital_notes
+          v.notes as vital_notes,
+          rx.first_medication as rx_medication,
+          rx.status as rx_status
         FROM (
           SELECT
             tw.wl_id,
@@ -453,7 +460,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             COALESCE(a.booking_time, '') as booking_time,
             COALESCE(a.id, tw.appointment_id) as visit_id,
             a.notes,
-            a.phone as a_phone
+            a.phone as a_phone,
+            a.booking_date as a_booking_date,
+            a.visit_type as a_visit_type
           FROM today_waitlist tw
           LEFT JOIN appointments a ON a.id = tw.appointment_id
 
@@ -472,7 +481,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.booking_time,
             a.id as visit_id,
             a.notes,
-            a.phone as a_phone
+            a.phone as a_phone,
+            a.booking_date as a_booking_date,
+            a.visit_type as a_visit_type
           FROM appointments a
           WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
             AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL OR a.clinic_id = 0 OR a.clinic_id = 1)
@@ -488,9 +499,24 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           FROM vitals
           ORDER BY visit_id, recorded_at DESC
         ) v ON v.visit_id = q.visit_id
+        LEFT JOIN (
+          SELECT DISTINCT ON (regid)
+            regid, package_id, expiry_date as package_expiry, pl.name as package_name
+          FROM patient_packages pp
+          LEFT JOIN package_plans pl ON pp.package_id = pl.id
+          WHERE pp.status = 'Active' AND (pp.deleted_at IS NULL OR pp.deleted_at::text = '')
+          ORDER BY regid, pp.id DESC
+        ) pkg ON pkg.regid = COALESCE(p.regid, p.id, q.patient_id)
+        LEFT JOIN (
+          SELECT DISTINCT ON (p.consultation_id)
+            p.consultation_id,
+            'Completed' as status,
+            p.remedy as first_medication
+          FROM prescriptions p
+          ORDER BY p.consultation_id, p.id DESC
+        ) rx ON rx.consultation_id::text = q.visit_id::text
         ORDER BY q.token_no ASC NULLS LAST, q.id ASC
       `);
-
       const allRows = result as any[];
 
       allRows.sort((a, b) => {
@@ -513,12 +539,18 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         doctorName: r.doctor_name,
         doctorId: r.doctor_id,
         bookingTime: r.booking_time || '',
+        bookingDate: r.booking_date,
+        visitType: r.visit_type,
+        packageName: r.package_name,
+        packageExpiry: r.package_expiry,
         tokenNo: r.token_no,
         status: r.status,
         phone: r.phone || '',
         isUrgent: false,
         age: undefined,
         gender: undefined,
+        rxMedication: r.rx_medication ? r.rx_medication.trim() : undefined,
+        rxStatus: r.rx_status,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
         visitId: r.visit_id,
@@ -539,6 +571,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           notes: r.vital_notes
         } : undefined,
       }));
+      } catch (err: any) {
+        console.error('[Dashboard] getTodayQueue failed:', err.message, err.stack);
+        return [];
+      }
     });
   }
 

@@ -5,11 +5,7 @@ import type { Appointment, WaitlistEntry, AvailabilitySlot, CreateAppointmentDto
 import { AppointmentStatus } from '@mmc/types';
 import type { AppointmentRepository, AppointmentFilters } from '../../domains/appointment/ports/appointment.repository.js';
 
-const ALL_TIME_SLOTS = [
-  '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM',
-  '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM',
-  '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM', '08:00 PM',
-];
+// Removed hardcoded ALL_TIME_SLOTS. Clinics must set up timings in Settings.
 
 function toMins(t: string): number {
   if (!t) return 0;
@@ -20,6 +16,43 @@ function toMins(t: string): number {
   if (period === 'PM' && h < 12) h += 12;
   if (period === 'AM' && h === 12) h = 0;
   return h * 60 + m;
+}
+
+function generateTimeSlots(start: string, end: string, slotDuration: number, lunchStart?: string, lunchEnd?: string): string[] {
+  const slots: string[] = [];
+  
+  let currentMins = toMins(start);
+  const endMins = toMins(end);
+  const lStart = lunchStart ? toMins(lunchStart) : null;
+  const lEnd = lunchEnd ? toMins(lunchEnd) : null;
+  
+  if (currentMins === 0 || endMins === 0) return [];
+
+  while (currentMins + slotDuration <= endMins) {
+    let isLunch = false;
+    if (lStart !== null && lEnd !== null) {
+      if (currentMins >= lStart && (currentMins + slotDuration) <= lEnd) {
+        isLunch = true;
+      } else if (currentMins < lEnd && (currentMins + slotDuration) > lStart) {
+        isLunch = true;
+      }
+    }
+
+    if (!isLunch) {
+      let h = Math.floor(currentMins / 60);
+      let m = currentMins % 60;
+      let ampm = h >= 12 ? 'PM' : 'AM';
+      let h12 = h % 12;
+      if (h12 === 0) h12 = 12;
+
+      const formattedTime = `${h12.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${ampm}`;
+      slots.push(formattedTime);
+    }
+
+    currentMins += slotDuration;
+  }
+
+  return slots;
 }
 
 // Returns "YYYY-MM-DD" in the process's local timezone (not UTC).
@@ -414,7 +447,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     return row ? mapRow(row) : null;
   }
 
-  async findAvailableSlots(doctorId: number, date: string): Promise<AvailabilitySlot[]> {
+  async findAvailableSlots(doctorId: number, date: string, timingConfigStr?: string): Promise<AvailabilitySlot[]> {
     // Get booked times for this doctor + date
     const booked = await this.db
       .select({ time: schema.appointments.bookingTime })
@@ -433,7 +466,92 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
 
-    return ALL_TIME_SLOTS.map(time => {
+    let slotsList: string[] = [];
+
+    if (timingConfigStr) {
+      try {
+        const config = JSON.parse(timingConfigStr);
+        if (config.schedule && config.slotDuration) {
+          let y, m, dNum;
+          if (date.includes('-')) {
+             [y, m, dNum] = date.split('-');
+          } else if (date.includes('/')) {
+             [dNum, m, y] = date.split('/');
+          }
+          if (y && m && dNum) {
+            const dObj = new Date(Number(y), Number(m) - 1, Number(dNum));
+            const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const dayName = weekdays[dObj.getDay()];
+            
+            if (dayName && config.schedule[dayName]) {
+              const dayTiming = config.schedule[dayName];
+              if (!dayTiming.isOpen) {
+                slotsList = []; // Closed on this day
+              } else if (dayTiming.start && dayTiming.end) {
+                const generated = generateTimeSlots(dayTiming.start, dayTiming.end, config.slotDuration, dayTiming.lunchStart, dayTiming.lunchEnd);
+                if (generated.length > 0) {
+                  slotsList = generated;
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // If it's not JSON, try parsing legacy string like "11:00 AM - 8:00 PM, Sunday Closed"
+        const match = timingConfigStr.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))\s*-\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
+        if (match) {
+          const start = match[1]!;
+          const end = match[2]!;
+          let y, m, dNum;
+          if (date.includes('-')) {
+             [y, m, dNum] = date.split('-');
+          } else if (date.includes('/')) {
+             [dNum, m, y] = date.split('/');
+          }
+          let isClosed = false;
+          if (y && m && dNum) {
+            const dObj = new Date(Number(y), Number(m) - 1, Number(dNum));
+            const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const dayName = weekdays[dObj.getDay()];
+            const closedRegex = new RegExp(`${dayName}\\s*Closed`, 'i');
+            if (closedRegex.test(timingConfigStr)) {
+              isClosed = true;
+            }
+          }
+          if (!isClosed) {
+            slotsList = generateTimeSlots(start, end, 15);
+          }
+        } else {
+          console.error('Failed to parse timing config', err);
+        }
+      }
+    }
+
+    if (slotsList.length === 0) {
+      let isClosed = false;
+      try {
+        const config = JSON.parse(timingConfigStr || '{}');
+        if (config.schedule) {
+          let y, m, dNum;
+          if (date.includes('-')) { [y, m, dNum] = date.split('-'); }
+          else if (date.includes('/')) { [dNum, m, y] = date.split('/'); }
+          if (y && m && dNum) {
+            const dObj = new Date(Number(y), Number(m) - 1, Number(dNum));
+            const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dObj.getDay()];
+            if (dayName && config.schedule[dayName] && !config.schedule[dayName].isOpen) {
+              isClosed = true;
+            }
+          }
+        }
+      } catch (e) {}
+
+      if (!isClosed) {
+        const fallbackSlotDuration = timingConfigStr ? (JSON.parse(timingConfigStr).slotDuration || 15) : 15;
+        slotsList = generateTimeSlots('09:00 AM', '08:00 PM', fallbackSlotDuration);
+      }
+    }
+
+    return slotsList.map(time => {
       const tMins = toMins(time);
       const isPast = isToday && tMins < currentMins;
       return {

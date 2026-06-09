@@ -22,7 +22,7 @@ export interface AppointmentRepository {
   findFollowups(filters: AppointmentFilters): Promise<{ data: Appointment[]; total: number }>;
   findToday(doctorId?: number, clinicId?: number): Promise<Appointment[]>;
   findById(id: number): Promise<Appointment | null>;
-  findAvailableSlots(doctorId: number, date: string): Promise<AvailabilitySlot[]>;
+  findAvailableSlots(doctorId: number, date: string, timingConfigStr?: string): Promise<AvailabilitySlot[]>;
 
   // Mutations
   create(dto: CreateAppointmentDto): Promise<number>;

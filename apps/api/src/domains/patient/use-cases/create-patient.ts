@@ -20,7 +20,9 @@ export class CreatePatientUseCase {
     ]);
 
     // ─── Background: Auto-bill registration fee ───
-    if (clinicId && org?.registrationFee && org.registrationFee > 0) {
+    const regFee = input.registrationFee !== undefined ? input.registrationFee : (org?.registrationFee || 0);
+    
+    if (regFee > 0) {
       (async () => {
         try {
           const billNo = await this.billingRepo.nextBillNo();
@@ -28,7 +30,7 @@ export class CreatePatientUseCase {
             regid: patient.regid,
             billNo,
             billDate: new Date().toISOString().split('T')[0],
-            charges: org.registrationFee || 0,
+            charges: regFee,
             received: 0,
             paymentMode: 'Cash',
             billType: 'Registration',

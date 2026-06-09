@@ -81,7 +81,7 @@ export class LoginUseCase {
       canCreatePatient: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Doctor', 'Receptionist'].includes(role) || p.has('PATIENT_CREATE'),
       canEditPatient: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Doctor', 'Receptionist'].includes(role) || p.has('PATIENT_EDIT'),
       canDeletePatient: ['Admin', 'ClinicAdmin', 'Clinicadmin'].includes(role) || p.has('PATIENT_DELETE'),
-      canViewBilling: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Account', 'Receptionist'].includes(role) || p.has('BILLING_VIEW'),
+      canViewBilling: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Account', 'Receptionist', 'Doctor'].includes(role) || p.has('BILLING_VIEW'),
       canViewExpenses: ['Admin', 'ClinicAdmin', 'Clinicadmin', 'Account'].includes(role) || p.has('EXPENSES_VIEW'),
       canViewAnalytics: ['Admin', 'ClinicAdmin', 'Clinicadmin'].includes(role) || p.has('ANALYTICS_VIEW'),
       canViewDoctors: ['Admin', 'ClinicAdmin', 'Clinicadmin'].includes(role) || p.has('DOCTOR_VIEW'),

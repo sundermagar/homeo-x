@@ -11,6 +11,7 @@ import { CommunicationRepositoryPG } from '../../repositories/communication.repo
 import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
 import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
 import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg.js';
+import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
 import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
 import { SendWhatsAppTemplateUseCase } from '../../../domains/communication/use-cases/send-whatsapp-template.use-case.js';
 import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
@@ -160,7 +161,24 @@ appointmentsRouter.get('/availability', asyncHandler(async (req, res) => {
   }
 
   const getAppts = new GetAppointmentUseCase(getRepo(req));
-  const result = await getAppts.getAvailability(Number(doctor_id), date);
+  let clinicId = (req as any).user?.contextId;
+  const orgRepo = new OrganizationRepositoryPg(req.publicDb);
+  let org = clinicId ? await orgRepo.findById(Number(clinicId)) : null;
+
+  if (!org || (req as any).user?.role === 'SuperAdmin') {
+    const orgs = await orgRepo.findAll();
+    if (orgs && orgs.length > 0) {
+      org = orgs[0] ?? null;
+      clinicId = org?.id;
+    }
+  }
+
+  let timingConfigStr = '';
+  if (org?.timing) {
+    timingConfigStr = org.timing;
+  }
+
+  const result = await getAppts.getAvailability(Number(doctor_id), date, timingConfigStr);
   if (result.success) sendSuccess(res, result.data);
 }));
 

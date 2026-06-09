@@ -377,6 +377,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         icon: Settings,
         roles: ADMIN,
         children: [
+          { path: '/settings/timings', label: 'Clinic Timings', icon: Clock },
           { path: '/settings/departments', label: 'Departments', icon: Layers },
           { path: '/settings/medicines', label: 'Medicine Catalog', icon: Pill },
           { path: '/settings/stocks', label: 'Stock Management', icon: Package },

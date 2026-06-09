@@ -16,8 +16,8 @@ export class GetAppointmentUseCase {
     return ok(result);
   }
 
-  async getAvailability(doctorId: number, date: string): Promise<Result<AvailabilitySlot[]>> {
-    const result = await this.repo.findAvailableSlots(doctorId, date);
+  async getAvailability(doctorId: number, date: string, timingConfigStr?: string): Promise<Result<AvailabilitySlot[]>> {
+    const result = await this.repo.findAvailableSlots(doctorId, date, timingConfigStr);
     return ok(result);
   }
 }

@@ -36,6 +36,7 @@ const EMPTY_FORM = {
   bookingTime: '',
   visitType: VisitType.New,
   consultationFee: '',
+  registrationFee: '',
   notes: '',
 };
 
@@ -91,12 +92,16 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
       setForm({
         patientId: String(editAppointment.patientId ?? ''),
         patientName: editAppointment.patientName ?? '',
+        gender: 'M',
+        dateOfBirth: '',
+        city: '',
         phone: editAppointment.phone ?? '',
         doctorId: String(editAppointment.doctorId ?? ''),
         bookingDate: editAppointment.bookingDate ?? '',
         bookingTime: editAppointment.bookingTime ?? '',
         visitType: (editAppointment.visitType as VisitType) ?? VisitType.New,
-        consultationFee: editAppointment.consultationFee ?? '',
+        consultationFee: String(editAppointment.consultationFee ?? ''),
+        registrationFee: '',
         notes: editAppointment.notes ?? '',
       });
       setSearchStatus('found');
@@ -224,7 +229,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
         // If it's a completely new patient without an ID, register them now
         if (form.visitType === VisitType.New && !finalPatientId) {
             const nameParts = form.patientName.trim().split(' ');
-            const firstName = nameParts[0];
+            const firstName = nameParts[0] || 'Unknown';
             const surname = nameParts.slice(1).join(' ') || '.';
 
             try {
@@ -234,8 +239,11 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                     surname,
                     gender: form.gender as 'M'|'F'|'Other',
                     phone: form.phone,
+                    mobile1: form.phone,
                     dateOfBirth: form.dateOfBirth,
                     city: form.city,
+                    registrationFee: form.registrationFee ? Number(form.registrationFee) : undefined,
+                    courierOutstation: false,
                 });
                 finalPatientId = newPatient.regid;
             } catch (err: any) {
@@ -314,7 +322,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                   doctorName: (doc?.name) || 'N/A',
                   bookingDate: form.bookingDate || today,
                   bookingTime: form.bookingTime || '',
-                  consultationFee: form.consultationFee || '0',
+                  consultationFee: String(form.consultationFee || 0),
                   visitType: form.visitType,
                   tokenNo: bookingResult.tokenNo ?? undefined,
                   notes: form.notes,
@@ -509,14 +517,17 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             <div className="appt-form-group">
               <label className="appt-form-label">
                 <DollarSign size={13} strokeWidth={1.6} />
-                Fee (₹)
+                Fees (₹)
               </label>
-              <NumericInput
-                className="appt-form-input"
-                placeholder="0.00"
-                value={form.consultationFee}
-                onChange={e => set('consultationFee', e.target.value)}
-              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <NumericInput
+                  className="appt-form-input"
+                  placeholder="Consult"
+                  value={form.consultationFee}
+                  onChange={e => set('consultationFee', e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
             </div>
           </div>
 

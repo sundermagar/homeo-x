@@ -3,6 +3,19 @@
  * Mirrors the legacy 'organizations' and 'accounts' tables.
  */
 
+export interface DayTiming {
+  isOpen: boolean;
+  start: string; // e.g., "09:00 AM"
+  end: string;   // e.g., "05:00 PM"
+  lunchStart?: string; // e.g., "01:00 PM"
+  lunchEnd?: string;   // e.g., "02:00 PM"
+}
+
+export interface ClinicTimingConfig {
+  slotDuration: number; // in minutes, e.g., 15
+  schedule: Record<string, DayTiming>; // Keys: "Monday", "Tuesday", etc.
+}
+
 export interface Organization {
   id:           number;
   name:         string;
