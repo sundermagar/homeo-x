@@ -124,7 +124,7 @@ export function DashboardHeader({ onOpenPalette, onNewAppointment }: DashboardHe
               </button>
 
               {/* Primary CTA */}
-              {isDoctor ? (
+              {isDoctor && (
                 <button
                   className="dh-cta-btn"
                   onClick={toggleDoctorStatus}
@@ -142,15 +142,6 @@ export function DashboardHeader({ onOpenPalette, onNewAppointment }: DashboardHe
                   <span className="hide-mobile">
                     {toggleLoading ? 'Updating…' : (isDoctorActive ? 'Go Inactive' : 'Go Active')}
                   </span>
-                </button>
-              ) : (
-                <button
-                  className="dh-cta-btn"
-                  onClick={onNewAppointment}
-                  id="dh-new-appointment-btn"
-                >
-                  <Plus size={14} strokeWidth={2.5} />
-                  <span className="hide-mobile">New appointment</span>
                 </button>
               )}
             </>

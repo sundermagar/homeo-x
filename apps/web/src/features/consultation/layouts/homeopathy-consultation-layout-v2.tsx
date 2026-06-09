@@ -419,7 +419,7 @@ export function HomeopathyConsultationLayoutV2({
 
   // ── Prescribe ──
   const createAdditionalCharge = useCreateAdditionalCharge();
-  const handleConfirmPrescribe = useCallback(async (billingData: { consultationFee: number; medicineCharge: number; additionalCharges: { name: string; price: number; quantity: number }[] }) => {
+  const handleConfirmPrescribe = useCallback(async (billingData: { consultationFee: number; medicineCharge: number; additionalCharges: { name: string; price: number; quantity: number }[]; deliveryMode?: string }) => {
     // 1. Complete the consultation (creates consultation + medicine bill entries)
     await state.handleCompleteWithData(state.rxItems, state.advice, state.followUp, billingData);
 
