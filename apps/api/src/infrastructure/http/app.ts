@@ -16,7 +16,7 @@ import { appConfig } from '../../shared/config/app-config.js';
 import { aiConfig } from '../../shared/config/ai-config.js';
 import { createLogger } from '../../shared/logger.js';
 import { healthRouter } from './routes/health.js';
-// ─── Friend's modules ───
+// ─── Route Modules ───
 import { authRouter } from './routes/auth.js';
 import { appointmentsRouter } from './routes/appointments.js';
 import { medicalCasesRouter } from './routes/medical-cases.js';
@@ -25,7 +25,7 @@ import { packagesRouter } from './routes/packages.js';
 import { communicationRouter } from './routes/communication.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { dashboardRouter } from './routes/dashboard.router.js';
-import { patientRouter } from './routes/patient.router.js'; // From shiva
+import { patientRouter } from './routes/patient.router.js';
 import { createBillingRouter } from './routes/billing.router.js';
 import { createPaymentRouter } from './routes/payment.router.js';
 import { createAccountsRouter } from './routes/accounts.router.js';

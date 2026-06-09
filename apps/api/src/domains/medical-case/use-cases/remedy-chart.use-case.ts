@@ -42,6 +42,7 @@ export interface SavePrescriptionDto {
   instructions?: string;
   notes?: string;
   deliveryMode?: string; // 'clinic', 'courier', 'pickup'
+  medicineCharge?: number;
 }
 
 // ─── Use Case ────────────────────────────────────────────────────────────────
@@ -49,7 +50,10 @@ export interface SavePrescriptionDto {
 import type { BillingRepository } from '../../billing/ports/billing.repository.js';
 
 export class RemedyChartUseCase {
-  constructor(private readonly db: any) {}
+  constructor(
+    private readonly db: any,
+    private readonly billingRepo?: BillingRepository
+  ) {}
 
   private async _executeWithFallback(primary: () => Promise<any>, backup: () => Promise<any>) {
     try {

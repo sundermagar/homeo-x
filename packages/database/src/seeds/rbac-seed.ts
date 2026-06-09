@@ -139,7 +139,7 @@ export async function seedRbac(db: DbClient) {
     } else {
       console.log(`  - Permission already exists (ID or Slug match): ${p.slug}`);
     }
-  }));
+  }
 
   // 2. Seed Roles
   const roles = [
@@ -203,7 +203,7 @@ export async function seedRbac(db: DbClient) {
     } else {
       console.log(`  - Role already exists (ID or Name match): ${r.name}`);
     }
-  }));
+  }
 
   // 3. Assign Default Permissions to Roles
   console.log('[Seed] Assigning default capabilities...');
@@ -243,7 +243,7 @@ export async function seedRbac(db: DbClient) {
     if (existing.length === 0) {
       await db.insert(permissionRoleLegacy).values(a);
     }
-  }));
+  }
 
   console.log('[Seed] RBAC seeding completed.');
 }

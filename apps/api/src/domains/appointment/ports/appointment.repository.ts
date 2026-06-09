@@ -16,6 +16,7 @@ export interface AppointmentFilters {
   search?: string;
   patientId?: number;
   patientRegId?: number;
+  unregisteredPatientId?: number;
   page?: number;
   limit?: number;
 }

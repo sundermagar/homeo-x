@@ -154,7 +154,17 @@ router.get(
     }
     const regid = (req.user as any).regid;
     if (regid === undefined || regid === null) {
-      res.status(400).json({ success: false, error: 'Registration ID not found in token' });
+      // Unregistered patients have no medical records yet — return empty
+      sendSuccess(res, {
+        prescriptions: [],
+        notes: [],
+        investigations: [],
+        vitals: [],
+        images: [],
+        vaccines: [],
+        reminders: [],
+        soapNotes: [],
+      });
       return;
     }
     const useCase = new GetFullMedicalCaseUseCase(getRepo(req));

@@ -35,6 +35,8 @@ export interface Organization {
   adminEmail?: string;
   adminPassword?: string;
   registrationFee?: number;
+  hfrId?: string | null;
+  hfrToken?: string | null;
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;

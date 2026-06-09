@@ -7,14 +7,17 @@ import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';
-import { patients } from '@mmc/database/schema';
-import { and, or, eq, sql } from 'drizzle-orm';
+import { patients, unregisteredPatients } from '@mmc/database/schema';
+import { and, or, eq, sql, isNull } from 'drizzle-orm';
+import { BookAppointmentUseCase } from '../../../domains/appointment/use-cases/book-appointment.use-case.js';
+import { CreatePatientUseCase } from '../../../domains/patient/use-cases/create-patient.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
 import { ManageVitalsUseCase } from '../../../domains/medical-case/use-cases/manage-vitals.use-case.js';
 import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg.js';
 import { StaffRepositoryPg } from '../../repositories/staff.repository.pg.js';
 import { AppointmentRepositoryPG } from '../../repositories/appointment.repository.pg.js';
 import { GetAppointmentUseCase } from '../../../domains/appointment/use-cases/get-appointment.use-case.js';
-import { BookAppointmentUseCase } from '../../../domains/appointment/use-cases/book-appointment.use-case.js';
 // Communication imports removed — messaging disabled during portal booking.
 // import { CommunicationRepositoryPG } from '../../repositories/communication.repository.pg.js';
 // import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
@@ -42,105 +45,174 @@ export const portalRouter: Router = Router();
 portalRouter.post(
   '/lookup',
   asyncHandler(async (req, res) => {
-    const { phone } = req.body;
+    try {
+      const { phone } = req.body;
 
-    if (!phone || typeof phone !== 'string') {
-      res.status(400).json({
-        success: false,
-        message: 'Mobile number is required',
-      });
-      return;
-    }
+      if (!phone || typeof phone !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'Mobile number is required',
+        });
+        return;
+      }
 
-    // Normalize the phone number — strip non-digits, handle +91 prefix
-    const cleaned = phone.replace(/\D/g, '');
-    // Support both 10-digit and 91+10-digit formats
-    const searchVariants = [cleaned];
-    if (cleaned.length === 10) {
-      searchVariants.push(`91${cleaned}`, `+91${cleaned}`, `0${cleaned}`);
-    } else if (cleaned.length === 12 && cleaned.startsWith('91')) {
-      searchVariants.push(cleaned.slice(2)); // 10-digit version
-    }
+      // Normalize the phone number — strip non-digits, handle +91 prefix
+      const cleaned = phone.replace(/\D/g, '');
+      // Support both 10-digit and 91+10-digit formats
+      const searchVariants = [cleaned];
+      if (cleaned.length === 10) {
+        searchVariants.push(`91${cleaned}`, `+91${cleaned}`, `0${cleaned}`);
+      } else if (cleaned.length === 12 && cleaned.startsWith('91')) {
+        searchVariants.push(cleaned.slice(2)); // 10-digit version
+      }
 
-    const repo = new PatientRepositoryPg(req.tenantDb);
+      const repo = new PatientRepositoryPg(req.tenantDb);
 
-    // Search across mobile1 and phone columns with all variants
-    const searchConditions = searchVariants.flatMap((variant) => [
-      sql`REPLACE(REPLACE(REPLACE(${patients.mobile1}, ' ', ''), '-', ''), '+', '') = ${variant.replace(/[+\- ]/g, '')}`,
-      sql`REPLACE(REPLACE(REPLACE(${patients.phone}, ' ', ''), '-', ''), '+', '') = ${variant.replace(/[+\- ]/g, '')}`,
-    ]);
+      // Search across mobile1 and phone columns with all variants
+      const searchConditions = searchVariants.flatMap((variant) => [
+        sql`REPLACE(REPLACE(REPLACE(${patients.mobile1}, ' ', ''), '-', ''), '+', '') = ${variant.replace(/[+\- ]/g, '')}`,
+        sql`REPLACE(REPLACE(REPLACE(${patients.phone}, ' ', ''), '-', ''), '+', '') = ${variant.replace(/[+\- ]/g, '')}`,
+      ]);
 
-    const rows = await req.tenantDb
-      .select()
-      .from(patients)
-      .where(
-        and(
-          sql`(${patients.deletedAt} IS NULL OR ${patients.deletedAt}::text = '')`,
-          or(...searchConditions),
-        ),
-      )
-      .limit(1);
+      const rows = await req.tenantDb
+        .select()
+        .from(patients)
+        .where(
+          and(
+            sql`(${patients.deletedAt} IS NULL OR ${patients.deletedAt}::text = '')`,
+            or(...searchConditions),
+          ),
+        )
+        .limit(1);
 
-    const patient = rows[0];
+      const patient = rows[0];
 
-    if (!patient) {
-      // Patient NOT found → New Case flow
-      console.log(`[Portal] No patient found for phone: ${phone}`);
-      res.json({
-        success: true,
-        data: {
-          found: false,
-          phone: cleaned,
-        },
-      });
-      return;
-    }
+      if (!patient) {
+        // Patient NOT found → Check unregistered_patients
+        const unregSearchConditions = searchVariants.map((variant) => 
+          sql`REPLACE(REPLACE(REPLACE(${unregisteredPatients.phone}, ' ', ''), '-', ''), '+', '') = ${variant.replace(/[+\- ]/g, '')}`
+        );
 
-    // Patient FOUND → auto-issue JWT
-    console.log(
-      `[Portal] ✅ Patient found: regid=${patient.regid}, name=${patient.firstName} ${patient.surname}`,
-    );
+        const unregRows = await req.tenantDb
+          .select()
+          .from(unregisteredPatients)
+          .where(
+            and(
+              isNull(unregisteredPatients.deletedAt),
+              isNull(unregisteredPatients.registeredPatientId),
+              or(...unregSearchConditions)
+            )
+          )
+          .limit(1);
 
-    const payload: AuthTokenPayload = {
-      id: patient.id,
-      email: patient.email || '',
-      name: `${patient.firstName} ${patient.surname || ''}`.trim(),
-      type: 'Patient' as Role,
-      contextId: patient.clinicId || 0,
-      roleId: 0,
-      roleName: 'Patient',
-      regid: patient.regid,
-      phone: patient.mobile1 || patient.phone || '',
-    };
+        const unregPatient = unregRows[0];
 
-    const token = jwt.sign(payload, appConfig.jwt.secret as jwt.Secret, {
-      expiresIn: appConfig.jwt.expiresIn as any,
-    });
+        if (!unregPatient) {
+          console.log(`[Portal] No patient found for phone: ${phone}`);
+          res.json({
+            success: true,
+            data: {
+              found: false,
+              phone: cleaned,
+            },
+          });
+          return;
+        }
 
-    sendSuccess(res, {
-      found: true,
-      token,
-      user: {
-        ...payload,
+        // Found in unregistered_patients
+        console.log(`[Portal] ✅ Unregistered patient found: id=${unregPatient.id}, name=${unregPatient.name}`);
+        const payload: AuthTokenPayload = {
+          id: unregPatient.id,
+          email: unregPatient.email || '',
+          name: unregPatient.name,
+          type: 'Patient' as Role,
+          contextId: unregPatient.clinicId || 1,
+          roleId: 0,
+          roleName: 'Patient',
+          regid: undefined, // undefined for unregistered
+          phone: unregPatient.phone || '',
+          isUnregistered: true,
+        };
+
+        const token = jwt.sign(payload, appConfig.jwt.secret as jwt.Secret, {
+          expiresIn: appConfig.jwt.expiresIn as any,
+        });
+
+        sendSuccess(res, {
+          found: true,
+          token,
+          user: {
+            ...payload,
+            permissions: {
+              canAccessDashboard: true,
+              canAccessQuickAccess: false,
+              canViewPatientDetail: false,
+              canCreatePatient: false,
+              canEditPatient: false,
+              canDeletePatient: false,
+              canViewBilling: false,
+              canViewExpenses: false,
+              canViewAnalytics: false,
+              canViewDoctors: false,
+              canManageUsers: false,
+              canManageSettings: false,
+              canViewPackageHistory: false,
+              canNewPatientBtn: false,
+            },
+          },
+        });
+        return;
+      }
+
+      // Patient FOUND → auto-issue JWT
+      console.log(
+        `[Portal] ✅ Patient found: regid=${patient.regid}, name=${patient.firstName} ${patient.surname}`,
+      );
+
+      const payload: AuthTokenPayload = {
+        id: patient.id,
+        email: patient.email || '',
+        name: `${patient.firstName} ${patient.surname || ''}`.trim(),
+        type: 'Patient' as Role,
+        contextId: patient.clinicId || 0,
+        roleId: 0,
+        roleName: 'Patient',
+        regid: patient.regid,
         phone: patient.mobile1 || patient.phone || '',
-        permissions: {
-          canAccessDashboard: true,
-          canAccessQuickAccess: false,
-          canViewPatientDetail: false,
-          canCreatePatient: false,
-          canEditPatient: false,
-          canDeletePatient: false,
-          canViewBilling: false,
-          canViewExpenses: false,
-          canViewAnalytics: false,
-          canViewDoctors: false,
-          canManageUsers: false,
-          canManageSettings: false,
-          canViewPackageHistory: false,
-          canNewPatientBtn: false,
+      };
+
+      const token = jwt.sign(payload, appConfig.jwt.secret as jwt.Secret, {
+        expiresIn: appConfig.jwt.expiresIn as any,
+      });
+
+      sendSuccess(res, {
+        found: true,
+        token,
+        user: {
+          ...payload,
+          phone: patient.mobile1 || patient.phone || '',
+          permissions: {
+            canAccessDashboard: true,
+            canAccessQuickAccess: false,
+            canViewPatientDetail: false,
+            canCreatePatient: false,
+            canEditPatient: false,
+            canDeletePatient: false,
+            canViewBilling: false,
+            canViewExpenses: false,
+            canViewAnalytics: false,
+            canViewDoctors: false,
+            canManageUsers: false,
+            canManageSettings: false,
+            canViewPackageHistory: false,
+            canNewPatientBtn: false,
+          },
         },
-      },
-    });
+      });
+    } catch (err: any) {
+      console.error('[Portal] Lookup Error:', err);
+      res.status(500).json({ success: false, message: 'Lookup Error', error: err.message, stack: err.stack });
+    }
   }),
 );
 
@@ -191,33 +263,132 @@ portalRouter.post(
       .limit(1);
 
     if (existingRows.length > 0) {
-      res.status(400).json({ success: false, message: 'A patient with this phone number already exists. Please login instead.' });
+      const patient = existingRows[0]!;
+      console.log(`[Portal] ✅ Existing patient found during register: regid=${patient.regid}`);
+
+      const payload: AuthTokenPayload = {
+        id: patient.id,
+        email: patient.email || '',
+        name: `${patient.firstName} ${patient.surname || ''}`.trim(),
+        type: 'Patient' as Role,
+        contextId: patient.clinicId || 0,
+        roleId: 0,
+        roleName: 'Patient',
+        regid: patient.regid,
+        phone: patient.mobile1 || patient.phone || '',
+      };
+
+      const token = jwt.sign(payload, appConfig.jwt.secret as jwt.Secret, {
+        expiresIn: appConfig.jwt.expiresIn as any,
+      });
+
+      sendSuccess(res, {
+        success: true,
+        token,
+        user: {
+          ...payload,
+          permissions: {
+            canAccessDashboard: true,
+            canAccessQuickAccess: false,
+            canViewPatientDetail: false,
+            canCreatePatient: false,
+            canEditPatient: false,
+            canDeletePatient: false,
+            canViewBilling: false,
+            canViewExpenses: false,
+            canViewAnalytics: false,
+            canViewDoctors: false,
+            canManageUsers: false,
+            canManageSettings: false,
+            canViewPackageHistory: false,
+            canNewPatientBtn: false,
+          },
+        },
+      }, 'Login successful');
+      return;
+    }
+
+    // Check if phone already exists in unregistered as well
+    const existingUnregRows = await req.tenantDb
+      .select()
+      .from(unregisteredPatients)
+      .where(
+        and(
+          isNull(unregisteredPatients.deletedAt),
+          isNull(unregisteredPatients.registeredPatientId),
+          eq(unregisteredPatients.phone, phone)
+        )
+      )
+      .limit(1);
+
+    if (existingUnregRows.length > 0) {
+      const existing = existingUnregRows[0]!;
+      console.log(`[Portal] ✅ Existing unregistered patient found during register: id=${existing.id}`);
+
+      const payload: AuthTokenPayload = {
+        id: existing.id,
+        email: existing.email || '',
+        name: existing.name,
+        type: 'Patient' as Role,
+        contextId: existing.clinicId || 1,
+        roleId: 0,
+        roleName: 'Patient',
+        regid: undefined,
+        phone: existing.phone || phone,
+        isUnregistered: true,
+      };
+
+      const token = jwt.sign(payload, appConfig.jwt.secret as jwt.Secret, {
+        expiresIn: appConfig.jwt.expiresIn as any,
+      });
+
+      sendSuccess(res, {
+        success: true,
+        token,
+        user: {
+          ...payload,
+          permissions: {
+            canAccessDashboard: true,
+            canAccessQuickAccess: false,
+            canViewPatientDetail: false,
+            canCreatePatient: false,
+            canEditPatient: false,
+            canDeletePatient: false,
+            canViewBilling: false,
+            canViewExpenses: false,
+            canViewAnalytics: false,
+            canViewDoctors: false,
+            canManageUsers: false,
+            canManageSettings: false,
+            canViewPackageHistory: false,
+            canNewPatientBtn: false,
+          },
+        },
+      }, 'Registration successful');
       return;
     }
 
     // Default clinicId to 1 for public registrations
-    const newPatient = await repo.create({
-      firstName,
-      surname,
+    const newPatient = await repo.createUnregistered({
+      name: `${firstName} ${surname}`.trim(),
       phone,
-      mobile1: phone,
-      gender: gender || 'M',
-      dateOfBirth,
+      gender: gender || 'Other',
       clinicId: 1
-    } as any);
+    });
 
-    console.log(`[Portal] ✅ New patient registered: regid=${newPatient.regid}, name=${newPatient.firstName}`);
+    console.log(`[Portal] ✅ New unregistered patient registered: id=${newPatient.id}, name=${newPatient.name}`);
 
     const payload: AuthTokenPayload = {
       id: newPatient.id,
-      email: newPatient.email || '',
-      name: `${newPatient.firstName} ${newPatient.surname || ''}`.trim(),
+      email: '',
+      name: newPatient.name,
       type: 'Patient' as Role,
-      contextId: newPatient.clinicId || 1,
+      contextId: 1,
       roleId: 0,
       roleName: 'Patient',
-      regid: newPatient.regid,
-      phone: newPatient.mobile1 || newPatient.phone || '',
+      regid: undefined,
+      phone,
+      isUnregistered: true,
     };
 
     const token = jwt.sign(payload, appConfig.jwt.secret as jwt.Secret, {
@@ -229,7 +400,6 @@ portalRouter.post(
       token,
       user: {
         ...payload,
-        phone: newPatient.mobile1 || newPatient.phone || '',
         permissions: {
           canAccessDashboard: true,
           canAccessQuickAccess: false,
@@ -264,6 +434,31 @@ portalRouter.get(
   asyncHandler(async (req, res) => {
     const regid = req.user?.regid;
     if (!regid) {
+      if (req.user?.isUnregistered) {
+        const unregRows = await req.tenantDb
+          .select()
+          .from(unregisteredPatients)
+          .where(eq(unregisteredPatients.id, req.user.id))
+          .limit(1);
+        
+        const unreg = unregRows[0];
+        if (!unreg) {
+          res.status(404).json({ success: false, message: 'Patient not found' });
+          return;
+        }
+
+        sendSuccess(res, {
+          regid: 0,
+          name: unreg.name,
+          phone: unreg.phone || '',
+          email: unreg.email || '',
+          address: '',
+          city: '',
+          state: '',
+          pin: '',
+        });
+        return;
+      }
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
@@ -438,12 +633,13 @@ portalRouter.get('/slots', asyncHandler(async (req, res) => {
 portalRouter.post('/appointments', asyncHandler(async (req, res) => {
   const patientRepo = new PatientRepositoryPg(req.tenantDb);
   const notifRepo = new NotificationsRepositoryPg(req.tenantDb);
+  const apptRepo = new AppointmentRepositoryPG(req.tenantDb);
 
   // WhatsApp and SMS are intentionally NOT passed here.
   // Notifications will be sent when the admin confirms the appointment,
   // not at booking time (appointment is saved as PENDING).
   const bookAppt = new BookAppointmentUseCase(
-    new AppointmentRepositoryPG(req.tenantDb),
+    apptRepo,
     undefined, // sms - disabled
     patientRepo,
     notifRepo,
@@ -455,7 +651,77 @@ portalRouter.post('/appointments', asyncHandler(async (req, res) => {
   const result = await bookAppt.execute({ ...req.body, clinicId });
 
   if (result.success) {
-    sendSuccess(res, result.data, undefined, 201);
+    let finalResponseData: any = result.data;
+
+    // AUTO-CONVERSION LOGIC
+    // If this appointment was booked for a staged (unregistered) patient,
+    // convert them to a real patient in the main case_datas table now.
+    if (req.body.unregisteredPatientId) {
+      try {
+        const db = req.tenantDb;
+        const unregRows = await db.execute(sql`
+          SELECT * FROM unregistered_patients WHERE id = ${req.body.unregisteredPatientId} LIMIT 1
+        `);
+        const unregPatient = unregRows[0] as any;
+
+        if (unregPatient) {
+          // Parse name into firstName and surname
+          const nameStr = (unregPatient.name as string) || 'Patient';
+          const nameParts = nameStr.split(' ');
+          const firstName = nameParts[0] || 'Unknown';
+          const surname = nameParts.slice(1).join(' ') || '';
+
+          // Create the formal patient
+          const billingRepo = new BillingRepositoryPg(req.tenantDb);
+          const orgRepo = new OrganizationRepositoryPg(req.publicDb);
+          const createPatientUc = new CreatePatientUseCase(patientRepo, billingRepo, orgRepo);
+          
+          const newPatientResult = await createPatientUc.execute({
+            firstName,
+            surname,
+            phone: (unregPatient.phone as string) || '',
+            email: (unregPatient.email as string) || undefined,
+            gender: (unregPatient.gender as 'M' | 'F' | 'Other') || 'Other',
+            dateOfBirth: (unregPatient.dob as string) || '2000-01-01', 
+            courierOutstation: false,
+            sendWelcomeEmail: false,
+          }, clinicId);
+
+          if (newPatientResult.success) {
+            const newPatientId = newPatientResult.data.patient.id;
+            const newRegId = newPatientResult.data.patient.regid;
+
+            // Update the appointment to point to the real patient
+            await db.execute(sql`
+              UPDATE appointments 
+              SET patient_id = ${newPatientId}, unregistered_patient_id = NULL 
+              WHERE id = ${result.data.id}
+            `);
+
+            // Mark the unregistered record as registered to avoid duplicates
+            await db.execute(sql`
+              UPDATE unregistered_patients 
+              SET registered_patient_id = ${newPatientId} 
+              WHERE id = ${req.body.unregisteredPatientId}
+            `);
+
+            console.log(`[Auto-Convert] Converted staged patient ${req.body.unregisteredPatientId} to real patient ${newPatientId} (RegID: ${newRegId})`);
+            
+            // Send back the updated patient info so the frontend knows the new regid
+            finalResponseData = {
+              ...result.data,
+              patientId: newPatientId,
+              patient: newPatientResult.data.patient,
+            };
+          }
+        }
+      } catch (convertErr: any) {
+        console.error('[Auto-Convert] Failed to auto-convert patient:', convertErr.message);
+        // We don't fail the booking if conversion fails, they just stay as unregistered
+      }
+    }
+
+    sendSuccess(res, finalResponseData, undefined, 201);
   } else {
     res.status(400).json({ success: false, error: result.error });
   }

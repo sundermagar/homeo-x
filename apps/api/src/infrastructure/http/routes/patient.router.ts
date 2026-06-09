@@ -137,13 +137,13 @@ patientRouter.get('/today', authMiddleware, async (req: Request, res: Response) 
     const repo = getRepo(req);
 
     let effectiveClinicId = req.user?.contextId;
-    if (clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
-      effectiveClinicId = Number(clinicId);
+    if (req.query.clinicId && (req.user?.type === Role.Admin || req.user?.type === Role.SuperAdmin)) {
+      effectiveClinicId = Number(req.query.clinicId);
     }
 
     const data = await repo.findUnregistered({
       clinicId: effectiveClinicId,
-      search: search as string,
+      search: req.query.search as string,
     });
     res.json({ success: true, data });
   } catch (err: any) {

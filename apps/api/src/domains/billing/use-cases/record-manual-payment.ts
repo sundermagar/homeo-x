@@ -38,7 +38,6 @@ export class RecordManualPaymentUseCase {
           modesUsed.push(split.paymentMode);
         }
         
-        await this.billingRepo.updateReceived(split.billId, split.amount, split.paymentMode);
       }
       if (totalAmount > 0 && input.regid) {
         for (const mode of modesUsed) {

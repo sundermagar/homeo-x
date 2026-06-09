@@ -23,6 +23,7 @@ import type {
   Vaccine,
   Stock,
   PackagePeriod,
+  CallStatus,
 } from '../../domains/settings/ports/settings.repository.js';
 
 export class SettingsRepositoryPg implements ISettingsRepository {

@@ -16,6 +16,10 @@ interface OnlineConsultationWizardProps {
 }
 
 export function OnlineConsultationWizard({ type, phone, onBack }: OnlineConsultationWizardProps) {
+  const userToken = useAuthStore((s) => s.token);
+  // Always start at Step 1 in the new-case flow — patient must fill details first.
+  // If they already have a token (from a previous session), Step 1 will skip
+  // the API call and just advance to Step 2 on submit.
   const [step, setStep] = useState(1);
   
   // Registration State
@@ -49,6 +53,12 @@ export function OnlineConsultationWizard({ type, phone, onBack }: OnlineConsulta
     e.preventDefault();
     if (!name || !dob || !gender) return;
     
+    // If already logged in, skip registration entirely
+    if (userToken) {
+      setStep(2);
+      return;
+    }
+
     setIsRegistering(true);
     try {
       // Calculate age from DOB
@@ -67,8 +77,10 @@ export function OnlineConsultationWizard({ type, phone, onBack }: OnlineConsulta
         age: ageNum
       });
       
-      if (res.data.success && res.data.token) {
-        setAuth(res.data.token, res.data.user, true);
+      // sendSuccess wraps as { success, data: { token, user } }
+      const payload = res.data.data || res.data;
+      if (res.data.success && payload.token) {
+        setAuth(payload.token, payload.user, true);
         setStep(2);
       }
     } catch (err: any) {
@@ -90,9 +102,12 @@ export function OnlineConsultationWizard({ type, phone, onBack }: OnlineConsulta
       const doctorName = doctors.find(d => String(d.id) === selectedDoctorId)?.name || 'Doctor';
       const currentUser = useAuthStore.getState().user;
       
-      await createMutation.mutateAsync({
+      const visitType = type === 'Video' ? 'Video Call' : 'Audio Call';
+
+      const res = await createMutation.mutateAsync({
         patientId: currentUser?.regid ? Number(currentUser.regid) : undefined,
-        patientName: name,
+        unregisteredPatientId: currentUser?.isUnregistered ? Number(currentUser.id) : undefined,
+        patientName: name || currentUser?.name || 'Patient',
         phone: phone,
         // email isn't in dto directly, but can be added or handled in notes
         doctorId: Number(selectedDoctorId),
@@ -100,8 +115,13 @@ export function OnlineConsultationWizard({ type, phone, onBack }: OnlineConsulta
         bookingTime: selectedTime,
         visitType: visitType,
         consultationFee: 500, // Hardcoded standard fee for now
-        notes: `Type: ${type} Consultation\nChief Complaint: ${chiefComplaint}\nDOB: ${dob}\nGender: ${gender}\nEmail: ${email}`,
+        notes: chiefComplaint,
       });
+
+      const payload = res.data?.data || res.data;
+      if (payload?.token && payload?.patient) {
+        setAuth(payload.token, payload.patient, true);
+      }
 
       // TODO: Integrate Razorpay here. For now, simulate success.
       setBookedDetails({ doctor: doctorName, date: selectedDate, time: selectedTime });
@@ -140,7 +160,7 @@ export function OnlineConsultationWizard({ type, phone, onBack }: OnlineConsulta
         display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px'
       }}>
         <button
-          onClick={step === 1 || step === 4 ? onBack : () => setStep(step - 1)}
+          onClick={step === 1 || step === 4 ? onBack : step === 2 && userToken ? onBack : () => setStep(step - 1)}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '8px 14px', borderRadius: '10px',
@@ -431,7 +451,13 @@ export function OnlineConsultationWizard({ type, phone, onBack }: OnlineConsulta
             </div>
 
             <button
-              onClick={onBack}
+              onClick={() => {
+                if (!useAuthStore.getState().user?.isUnregistered) {
+                  window.location.href = '/portal/select-track';
+                } else {
+                  onBack();
+                }
+              }}
               style={{
                 padding: '14px 32px', borderRadius: '14px',
                 background: '#0f172a', color: '#fff', fontSize: '14px', fontWeight: 700,

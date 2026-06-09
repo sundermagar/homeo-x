@@ -46,6 +46,7 @@ const AppointmentFormPage = lazy(
   () => import('@/features/appointments/pages/appointment-form-page'),
 );
 const CalendarPage = lazy(() => import('@/features/appointments/pages/calendar-page'));
+const TokenQueuePage = lazy(() => import('@/features/appointments/pages/token-queue-page'));
 
 const StaffListPage = lazy(() => import('@/features/staff/pages/staff-list-page'));
 const StaffFormPage = lazy(() => import('@/features/staff/pages/staff-form-page'));
@@ -261,14 +262,14 @@ export function AppRouter() {
                 }
               />
               {/* <Route path="/ai-analysis" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}><AiConsultantPage /></RoleGuard>} /> */}
-              <Route
+              {/* <Route
                 path="/clinical/remedy-chart"
                 element={
                   <RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin', 'Doctor']}>
                     <RemedyTreePage />
                   </RoleGuard>
                 }
-              />
+              /> */}
 
               {/* ─── Packages & Memberships ─── */}
               <Route

@@ -403,7 +403,19 @@ Reply with ONLY the JSON object.`;
       useCache: false, // each Q&A pair is a unique extraction call
     });
 
-    const parsed = extractJson<{ mental?: string[]; physical?: string[]; particular?: string[] }>(
+    const parsed = extractJson<{ 
+      mental?: string[]; 
+      physical?: string[]; 
+      particular?: string[];
+      thermalReaction?: string;
+      miasm?: string;
+      thirstPattern?: string;
+      sleepPosition?: string;
+      perspiration?: string;
+      causation?: string;
+      location?: string;
+      concomitants?: string;
+    }>(
       response.content,
     );
     if (!parsed) {

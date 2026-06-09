@@ -121,6 +121,7 @@ export class PdfkitServiceAdapter {
     // Draw a subtle divider
     doc.moveTo(leftPadding, doc.y).lineTo(555, doc.y).lineWidth(1).strokeColor('#E2E8F0').stroke();
     doc.moveDown(1.5);
+    */
   }
 
   async generatePrescription(
@@ -140,6 +141,7 @@ export class PdfkitServiceAdapter {
       patientGender?: string;
       patientPhone?: string;
       patientAddress?: string;
+      doctorName?: string;
       diagnosis?: string;
       followUpNote?: string;
       regid: number;

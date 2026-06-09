@@ -7,6 +7,8 @@ import {
   AdditionalChargeRepositoryPg,
   ExpenseRepositoryPg,
 } from '../../repositories/accounts.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg.js';
 import {
   ListAdditionalChargesUseCase,
   GetAdditionalChargeUseCase,

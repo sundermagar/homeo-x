@@ -95,7 +95,6 @@ export class OrganizationRepositoryPg implements OrganizationRepository {
       deletedAt: row.deletedAt?.toISOString() ?? null,
       createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
       updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
-      status: (row as any).status ?? 'active',
     };
   }
 }

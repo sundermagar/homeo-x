@@ -141,6 +141,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       search,
       patientId,
       patientRegId,
+      unregisteredPatientId,
       page = 1,
       limit = 50,
     } = filters;
@@ -169,6 +170,8 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
           eq(schema.appointments.patientId, patientRegId)
         )
       );
+    } else if (unregisteredPatientId) {
+      conditions.push(eq(schema.appointments.unregisteredPatientId, unregisteredPatientId));
     } else if (patientId) {
       conditions.push(eq(schema.appointments.patientId, patientId));
     } else if (patientRegId) {
@@ -396,6 +399,11 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         }
         ${search ? sql`AND ((COALESCE(cd.first_name, '') || ' ' || COALESCE(cd.surname, '')) ILIKE ${'%' + search + '%'} OR cd.mobile1 ILIKE ${'%' + search + '%'})` : sql``}
     `;
+
+    const combinedDateFilterConditions = [];
+    if (fromDate) combinedDateFilterConditions.push(safeDateCondition('booking_date', fromDate, '>='));
+    if (toDate) combinedDateFilterConditions.push(safeDateCondition('booking_date', toDate, '<='));
+    const combinedDateFilter = combinedDateFilterConditions.length > 0 ? sql`WHERE 1=1 ${sql.join(combinedDateFilterConditions, sql` `)}` : sql``;
 
     const unionQuery = sql`
       SELECT * FROM (${apptsQuery} UNION ALL ${pendingQuery}) as combined

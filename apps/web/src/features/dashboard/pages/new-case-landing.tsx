@@ -12,6 +12,14 @@ export default function NewCaseLanding() {
   const phone = (location.state as any)?.phone || '';
   const [selectedTrack, setSelectedTrack] = useState<'Video' | 'Audio' | null>(null);
 
+  React.useEffect(() => {
+    if (!phone) {
+      navigate('/portal', { replace: true });
+    }
+  }, [phone, navigate]);
+
+  if (!phone) return null;
+
   if (selectedTrack) {
     return <OnlineConsultationWizard type={selectedTrack} phone={phone} onBack={() => setSelectedTrack(null)} />;
   }

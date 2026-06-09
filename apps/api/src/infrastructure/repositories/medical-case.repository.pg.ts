@@ -194,9 +194,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           mobile: patient.mobile1,
           gender: patient.gender,
           address: patient.address,
-          dateOfBirth: patient.dob || patient.dateOfBirth || '',
+          dateOfBirth: patient.dateOfBirth || '',
           city: patient.city,
           state: patient.state, 
+          doctorName: patient.doctorName || '—',
         };
       }
 

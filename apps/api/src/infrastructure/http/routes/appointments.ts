@@ -81,22 +81,28 @@ appointmentsRouter.get(
     let effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
     let patientId = undefined;
     let patientRegId = undefined;
+    let unregisteredPatientId = undefined;
     
     if ((req.user as any)?.type === 'Patient') {
-      patientId = (req.user as any).id;
-      patientRegId = (req.user as any).regid;
-      
-      if (patientRegId === undefined || patientRegId === null) {
-        const { patients } = await import('@mmc/database/schema');
-        const { eq } = await import('drizzle-orm');
-        const [patient] = await req.tenantDb!
-          .select({ regid: patients.regid })
-          .from(patients)
-          .where(eq(patients.id, patientId))
-          .limit(1);
-          
-        if (patient && patient.regid) {
-          patientRegId = patient.regid;
+      if ((req.user as any)?.isUnregistered) {
+        // Unregistered patient: filter by unregisteredPatientId
+        unregisteredPatientId = (req.user as any).id;
+      } else {
+        patientId = (req.user as any).id;
+        patientRegId = (req.user as any).regid;
+        
+        if (patientRegId === undefined || patientRegId === null) {
+          const { patients } = await import('@mmc/database/schema');
+          const { eq } = await import('drizzle-orm');
+          const [patient] = await req.tenantDb!
+            .select({ regid: patients.regid })
+            .from(patients)
+            .where(eq(patients.id, patientId))
+            .limit(1);
+            
+          if (patient && patient.regid) {
+            patientRegId = patient.regid;
+          }
         }
       }
     }
@@ -111,6 +117,7 @@ appointmentsRouter.get(
       clinicId,
       patientId,
       patientRegId,
+      unregisteredPatientId,
       status: status || undefined,
       search: search || undefined,
       page: page ? Number(page) : 1,

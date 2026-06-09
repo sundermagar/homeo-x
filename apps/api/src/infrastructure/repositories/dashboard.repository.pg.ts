@@ -1283,11 +1283,22 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         }
       }
 
+      const orgStats = (await this.db.execute(sql`
+        SELECT
+          (SELECT count(*)::int FROM public.organizations) as total,
+          (SELECT count(*)::int FROM public.organizations WHERE deleted_at IS NULL AND (status IS NULL OR status = 'active')) as active,
+          (SELECT count(*)::int FROM public.organizations WHERE deleted_at IS NOT NULL) as deleted,
+          (SELECT count(*)::int FROM public.organizations WHERE status = 'suspended') as suspended,
+          (SELECT count(*)::int FROM public.organizations WHERE created_at >= NOW() - INTERVAL '30 days') as latest
+      `)) as any[];
+      const orgs = orgStats[0];
+
       const userStats = (await this.db.execute(sql`
         SELECT
-          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true) as user_count,
+          (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true) as count,
           (SELECT count(*)::int FROM public.users WHERE (deleted_at IS NULL OR deleted_at::text = '') AND is_active = true AND type = 'Clinicadmin') as admin_count
       `)) as any[];
+      const users = userStats[0];
 
       const totalClinics = orgs?.total || 0;
       const activeClinics = orgs?.active || 0;

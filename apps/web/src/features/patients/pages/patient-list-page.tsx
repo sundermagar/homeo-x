@@ -141,6 +141,9 @@ export default function PatientListPage() {
   const [assignPkgPatient, setAssignPkgPatient] = useState<{ regid: number; name: string } | null>(
     null,
   );
+  const [interceptPatient, setInterceptPatient] = useState<{ regid: number; name: string } | null>(
+    null,
+  );
   const [selectedUnregistered, setSelectedUnregistered] = useState<any | null>(null);
   const [patientFilter, setPatientFilter] = useState<'registered' | 'unregistered'>('registered');
 

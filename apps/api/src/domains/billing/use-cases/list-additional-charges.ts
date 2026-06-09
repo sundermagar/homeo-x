@@ -1,4 +1,5 @@
 import type { AdditionalChargeRepository } from '../ports/accounts.repository.js';
+import type { BillingRepository } from '../ports/billing.repository.js';
 import type {
   CreateAdditionalChargeInput,
   UpdateAdditionalChargeInput,

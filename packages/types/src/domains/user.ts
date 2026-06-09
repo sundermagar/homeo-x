@@ -28,6 +28,7 @@ export interface AuthTokenPayload {
   clinicName?: string;
   regid?: number;
   phone?: string;
+  isUnregistered?: boolean;
 }
 
 export interface Permission {

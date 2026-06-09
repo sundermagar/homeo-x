@@ -27,14 +27,18 @@ function AppRouterWrapper() {
   const role = typeof userType === 'string' ? userType.toLowerCase().replace(/\s/g, '') : '';
   
   // Use role as basename if authenticated, otherwise use root '/'
-  const basename = role ? `/${role}` : '/';
+  // IMPORTANT: Portal pages (/portal/*) must ALWAYS use basename='/' 
+  // because changing the basename causes BrowserRouter to re-mount (key={basename}),
+  // destroying all wizard state and losing location.state data.
+  const isPortalPage = window.location.pathname.startsWith('/portal');
+  const basename = (role && !isPortalPage) ? `/${role}` : '/';
 
   let pathname = window.location.pathname;
   let isValidPath = basename === '/' || pathname === basename || pathname.startsWith(`${basename}/`);
 
   // If the URL doesn't match the required basename (e.g., after login or direct navigation),
   // we synchronously correct the URL before React Router mounts to prevent it from rendering nothing.
-  if (!isValidPath) {
+  if (!isValidPath && !isPortalPage) {
     const targetPath = pathname === '/' ? '' : pathname;
     const newPath = `${basename}${targetPath}${window.location.search}${window.location.hash}`;
     window.history.replaceState(null, '', newPath);

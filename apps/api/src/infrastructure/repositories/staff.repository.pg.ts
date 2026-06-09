@@ -92,7 +92,7 @@ export class StaffRepositoryPg implements StaffRepository {
     if (isDoctor) selectCols.push('consultation_fee');
 
     const colFragment = sql.join(
-      selectCols.map((c) => sql.identifier(c)),
+      selectCols.map((c) => sql`s.${sql.identifier(c)}`),
       sql`, `,
     );
 

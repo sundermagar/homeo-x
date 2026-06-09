@@ -32,7 +32,7 @@ export class SendWhatsAppTemplateUseCase {
 
       if (!channelId) throw new Error('Channel ID or Clinic ID is required');
 
-      const result = await this.gateway.sendTemplate(
+      let result = await this.gateway.sendTemplate(
         channelId,
         options.phone,
         options.templateName,
