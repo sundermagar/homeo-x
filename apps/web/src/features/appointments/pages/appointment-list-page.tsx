@@ -210,7 +210,7 @@ export default function AppointmentListPage() {
 
   const quickStatuses = [
     { s: AppointmentStatus.Confirmed, label: 'Confirm', color: 'var(--pp-blue)' },
-    { s: AppointmentStatus.Arrived, label: 'Arrived', color: 'var(--pp-green-mid)' },
+    { s: AppointmentStatus.Arrived, label: 'Arrived', color: 'var(--pp-blue)' },
     { s: AppointmentStatus.Consultation, label: 'In Room', color: 'var(--pp-purple)' },
     { s: AppointmentStatus.Done, label: 'Done', color: 'var(--pp-success-fg)' },
     { s: AppointmentStatus.Absent, label: 'Absent', color: 'var(--pp-text-3)' },

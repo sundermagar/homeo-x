@@ -3,13 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, Plus, ChevronRight, Power } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { apiClient } from '@/infrastructure/api-client';
-import {
-  useDoctorStatus,
-  useUpdateDoctorStatus,
-} from '@/features/dashboard/hooks/use-doctor-status';
+import { useDoctorStatus, useUpdateDoctorStatus } from '@/features/dashboard/hooks/use-doctor-status';
 import { NotificationBell } from '@/components/shared/notification-bell';
-
-import { Role } from '@mmc/types';
 
 interface DashboardHeaderProps {
   onOpenPalette: () => void;
@@ -36,7 +31,9 @@ const ROUTE_TITLES: Record<string, string> = {
 
 function getPageTitle(pathname: string): string {
   if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname];
-  const key = Object.keys(ROUTE_TITLES).find((k) => k !== '/' && pathname.startsWith(k));
+  const key = Object.keys(ROUTE_TITLES).find(
+    (k) => k !== '/' && pathname.startsWith(k)
+  );
   return key ? (ROUTE_TITLES[key] ?? 'Dashboard') : 'Dashboard';
 }
 
@@ -44,10 +41,7 @@ function useFormattedDate(): string {
   const [date, setDate] = useState('');
   useEffect(() => {
     const fmt = new Intl.DateTimeFormat('en-IN', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+      weekday: 'long', day: 'numeric', month: 'short', year: 'numeric',
     });
     setDate(fmt.format(new Date()));
     const t = setInterval(() => setDate(fmt.format(new Date())), 60_000);
@@ -63,27 +57,11 @@ export function DashboardHeader({ onOpenPalette, onNewAppointment }: DashboardHe
   const { user } = useAuthStore();
   const formattedDate = useFormattedDate();
 
+  const pageTitle = getPageTitle(location.pathname);
   const clinicName = user?.clinicName || 'MMC';
 
-  const rawRole = (
-    (user as any)?.type ||
-    (user as any)?.role ||
-    (user as any)?.roleName ||
-    ''
-  ).toLowerCase();
-  const isDoctor =
-    rawRole === 'doctor' ||
-    rawRole === 'medical practitioner' ||
-    ((user as any)?.name || '').toLowerCase().startsWith('dr');
-
-  const isPatient =
-    rawRole === 'patient' ||
-    user?.type === Role.Patient;
-
-  let pageTitle = getPageTitle(location.pathname);
-  if (isPatient && pageTitle === 'Dashboard') {
-    pageTitle = 'Portal Dashboard';
-  }
+  const rawRole = ((user as any)?.type || (user as any)?.role || (user as any)?.roleName || '').toLowerCase();
+  const isDoctor = rawRole === 'doctor' || rawRole === 'medical practitioner' || ((user as any)?.name || '').toLowerCase().startsWith('dr');
 
   const { data: isDoctorActive = true, isLoading: statusLoading } = useDoctorStatus(isDoctor);
   const updateStatus = useUpdateDoctorStatus();
@@ -99,44 +77,19 @@ export function DashboardHeader({ onOpenPalette, onNewAppointment }: DashboardHe
       <header className="dh-bar">
         {/* ── Left: Live Status + Page Title ── */}
         <div className="dh-left">
-          {isPatient ? (
-            <div className="dh-patient-badge">
-              <span className="dh-patient-badge-dot" />
-              <span>Patient</span>
-            </div>
-          ) : (
-            <div
-              className="dh-live-badge"
-              style={
-                {
-                  '--badge-bg':
-                    isDoctor && !isDoctorActive ? 'var(--pp-danger-bg)' : 'var(--pp-success-bg)',
-                  '--badge-border':
-                    isDoctor && !isDoctorActive
-                      ? 'var(--pp-danger-border)'
-                      : 'rgba(34, 197, 94, 0.15)',
-                } as any
-              }
-            >
-              <span
-                className="dh-live-dot"
-                style={
-                  {
-                    '--dot-color':
-                      isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
-                  } as any
-                }
-              />
-              <span
-                className="dh-live-text"
-                style={{
-                  color: isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
-                }}
-              >
-                {isDoctor ? (isDoctorActive ? 'Active' : 'Inactive') : 'Active'}
-              </span>
-            </div>
-          )}
+          <div className="dh-live-badge" style={{
+            '--badge-bg': isDoctor && !isDoctorActive ? 'var(--pp-danger-bg)' : 'var(--pp-success-bg)',
+            '--badge-border': isDoctor && !isDoctorActive ? 'var(--pp-danger-border)' : 'rgba(34, 197, 94, 0.15)',
+          } as any}>
+            <span className="dh-live-dot" style={{
+              '--dot-color': isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)'
+            } as any} />
+            <span className="dh-live-text" style={{
+              color: isDoctor && !isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)'
+            }}>
+              {isDoctor ? (isDoctorActive ? 'Active' : 'Inactive') : 'Active'}
+            </span>
+          </div>
 
           <div className="dh-breadcrumb">
             <span className="dh-page-title">{pageTitle}</span>
@@ -156,50 +109,42 @@ export function DashboardHeader({ onOpenPalette, onNewAppointment }: DashboardHe
           <NotificationBell />
 
           {/* Command Palette Trigger */}
-          {!isPatient && (
-            <button
-              className="dh-search-wrap cp-trigger"
-              onClick={onOpenPalette}
-              aria-label="Open command palette"
-            >
-              <Search size={13} className="dh-search-icon" />
-              <span className="dh-search-input" style={{ pointerEvents: 'none' }}>
-                Search or jump to...
-              </span>
-              <kbd className="dh-kbd">⌘K</kbd>
-            </button>
-          )}
+          {user?.type !== 'SuperAdmin' && (
+            <>
+              <button
+                className="dh-search-wrap cp-trigger"
+                onClick={onOpenPalette}
+                aria-label="Open command palette"
+              >
+                <Search size={13} className="dh-search-icon" />
+                <span className="dh-search-input" style={{ pointerEvents: 'none' }}>
+                  Search or jump to...
+                </span>
+                <kbd className="dh-kbd">⌘K</kbd>
+              </button>
 
-          {/* Primary CTA */}
-          {isPatient ? (
-            <button className="dh-cta-btn-patient" onClick={onNewAppointment} id="dh-new-appointment-btn">
-              <Plus size={14} strokeWidth={2.5} />
-              <span className="hide-mobile">Book Appointment</span>
-            </button>
-          ) : isDoctor ? (
-            <button
-              className="dh-cta-btn"
-              onClick={toggleDoctorStatus}
-              disabled={toggleLoading}
-              style={{
-                backgroundColor: isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
-                color: 'white',
-                border: 'none',
-                minWidth: '100px',
-                justifyContent: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              }}
-            >
-              <Power size={14} strokeWidth={2.5} style={{ marginRight: '4px' }} />
-              <span className="hide-mobile">
-                {toggleLoading ? 'Updating…' : isDoctorActive ? 'Go Inactive' : 'Go Active'}
-              </span>
-            </button>
-          ) : (
-            <button className="dh-cta-btn" onClick={onNewAppointment} id="dh-new-appointment-btn">
-              <Plus size={14} strokeWidth={2.5} />
-              <span className="hide-mobile">New appointment</span>
-            </button>
+              {/* Primary CTA */}
+              {isDoctor && (
+                <button
+                  className="dh-cta-btn"
+                  onClick={toggleDoctorStatus}
+                  disabled={toggleLoading}
+                  style={{
+                    backgroundColor: isDoctorActive ? 'var(--pp-danger-fg)' : 'var(--pp-success-fg)',
+                    color: 'white',
+                    border: 'none',
+                    minWidth: '100px',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <Power size={14} strokeWidth={2.5} style={{ marginRight: '4px' }} />
+                  <span className="hide-mobile">
+                    {toggleLoading ? 'Updating…' : (isDoctorActive ? 'Go Inactive' : 'Go Active')}
+                  </span>
+                </button>
+              )}
+            </>
           )}
         </div>
       </header>

@@ -118,6 +118,8 @@ export interface QueueItem {
     temp?: number;
   };
   notes?: string;
+  rxMedication?: string;
+  rxStatus?: string;
   age?: number;
   gender?: string;
   createdAt: Date | string;

@@ -114,6 +114,9 @@ visitsRouter.get('/:visitId', async (req: Request, res: Response, next: NextFunc
       return 'CHECKED_IN';
     };
 
+    const vitalsResult = await getVitalsUseCase(req).get(visitId);
+    const vitals = vitalsResult.success ? vitalsResult.data : null;
+
     sendSuccess(res, {
       id: String(visitId),
       patientId: appt.patientId,
@@ -133,7 +136,7 @@ visitsRouter.get('/:visitId', async (req: Request, res: Response, next: NextFunc
       createdAt: appt.createdAt,
       updatedAt: appt.updatedAt,
       patient: normalizedPatient,
-      vitals: null,
+      vitals,
     });
   } catch (err) {
     next(err);

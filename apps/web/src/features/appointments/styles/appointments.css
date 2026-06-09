@@ -396,8 +396,8 @@
 }
 
 .appt-badge-arrived {
-  background: var(--pp-success-bg);
-  color: var(--pp-green-mid);
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
 }
 
 /* ─── Doctor Badge ─── */

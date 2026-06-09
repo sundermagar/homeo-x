@@ -1,12 +1,13 @@
 import type { AppointmentRepository } from '../ports/appointment.repository.js';
 import type { PatientRepository } from '../../patient/ports/patient.repository.js';
+import type { StaffRepository } from '../../staff/ports/staff.repository.js';
 import type { CreateAppointmentDto } from '@mmc/types';
 import { type Result, ok, fail } from '../../../shared/result.js';
 import type { SendSmsUseCase } from '../../communication/use-cases/send-sms.use-case.js';
 import type { SendWhatsAppTemplateUseCase } from '../../communication/use-cases/send-whatsapp-template.use-case.js';
 import { triggerNotification } from '../../../infrastructure/http/notification-trigger.js';
 import type { NotificationsRepository } from '../../communication/ports/notifications.repository.js';
-// jwt and appConfig imports removed — WhatsApp trigger moved to ManageAppointmentUseCase
+import type { BillingRepository } from '../../billing/ports/billing.repository.js';
 
 import { createLogger } from '../../../shared/logger.js';
 
@@ -19,7 +20,19 @@ export class BookAppointmentUseCase {
     private readonly patientRepo?: PatientRepository,
     private readonly notifRepo?: NotificationsRepository,
     private readonly whatsapp?: SendWhatsAppTemplateUseCase,
-  ) {}
+    private readonly billingRepo?: BillingRepository,
+    private readonly staffRepo?: StaffRepository,
+  ) { }
+
+  private async resolveConsultationFee(dto: CreateAppointmentDto): Promise<number | undefined> {
+    if (dto.doctorId && this.staffRepo) {
+      const doctor = await this.staffRepo.findById('doctor', dto.doctorId);
+      if (doctor?.consultationFee !== null && doctor?.consultationFee !== undefined) {
+        return Number(doctor.consultationFee);
+      }
+    }
+    return dto.consultationFee !== undefined ? Number(dto.consultationFee) : undefined;
+  }
 
   async execute(dto: CreateAppointmentDto): Promise<Result<{ id: number; tokenNo?: number }>> {
     if (!dto.bookingDate) return fail('Booking date is required', 'VALIDATION');
@@ -39,7 +52,9 @@ export class BookAppointmentUseCase {
       }
     }
 
-    const id = await this.repo.create({ ...dto, patientId, unregisteredPatientId });
+    const fee = await this.resolveConsultationFee(dto);
+    const createDto = { ...dto, consultationFee: fee };
+    const id = await this.repo.create({ ...createDto, patientId, unregisteredPatientId });
 
     let tokenNo: number | undefined;
     const todayStr = new Date().toLocaleDateString('en-CA');
@@ -51,7 +66,7 @@ export class BookAppointmentUseCase {
             patientId: patientId || undefined,
             appointmentId: id,
             doctorId: dto.doctorId,
-            consultationFee: dto.consultationFee,
+            consultationFee: fee,
             clinicId: dto.clinicId
           });
         }
@@ -73,6 +88,18 @@ export class BookAppointmentUseCase {
     }
     */
 
+    if (this.whatsapp && dto.phone && dto.patientName && dto.clinicId) {
+      // Find the first active WhatsApp channel for this clinic
+      this.whatsapp.sendAppointmentConfirmation({
+        clinicId: dto.clinicId,
+        phone: dto.phone,
+        patientName: dto.patientName,
+        date: dto.bookingDate,
+        time: dto.bookingTime ?? '',
+        clinicName: 'MMC Clinic'
+      }).catch(err => logger.warn(`WhatsApp confirmation skipped: ${err.message}`));
+    }
+
     if (this.notifRepo && dto.doctorId) {
       // Doctors row id may not align with users row id for legacy data — resolve to a real user id.
       const resolvedUserId = this.notifRepo.resolveUserIdForDoctor
@@ -91,6 +118,27 @@ export class BookAppointmentUseCase {
           message: `${patientNameDisplay} has booked an appointment for ${dto.bookingDate}${timeDisplay}.`,
           repo: this.notifRepo,
         });
+      }
+    }
+
+    if (this.billingRepo && fee !== undefined && fee >= 0) {
+      try {
+        const billRegid = patientId || unregisteredPatientId;
+        if (billRegid) {
+          const billNo = await this.billingRepo.nextBillNo();
+          await this.billingRepo.create({
+            regid: billRegid,
+            billNo,
+            billDate: dto.bookingDate,
+            charges: fee,
+            received: 0,
+            paymentMode: 'Cash', // Default until paid
+            billType: 'Consultation',
+            doctorId: dto.doctorId,
+          });
+        }
+      } catch (err) {
+        logger.error(`Failed to auto-generate bill for appointment ${id}: ${err}`);
       }
     }
 

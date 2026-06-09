@@ -80,6 +80,8 @@ export function useRecordVitals(visitId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['visit', visitId] });
       qc.invalidateQueries({ queryKey: ['queue'] });
+      // usePatientHistory is keyed ['patient', id, 'history'] — invalidate the whole 'patient' tree.
+      qc.invalidateQueries({ queryKey: ['patient'] });
     },
   });
 }

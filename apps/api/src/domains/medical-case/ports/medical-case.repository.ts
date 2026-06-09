@@ -43,6 +43,7 @@ export interface Vitals {
   respiratoryRate?: number | null;
   oxygenSaturation?: number | null;
   bloodSugar?: number | null;
+  lmpDate?: string | null;
   notes?: string | null;
   recordedAt?: Date | null;
 }

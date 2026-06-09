@@ -14,9 +14,11 @@ import type {
   TranslationResponse,
 } from '../types/ai';
 
+
 export function useAiSuggestSoap() {
   return useMutation({
-    mutationFn: (data: SuggestSoapInput) => api.post<SoapSuggestion>(API.AI.SUGGEST_SOAP, data),
+    mutationFn: (data: SuggestSoapInput) =>
+      api.post<SoapSuggestion>(API.AI.SUGGEST_SOAP, data),
   });
 }
 
@@ -36,13 +38,15 @@ export function useAiSuggestPrescription() {
 
 export function useAiFeedback() {
   return useMutation({
-    mutationFn: (data: AiFeedbackInput) => api.post(API.AI.FEEDBACK, data),
+    mutationFn: (data: AiFeedbackInput) =>
+      api.post(API.AI.FEEDBACK, data),
   });
 }
 
 export function useAiTranslate() {
   return useMutation({
-    mutationFn: (data: TranslateTextInput) => api.post<TranslationResponse>(API.AI.TRANSLATE, data),
+    mutationFn: (data: TranslateTextInput) =>
+      api.post<TranslationResponse>(API.AI.TRANSLATE, data),
   });
 }
 
@@ -66,7 +70,9 @@ export function useParseLabReport() {
         mimeType: file.type,
         base64,
       });
-      return body?.parsedText || (body as string);
+      // Always return a string. When parsedText is empty the API still returns
+      // an object ({ parsedText: '', parseError }); never leak that object out.
+      return typeof body === 'string' ? body : (body?.parsedText ?? '');
     },
   });
 }
@@ -97,3 +103,4 @@ export function useParsePrescription() {
     },
   });
 }
+

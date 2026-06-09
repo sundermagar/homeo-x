@@ -198,18 +198,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
 
     {
-      type: 'group',
-      group: {
-        id: 'patients-group',
-        label: 'Patients',
-        icon: Users,
-        roles: ALL,
-        children: [
-          { path: '/patients', label: 'Patient List', icon: Users },
-          { path: '/patients/queue', label: 'Patient Queue', icon: Clock },
-          { path: '/family-groups', label: 'Family Groups', icon: Layers },
-        ],
-      },
+      type: 'link',
+      path: '/patients',
+      label: 'Patients',
+      icon: Users,
+      roles: ALL,
     },
     {
       type: 'link',

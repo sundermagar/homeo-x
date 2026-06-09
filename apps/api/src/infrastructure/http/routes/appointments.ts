@@ -13,6 +13,8 @@ import { createSmsGateway } from '../../communication/msg91-sms-gateway.js';
 import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg.js';
 import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
 import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
+import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { StaffRepositoryPg } from '../../repositories/staff.repository.pg.js';
 import { SendWhatsAppTemplateUseCase } from '../../../domains/communication/use-cases/send-whatsapp-template.use-case.js';
 import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
 import { asyncHandler } from '../middleware/async-handler.js';
@@ -33,25 +35,23 @@ async function isDoctorOffline(req: any, doctorId: number): Promise<boolean> {
       LIMIT 1
     `);
     const row = (rows as any[])[0];
-    if (!row) return false; // doctor not in users table → assume active
-    return row.is_active === false; // explicitly false → offline
+    if (!row) return false;            // doctor not in users table → assume active
+    return row.is_active === false;   // explicitly false → offline
   } catch {
-    return false; // on error, don't block
+    return false;                      // on error, don't block
   }
 }
 
-const addToWaitlistSchema = z
-  .object({
-    patientId: z.number().int().positive().optional(),
-    appointmentId: z.number().int().positive().optional(),
-    unregisteredPatientId: z.number().int().positive().optional(),
-    doctorId: z.number().int().positive().optional(),
-    consultationFee: z.number().min(0).optional(),
-  })
-  .refine((data) => data.patientId || data.appointmentId || data.unregisteredPatientId, {
-    message: 'Either patientId, appointmentId, or unregisteredPatientId is required',
-    path: ['patientId'],
-  });
+const addToWaitlistSchema = z.object({
+  patientId: z.number().int().positive().optional(),
+  appointmentId: z.number().int().positive().optional(),
+  unregisteredPatientId: z.number().int().positive().optional(),
+  doctorId: z.number().int().positive().optional(),
+  consultationFee: z.number().min(0).optional(),
+}).refine((data) => data.patientId || data.appointmentId || data.unregisteredPatientId, {
+  message: "Either patientId, appointmentId, or unregisteredPatientId is required",
+  path: ["patientId"],
+});
 
 const logger = createLogger('appointments');
 const smsGateway = createSmsGateway();
@@ -59,11 +59,6 @@ const smsGateway = createSmsGateway();
 export const appointmentsRouter: Router = Router();
 
 const getRepo = (req: any) => new AppointmentRepositoryPG(req.tenantDb);
-const getWaUc = (req: any) => {
-  const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
-  const waGateway = new WhatsAppCloudGateway(waRepo);
-  return new SendWhatsAppTemplateUseCase(waGateway as any, waRepo);
-};
 
 // Apply auth to all routes
 appointmentsRouter.use(authMiddleware);
@@ -71,99 +66,54 @@ appointmentsRouter.use(authMiddleware);
 // ─── List / Query ────────────────────────────────────────────────────────────
 
 // GET /api/appointments
-appointmentsRouter.get(
-  '/',
-  asyncHandler(async (req, res) => {
-    const { date, from_date, to_date, doctor_id, status, search, page, limit } =
-      req.query as Record<string, string>;
-    const listAppts = new ListAppointmentsUseCase(getRepo(req));
+appointmentsRouter.get('/', asyncHandler(async (req, res) => {
+  const { date, from_date, to_date, doctor_id, status, search, page, limit } = req.query as Record<string, string>;
+  const listAppts = new ListAppointmentsUseCase(getRepo(req));
 
-    let effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
-    let patientId = undefined;
-    let patientRegId = undefined;
-    let unregisteredPatientId = undefined;
-    
-    if ((req.user as any)?.type === 'Patient') {
-      if ((req.user as any)?.isUnregistered) {
-        // Unregistered patient: filter by unregisteredPatientId
-        unregisteredPatientId = (req.user as any).id;
-      } else {
-        patientId = (req.user as any).id;
-        patientRegId = (req.user as any).regid;
-        
-        if (patientRegId === undefined || patientRegId === null) {
-          const { patients } = await import('@mmc/database/schema');
-          const { eq } = await import('drizzle-orm');
-          const [patient] = await req.tenantDb!
-            .select({ regid: patients.regid })
-            .from(patients)
-            .where(eq(patients.id, patientId))
-            .limit(1);
-            
-          if (patient && patient.regid) {
-            patientRegId = patient.regid;
-          }
-        }
-      }
-    }
+  let effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
+  // if ((req.user as any)?.type === 'Doctor') {
+  //   effectiveDoctorId = (req.user as any).contextId;
+  // }
 
-    const clinicId = (req as any).user?.contextId;
+  const clinicId = (req as any).user?.contextId;
 
-    const result = await listAppts.execute({
-      date: date || undefined,
-      fromDate: from_date || undefined,
-      toDate: to_date || undefined,
-      doctorId: effectiveDoctorId,
-      clinicId,
-      patientId,
-      patientRegId,
-      unregisteredPatientId,
-      status: status || undefined,
-      search: search || undefined,
-      page: page ? Number(page) : 1,
-      limit: limit ? Number(limit) : 50,
-    });
+  const result = await listAppts.execute({
+    date:      date    || undefined,
+    fromDate:  from_date || undefined,
+    toDate:    to_date || undefined,
+    doctorId:  effectiveDoctorId,
+    clinicId,
+    status:    status  || undefined,
+    search:    search  || undefined,
+    page:      page    ? Number(page)  : 1,
+    limit:     limit   ? Number(limit) : 50,
+  });
 
-    if (result.success) {
-      sendSuccess(res, result.data);
-    }
-  }),
-);
+  if (result.success) {
+    sendSuccess(res, result.data);
+  }
+}));
 
 // GET /api/appointments/followups
-appointmentsRouter.get(
-  '/followups',
-  asyncHandler(async (req, res) => {
-    const { from_date, to_date, doctor_id, search, page, limit } = req.query as Record<
-      string,
-      string
-    >;
-    const listAppts = new ListAppointmentsUseCase(getRepo(req));
-    const clinicId = (req as any).user?.contextId;
-    let patientId = undefined;
-    let patientRegId = undefined;
-    if ((req.user as any)?.type === 'Patient') {
-      patientId = (req.user as any).id;
-      patientRegId = (req.user as any).regid;
-    }
+appointmentsRouter.get('/followups', asyncHandler(async (req, res) => {
+  const { from_date, to_date, doctor_id, search, page, limit } = req.query as Record<string, string>;
+  const listAppts = new ListAppointmentsUseCase(getRepo(req));
+  const clinicId = (req as any).user?.contextId;
 
-    const result = await listAppts.executeFollowups({
-      fromDate: from_date || undefined,
-      toDate: to_date || undefined,
-      doctorId: doctor_id ? Number(doctor_id) : undefined,
-      clinicId,
-      patientId,
-      patientRegId,
-      search: search || undefined,
-      page: page ? Number(page) : 1,
-      limit: limit ? Number(limit) : 100,
-    });
+  const result = await listAppts.executeFollowups({
+    fromDate:  from_date || undefined,
+    toDate:    to_date || undefined,
+    doctorId:  doctor_id ? Number(doctor_id) : undefined,
+    clinicId,
+    search:    search || undefined,
+    page:      page ? Number(page) : 1,
+    limit:     limit ? Number(limit) : 100,
+  });
 
-    if (result.success) {
-      sendSuccess(res, result.data);
-    }
-  }),
-);
+  if (result.success) {
+    sendSuccess(res, result.data);
+  }
+}));
 
 // POST /api/appointments/followups/status
 appointmentsRouter.post('/followups/status', asyncHandler(async (req, res) => {
@@ -192,261 +142,198 @@ appointmentsRouter.post('/followups/status', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/appointments/today
-appointmentsRouter.get(
-  '/today',
-  asyncHandler(async (req, res) => {
-    const { doctor_id } = req.query as Record<string, string>;
-    const getAppts = new GetAppointmentUseCase(getRepo(req));
-    const effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
-    const clinicId = (req as any).user?.contextId;
-    let patientId = undefined;
-    let patientRegId = undefined;
-    if ((req.user as any)?.type === 'Patient') {
-      patientId = (req.user as any).id;
-      patientRegId = (req.user as any).regid;
-    }
-    const result = await getAppts.getToday(effectiveDoctorId, clinicId, patientId, patientRegId);
-    if (result.success) sendSuccess(res, result.data);
-  }),
-);
+appointmentsRouter.get('/today', asyncHandler(async (req, res) => {
+  const { doctor_id } = req.query as Record<string, string>;
+  const getAppts = new GetAppointmentUseCase(getRepo(req));
+  const effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
+  const clinicId = (req as any).user?.contextId;
+  const result = await getAppts.getToday(effectiveDoctorId, clinicId);
+  if (result.success) sendSuccess(res, result.data);
+}));
 
 // GET /api/appointments/availability
-appointmentsRouter.get(
-  '/availability',
-  asyncHandler(async (req, res) => {
-    const { doctor_id, date } = req.query as Record<string, string>;
-    if (!doctor_id || !date) throw new BadRequestError('doctor_id and date are required');
+appointmentsRouter.get('/availability', asyncHandler(async (req, res) => {
+  const { doctor_id, date } = req.query as Record<string, string>;
+  if (!doctor_id || !date) throw new BadRequestError('doctor_id and date are required');
 
-    // Block slots for offline doctors
-    if (await isDoctorOffline(req, Number(doctor_id))) {
-      sendSuccess(res, [], 'Doctor is currently offline. No slots available.');
-      return;
+  // Block slots for offline doctors
+  if (await isDoctorOffline(req, Number(doctor_id))) {
+    sendSuccess(res, [], 'Doctor is currently offline. No slots available.');
+    return;
+  }
+
+  const getAppts = new GetAppointmentUseCase(getRepo(req));
+  let clinicId = (req as any).user?.contextId;
+  const orgRepo = new OrganizationRepositoryPg(req.publicDb);
+  let org = clinicId ? await orgRepo.findById(Number(clinicId)) : null;
+
+  if (!org || (req as any).user?.role === 'SuperAdmin') {
+    const orgs = await orgRepo.findAll();
+    if (orgs && orgs.length > 0) {
+      org = orgs[0] ?? null;
+      clinicId = org?.id;
     }
+  }
 
-    const getAppts = new GetAppointmentUseCase(getRepo(req));
-    const result = await getAppts.getAvailability(Number(doctor_id), date);
-    if (result.success) sendSuccess(res, result.data);
-  }),
-);
+  let timingConfigStr = '';
+  if (org?.timing) {
+    timingConfigStr = org.timing;
+  }
+
+  const result = await getAppts.getAvailability(Number(doctor_id), date, timingConfigStr);
+  if (result.success) sendSuccess(res, result.data);
+}));
 
 // GET /api/appointments/waiting
-appointmentsRouter.get(
-  '/waiting',
-  asyncHandler(async (req, res) => {
-    const { date, doctor_id } = req.query as Record<string, string>;
-    const today = new Date().toISOString().split('T')[0];
-    const queueMgmt = new QueueManagementUseCase(
-      getRepo(req),
-      new NotificationsRepositoryPg(req.tenantDb),
-    );
-
-    const clinicId = (req as any).user?.contextId;
-    let patientId = undefined;
-    let patientRegId = undefined;
-    if ((req.user as any)?.type === 'Patient') {
-      patientId = (req.user as any).id;
-      patientRegId = (req.user as any).regid;
-    }
-    const result = await queueMgmt.getWaitlist(
-      (date || today) as string,
-      doctor_id ? Number(doctor_id) : undefined,
-      clinicId,
-      patientId,
-      patientRegId,
-    );
-    if (result.success) sendSuccess(res, result.data);
-  }),
-);
+appointmentsRouter.get('/waiting', asyncHandler(async (req, res) => {
+  const { date, doctor_id } = req.query as Record<string, string>;
+  const today = new Date().toISOString().split('T')[0];
+  const queueMgmt = new QueueManagementUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  
+  const clinicId = (req as any).user?.contextId;
+  const result = await queueMgmt.getWaitlist(
+    (date || today) as string, 
+    doctor_id ? Number(doctor_id) : undefined,
+    clinicId
+  );
+  if (result.success) sendSuccess(res, result.data);
+}));
 
 // GET /api/appointments/:id
-appointmentsRouter.get(
-  '/:id',
-  asyncHandler(async (req, res) => {
-    const getAppts = new GetAppointmentUseCase(getRepo(req));
-    const result = await getAppts.getById(Number(req.params.id));
-    if (result.success) sendSuccess(res, result.data);
-  }),
-);
+appointmentsRouter.get('/:id', asyncHandler(async (req, res) => {
+  const getAppts = new GetAppointmentUseCase(getRepo(req));
+  const result = await getAppts.getById(Number(req.params.id));
+  if (result.success) sendSuccess(res, result.data);
+}));
 
 // ─── Mutations ───────────────────────────────────────────────────────────────
 
 // POST /api/appointments
-appointmentsRouter.post(
-  '/',
-  asyncHandler(async (req, res) => {
-    // Server-side guard: prevent booking with an offline doctor
-    if (req.body.doctorId && (await isDoctorOffline(req, Number(req.body.doctorId)))) {
-      throw new BadRequestError('This doctor is currently offline and cannot accept appointments.');
-    }
+appointmentsRouter.post('/', asyncHandler(async (req, res) => {
+  // Server-side guard: prevent booking with an offline doctor
+  if (req.body.doctorId && await isDoctorOffline(req, Number(req.body.doctorId))) {
+    throw new BadRequestError('This doctor is currently offline and cannot accept appointments.');
+  }
 
-    const commRepo = new CommunicationRepositoryPG(req.tenantDb);
-    const patientRepo = new PatientRepositoryPg(req.tenantDb);
-    const notifRepo = new NotificationsRepositoryPg(req.tenantDb);
-    const waUc = getWaUc(req);
-    const smsUc = new SendSmsUseCase(commRepo, smsGateway);
+  const commRepo = new CommunicationRepositoryPG(req.tenantDb);
+  const patientRepo = new PatientRepositoryPg(req.tenantDb);
+  const notifRepo = new NotificationsRepositoryPg(req.tenantDb);
+  const waRepo = new WhatsAppRepositoryPG(req.tenantDb);
+  const waGateway = new WhatsAppCloudGateway(waRepo);
+  
+  const smsUc = new SendSmsUseCase(commRepo, smsGateway);
+  const waUc = new SendWhatsAppTemplateUseCase(waGateway as any, waRepo);
+  const billingRepo = new BillingRepositoryPg(req.tenantDb);
+  
+  const staffRepo = new StaffRepositoryPg(req.tenantDb);
+  const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo, notifRepo, waUc, billingRepo, staffRepo);
+  const clinicId = (req as any).user?.contextId;
+  const result = await bookAppt.execute({ ...req.body, clinicId });
 
-    const bookAppt = new BookAppointmentUseCase(getRepo(req), smsUc, patientRepo, notifRepo, waUc);
-    const clinicId = (req as any).user?.contextId;
-    const result = await bookAppt.execute({ ...req.body, clinicId });
-
-    if (result.success) {
-      sendSuccess(res, result.data, undefined, 201);
-    }
-  }),
-);
+  if (result.success) {
+    DashboardRepositoryPg.clearQueueCache();
+    sendSuccess(res, result.data, undefined, 201);
+  }
+}));
 
 // PUT /api/appointments/:id
-appointmentsRouter.put(
-  '/:id',
-  asyncHandler(async (req, res) => {
-    const manageAppt = new ManageAppointmentUseCase(
-      getRepo(req),
-      new NotificationsRepositoryPg(req.tenantDb),
-      getWaUc(req)
-    );
-    await manageAppt.update(Number(req.params.id), req.body);
-    sendSuccess(res, undefined, 'Appointment updated');
-  }),
-);
+appointmentsRouter.put('/:id', asyncHandler(async (req, res) => {
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  await manageAppt.update(Number(req.params.id), req.body);
+  DashboardRepositoryPg.clearQueueCache();
+  sendSuccess(res, undefined, 'Appointment updated');
+}));
 
 // DELETE /api/appointments/:id
-appointmentsRouter.delete(
-  '/:id',
-  asyncHandler(async (req, res) => {
-    const manageAppt = new ManageAppointmentUseCase(
-      getRepo(req),
-      new NotificationsRepositoryPg(req.tenantDb),
-      getWaUc(req)
-    );
-    await manageAppt.delete(Number(req.params.id));
-    sendSuccess(res, undefined, 'Appointment deleted');
-  }),
-);
+appointmentsRouter.delete('/:id', asyncHandler(async (req, res) => {
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  await manageAppt.delete(Number(req.params.id));
+  DashboardRepositoryPg.clearQueueCache();
+  sendSuccess(res, undefined, 'Appointment deleted');
+}));
 
 // POST /api/appointments/:id/status
-appointmentsRouter.post(
-  '/:id/status',
-  asyncHandler(async (req, res) => {
-    const { status, cancellationReason } = req.body;
-    if (!status) throw new BadRequestError('status is required');
-    const manageAppt = new ManageAppointmentUseCase(
-      getRepo(req),
-      new NotificationsRepositoryPg(req.tenantDb),
-      getWaUc(req)
-    );
-    await manageAppt.updateStatus(Number(req.params.id), status, cancellationReason);
-    DashboardRepositoryPg.clearQueueCache();
-    sendSuccess(res, undefined, `Status updated to ${status}`);
-  }),
-);
+appointmentsRouter.post('/:id/status', asyncHandler(async (req, res) => {
+  const { status, cancellationReason } = req.body;
+  if (!status) throw new BadRequestError('status is required');
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  await manageAppt.updateStatus(Number(req.params.id), status, cancellationReason);
+  DashboardRepositoryPg.clearQueueCache();
+  sendSuccess(res, undefined, `Status updated to ${status}`);
+}));
 
 // POST /api/appointments/:id/issue-token
-appointmentsRouter.post(
-  '/:id/issue-token',
-  asyncHandler(async (req, res) => {
-    const manageAppt = new ManageAppointmentUseCase(
-      getRepo(req),
-      new NotificationsRepositoryPg(req.tenantDb),
-      getWaUc(req)
-    );
-    const result = await manageAppt.issueToken(Number(req.params.id));
-
-    if (result.success) {
-      const io = (req as any).io;
-      if (io && !result.data.alreadyIssued) {
-        io.emit('tokenIssued', { appointmentId: req.params.id, token: result.data.token });
-      }
-      sendSuccess(res, result.data);
+appointmentsRouter.post('/:id/issue-token', asyncHandler(async (req, res) => {
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  const result = await manageAppt.issueToken(Number(req.params.id));
+  
+  if (result.success) {
+    DashboardRepositoryPg.clearQueueCache();
+    const io = (req as any).io;
+    if (io && !result.data.alreadyIssued) {
+      io.emit('tokenIssued', { appointmentId: req.params.id, token: result.data.token });
     }
-  }),
-);
+    sendSuccess(res, result.data);
+  }
+}));
 
 // ─── Waiting Room ─────────────────────────────────────────────────────────────
 
 // POST /api/appointments/waiting
-appointmentsRouter.post(
-  '/waiting',
-  asyncHandler(async (req, res) => {
-    const validation = addToWaitlistSchema.safeParse(req.body);
-    if (!validation.success) {
-      throw new ValidationError('Invalid waitlist data', validation.error.format());
-    }
+appointmentsRouter.post('/waiting', asyncHandler(async (req, res) => {
+  const validation = addToWaitlistSchema.safeParse(req.body);
+  if (!validation.success) {
+    throw new ValidationError('Invalid waitlist data', validation.error.format());
+  }
 
-    const queueMgmt = new QueueManagementUseCase(
-      getRepo(req),
-      new NotificationsRepositoryPg(req.tenantDb),
-    );
-    const clinicId = (req as any).user?.contextId;
-
-    const result = await queueMgmt.addToWaitlist({
-      ...validation.data,
-      clinicId,
-    });
-    if (result.success) {
-      sendSuccess(res, result.data, undefined, 201);
-    }
-  }),
-);
+  const queueMgmt = new QueueManagementUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  const clinicId = (req as any).user?.contextId;
+  
+  const result = await queueMgmt.addToWaitlist({
+    ...validation.data,
+    clinicId
+  });
+  if (result.success) {
+    DashboardRepositoryPg.clearQueueCache();
+    sendSuccess(res, result.data, undefined, 201);
+  }
+}));
 
 // POST /api/appointments/waiting/:id/call-next
-appointmentsRouter.post(
-  '/waiting/:id/call-next',
-  asyncHandler(async (req, res) => {
-    const queueMgmt = new QueueManagementUseCase(
-      getRepo(req),
-      new NotificationsRepositoryPg(req.tenantDb),
-    );
-    await queueMgmt.callNext(Number(req.params.id));
-    DashboardRepositoryPg.clearQueueCache();
-    const io = (req as any).io;
-    if (io) io.emit('queueUpdated', { action: 'called', id: req.params.id });
-    sendSuccess(res, undefined, 'Patient called in');
-  }),
-);
+appointmentsRouter.post('/waiting/:id/call-next', asyncHandler(async (req, res) => {
+  const queueMgmt = new QueueManagementUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  await queueMgmt.callNext(Number(req.params.id));
+  DashboardRepositoryPg.clearQueueCache();
+  const io = (req as any).io;
+  if (io) io.emit('queueUpdated', { action: 'called', id: req.params.id });
+  sendSuccess(res, undefined, 'Patient called in');
+}));
 
 // POST /api/appointments/waiting/:id/complete
-appointmentsRouter.post(
-  '/waiting/:id/complete',
-  asyncHandler(async (req, res) => {
-    const queueMgmt = new QueueManagementUseCase(
-      getRepo(req),
-      new NotificationsRepositoryPg(req.tenantDb),
-    );
-    await queueMgmt.completeVisit(Number(req.params.id));
-    DashboardRepositoryPg.clearQueueCache();
-    const io = (req as any).io;
-    if (io) io.emit('queueUpdated', { action: 'completed', id: req.params.id });
-    sendSuccess(res, undefined, 'Consultation completed');
-  }),
-);
+appointmentsRouter.post('/waiting/:id/complete', asyncHandler(async (req, res) => {
+  const queueMgmt = new QueueManagementUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb), new BillingRepositoryPg(req.tenantDb));
+  await queueMgmt.completeVisit(Number(req.params.id));
+  DashboardRepositoryPg.clearQueueCache();
+  const io = (req as any).io;
+  if (io) io.emit('queueUpdated', { action: 'completed', id: req.params.id });
+  sendSuccess(res, undefined, 'Consultation completed');
+}));
 
 // POST /api/appointments/waiting/:id/skip
-appointmentsRouter.post(
-  '/waiting/:id/skip',
-  asyncHandler(async (req, res) => {
-    const queueMgmt = new QueueManagementUseCase(
-      getRepo(req),
-      new NotificationsRepositoryPg(req.tenantDb),
-    );
-    await queueMgmt.skipWaitlist(Number(req.params.id));
-    DashboardRepositoryPg.clearQueueCache();
-    const io = (req as any).io;
-    if (io) io.emit('queueUpdated', { action: 'skipped', id: req.params.id });
-    sendSuccess(res, undefined, 'Patient skipped, next patient called in');
-  }),
-);
+appointmentsRouter.post('/waiting/:id/skip', asyncHandler(async (req, res) => {
+  const queueMgmt = new QueueManagementUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  await queueMgmt.skipWaitlist(Number(req.params.id));
+  DashboardRepositoryPg.clearQueueCache();
+  const io = (req as any).io;
+  if (io) io.emit('queueUpdated', { action: 'skipped', id: req.params.id });
+  sendSuccess(res, undefined, 'Patient skipped, next patient called in');
+}));
 
 // POST /api/appointments/:id/reschedule
-appointmentsRouter.post(
-  '/:id/reschedule',
-  asyncHandler(async (req, res) => {
-    const { date, time } = req.body;
-    const manageAppt = new ManageAppointmentUseCase(
-      getRepo(req),
-      new NotificationsRepositoryPg(req.tenantDb),
-      getWaUc(req)
-    );
-    await manageAppt.reschedule(Number(req.params.id), date, time);
-    sendSuccess(res, undefined, 'Appointment rescheduled');
-  }),
-);
+appointmentsRouter.post('/:id/reschedule', asyncHandler(async (req, res) => {
+  const { date, time } = req.body;
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  await manageAppt.reschedule(Number(req.params.id), date, time);
+  DashboardRepositoryPg.clearQueueCache();
+  sendSuccess(res, undefined, 'Appointment rescheduled');
+}));

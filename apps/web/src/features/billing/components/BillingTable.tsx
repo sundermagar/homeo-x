@@ -53,6 +53,11 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
   // We keep the grouping logic
 
 
+  const isMedicineBill = (bill: BillWithPatient | any) => {
+    const description = ((bill.customTitle || bill.treatment || bill.billType) as string || '').toLowerCase();
+    return description.includes('medicine');
+  };
+
   const groupedBills = useMemo(() => {
     const map = new Map<number, {
       regid: number;
@@ -93,22 +98,25 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       group.totalReceived += bill.received || 0;
       group.totalBalance += bill.balance || 0;
 
+      const isMedicine = isMedicineBill(bill);
+      const isConsultation = bill.billType === 'Consultation' && !isMedicine;
       // Breakdown calculation
-      if ((bill.billType as string) === 'Additional') {
-        group.additionalCharge += chargeAmount;
+      if (isMedicine && bill.treatment?.startsWith('Package:') !== true) {
+        group.medicineDaysCharge += chargeAmount;
+      } else if ((bill.billType as string) === 'Additional') {
+        if (isMedicine) {
+          group.medicineDaysCharge += chargeAmount;
+        } else {
+          group.additionalCharge += chargeAmount;
+        }
       } else if (bill.treatment?.startsWith('Package:')) {
         group.packageCharge += chargeAmount;
       } else if (bill.billType === 'Registration') {
         group.registrationCharge += chargeAmount;
-      } else if (bill.billType === 'Consultation') {
-        // Only consider as medicine days charge if not Registration/Package/Additional
-        // Some consultation bills might be registration if the type wasn't set correctly, but we follow standard types.
-        group.medicineDaysCharge += chargeAmount;
-      } else {
-        // Fallback: add to registration or general if type is missing or Custom
-        if (bill.billType !== 'Custom') {
-          group.registrationCharge += chargeAmount;
-        }
+      } else if (isConsultation) {
+        group.registrationCharge += chargeAmount;
+      } else if (bill.billType !== 'Custom') {
+        group.registrationCharge += chargeAmount;
       }
 
       if (bill.paymentMode && (bill.received || 0) > 0) {
@@ -204,7 +212,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       bDate.setHours(0, 0, 0, 0);
       if (bDate.getTime() >= selectedDate.getTime()) continue;
 
-      const dateStr = bDate.toISOString().split('T')[0]!;
+      const dateStr = format(bDate, 'yyyy-MM-dd');
       if (!map.has(dateStr)) {
         map.set(dateStr, {
           patientName: (bill as any).patientName,
@@ -228,14 +236,21 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
       group.totalReceived += bill.received || 0;
       group.totalBalance += bill.balance || 0;
 
-      if ((bill.billType as string) === 'Additional') {
-        group.additionalCharge += chargeAmount;
+      const isMedicine = isMedicineBill(bill);
+      if (isMedicine && bill.treatment?.startsWith('Package:') !== true) {
+        group.medicineDaysCharge += chargeAmount;
+      } else if ((bill.billType as string) === 'Additional') {
+        if (isMedicine) {
+          group.medicineDaysCharge += chargeAmount;
+        } else {
+          group.additionalCharge += chargeAmount;
+        }
       } else if (bill.treatment?.startsWith('Package:')) {
         group.packageCharge += chargeAmount;
       } else if (bill.billType === 'Registration') {
         group.registrationCharge += chargeAmount;
       } else if (bill.billType === 'Consultation') {
-        group.medicineDaysCharge += chargeAmount;
+        group.registrationCharge += chargeAmount;
       } else if (bill.billType !== 'Custom') {
         group.registrationCharge += chargeAmount;
       }
@@ -291,8 +306,8 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
           {[
-            { label: 'Registration Fee', val: group.registrationCharge, color: 'var(--pp-blue)' },
-            { label: 'Medicine & Consultation', val: group.medicineDaysCharge, color: 'var(--pp-warning-fg)' },
+            { label: 'Consultation Fee', val: group.registrationCharge, color: 'var(--pp-blue)' },
+            { label: 'Medicine', val: group.medicineDaysCharge, color: 'var(--pp-warning-fg)' },
             { label: 'Package Treatment Plans', val: group.packageCharge, color: 'var(--pp-success-fg)' },
             { label: 'Additional Charges / Services', val: group.additionalCharge, color: 'var(--pp-purple)' }
           ].map((item, idx) => {
@@ -335,10 +350,11 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
     const showPeriod = bill.fromDate || bill.toDate;
     const isPaid = bill.balance === 0;
 
+    const isMedicine = isMedicineBill(bill);
     // Premium Left Border Color based on treatment / billType
     let accentColor = 'var(--pp-blue)';
     const t = bill.treatment || bill.billType || 'Consultation';
-    const treatmentLabel = t === 'Consultation' ? 'Medicine Charge' : t;
+    const treatmentLabel = isMedicine ? 'Medicine Charge' : t === 'Consultation' ? 'Consultation Fee' : t;
 
     if (bill.billType === 'Additional') {
       accentColor = 'var(--pp-purple)';
@@ -899,8 +915,8 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                   <div style={{ fontSize: '0.72rem', color: 'var(--pp-text-3)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--pp-warm-2)', paddingBottom: 8 }}>Itemized Charges Breakdown</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {[
-                      { label: 'Registration Fee', val: selectedGroup.registrationCharge, color: 'var(--pp-blue)' },
-                      { label: 'Medicine & Consultation', val: selectedGroup.medicineDaysCharge, color: 'var(--pp-warning-fg)' },
+                      { label: 'Consultation Fee', val: selectedGroup.registrationCharge, color: 'var(--pp-blue)' },
+                      { label: 'Medicine', val: selectedGroup.medicineDaysCharge, color: 'var(--pp-warning-fg)' },
                       { label: 'Package Treatment Plans', val: selectedGroup.packageCharge, color: 'var(--pp-success-fg)' },
                       { label: 'Additional Charges / Services', val: selectedGroup.additionalCharge, color: 'var(--pp-purple)' }
                     ].map((item, idx) => {

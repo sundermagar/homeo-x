@@ -74,6 +74,18 @@ export class AssignPackageUseCase {
       billId: bill.id,
     });
 
+    // Step 3: Auto-waive any "Medicine Charge" billed today since the patient now has an active package.
+    // This handles the workflow where a consultation finishes and creates a Medicine Charge bill, 
+    // but the patient immediately decides to purchase a package on the same day.
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      if (startDateStr === today && typeof this.billingRepo.deleteAdditionalChargeBill === 'function') {
+        await this.billingRepo.deleteAdditionalChargeBill(regid, today, 'Medicine Charge');
+      }
+    } catch (err) {
+      console.warn('Could not waive existing medicine charge:', err);
+    }
+
     // (Removed prescription creation for package as per user workflow)
     // DECOMMISSIONED: SMS session moved to WhatsApp
     /*

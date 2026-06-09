@@ -88,7 +88,13 @@ export async function createApp(): Promise<{
 }> {
   const app: Express = express();
   const server: HttpServer = createServer(app);
-  const io: SocketIOServer = new SocketIOServer(server);
+  const io: SocketIOServer = new SocketIOServer(server, {
+    cors: {
+      origin: appConfig.cors.origins,
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
+  });
 
   // Audit System initialization
   const publicDb = createDbClient(process.env.DATABASE_URL!);
