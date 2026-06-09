@@ -40,7 +40,7 @@ Rules:
 - OBJECTIVE: Extract physical examination findings, vital signs, clinical observations.
 - ASSESSMENT: Synthesize clinical assessment, diagnosis, differential diagnoses.
 - PLAN: Extract treatment plan, medications prescribed, follow-up instructions, referrals.
-- ADVICE: Extract specific dietary, lifestyle, or general advice given to the patient.
+- ADVICE: Suggest 2-3 points of specific dietary, lifestyle, or general advice appropriate for the patient's condition based on the case analysis.
 - Include relevant ICD-10 codes based on the assessment.
 - Never fabricate information not present in the transcript.
 - IMPORTANT: Always extract as much clinically relevant information as possible.
@@ -60,7 +60,7 @@ Respond in valid JSON:
   "objective": "...",
   "assessment": "...",
   "plan": "...",
-  "advice": "...",
+  "advice": ["Stay hydrated", "Rest well"],
   "icdCodes": [{ "code": "J06.9", "description": "Acute upper respiratory infection" }],
   "confidence": 0.85
 }`;
@@ -108,7 +108,11 @@ Generate a complete, clinically appropriate SOAP note based strictly on the tran
         objective: String(parsed.objective || ''),
         assessment: String(parsed.assessment || ''),
         plan: String(parsed.plan || ''),
-        advice: parsed.advice ? String(parsed.advice) : undefined,
+        advice: Array.isArray(parsed.advice)
+          ? parsed.advice.map((a: string) => `• ${a.replace(/^[•-]\s*/, '')}`).join('\n')
+          : parsed.advice
+            ? String(parsed.advice).split('\n').filter(Boolean).map(a => `• ${a.replace(/^[•-]\s*/, '')}`).join('\n')
+            : undefined,
         icdCodes,
         confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
       };

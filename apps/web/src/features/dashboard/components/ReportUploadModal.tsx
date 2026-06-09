@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { X, Upload, FileImage, CheckCircle, Loader2 } from 'lucide-react';
 import { useManageClinicalRecords } from '../../medical-case/hooks/use-medical-cases';
+import { api } from '../../../lib/api-client';
 import '../../patients/styles/patients.css';
 
 interface ReportUploadModalProps {
@@ -16,7 +17,7 @@ export function ReportUploadModal({ regid, patientName, onClose }: ReportUploadM
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { saveImage } = useManageClinicalRecords();
+  const { saveImage, saveInvestigation } = useManageClinicalRecords();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -35,11 +36,38 @@ export function ReportUploadModal({ regid, patientName, onClose }: ReportUploadM
     if (files.length === 0) return;
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('regid', String(regid));
-      formData.append('caption', caption || `Report uploaded by receptionist`);
-      files.forEach(f => formData.append('files', f));
-      await saveImage.mutateAsync(formData);
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append('file', file);
+        
+        // Run AI Scan
+        const res: any = await api.post('/api/medical-cases/records/investigations/upload', fd);
+        const p = res?.parsed;
+        
+        if (p) {
+          // AI successfully extracted data, save as Lab Investigation
+          await saveInvestigation.mutateAsync({
+            regid,
+            type: p.type || 'Specific',
+            data: p.data || {},
+            investDate: p.date || new Date().toISOString().split('T')[0],
+            summary: p.summary || caption || 'Report uploaded by receptionist',
+            attachmentUrl: res.attachmentUrl,
+          });
+        } else {
+          // Fallback: AI failed to parse, or not a lab report. Save as generic media image
+          const fallbackFd = new FormData();
+          fallbackFd.append('regid', String(regid));
+          fallbackFd.append('caption', caption || `Report uploaded by receptionist`);
+          if (res?.attachmentUrl) {
+            fallbackFd.append('picture', res.attachmentUrl);
+          } else {
+            fallbackFd.append('files', file);
+          }
+          await saveImage.mutateAsync(fallbackFd);
+        }
+      }
+
       setSuccess(true);
       setTimeout(() => onClose(), 1200);
     } catch (err) {
@@ -76,8 +104,8 @@ export function ReportUploadModal({ regid, patientName, onClose }: ReportUploadM
           {success ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <CheckCircle size={48} style={{ color: 'var(--pp-success-fg)', marginBottom: '12px' }} />
-              <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--pp-text-primary)' }}>Uploaded Successfully!</p>
-              <p style={{ fontSize: '12px', color: 'var(--pp-text-muted)' }}>Saved to patient's Media tab in case history.</p>
+              <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--pp-text-primary)' }}>Uploaded & Analysed Successfully!</p>
+              <p style={{ fontSize: '12px', color: 'var(--pp-text-muted)' }}>Saved to patient's Labs tab in case history.</p>
             </div>
           ) : (
             <>
@@ -197,7 +225,7 @@ export function ReportUploadModal({ regid, patientName, onClose }: ReportUploadM
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1, margin: 0 }}
                 >
                   {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                  {uploading ? 'Uploading...' : `Upload ${files.length} file${files.length !== 1 ? 's' : ''}`}
+                  {uploading ? 'Analysing & Uploading...' : `Upload & Analyse ${files.length} file${files.length !== 1 ? 's' : ''}`}
                 </button>
               </div>
             </>

@@ -94,7 +94,6 @@ export function PrescribeWizardModal({
   onConfirm,
   onNextPatient,
 }: PrescribeWizardModalProps) {
-  const [step, setStep] = useState<Step>('review');
   const [channels, setChannels] = useState<Record<string, boolean>>({ WhatsApp: true, Email: false, Print: false });
   const [deliveryMode, setDeliveryMode] = useState<'clinic' | 'courier' | 'pickup'>('clinic');
 
@@ -130,7 +129,6 @@ export function PrescribeWizardModal({
   // Reset state when modal opens
   useEffect(() => {
     if (open) {
-      setStep('review');
       const fee = defaultConsultationFee ?? (visit?.consultationFee ? Number(visit.consultationFee) : 0);
       setConsultationFee(fee);
       setMedicineChargeAutoSet(false);
@@ -156,10 +154,10 @@ export function PrescribeWizardModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchedDayCharge, open, hasActivePackage]);
 
-  // Advance to Done step once the parent signals completion
+  // Advance directly to next patient (dashboard) once the parent signals completion
   useEffect(() => {
-    if (completed && open) setStep('done');
-  }, [completed, open]);
+    if (completed && open) onNextPatient();
+  }, [completed, open, onNextPatient]);
 
   if (!open) return null;
 
@@ -174,7 +172,6 @@ export function PrescribeWizardModal({
 
   const additionalTotal = additionalCharges.reduce((sum, ac) => sum + ac.price * ac.quantity, 0);
   const totalCharges = consultationFee + medicineCharge + additionalTotal;
-  const stepIdx = STEPS.findIndex((s) => s.key === step);
 
   // Add a new additional charge to the list
   const handleAddCharge = () => {
@@ -197,36 +194,15 @@ export function PrescribeWizardModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[400] overflow-hidden bg-gray-900/50 backdrop-blur-[2px]" onClick={step === 'done' ? undefined : onClose}>
+    <div className="fixed inset-0 z-[400] overflow-hidden bg-gray-900/50 backdrop-blur-[2px]" onClick={onClose}>
       <div className="absolute inset-y-0 right-0 w-full max-w-[480px] bg-white shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300" onClick={(e) => e.stopPropagation()}>
         <div className="flex-1 overflow-y-auto p-6 relative">
-          {step !== 'done' && (
-            <button onClick={onClose} className="absolute top-6 right-6 w-8 h-8 rounded-full border border-[#E3E2DF] text-[#888786] flex items-center justify-center hover:bg-[#F4F3F1] bg-white z-10 transition-colors">
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          <button onClick={onClose} className="absolute top-6 right-6 w-8 h-8 rounded-full border border-[#E3E2DF] text-[#888786] flex items-center justify-center hover:bg-[#F4F3F1] bg-white z-10 transition-colors">
+            <X className="h-4 w-4" />
+          </button>
 
-        {/* Step bar */}
-        <div className="flex items-start mb-5">
-          {STEPS.map((s, i) => (
-            <div key={s.key} className="flex items-start flex-1 last:flex-none">
-              <div className="flex flex-col items-center gap-1.5">
-                <div className={cn(
-                  'w-[26px] h-[26px] rounded-full border-2 flex items-center justify-center text-[11px] font-bold',
-                  i < stepIdx ? 'bg-[#2563EB] border-[#2563EB] text-white'
-                    : i === stepIdx ? 'border-[#2563EB] text-[#2563EB] bg-[#EFF6FF]'
-                    : 'border-[#E3E2DF] text-[#888786] bg-white',
-                )}>
-                  {i < stepIdx ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                </div>
-                <div className="text-[10px] font-medium text-[#888786]">{s.label}</div>
-              </div>
-              {i < STEPS.length - 1 && <div className={cn('flex-1 h-0.5 mt-3 mx-1', i < stepIdx ? 'bg-[#2563EB]' : 'bg-[#E3E2DF]')} />}
-            </div>
-          ))}
-        </div>
+        {/* Removed Step bar */}
 
-        {step === 'review' && (
           <>
             <h2 className="text-lg font-bold tracking-tight text-[#0F0F0E]">Review prescription</h2>
             <p className="text-[13px] text-[#4A4A47] mt-1 mb-4">Verify the details before prescribing. You can still go back and edit.</p>
@@ -465,7 +441,7 @@ export function PrescribeWizardModal({
                       advice,
                       followUp,
                       visit: { id: visit?.id || visitId, visitNumber: visit?.visitNumber, specialty: visit?.specialty, chiefComplaint: visit?.chiefComplaint },
-                      patient: patient ? { firstName: patient.firstName, lastName: patient.lastName || patient.surname, dateOfBirth: patient.dateOfBirth, gender: patient.gender, phone: patient.phone } : null,
+                      patient: patient ? { firstName: patient.firstName, lastName: patient.lastName || patient.surname, dateOfBirth: patient.dateOfBirth, gender: patient.gender, phone: patient.phone, mrn: `PT-${(patient as any).regid || patient.id}` } : null,
                     }}
                   />
                 </div>
@@ -473,30 +449,13 @@ export function PrescribeWizardModal({
             </div>
 
             <div className="flex gap-2.5 mt-5">
-              <button onClick={onClose} disabled={isCompleting} className="pp-btn-secondary flex-1 h-10 inline-flex items-center justify-center disabled:opacity-60">Go back and edit</button>
+              <button onClick={onClose} disabled={isCompleting} className="pp-btn-secondary flex-1 h-10 inline-flex items-center justify-center disabled:opacity-60">Back</button>
               <button onClick={handleConfirmClick} disabled={!primary || isCompleting} className="pp-btn-primary flex-1 h-10 inline-flex items-center justify-center gap-2 disabled:opacity-60">
-                {isCompleting ? <><Loader2 className="h-4 w-4 animate-spin" /> Prescribing…</> : 'Confirm and prescribe'}
+                {isCompleting ? <><Loader2 className="h-4 w-4 animate-spin" /> Confirming…</> : 'Confirm'}
               </button>
             </div>
           </>
-        )}
 
-
-
-        {step === 'done' && (
-          <>
-            <div className="mx-auto w-14 h-14 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center mb-4">
-              <Check className="h-7 w-7 text-[#16A34A]" />
-            </div>
-            <h2 className="text-lg font-bold tracking-tight text-[#0F0F0E] text-center">Prescribed and saved</h2>
-            <p className="text-[13px] text-[#4A4A47] mt-1.5 mb-5 text-center leading-relaxed">
-              The prescription, case summary and remedy plan are saved to the patient's history. They appear automatically at the next consultation.
-            </p>
-            <button onClick={onNextPatient} className="pp-btn-primary w-full h-10 mb-2.5 inline-flex items-center justify-center gap-2">
-              Next patient <ArrowRight className="h-4 w-4" />
-            </button>
-          </>
-        )}
       </div>
     </div>
     </div>

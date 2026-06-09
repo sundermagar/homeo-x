@@ -197,6 +197,7 @@ patientRouter.get('/:regid/history', authMiddleware, requirePermission('PATIENT_
     const soap: any[] = full.soap || [];
     const prescriptions: any[] = full.prescriptions || [];
     const investigations: any[] = full.investigations || [];
+    const images: any[] = (full as any).images || [];
 
     const toDate = (v: any): string | null => {
       if (!v) return null;
@@ -290,6 +291,17 @@ patientRouter.get('/:regid/history', authMiddleware, requirePermission('PATIENT_
         date: toDate(date),
         summary: i.summary || null,
         data: i.data ?? null,
+      });
+    }
+
+    for (const img of images) {
+      const date = img.createdAt;
+      const b = ensure(img.visitId, date);
+      b.labResults.push({
+        type: 'Media / Report',
+        date: toDate(date),
+        summary: img.description || 'Uploaded Media',
+        data: { url: img.picture },
       });
     }
 

@@ -273,6 +273,7 @@ export function HomeopathyConsultationLayoutV2({
       let lThermal = state.thermalReaction;
       let lRubrics = [...(state.suggestedRubrics || [])];
       let lScored: ScoredRemedy[] = [];
+      let lAdvice = state.advice;
 
       await runSteps('Building case', 'Summary · symptoms · remedy', ['Case analysis', 'Summary', 'Rubrics', 'Remedy suggestions', 'Prescription draft'], [
         // 1. Case extraction
@@ -306,7 +307,10 @@ export function HomeopathyConsultationLayoutV2({
             });
             // Lab-heavy cases land in Objective (labs are objective findings), so fall back to it.
             state.setCaseSummary([soap.subjective, soap.objective].filter(Boolean).join('\n\n') || '');
-            if (soap.advice) state.setAdvice(soap.advice);
+            if (soap.advice) {
+              lAdvice = soap.advice;
+              state.setAdvice(lAdvice);
+            }
           }
         },
         // 3. Rubrics
@@ -337,7 +341,7 @@ export function HomeopathyConsultationLayoutV2({
         async () => {
           // pickRemedy auto-sets the next review date from the remedy's days.
           if (lScored[0]) pickRemedy(lScored[0]);
-          if (!state.advice) state.setAdvice('Drink plenty of plain water\nKeep 30 minutes gap before and after medicine\nDo not self-medicate or change potency yourself');
+          if (!lAdvice) state.setAdvice('Drink plenty of plain water\nKeep 30 minutes gap before and after medicine\nDo not self-medicate or change potency yourself');
           // Only fall back to a 7-day review if no remedy was picked (and none set yet).
           if (!lScored[0] && !state.followUp) {
             const d = new Date(); d.setDate(d.getDate() + 7);
@@ -372,6 +376,14 @@ export function HomeopathyConsultationLayoutV2({
           } as any);
           setDiseaseScored(scoreData.scoredRemedies || []);
           if (scoreData.scoredRemedies?.[0]) pickRemedy(scoreData.scoredRemedies[0]);
+          
+          if (!state.advice) {
+            state.setAdvice('• Drink plenty of plain water\n• Keep 30 minutes gap before and after medicine\n• Do not self-medicate or change potency yourself');
+          }
+          if (!scoreData.scoredRemedies?.[0] && !state.followUp) {
+            const d = new Date(); d.setDate(d.getDate() + 7);
+            state.setFollowUp(d.toISOString().split('T')[0] || '');
+          }
         },
       ]);
       toast({ title: `Rubrics and remedies for ${disease}`, variant: 'success' });
@@ -453,8 +465,13 @@ export function HomeopathyConsultationLayoutV2({
   const patientGender = genderMap[(patient?.gender || '')] || (patient?.gender || '—');
   const mrn = `PT-${(patient as any)?.regid ?? visit.patientId ?? '—'}`;
 
-  // Fallback vitals from patient history if visit.vitals is empty
-  const hVitals = history?.visits?.find((v: any) => String(v.visitId) === String(visitId))?.vitals;
+  // Fallback vitals from patient history if visit.vitals is empty.
+  // When reception uploads vitals, they may have visitId=null but share the same date.
+  const targetDateStr = (visit.scheduledAt || visit.createdAt) ? String(visit.scheduledAt || visit.createdAt).split('T')[0] : null;
+  const hVitals = history?.visits?.find((v: any) => 
+    String(v.visitId) === String(visitId) || 
+    (v.visitId == null && v.visitDate && targetDateStr && String(v.visitDate).startsWith(targetDateStr))
+  )?.vitals;
   const fallbackVitals = hVitals ? {
     heightCm: hVitals.heightCm,
     weightKg: hVitals.weightKg,

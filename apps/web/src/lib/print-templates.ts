@@ -1018,7 +1018,7 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
   const isTitration = strategy === 'TITRATION';
 
   const headers = isRemedy
-    ? ['#', 'Date', 'Remedy', 'Potency', 'Frequency', 'Duration', 'Instructions']
+    ? ['#', 'Date', 'Remedy', 'Potency', 'Frequency', 'Duration']
     : isTitration
       ? ['#', 'Date', 'Medication', 'Current Dose', 'Frequency', 'Duration', 'Titration Notes']
       : ['#', 'Date', 'Medicine', 'Dose', 'Frequency', 'Duration', 'Instructions'];
@@ -1044,7 +1044,6 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
         <td>${escapeHtml(med.dosage) || '—'}</td>
         <td>${escapeHtml(med.frequency) || '—'}</td>
         <td>${escapeHtml(med.duration) || '—'}</td>
-        <td>${med.instructions ? escapeHtml(med.instructions) : '—'}</td>
       </tr>`;
     }
 
@@ -1138,7 +1137,6 @@ function renderMedications(meds: PrescriptionPrintData['medications'], strategy?
         <td><strong>${escapeHtml(med.name)}</strong></td>
         <td>${escapeHtml(med.dosage)}</td>
         <td>${med.route ? escapeHtml(med.route) : '—'}</td>
-        <td>${med.instructions ? escapeHtml(med.instructions) : '—'}</td>
         <td>${escapeHtml(med.frequency)}</td>
         <td>${escapeHtml(med.duration)}</td>
       </tr>
@@ -1153,7 +1151,6 @@ function renderMedications(meds: PrescriptionPrintData['medications'], strategy?
             <th>Remedy</th>
             <th>Potency</th>
             <th>Form</th>
-            <th>Dose</th>
             <th>Frequency</th>
             <th>Duration</th>
           </tr>

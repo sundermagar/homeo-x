@@ -194,7 +194,7 @@ export default function LoginPage() {
           <div className="login-form-side">
             <div className="login-form-card">
               {/* ─── Integrated Logo ─── */}
-              <div className="login-form-logo" style={{ alignItems: 'center', justifyContent: 'center', marginTop: '-32px', marginBottom: '36px' }}>
+              <div className="login-form-logo" style={{ alignItems: 'center', justifyContent: 'center', marginTop: '-24px', marginBottom: '16px' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '16px' }}>
                   <img src={mmcIconOrange} alt="MMC Icon" style={{ height: '48px', width: '48px', objectFit: 'contain', transform: 'scale(1.4)' }} />
                   <span style={{ fontSize: '36px', fontWeight: '800', color: '#1e3a8a', letterSpacing: '-0.5px' }}>MMC</span>

@@ -571,7 +571,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
    */
   async getPatientHistory(regid: number): Promise<{
     patient: { regid: number; firstName: string | null; surname: string | null; gender: string | null; dateOfBirth: string | null } | null;
-    vitals: any[]; soap: any[]; prescriptions: any[]; investigations: any[];
+    vitals: any[]; soap: any[]; prescriptions: any[]; investigations: any[]; images: any[];
   }> {
     const [patient] = await this.db
       .select({
@@ -586,10 +586,10 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .limit(1);
 
     if (!patient) {
-      return { patient: null, vitals: [], soap: [], prescriptions: [], investigations: [] };
+      return { patient: null, vitals: [], soap: [], prescriptions: [], investigations: [], images: [] };
     }
 
-    const [vitals, soap, prescriptions, investigations] = await Promise.all([
+    const [vitals, soap, prescriptions, investigations, images] = await Promise.all([
       this.db
         .select({
           id: schema.vitals.id, visitId: schema.vitals.visitId,
@@ -638,6 +638,12 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         .select()
         .from(schema.investigations)
         .where(and(eq(schema.investigations.regid, regid), isNull(schema.investigations.deletedAt))),
+
+      this.db
+        .select()
+        .from(schema.caseImages)
+        .where(and(eq(schema.caseImages.regid, regid), isNull(schema.caseImages.deletedAt)))
+        .orderBy(desc(schema.caseImages.createdAt)),
     ]);
 
     return { 
@@ -658,7 +664,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       }), 
       soap, 
       prescriptions, 
-      investigations 
+      investigations,
+      images,
     };
   }
 
