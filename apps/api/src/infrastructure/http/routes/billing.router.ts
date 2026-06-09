@@ -5,6 +5,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { requirePermission } from '../middleware/rbac.js';
 import { validate, validateQuery } from '../middleware/validate.js';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg.js';
 import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
 import { triggerNotificationToRoles } from '../notification-trigger.js';
 import {
@@ -133,13 +134,14 @@ export function createBillingRouter(): Router {
       const bill = result.data;
       const clinicId = (req as any).user?.contextId;
       void triggerNotificationToRoles({
-        roles: ['Account', 'Clinicadmin'],
+        roles: ['Account', 'Clinicadmin', 'Receptionist'],
         clinicId,
         type: 'INVOICE_GENERATED',
         title: 'Invoice Generated',
         message: `Bill #${bill.billNo ?? bill.id} — ₹${bill.charges} (received ₹${bill.received}).`,
         repo: new NotificationsRepositoryPg(req.tenantDb),
       });
+      DashboardRepositoryPg.clearQueueCache();
       res.status(201).json({ success: true, data: bill });
     }),
   );
@@ -159,13 +161,14 @@ export function createBillingRouter(): Router {
       const bill = result.data;
       const clinicId = (req as any).user?.contextId;
       void triggerNotificationToRoles({
-        roles: ['Account', 'Clinicadmin'],
+        roles: ['Account', 'Clinicadmin', 'Receptionist'],
         clinicId,
         type: 'INVOICE_GENERATED',
         title: 'Custom Invoice Generated',
         message: `Bill #${bill.billNo ?? bill.id} (${(bill as any).customTitle ?? 'custom'}) — ₹${bill.charges}.`,
         repo: new NotificationsRepositoryPg(req.tenantDb),
       });
+      DashboardRepositoryPg.clearQueueCache();
       res.status(201).json({ success: true, data: bill });
     }),
   );
@@ -229,6 +232,7 @@ export function createBillingRouter(): Router {
         res.status(400).json({ success: false, error: result.error });
         return;
       }
+      DashboardRepositoryPg.clearQueueCache();
       res.json({ success: true, data: result.data });
     }),
   );
@@ -249,6 +253,7 @@ export function createBillingRouter(): Router {
         res.status(400).json({ success: false, error: 'Failed to delete bill or bill not found' });
         return;
       }
+      DashboardRepositoryPg.clearQueueCache();
       res.json({ success: true });
     }),
   );
