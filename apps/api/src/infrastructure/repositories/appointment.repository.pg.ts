@@ -176,9 +176,10 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
       return sql`AND (
         CASE 
+          WHEN NULLIF(${sql.raw(col)}::text, '') IS NULL THEN NULL
           WHEN ${sql.raw(col)}::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN ${sql.raw(col)}::date
           WHEN ${sql.raw(col)}::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(${sql.raw(col)}::text, 'DD/MM/YYYY')
-          ELSE ${sql.raw(col)}::date
+          ELSE NULLIF(${sql.raw(col)}::text, '')::date
         END ${sql.raw(op)} TO_DATE(${dateVal}, ${format})
       )`;
     };
@@ -186,9 +187,10 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     const getBaseDateCompare = (col: string, op: string) => {
       return sql`(
         CASE 
+          WHEN NULLIF(${sql.raw(col)}::text, '') IS NULL THEN NULL
           WHEN ${sql.raw(col)}::text ~ '^\\d{4}-\\d{2}-\\d{2}' THEN ${sql.raw(col)}::date
           WHEN ${sql.raw(col)}::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(${sql.raw(col)}::text, 'DD/MM/YYYY')
-          ELSE ${sql.raw(col)}::date
+          ELSE NULLIF(${sql.raw(col)}::text, '')::date
         END ${sql.raw(op)} ${todayStr}::date
       )`;
     };
@@ -220,8 +222,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
           SELECT max(val) FROM (
             SELECT (
               CASE 
+                WHEN NULLIF(p2.next_date::text, '') IS NULL THEN NULL
                 WHEN p2.next_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(p2.next_date::text, 'DD/MM/YYYY')
-                ELSE p2.next_date::date
+                ELSE NULLIF(p2.next_date::text, '')::date
               END
             )::date as val
             FROM pending_appointments p2
@@ -240,7 +243,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
             UNION ALL
             
             SELECT (
-              CASE WHEN cp.dateval IS NOT NULL THEN (cp.dateval::date + (COALESCE(NULLIF(regexp_replace(cp.rxdays::text, '\\D', '', 'g'), ''), '0')::integer) * INTERVAL '1 day')::date ELSE NULL END
+              CASE WHEN NULLIF(cp.dateval::text, '') IS NOT NULL THEN (NULLIF(cp.dateval::text, '')::date + (COALESCE(NULLIF(regexp_replace(cp.rxdays::text, '\\D', '', 'g'), ''), '0')::integer) * INTERVAL '1 day')::date ELSE NULL END
             ) as val
             FROM case_potencies cp
             WHERE cp.regid = (SELECT regid FROM case_datas WHERE id = a.patient_id LIMIT 1)
@@ -260,8 +263,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         a.call_date::text as call_date,
         (
           CASE 
+            WHEN NULLIF(a.booking_date::text, '') IS NULL THEN NULL
             WHEN a.booking_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(a.booking_date::text, 'DD/MM/YYYY')
-            ELSE a.booking_date::date
+            ELSE NULLIF(a.booking_date::text, '')::date
           END
         )::date::text as last_date,
         a.notes::text as notes,
@@ -298,8 +302,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         NULL::integer as doctor_id,
         (
           CASE 
+            WHEN NULLIF(p.next_date::text, '') IS NULL THEN NULL
             WHEN p.next_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(p.next_date::text, 'DD/MM/YYYY')
-            ELSE p.next_date::date
+            ELSE NULLIF(p.next_date::text, '')::date
           END
         )::date as booking_date,
         NULL::text as booking_time,
@@ -311,8 +316,9 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         p.call_date::text as call_date,
         (
           CASE 
+            WHEN NULLIF(p.last_date::text, '') IS NULL THEN NULL
             WHEN p.last_date::text ~ '^\\d{2}/\\d{2}/\\d{4}' THEN TO_DATE(p.last_date::text, 'DD/MM/YYYY')
-            ELSE p.last_date::date
+            ELSE NULLIF(p.last_date::text, '')::date
           END
         )::date::text as last_date,
         NULL::text as notes,

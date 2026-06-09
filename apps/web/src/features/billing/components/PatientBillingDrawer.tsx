@@ -89,12 +89,12 @@ export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Pr
     if (!receivingGroup || receiveAmount <= 0) return;
     try {
       let remaining = receiveAmount;
+      const splitPayments = [];
       for (const bill of receivingGroup.bills) {
         if (remaining <= 0) break;
         if (bill.balance > 0) {
           const payAmt = Math.min(bill.balance, remaining);
-          await recordPayment.mutateAsync({
-            regid: bill.regid,
+          splitPayments.push({
             billId: bill.id,
             amount: payAmt,
             paymentMode: paymentMode,
@@ -102,6 +102,15 @@ export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Pr
           remaining -= payAmt;
         }
       }
+
+      if (splitPayments.length > 0) {
+        await recordPayment.mutateAsync({
+          regid: receivingGroup.regid,
+          splitPayments: splitPayments,
+          paymentMode: paymentMode,
+        });
+      }
+
       setReceivingGroup(null);
       setReceiveAmount(0);
     } catch (err) {

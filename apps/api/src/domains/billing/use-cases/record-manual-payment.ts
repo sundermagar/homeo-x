@@ -24,7 +24,7 @@ export class RecordManualPaymentUseCase {
         
         const p = await this.paymentRepo.create({
           regid: input.regid,
-          billId: input.billId,
+          billId: split.billId,
           amount: split.amount,
           currency: 'INR',
           status: 'Completed',

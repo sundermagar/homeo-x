@@ -41,7 +41,7 @@ import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal
 import { ReportUploadModal } from '../components/ReportUploadModal';
 import { PatientBillingDrawer } from '../../billing/components/PatientBillingDrawer';
 import { AssignPackageModal } from '../../packages/components/assign-package-modal';
-import { useBills } from '../../billing/hooks/use-billing';
+import { useBills, useCollectionSummary } from '../../billing/hooks/use-billing';
 import { apiClient } from '@/infrastructure/api-client';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { toast } from '@/hooks/use-toast';
@@ -325,6 +325,7 @@ export function ReceptionistDashboard() {
 
   const todayStr = new Date().toISOString().split('T')[0];
   const billsQuery = useBills({ page: 1, date: todayStr, limit: 1000 });
+  const { data: collectionSummary } = useCollectionSummary(todayStr);
 
   const getPatientBills = (regid: number) => {
     return billsQuery.data?.data?.filter((b: any) => b.regid === regid) || [];
@@ -410,7 +411,7 @@ export function ReceptionistDashboard() {
         <KPIItem label="Booked today" value={todayAppts.length} />
         <KPIItem label="In waiting room" value={todayAppts.filter(a => a.status === 'Waitlist').length} />
         <KPIItem label="Awaiting payment" value={awaitingPaymentCount} isHighlight={true} />
-        <KPIItem label="Collected (my till)" value={fmt(kpis?.todaysCollection || 0)} />
+        <KPIItem label="Today's Collection" value={fmt(collectionSummary?.totalReceived ?? kpis?.todaysCollection ?? 0)} />
       </div>
 
       {/* ── 2. QUICK OPERATIONS (Horizontal) ─────────────────────────── */}
