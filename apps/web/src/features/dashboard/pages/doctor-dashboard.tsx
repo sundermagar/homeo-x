@@ -278,7 +278,6 @@ export function DoctorDashboard() {
               </div>
               <div className="dd-active-green-title">
                 {activeConsultation.patientName}
-                <span className="dd-active-green-badge">FEE PAID ✓</span>
               </div>
               <div className="dd-active-green-meta">
                 {activeConsultation.age || '—'} Yrs {activeConsultation.gender?.charAt(0) || ''} · MRN-{activeConsultation.regid} · New case

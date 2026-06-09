@@ -19,6 +19,7 @@ import * as schema from '@mmc/database/schema';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
 import { sendSuccess } from '../../../shared/response-formatter.js';
 import { createLogger } from '../../../shared/logger.js';
+import { CourierRepositoryPg } from '../../repositories/courier.repository.pg.js';
 import { mlTrainingLogger } from '../../../domains/consultation/services/ml-training-logger.service.js';
 
 const logger = createLogger('consultations-router');
@@ -458,6 +459,29 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
         }
       } catch (err: any) {
         logger.warn({ visitId, err: err?.message || err }, 'Failed to generate consultation billing entries — non-fatal');
+      }
+    }
+
+    // Courier Queue Integration
+    const deliveryMode = String(req.body?.deliveryMode || '').toLowerCase();
+    if (patientRegid && (deliveryMode === 'courier' || deliveryMode === 'pickup')) {
+      try {
+        const courierRepo = new CourierRepositoryPg(db);
+        const randId = 'RX' + Date.now();
+        for (const item of rxItems) {
+          await courierRepo.create({
+            caseId: patientRegid,
+            regid: undefined,
+            randId,
+            remedy: item.remedy || item.medicationName || item.name || undefined,
+            potency: item.potency || item.specialtyData?.potency || item.dosage || undefined,
+            frequency: item.frequency || undefined,
+            days: item.duration ? String(item.duration).match(/(\d+)/)?.[1] || '0' : undefined,
+            postType: deliveryMode === 'pickup' ? 'Pickup' : 'Courier',
+          });
+        }
+      } catch (err: any) {
+        logger.warn({ visitId, err: err?.message || err }, 'Failed to create courier entries — non-fatal');
       }
     }
 

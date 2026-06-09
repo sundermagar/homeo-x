@@ -45,6 +45,7 @@ export interface Vitals {
   respiratoryRate?: number;
   oxygenSaturation?: number;
   bloodSugar?: number;
+  lmpDate?: string;
   notes?: string;
   recordedAt: string;
 }
@@ -73,7 +74,7 @@ export interface RecordVitalsInput {
   diastolicBp?: number;
   respiratoryRate?: number;
   oxygenSaturation?: number;
-  bloodSugar?: number;
+  lmpDate?: string;
   notes?: string;
 }
 

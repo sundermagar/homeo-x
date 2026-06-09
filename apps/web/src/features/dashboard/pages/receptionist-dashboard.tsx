@@ -37,6 +37,7 @@ import { AppointmentFormDrawer } from '../../appointments/components/appointment
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import { ReportUploadModal } from '../components/ReportUploadModal';
 import { PatientBillingDrawer } from '../../billing/components/PatientBillingDrawer';
+import { AssignPackageModal } from '../../packages/components/assign-package-modal';
 import { useBills } from '../../billing/hooks/use-billing';
 import { apiClient } from '@/infrastructure/api-client';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
@@ -86,10 +87,11 @@ export function ReceptionistDashboard() {
     }
   });
 
-  // Vitals modal state
   const [vitalsTarget, setVitalsTarget] = useState<{ regid: number; visitId: number } | null>(null);
   // Report upload modal state
   const [uploadTarget, setUploadTarget] = useState<{ regid: number; name: string } | null>(null);
+  // Assign package modal state
+  const [assignPackageTarget, setAssignPackageTarget] = useState<{ regid: number; name: string } | null>(null);
 
   const { useSendText } = useWhatsApp();
   const sendText = useSendText();
@@ -536,7 +538,7 @@ export function ReceptionistDashboard() {
           </div>
 
           <div className="rd-table-wrap">
-            <div className="pp-table-container pp-table-scroll db-scroll" style={{ overflowY: 'auto' }}>
+            <div className="pp-table-container pp-table-scroll db-scroll" style={{ overflowY: 'auto', maxHeight: '400px' }}>
               <table className="pp-table">
                 <thead>
                   <tr>
@@ -646,6 +648,15 @@ export function ReceptionistDashboard() {
                                 }}
                               >
                                 <CreditCard size={13} strokeWidth={1.6} /> Open Billing
+                              </button>
+                              <button
+                                className="appt-kebab-item"
+                                onClick={() => { 
+                                  setOpenMenuId(null); 
+                                  setAssignPackageTarget({ regid: appt.patientId || appt.regid, name: appt.patientName }); 
+                                }}
+                              >
+                                <Ticket size={13} strokeWidth={1.6} /> Assign Package
                               </button>
                             </div>,
                             document.body
@@ -809,6 +820,19 @@ export function ReceptionistDashboard() {
           patientName={billingDrawerTarget.name}
           isOpen={true}
           onClose={() => setBillingDrawerTarget(null)}
+        />
+      )}
+
+      {assignPackageTarget && (
+        <AssignPackageModal
+          patientId={assignPackageTarget.regid}
+          patientName={assignPackageTarget.name}
+          isOpen={true}
+          onClose={() => setAssignPackageTarget(null)}
+          onSuccess={() => {
+            setAssignPackageTarget(null);
+            toast({ description: 'Package assigned successfully', variant: 'success' });
+          }}
         />
       )}
     </div>

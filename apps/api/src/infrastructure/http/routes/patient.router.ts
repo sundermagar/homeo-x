@@ -4,6 +4,7 @@ import { createPatientSchema, updatePatientSchema, familyMemberSchema } from '@m
 import { PatientRepositoryPg } from '../../repositories/patient.repository.pg.js';
 import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
+import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg.js';
 import {
   ListPatientsUseCase,
   GetPatientUseCase,
@@ -170,6 +171,144 @@ patientRouter.get('/:regid', authMiddleware, requirePermission('PATIENT_VIEW'), 
     } else {
       res.status(404).json({ success: false, message: result.error });
     }
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/patients/:regid/history — aggregated past-visit history for the consultation sidebar.
+// Reuses getUnifiedCaseData (vitals/soap/prescriptions/investigations) and groups it by visit.
+patientRouter.get('/:regid/history', authMiddleware, requirePermission('PATIENT_VIEW'), async (req: Request, res: Response) => {
+  try {
+    const regid = Number(req.params.regid);
+    if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
+
+    const repo = new MedicalCaseRepositoryPg(req.tenantDb);
+    const full = await repo.getPatientHistory(regid);
+    if (!full.patient) { res.status(404).json({ success: false, message: 'Patient not found' }); return; }
+
+    const mc: any = {
+      regid: full.patient.regid,
+      patientName: [full.patient.firstName, full.patient.surname].filter(Boolean).join(' '),
+      dateOfBirth: full.patient.dateOfBirth,
+      gender: full.patient.gender,
+    };
+    const vitals: any[] = full.vitals || [];
+    const soap: any[] = full.soap || [];
+    const prescriptions: any[] = full.prescriptions || [];
+    const investigations: any[] = full.investigations || [];
+
+    const toDate = (v: any): string | null => {
+      if (!v) return null;
+      try { return new Date(v).toISOString(); } catch { return typeof v === 'string' ? v : null; }
+    };
+    const dayKey = (v: any): string => {
+      const iso = toDate(v);
+      return iso ? iso.slice(0, 10) : 'unknown';
+    };
+    type VisitBucket = {
+      visitId: string | null;
+      visitDate: string | null;
+      chiefComplaint: string;
+      assessment: string | null;
+      prescriptions: Array<{ remedyName: string; potency: string; dosage: string | null; instructions: string | null }>;
+      vitals: any | null;
+      labResults: Array<{ type: string; date: string | null; summary: string | null; data: unknown }>;
+    };
+    const buckets = new Map<string, VisitBucket>();
+    // Group everything by the visit DATE (day). Legacy prescriptions carry a null visitId, so
+    // keying purely by visitId would split a visit's SOAP note and its remedy into separate cards.
+    // Day-based keying merges SOAP, prescriptions, vitals and labs from the same day into one visit.
+    const ensure = (visitId: any, dateVal: any): VisitBucket => {
+      const key = `d:${dayKey(dateVal)}`;
+      let b = buckets.get(key);
+      if (!b) {
+        b = {
+          visitId: visitId != null && visitId !== '' ? String(visitId) : null,
+          visitDate: toDate(dateVal),
+          chiefComplaint: '',
+          assessment: null,
+          prescriptions: [],
+          vitals: null,
+          labResults: [],
+        };
+        buckets.set(key, b);
+      }
+      // Backfill the real visitId once any record on this day provides one (used to exclude the current visit).
+      if ((b.visitId == null || b.visitId === '') && visitId != null && visitId !== '') b.visitId = String(visitId);
+      if (!b.visitDate) b.visitDate = toDate(dateVal);
+      return b;
+    };
+
+    for (const s of soap) {
+      const date = s.visitDate || s.createdAt;
+      const b = ensure(s.visitId, date);
+      if (!b.chiefComplaint) b.chiefComplaint = s.subjective || '';
+      if (!b.assessment) b.assessment = s.assessment || null;
+    }
+
+    for (const p of prescriptions) {
+      const date = p.dateval || p.createdAt;
+      const b = ensure(p.visitId, date);
+      const days = p.days ?? p.rx_days;
+      const freq = p.frequencyTitle || p.frequency_name || p.frequency;
+      const dosage = [freq, days ? `${days} days` : null].filter(Boolean).join(' · ') || null;
+      b.prescriptions.push({
+        remedyName: p.medicineName || p.remedy_name || p.remedyName || '—',
+        potency: p.potencyName || p.potency_name || p.potency || '',
+        dosage,
+        instructions: p.instructions || p.prescription || null,
+      });
+    }
+
+    for (const v of vitals) {
+      const date = v.recordedAt;
+      const b = ensure(v.visitId, date);
+      // Keep the most recent vital for the visit (vitals are ordered desc, so first wins).
+      if (!b.vitals) {
+        b.vitals = {
+          heightCm: v.heightCm ?? null,
+          weightKg: v.weightKg ?? null,
+          bmi: v.bmi ?? null,
+          systolicBp: v.systolicBp ?? null,
+          diastolicBp: v.diastolicBp ?? null,
+          pulse: v.pulseRate ?? null,
+          temperature: v.temperatureF ?? null,
+          oxygenSaturation: v.oxygenSaturation ?? null,
+          respiratoryRate: v.respiratoryRate ?? null,
+          bloodSugar: v.bloodSugar ?? null,
+          lmpDate: v.lmpDate ?? null,
+        };
+      }
+    }
+
+    for (const i of investigations) {
+      const date = i.investDate || i.createdAt;
+      const b = ensure(i.visitId, date);
+      b.labResults.push({
+        type: i.type || 'Investigation',
+        date: toDate(date),
+        summary: i.summary || null,
+        data: i.data ?? null,
+      });
+    }
+
+    const visits = Array.from(buckets.values())
+      .sort((a, b) => (new Date(b.visitDate || 0).getTime()) - (new Date(a.visitDate || 0).getTime()));
+
+    res.json({
+      success: true,
+      data: {
+        patient: {
+          regid: mc.regid ?? regid,
+          name: mc.patientName || '',
+          dateOfBirth: mc.dateOfBirth || null,
+          gender: mc.gender || null,
+          mrn: `PT-${mc.regid ?? regid}`,
+        },
+        visits,
+      },
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }

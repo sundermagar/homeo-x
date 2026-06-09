@@ -234,7 +234,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           gender: schema.patients.gender,
           address: schema.patients.address,
           dateOfBirth: schema.patients.dateOfBirth,
-          abhaId: schema.patients.abhaId,
+          abhaId: sql<string | null>`abha_id`,
           city: schema.patients.city,
           state: schema.patients.state,
           doctorName: sql<string>`COALESCE(
@@ -271,7 +271,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             gender: schema.patients.gender,
             address: schema.patients.address,
             dateOfBirth: schema.patients.dateOfBirth,
-            abhaId: schema.patients.abhaId,
+            abhaId: sql<string | null>`abha_id`,
             city: schema.patients.city,
             state: schema.patients.state,
             referedBy: schema.patients.referedBy,
@@ -531,7 +531,20 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           paidAmount: totalPaid,
           outstandingBalance: balance
         } as MedicalCase,
-        vitals: vitalsRows as Vitals[],
+        vitals: vitalsRows.map((v) => {
+          let parsedNotes = v.notes;
+          let lmpDate = null;
+          if (v.notes && v.notes.startsWith('{')) {
+             try {
+                const p = JSON.parse(v.notes);
+                if (p && typeof p === 'object') {
+                  lmpDate = p.lmpDate || null;
+                  parsedNotes = p.notes || '';
+                }
+             } catch(e) {}
+          }
+          return { ...v, notes: parsedNotes, lmpDate };
+        }) as Vitals[],
         soap: soapRows as SoapNotes[],
         homeo,
         notes: notes as CaseNote[],
@@ -548,6 +561,105 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       console.error(`💥 [MedicalCaseRepositoryPg] Error in getUnifiedCaseData for regid ${regid}:`, err);
       throw err; // Re-throw to be caught by Express error handler
     }
+  }
+
+  /**
+   * Lightweight, dependency-free fetch of a patient's clinical history for the
+   * consultation sidebar. Only runs the clinical-table selects (patient header,
+   * vitals, SOAP, prescriptions, investigations) — avoids the heavier
+   * getUnifiedCaseData (billing/packages/etc) so it stays robust per-tenant.
+   */
+  async getPatientHistory(regid: number): Promise<{
+    patient: { regid: number; firstName: string | null; surname: string | null; gender: string | null; dateOfBirth: string | null } | null;
+    vitals: any[]; soap: any[]; prescriptions: any[]; investigations: any[];
+  }> {
+    const [patient] = await this.db
+      .select({
+        regid: schema.patients.regid,
+        firstName: schema.patients.firstName,
+        surname: schema.patients.surname,
+        gender: schema.patients.gender,
+        dateOfBirth: schema.patients.dateOfBirth,
+      })
+      .from(schema.patients)
+      .where(eq(schema.patients.regid, regid))
+      .limit(1);
+
+    if (!patient) {
+      return { patient: null, vitals: [], soap: [], prescriptions: [], investigations: [] };
+    }
+
+    const [vitals, soap, prescriptions, investigations] = await Promise.all([
+      this.db
+        .select({
+          id: schema.vitals.id, visitId: schema.vitals.visitId,
+          heightCm: schema.vitals.heightCm, weightKg: schema.vitals.weightKg, bmi: schema.vitals.bmi,
+          temperatureF: schema.vitals.temperatureF, pulseRate: schema.vitals.pulseRate,
+          systolicBp: schema.vitals.systolicBp, diastolicBp: schema.vitals.diastolicBp,
+          respiratoryRate: schema.vitals.respiratoryRate, oxygenSaturation: schema.vitals.oxygenSaturation,
+          bloodSugar: schema.vitals.bloodSugar, notes: schema.vitals.notes, recordedAt: schema.vitals.recordedAt,
+        })
+        .from(schema.vitals)
+        .where(eq(schema.vitals.regid, regid))
+        .orderBy(desc(schema.vitals.recordedAt)),
+
+      this.db
+        .select({
+          id: schema.legacySoapNotes.id, visitId: schema.legacySoapNotes.visitId,
+          subjective: schema.legacySoapNotes.subjective, assessment: schema.legacySoapNotes.assessment,
+          createdAt: schema.legacySoapNotes.createdAt, visitDate: schema.appointments.bookingDate,
+        })
+        .from(schema.legacySoapNotes)
+        .leftJoin(schema.appointments, eq(schema.legacySoapNotes.visitId, schema.appointments.id))
+        .where(eq(schema.legacySoapNotes.regid, regid))
+        .orderBy(desc(schema.legacySoapNotes.id)),
+
+      this.db
+        .select({
+          id: schema.legacyPrescriptions.id, visitId: schema.legacyPrescriptions.visitId,
+          dateval: schema.legacyPrescriptions.dateval, medicineName: schema.medicines.name,
+          potencyName: schema.potencies.name, frequencyTitle: schema.frequencies.title,
+          days: schema.legacyPrescriptions.days, instructions: schema.legacyPrescriptions.instructions,
+          createdAt: schema.legacyPrescriptions.createdAt, remedy_name: schema.legacyPrescriptions.rxremedy,
+          potency_name: schema.legacyPrescriptions.rxpotency, frequency_name: schema.legacyPrescriptions.rxfrequency,
+          rx_days: schema.legacyPrescriptions.rxdays, prescription: schema.legacyPrescriptions.rxprescription,
+        })
+        .from(schema.legacyPrescriptions)
+        .leftJoin(schema.medicines, eq(schema.legacyPrescriptions.medicineId, schema.medicines.id))
+        .leftJoin(schema.potencies, eq(schema.legacyPrescriptions.potencyId, schema.potencies.id))
+        .leftJoin(schema.frequencies, eq(schema.legacyPrescriptions.frequencyId, schema.frequencies.id))
+        .where(and(
+          eq(schema.legacyPrescriptions.regid, regid),
+          sql`(${schema.legacyPrescriptions.deletedAt} IS NULL OR CAST(${schema.legacyPrescriptions.deletedAt} AS text) = '')`,
+        ))
+        .orderBy(desc(schema.legacyPrescriptions.createdAt)),
+
+      this.db
+        .select()
+        .from(schema.investigations)
+        .where(and(eq(schema.investigations.regid, regid), isNull(schema.investigations.deletedAt))),
+    ]);
+
+    return { 
+      patient, 
+      vitals: vitals.map((v) => {
+        let parsedNotes = v.notes;
+        let lmpDate = null;
+        if (v.notes && v.notes.startsWith('{')) {
+           try {
+              const p = JSON.parse(v.notes);
+              if (p && typeof p === 'object') {
+                lmpDate = p.lmpDate || null;
+                parsedNotes = p.notes || '';
+              }
+           } catch(e) {}
+        }
+        return { ...v, notes: parsedNotes, lmpDate };
+      }), 
+      soap, 
+      prescriptions, 
+      investigations 
+    };
   }
 
   private async patchConstraint(table: string, column: string) {
@@ -570,8 +682,13 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     }
   }
 
-  async saveVitals(data: Partial<Vitals>): Promise<void> {
+  async saveVitals(data: Partial<Vitals & { lmpDate?: string }>): Promise<void> {
     try {
+      let finalNotes = data.notes;
+      if (data.lmpDate || (data.notes && data.notes.startsWith('{'))) {
+        finalNotes = JSON.stringify({ notes: data.notes || '', lmpDate: data.lmpDate || null });
+      }
+
       await this.db
         .insert(schema.vitals)
         .values({
@@ -587,7 +704,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           respiratoryRate: data.respiratoryRate,
           oxygenSaturation: data.oxygenSaturation,
           bloodSugar: data.bloodSugar,
-          notes: data.notes,
+          notes: finalNotes,
           recordedAt: data.recordedAt || new Date(),
         });
     } catch (err: any) {
@@ -597,11 +714,24 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
   }
 
   async getVitals(visitId: number): Promise<Vitals | null> {
+    // saveVitals always inserts a new row, so return the MOST RECENT one for this visit —
+    // otherwise an update wouldn't be reflected (an older row would be picked arbitrarily).
     const [row] = await this.db
       .select()
       .from(schema.vitals)
       .where(eq(schema.vitals.visitId, visitId))
+      .orderBy(desc(schema.vitals.recordedAt), desc(schema.vitals.id))
       .limit(1);
+
+    if (row && row.notes && row.notes.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(row.notes);
+        if (parsed && typeof parsed === 'object') {
+          (row as any).lmpDate = parsed.lmpDate || null;
+          row.notes = parsed.notes || '';
+        }
+      } catch (e) {}
+    }
 
     return (row as Vitals) || null;
   }

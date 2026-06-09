@@ -520,11 +520,34 @@ Respond ONLY with a JSON array in this exact format, no other text:
     }
 
     if (!extractedText) {
-      logger.warn({ filename: input.filename, pdfParseError }, 'No text extractable from PDF — returning empty');
-      // Return success with empty parsedText (the UI handles this gracefully)
-      // rather than a 500. Include the parse error in metadata so a doctor
-      // can see why the file didn't yield text.
-      return { parsedText: '', parseError: pdfParseError ?? 'No text found in PDF (likely scanned/image-only)' } as any;
+      // No machine-readable text — likely an image or a scanned/photographed PDF.
+      // Fall back to a VISION pass: hand the raw document to the model and let it OCR.
+      try {
+        const chain = this.providerChain || getAiProviderChain();
+        logger.info({ filename: input.filename, mimeType: input.mimeType }, '[parseLabReport] No PDF text — trying vision OCR');
+        const visionResp = await chain.complete({
+          systemPrompt: `You are a lab-report OCR + normalizer. You are given an IMAGE or scanned PDF of a lab report.
+Read EVERY test name, numeric value, unit and reference range exactly as printed. Group values by panel (CBC, LFT, RFT, Lipid, Thyroid, etc.) when possible.
+For EACH abnormal value append a flag in parentheses: (HIGH), (LOW) or (CRITICAL) — but ONLY when there is an explicit flag (H, L, *, ↑, ↓, "High", "Low") or the value is clearly outside a printed reference range. Never guess.
+Output clean markdown like:
+### Complete Blood Count
+- Hemoglobin: 8.2 g/dL (Ref: 12-16) (LOW)
+DO NOT invent values. DO NOT add interpretive prose. If the document contains no actual lab data, return the literal string "NO_LAB_DATA".`,
+          userPrompt: `Read this lab report ("${input.filename || 'report'}") and output the cleaned markdown summary now.`,
+          documents: [{ base64: input.base64, mimeType: input.mimeType || 'application/pdf' }],
+          maxTokens: 2000,
+          temperature: 0.1,
+        });
+        const visionText = (visionResp.content || '').trim();
+        if (visionText && visionText !== 'NO_LAB_DATA') {
+          logger.info({ filename: input.filename, responseLength: visionText.length }, '[parseLabReport] Vision OCR successful');
+          return { parsedText: visionText, normalizer: 'vision' } as any;
+        }
+      } catch (visErr: any) {
+        logger.warn({ err: visErr?.message, filename: input.filename }, '[parseLabReport] Vision OCR failed');
+      }
+      logger.warn({ filename: input.filename, pdfParseError }, 'No text extractable from report — returning empty');
+      return { parsedText: '', parseError: pdfParseError ?? 'No text found in the report (could not read values).' } as any;
     }
 
     // Step 2 — normalize the raw PDF text into clean markdown.

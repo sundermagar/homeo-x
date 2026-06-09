@@ -20,8 +20,8 @@
 
 @media (min-width: 1024px) {
   .dash-root {
-    height: calc(100vh - 130px);
-    overflow: hidden;
+    height: auto;
+    overflow: visible;
   }
   
   .rd-dual-grid {
@@ -1829,8 +1829,13 @@ button.pp-link:hover {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Instead of filling 100vh, doctor dashboard scrolls normally, 
-     but you can restrict max heights if preferred */
+}
+
+@media (min-width: 1024px) {
+  .dash-root.dd-v2-grid {
+    height: auto !important;
+    overflow: visible !important;
+  }
 }
 
 /* 1. Top Row: 60/40 Split */

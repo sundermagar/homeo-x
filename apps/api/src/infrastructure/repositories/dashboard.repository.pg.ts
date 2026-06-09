@@ -212,9 +212,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const { start, boundary, prevStart, prevBoundary } = this.getPeriodDates(period);
       const docCol = await this.getDoctorColumn();
 
-      const docApptFilter = doctorId ? sql` AND (${sql.identifier(docCol)} = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = ${sql.identifier(docCol)} UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = ${sql.identifier(docCol)}))` : sql``;
-      const docWaitFilter = doctorId ? sql` AND (doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = doctor_id))` : sql``;
-      const docBillFilter = doctorId ? sql` AND (b.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = b.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = b.doctor_id))` : sql``;
+      const docApptFilter = doctorId ? sql` AND (${sql.identifier(docCol)} = ${doctorId} OR REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '') IN (SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM doctors WHERE id = ${sql.identifier(docCol)} UNION SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM users WHERE id = ${sql.identifier(docCol)}))` : sql``;
+      const docWaitFilter = doctorId ? sql` AND (doctor_id = ${doctorId} OR REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '') IN (SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM doctors WHERE id = doctor_id UNION SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM users WHERE id = doctor_id))` : sql``;
+      const docBillFilter = doctorId ? sql` AND (b.doctor_id = ${doctorId} OR REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '') IN (SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM doctors WHERE id = b.doctor_id UNION SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM users WHERE id = b.doctor_id))` : sql``;
 
       // ── Single round-trip combining counts + finance + wait + followup ──
       // Previously this was 4 parallel sub-queries via Promise.all, but each
@@ -375,17 +375,20 @@ export class DashboardRepositoryPg implements IDashboardRepository {
     const dd = String(istDate.getDate()).padStart(2, '0');
     const today = `${y}-${mm}-${dd}`;
     return this.getCached(`queue:${contextId}:${today}:${doctorId ?? ''}`, 5_000, async () => {
-      const waitlistDocFilter = doctorId ? sql` AND (w.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = w.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = w.doctor_id))` : sql``;
-      const apptDocFilter = doctorId ? sql` AND (a.doctor_id = ${doctorId} OR LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))) IN (SELECT LOWER(TRIM(name)) FROM doctors WHERE id = a.doctor_id UNION SELECT LOWER(TRIM(name)) FROM users WHERE id = a.doctor_id))` : sql``;
+      const waitlistClinicFilter = contextId ? sql` AND (w.clinic_id = ${contextId} OR w.clinic_id IS NULL OR w.clinic_id = 0 OR w.clinic_id = 1)` : sql``;
+      const apptClinicFilter = contextId ? sql` AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL OR a.clinic_id = 0 OR a.clinic_id = 1)` : sql``;
+      const waitlistDocFilter = doctorId ? sql` AND (w.doctor_id = ${doctorId} OR REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '') IN (SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM doctors WHERE id = w.doctor_id UNION SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM users WHERE id = w.doctor_id))` : sql``;
+      const apptDocFilter = doctorId ? sql` AND (a.doctor_id = ${doctorId} OR REPLACE(LOWER(TRIM((SELECT name FROM users WHERE id = ${doctorId}))), 'dr. ', '') IN (SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM doctors WHERE id = a.doctor_id UNION SELECT REPLACE(LOWER(TRIM(name)), 'dr. ', '') FROM users WHERE id = a.doctor_id UNION SELECT REPLACE(LOWER(TRIM(assitant_doctor)), 'dr. ', '') FROM case_datas WHERE id = a.patient_id))` : sql``;
 
-      // Robust date filtering that handles both YYYY-MM-DD and DD/MM/YYYY formats
       const dateCond = sql`(
         w.date::text = ${today}
+        OR w.date::text LIKE '%' || ${today} || '%'
         OR w.date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY')
         OR w.date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
       )`;
       const apptDateCond = sql`(
         a.booking_date::text = ${today}
+        OR a.booking_date::text LIKE '%' || ${today} || '%'
         OR a.booking_date::text = TO_CHAR(${today}::date, 'DD/MM/YYYY')
         OR a.booking_date::text LIKE '%' || TO_CHAR(${today}::date, 'DD/MM/YYYY') || '%'
       )`;
@@ -404,7 +407,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             w.checked_in_at
           FROM waitlist w
           WHERE ${dateCond} AND (w.deleted_at IS NULL OR w.deleted_at::text = '')
-            AND (w.clinic_id = ${contextId} OR w.clinic_id IS NULL OR w.clinic_id = 0 OR w.clinic_id = 1)
+            ${waitlistClinicFilter}
             ${waitlistDocFilter}
         )
         SELECT
@@ -486,7 +489,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             a.visit_type as a_visit_type
           FROM appointments a
           WHERE ${apptDateCond} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
-            AND (a.clinic_id = ${contextId} OR a.clinic_id IS NULL OR a.clinic_id = 0 OR a.clinic_id = 1)
+            ${apptClinicFilter}
             ${apptDocFilter}
             AND NOT EXISTS (SELECT 1 FROM today_waitlist tw2 WHERE tw2.appointment_id = a.id)
         ) q
