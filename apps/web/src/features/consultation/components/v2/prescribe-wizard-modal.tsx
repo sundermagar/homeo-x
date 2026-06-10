@@ -117,8 +117,11 @@ export function PrescribeWizardModal({
 
   const hasActivePackage = !!activePackage;
 
-  // Derive total prescription days from the first rx item
-  const prescriptionDays = useMemo(() => parseDurationDays(rxItems[0]?.duration), [rxItems]);
+  // Derive total prescription days as the maximum across all rx items
+  const prescriptionDays = useMemo(() => {
+    if (!rxItems || rxItems.length === 0) return 0;
+    return Math.max(...rxItems.map(rx => parseDurationDays(rx?.duration)));
+  }, [rxItems]);
 
   // Find the matching day charge plan
   const matchedDayCharge = useMemo(
@@ -162,13 +165,6 @@ export function PrescribeWizardModal({
   if (!open) return null;
 
   const primary = rxItems[0];
-  const rxLabel = primary
-    ? `${primary.medicationName}${primary.dosage ? ' ' + primary.dosage : ''}`
-    : 'No remedy selected';
-  const followLabel = followUp ? ` · Follow-up ${followUp}` : '';
-  const detail = primary
-    ? `${[primary.frequency, primary.duration].filter(Boolean).join(' · ')}${followLabel}`
-    : '—';
 
   const additionalTotal = additionalCharges.reduce((sum, ac) => sum + ac.price * ac.quantity, 0);
   const totalCharges = consultationFee + medicineCharge + additionalTotal;
@@ -233,10 +229,23 @@ export function PrescribeWizardModal({
             </div>
 
             {/* Remedy summary */}
-            <div className="bg-[#FAFAF8] border border-[#E3E2DF] rounded-md p-3.5 mb-4">
-              <div className="text-[15px] font-semibold text-[#0F0F0E]">{rxLabel}</div>
-              <div className="text-[12.5px] text-[#4A4A47] mt-1.5 leading-relaxed">{detail}</div>
-              {advice && <div className="text-[12px] text-[#888786] mt-2 leading-relaxed whitespace-pre-line">{advice}</div>}
+            <div className="bg-[#FAFAF8] border border-[#E3E2DF] rounded-md p-3.5 mb-4 flex flex-col gap-3">
+              {rxItems.length > 0 ? rxItems.map((rx, idx) => {
+                const followLabel = followUp && idx === rxItems.length - 1 ? ` · Follow-up ${followUp}` : '';
+                return (
+                  <div key={idx} className={idx > 0 ? "pt-3 border-t border-[#E3E2DF]" : ""}>
+                    <div className="text-[15px] font-semibold text-[#0F0F0E]">
+                      {rx.medicationName}{rx.dosage ? ' ' + rx.dosage : ''}
+                    </div>
+                    <div className="text-[12.5px] text-[#4A4A47] mt-1.5 leading-relaxed">
+                      {[rx.frequency, rx.duration].filter(Boolean).join(' · ')}{followLabel}
+                    </div>
+                  </div>
+                );
+              }) : (
+                <div className="text-[15px] font-semibold text-[#0F0F0E]">No remedy selected</div>
+              )}
+              {advice && <div className="text-[12px] text-[#888786] mt-2 pt-2 border-t border-[#E3E2DF] leading-relaxed whitespace-pre-line">{advice}</div>}
             </div>
 
             {/* ── Billing charges ── */}

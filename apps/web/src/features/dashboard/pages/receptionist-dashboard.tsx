@@ -396,8 +396,8 @@ export function ReceptionistDashboard() {
     }
   };
 
-  if (isLoading) {
-    return <DashboardSkeleton />;
+  if (isLoading || isQueueLoading || followupsLoading) {
+    return <DashboardSkeleton role="receptionist" />;
   }
 
   const validBirthdays = birthdays.filter((b: BirthdayPatient) => b.mobile1 || b.phone);
@@ -462,11 +462,11 @@ export function ReceptionistDashboard() {
       {/* ── 3. ROW 1: New Patients + Finance Queue + Dispatch/Birthdays ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr 1fr', gap: '16px', marginBottom: '16px' }}>
 
-        {/* Today's New Patients */}
+        {/* Today's Patients */}
         <div className="rd-compact-card">
           <div className="rd-compact-card-header">
             <div className="rd-compact-card-title">
-              <UserCheck size={14} style={{ color: 'var(--pp-success-fg)' }} /> Today's New Patients
+              <UserCheck size={14} style={{ color: 'var(--pp-success-fg)' }} /> Today's Patients
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button
@@ -476,30 +476,40 @@ export function ReceptionistDashboard() {
               >
                 <Plus size={13} />
               </button>
-              <span className="dash-badge badge-success">{todayPatients?.length || 0}</span>
+              <span className="dash-badge badge-success">{Array.from(new Map(todayAppts.map((a: any) => [a.patientId || a.regid, a])).values()).length}</span>
             </div>
           </div>
-          <div className="rd-compact-card-body db-scroll" style={{ paddingRight: 4 }}>
-            {!todayPatients?.length ? (
-              <div className="rd-empty">No new registrations today</div>
+          <div className="rd-compact-card-body db-scroll" style={{ paddingRight: 4, maxHeight: '420px', overflowY: 'auto' }}>
+            {!todayAppts?.length ? (
+              <div className="rd-empty">No patients today</div>
             ) : (
-              todayPatients.map((p: any) => (
-                <div key={p.regid} className="rd-list-item">
+              Array.from(new Map(todayAppts.map((a: any) => [a.patientId || a.regid, a])).values()).map((p: any) => (
+                <div key={p.patientId || p.regid} className="rd-list-item">
                   <div className="rd-list-avatar" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                    {(p.fullName || 'U').charAt(0)}
+                    {(p.patientName || 'U').charAt(0)}
                   </div>
                   <div className="rd-list-info">
-                    <div className="rd-list-name">{p.fullName}</div>
-                    <div className="rd-list-sub">#{p.regid} · {p.doctorName || 'No doctor'}</div>
+                    <div className="rd-list-name">{p.patientName}</div>
+                    <div className="rd-list-sub">#{p.patientId || p.regid} · {p.doctorName || 'No doctor'}</div>
                   </div>
                   <div className="rd-list-actions">
-                    <button className="rd-action-pill" title="Add Vitals" onClick={() => setVitalsTarget({ regid: p.regid, visitId: 0 })}>
+                    <button 
+                      className="rd-action-pill" 
+                      style={p.vitals ? { color: 'var(--pp-success-fg)', background: 'rgba(16, 185, 129, 0.1)' } : {}}
+                      title="Add Vitals" 
+                      onClick={() => setVitalsTarget({ regid: p.patientId || p.regid, visitId: p.id })}
+                    >
                       <Stethoscope size={13} />
                     </button>
-                    <button className="rd-action-pill" title="Upload Report" onClick={() => setUploadTarget({ regid: p.regid, name: p.fullName })}>
+                    <button 
+                      className="rd-action-pill" 
+                      style={p.hasReports ? { color: 'var(--pp-success-fg)', background: 'rgba(16, 185, 129, 0.1)' } : {}}
+                      title="Upload Report" 
+                      onClick={() => setUploadTarget({ regid: p.patientId || p.regid, name: p.patientName })}
+                    >
                       <Upload size={13} />
                     </button>
-                    <button className="rd-action-pill" title="View Billing" onClick={() => setBillingDrawerTarget({ regid: p.regid, name: p.fullName })}>
+                    <button className="rd-action-pill" title="View Billing" onClick={() => setBillingDrawerTarget({ regid: p.patientId || p.regid, name: p.patientName })}>
                       <Eye size={13} />
                     </button>
                   </div>
@@ -517,7 +527,7 @@ export function ReceptionistDashboard() {
             </div>
             <span className="dash-badge badge-primary">{todayAppts.length}</span>
           </div>
-          <div className="rd-compact-card-body db-scroll" style={{ paddingRight: 4, paddingBottom: 12 }}>
+          <div className="rd-compact-card-body db-scroll" style={{ paddingRight: 4, paddingBottom: 12, maxHeight: '420px', overflowY: 'auto' }}>
             {todayAppts.length === 0 ? (
               <div className="rd-empty">No appointments today</div>
             ) : (

@@ -1,16 +1,19 @@
-import { useState } from 'react';
-import { ChevronLeft, Calendar, ChevronRight, Pill, FileText, ClipboardList, Scale, Ruler, Activity, HeartPulse, Thermometer, Droplets, Wind, Calculator, CalendarHeart, PlusCircle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { ChevronLeft, Calendar, ChevronRight, Pill, FileText, ClipboardList, Scale, Ruler, Activity, HeartPulse, Thermometer, Droplets, Wind, Calculator, CalendarHeart, PlusCircle, Shield, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../../../lib/cn';
 import type { PatientHistory, PatientHistoryVisit } from '../../../../hooks/use-patients';
 import type { Vitals } from '../../../../types/visit';
+import { useVaccines } from '../../../settings/hooks/use-settings';
+import { useFullMedicalCase, useManageClinicalRecords } from '../../../medical-case/hooks/use-medical-cases';
 
-type Tab = 'hx' | 'vit' | 'rx' | 'lab';
+type Tab = 'hx' | 'vit' | 'rx' | 'lab' | 'vac';
 
 interface ContextSidebarProps {
   collapsed: boolean;
+  patientId: number;
   patientName: string;
   patientInitials: string;
-  patientAge?: number;
+  patientAge?: number | string;
   patientGender: string;
   mrn: string;
   chiefComplaint?: string;
@@ -36,7 +39,7 @@ function fmtDate(iso: string | null): string {
   }
 }
 
-const TABS: { key: Tab; label: string }[] = [
+const BASE_TABS: { key: Tab; label: string }[] = [
   { key: 'hx', label: 'History' },
   { key: 'vit', label: 'Vitals' },
   { key: 'rx', label: 'Past Rx' },
@@ -45,6 +48,7 @@ const TABS: { key: Tab; label: string }[] = [
 
 export function ContextSidebar({
   collapsed,
+  patientId,
   patientName,
   patientInitials,
   patientAge,
@@ -62,7 +66,82 @@ export function ContextSidebar({
   onBackToQueue,
   onRepeatRx,
 }: ContextSidebarProps) {
-  const [tab, setTab] = useState<Tab>('hx');
+  const [activeTab, setActiveTab] = useState<Tab>('hx');
+
+  // Fetch all configured vaccines in settings
+  const { data: configuredVaccines = [] } = useVaccines();
+
+  // Fetch case vaccines
+  const { data: fullData } = useFullMedicalCase(patientId);
+  const caseVaccines = fullData?.vaccines || [];
+  const { saveVaccine } = useManageClinicalRecords();
+  const [savingVaccineId, setSavingVaccineId] = useState<number | null>(null);
+
+  const handleMarkDone = async (vaccineId: number) => {
+    setSavingVaccineId(vaccineId);
+    try {
+      await saveVaccine.mutateAsync({ regid: patientId, vaccineId, notes: 'Administered' });
+    } finally {
+      setSavingVaccineId(null);
+    }
+  };
+
+  // Determine applicable vaccines for this patient's age
+  const numericAge = typeof patientAge === 'string' ? parseFloat(patientAge) : patientAge;
+  const patientAgeInMonths = numericAge != null && !isNaN(numericAge) ? numericAge * 12 : undefined;
+
+  const applicableVaccines = patientAgeInMonths != null
+    ? configuredVaccines.filter((v: any) => {
+      if (v.months == null || v.months < patientAgeInMonths || v.months >= patientAgeInMonths + 12 || v.parentId === 0) return false;
+
+      // Smart gender filtering based on label
+      const lowerLabel = (v.label || '').toLowerCase();
+      const pGender = (patientGender || '').toLowerCase();
+      if (lowerLabel.includes('(females)') && pGender !== 'female') return false;
+      if (lowerLabel.includes('(males)') && pGender !== 'male') return false;
+
+      return true;
+    })
+    : [];
+
+  const TABS = [...BASE_TABS];
+  if (applicableVaccines.length > 0) {
+    TABS.push({ key: 'vac', label: 'Vaccines' });
+  }
+
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = () => {
+    if (tabsContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollWidth > clientWidth && scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const el = tabsContainerRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+      // ensure we check after layout completes
+      const timeout = setTimeout(checkScroll, 100);
+      return () => {
+        el.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+        clearTimeout(timeout);
+      };
+    }
+  }, [TABS.length]);
+
+  const scrollTabs = (dir: 'left' | 'right') => {
+    if (tabsContainerRef.current) {
+      tabsContainerRef.current.scrollBy({ left: dir === 'left' ? -120 : 120, behavior: 'smooth' });
+    }
+  };
 
   // Show only genuine PAST visits: drop the visit being consulted right now, and drop
   // empty placeholder records (no complaint / remedy / diagnosis / labs / vitals).
@@ -91,7 +170,7 @@ export function ContextSidebar({
       { k: 'Pulse', v: currentVitals.pulseRate != null ? String(currentVitals.pulseRate) : '—', Icon: HeartPulse },
       { k: 'Temp', v: currentVitals.temperatureF != null ? `${currentVitals.temperatureF}°` : '—', Icon: Thermometer },
       { k: 'SpO₂', v: currentVitals.oxygenSaturation != null ? `${currentVitals.oxygenSaturation}%` : '—', Icon: Droplets },
-      { k: 'Resp', v: currentVitals.respiratoryRate != null ? String(currentVitals.respiratoryRate) : '—', Icon: Wind },
+      { k: 'Resp', v: currentVitals.respiratoryRate != null ? `${currentVitals.respiratoryRate}` : '—', Icon: Wind },
       { k: 'LMP', v: currentVitals.lmpDate != null ? fmtDate(currentVitals.lmpDate) : '—', Icon: CalendarHeart },
     ].filter(c => c.v !== '—')
     : [];
@@ -131,14 +210,14 @@ export function ContextSidebar({
 
       {/* Tabs Header (Fixed) */}
       <div className="px-3.5 py-3 border-b border-[#E2E8F0] bg-white shrink-0 z-10">
-        <div className="flex gap-1 flex-wrap">
+        <div className={cn("flex gap-1 flex-nowrap overflow-x-auto pb-2 transition-all", TABS.length > 4 ? "db-scroll" : "[&::-webkit-scrollbar]:hidden")}>
           {TABS.map((t) => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => setActiveTab(t.key)}
               className={cn(
-                'px-3 py-1.5 text-[11.5px] font-medium rounded-lg transition-all',
-                tab === t.key ? 'text-[#2563EB] bg-[#EFF6FF] font-semibold shadow-sm ring-1 ring-[#BFDBFE]' : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F0F0E]',
+                'whitespace-nowrap shrink-0 px-2.5 py-1.5 text-[11.5px] font-medium rounded-lg transition-all border flex items-center justify-center',
+                activeTab === t.key ? 'text-[#2563EB] bg-[#EFF6FF] font-semibold shadow-sm border-[#BFDBFE]' : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F0F0E] border-transparent',
               )}
             >
               {t.label}
@@ -152,7 +231,7 @@ export function ContextSidebar({
         {isHistoryLoading && <p className="text-[12px] text-[#888786] italic px-1 py-3">Loading history…</p>}
 
         {/* History */}
-        {!isHistoryLoading && tab === 'hx' && (
+        {!isHistoryLoading && activeTab === 'hx' && (
           <div className="space-y-2">
             {visits.length === 0 && <p className="text-[12px] text-[#888786] italic px-1 py-3">No previous visits.</p>}
             {visits.map((v, i) => {
@@ -168,7 +247,7 @@ export function ContextSidebar({
                     </div>
                     <ChevronRight className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#3B82F6] group-hover:translate-x-0.5 transition-all" />
                   </div>
-                  
+
                   <div className="space-y-2.5">
                     {v.chiefComplaint && (
                       <div className="flex items-start gap-2">
@@ -178,7 +257,7 @@ export function ContextSidebar({
                         </div>
                       </div>
                     )}
-                    
+
                     {remedy !== '—' && (
                       <div className="flex items-start gap-2">
                         <Pill className="w-3.5 h-3.5 text-[#3B82F6] mt-0.5 shrink-0" />
@@ -187,7 +266,7 @@ export function ContextSidebar({
                         </div>
                       </div>
                     )}
-                    
+
                     {!v.chiefComplaint && remedy === '—' && (
                       <div className="text-[12px] italic text-[#888786]">Empty record</div>
                     )}
@@ -199,18 +278,18 @@ export function ContextSidebar({
         )}
 
         {/* Vitals */}
-        {!isHistoryLoading && tab === 'vit' && (
+        {!isHistoryLoading && activeTab === 'vit' && (
           <div className="flex flex-col h-full space-y-2.5">
             <div>
-              <button 
-                onClick={onUpdateVitals} 
+              <button
+                onClick={onUpdateVitals}
                 className="w-full flex items-center justify-center gap-2 bg-[#F8FAFC] border border-dashed border-[#BFDBFE] hover:bg-[#EFF6FF] hover:border-[#3B82F6] hover:text-[#2563EB] text-[#3B82F6] text-[12px] font-semibold py-2.5 rounded-xl transition-all mb-2"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Update Vitals</span>
               </button>
             </div>
-            
+
             <div className="overflow-y-auto pb-4">
               {vitalCells.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
@@ -232,7 +311,7 @@ export function ContextSidebar({
         )}
 
         {/* Past Rx */}
-        {!isHistoryLoading && tab === 'rx' && (
+        {!isHistoryLoading && activeTab === 'rx' && (
           <div className="space-y-2.5">
             {allRx.length === 0 && <p className="text-[12px] text-[#888786] italic px-1 py-3">No past prescriptions.</p>}
             {allRx.map((p, i) => (
@@ -264,7 +343,7 @@ export function ContextSidebar({
         )}
 
         {/* Labs */}
-        {!isHistoryLoading && tab === 'lab' && (
+        {!isHistoryLoading && activeTab === 'lab' && (
           <div className="flex flex-col h-full space-y-2.5">
             <div>
               <button
@@ -275,14 +354,14 @@ export function ContextSidebar({
                 <span>Upload Lab Report</span>
               </button>
             </div>
-            
+
             {allLabs.length === 0 && <p className="text-[12px] text-[#888786] italic px-1 py-3">No lab results.</p>}
-            
+
             <div className="space-y-2.5 overflow-y-auto pb-4">
               {allLabs.map((l, i) => (
-                <button 
-                  key={i} 
-                  onClick={() => onViewLab?.(l)} 
+                <button
+                  key={i}
+                  onClick={() => onViewLab?.(l)}
                   className="w-full text-left p-3 bg-white border border-[#E3E2DF] rounded-xl hover:border-[#BFDBFE] hover:shadow-[0_2px_12px_rgba(37,99,235,0.08)] hover:bg-[#F8FAFC] transition-all duration-200 block group"
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
@@ -292,7 +371,7 @@ export function ContextSidebar({
                     </div>
                     <ChevronRight className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#3B82F6] group-hover:translate-x-0.5 transition-all" />
                   </div>
-                  
+
                   <div className="flex items-start gap-1.5">
                     <FileText className="w-3.5 h-3.5 text-[#8B5CF6] mt-0.5 shrink-0" />
                     <div className="flex flex-col min-w-0">
@@ -303,6 +382,55 @@ export function ContextSidebar({
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Vaccines */}
+        {!isHistoryLoading && activeTab === 'vac' && applicableVaccines.length > 0 && (
+          <div className="flex flex-col gap-3 pb-4">
+            {applicableVaccines.map((v: any) => {
+              const isDone = caseVaccines.some((cv: any) => cv.vaccineId === v.id);
+              const doneRecord = caseVaccines.find((cv: any) => cv.vaccineId === v.id);
+
+              return (
+                <div key={v.id} className="p-3 bg-white rounded-xl border border-[#E2E8F0] shadow-sm flex flex-col gap-2 relative">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
+                      <Shield className="w-4 h-4 text-[#2563EB]" />
+                    </div>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-[13px] font-bold text-[#0F0F0E] truncate leading-tight">{v.label}</span>
+                      {v.description && (
+                        <span className="text-[11px] text-[#64748B] truncate mt-0.5">{v.description}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-1 border-t border-[#F1F5F9] pt-2">
+                    <span className="text-[10px] font-bold text-[#475569] uppercase tracking-wider bg-[#F8FAFC] px-2 py-0.5 rounded-md border border-[#E2E8F0]">
+                      {v.months === 0 ? 'At Birth' : `${v.months} Months`}
+                    </span>
+                    {isDone ? (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-[#16A34A] bg-[#F0FDF4] px-2.5 py-1 rounded-full border border-[#BBF7D0]">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Administered
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleMarkDone(v.id)}
+                        disabled={savingVaccineId === v.id}
+                        className="text-[11px] font-bold text-[#2563EB] bg-white border border-[#BFDBFE] px-2.5 py-1 rounded-md hover:bg-[#EFF6FF] transition-colors disabled:opacity-50"
+                      >
+                        {savingVaccineId === v.id ? 'Saving...' : 'Mark Done'}
+                      </button>
+                    )}
+                  </div>
+                  {isDone && doneRecord?.createdAt && (
+                    <div className="text-[10px] text-[#64748B] mt-1 text-right">
+                      Given on {new Date(doneRecord.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

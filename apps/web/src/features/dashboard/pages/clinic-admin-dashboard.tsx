@@ -70,7 +70,7 @@ export function ClinicAdminDashboard() {
   const { data: monthData, isLoading: isMonthLoading } = useClinicAdminDashboard('month');
 
   if (isDayLoading || isMonthLoading || !dayData || !monthData) {
-    return <DashboardSkeleton />;
+    return <DashboardSkeleton role="clinic-admin" />;
   }
 
   const {

@@ -289,7 +289,7 @@ patientRouter.get('/:regid/history', authMiddleware, requirePermission('PATIENT_
     }
 
     for (const i of investigations) {
-      const date = i.investDate || i.createdAt;
+      const date = i.createdAt;
       const b = ensure(i.visitId, date);
       b.labResults.push({
         type: i.type || 'Investigation',

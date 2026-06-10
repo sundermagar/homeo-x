@@ -595,6 +595,7 @@ export function HomeopathyConsultationLayoutV2({
       {/* LEFT */}
       <ContextSidebar
         collapsed={sidebarCollapsed}
+        patientId={Number(historyId)}
         patientName={patientName}
         patientInitials={patientInitials}
         patientAge={patientAge}
@@ -686,14 +687,19 @@ export function HomeopathyConsultationLayoutV2({
 
                 {path === 'summary' && analysisReady && (
                   <AnalysisCard
-                    caseSummary={state.caseSummary}
-                    onCaseSummaryChange={state.setCaseSummary}
+                    caseSummary={state.soapData.assessment}
+                    onCaseSummaryChange={(v) => state.setSoapData((p) => ({ ...p, assessment: v }))}
                     symptoms={state.categorizedSymptoms}
+                    onSymptomsChange={state.setCategorizedSymptoms}
                     thermal={state.thermalReaction}
+                    onThermalChange={state.setThermalReaction}
                     miasm={state.miasm}
+                    onMiasmChange={state.setMiasm}
                     thirst={state.thirstPattern}
+                    onThirstChange={state.setThirstPattern}
                     causation={state.causation}
-                    remedies={remedies}
+                    onCausationChange={state.setCausation}
+                    remedies={state.scoredRemedies}
                     selectedRemedies={selectedRemedyNames}
                     onPick={pickRemedy}
                   />
@@ -920,15 +926,28 @@ function Chip({ text, tone }: { text: string; tone: 'phy' | 'mind' | 'fu' }) {
 }
 
 function AnalysisCard({
-  caseSummary, onCaseSummaryChange, symptoms, thermal, miasm, thirst, causation, remedies, selectedRemedies, onPick,
+  caseSummary, onCaseSummaryChange, 
+  symptoms, onSymptomsChange,
+  thermal, onThermalChange,
+  miasm, onMiasmChange,
+  thirst, onThirstChange,
+  causation, onCausationChange,
+  remedies, selectedRemedies, onPick,
 }: {
   caseSummary: string; onCaseSummaryChange: (v: string) => void;
   symptoms: { mental: string[]; physical: string[]; particular: string[] };
-  thermal?: string; miasm?: string; thirst?: string; causation?: string;
+  onSymptomsChange?: (v: { mental: string[]; physical: string[]; particular: string[] }) => void;
+  thermal?: string; onThermalChange?: (v: string) => void;
+  miasm?: string; onMiasmChange?: (v: string) => void;
+  thirst?: string; onThirstChange?: (v: string) => void;
+  causation?: string; onCausationChange?: (v: string) => void;
   remedies: ScoredRemedy[]; selectedRemedies: string[]; onPick: (r: ScoredRemedy) => void;
 }) {
+  const { data: lookups } = useRemedyLookups();
+  const medicineOptions = (lookups?.medicines || []).map((m) => m.name);
+
   return (
-    <div className="pp-card overflow-hidden">
+    <div className="pp-card">
       <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-[#E3E2DF] bg-[#F4F3F1]">
         <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
         <span className="text-[10px] font-semibold uppercase tracking-widest text-[#888786]">AI analysis</span>
@@ -943,19 +962,31 @@ function AnalysisCard({
         <div className="h-px bg-[#E3E2DF] my-3.5" />
         <div className="text-[10px] font-semibold uppercase tracking-wide text-[#888786] mb-2">Symptoms</div>
         <div className="grid grid-cols-3 gap-2 max-md:grid-cols-1">
-          <SymptomGroup label="Mental" items={symptoms.mental} tone="mind" />
-          <SymptomGroup label="Physical / General" items={symptoms.physical} tone="phy" />
-          <SymptomGroup label="Particular" items={symptoms.particular} tone="fu" />
+          <EditableSymptomGroup 
+            label="Mental" 
+            value={symptoms.mental.join(', ')} 
+            onChange={(v) => onSymptomsChange?.({ ...symptoms, mental: v.split(',').map(s => s.trim()).filter(Boolean) })} 
+          />
+          <EditableSymptomGroup 
+            label="Physical / General" 
+            value={symptoms.physical.join(', ')} 
+            onChange={(v) => onSymptomsChange?.({ ...symptoms, physical: v.split(',').map(s => s.trim()).filter(Boolean) })} 
+          />
+          <EditableSymptomGroup 
+            label="Particular" 
+            value={symptoms.particular.join(', ')} 
+            onChange={(v) => onSymptomsChange?.({ ...symptoms, particular: v.split(',').map(s => s.trim()).filter(Boolean) })} 
+          />
         </div>
 
         {/* Always show constitutional factors (empty cells render a "—"). */}
         <div className="h-px bg-[#E3E2DF] my-3.5" />
         <div className="text-[10px] font-semibold uppercase tracking-wide text-[#888786] mb-2">Constitutional factors</div>
         <div className="grid grid-cols-4 gap-2 max-md:grid-cols-2">
-          <SymptomGroup label="Thermal" items={thermal ? [thermal] : []} tone="phy" />
-          <SymptomGroup label="Miasm" items={miasm ? [miasm] : []} tone="mind" />
-          <SymptomGroup label="Thirst" items={thirst ? [thirst] : []} tone="phy" />
-          <SymptomGroup label="Causation" items={causation ? [causation] : []} tone="fu" />
+          <EditableSymptomGroup label="Thermal" value={thermal || ''} onChange={(v) => onThermalChange?.(v)} />
+          <EditableSymptomGroup label="Miasm" value={miasm || ''} onChange={(v) => onMiasmChange?.(v)} />
+          <EditableSymptomGroup label="Thirst" value={thirst || ''} onChange={(v) => onThirstChange?.(v)} />
+          <EditableSymptomGroup label="Causation" value={causation || ''} onChange={(v) => onCausationChange?.(v)} />
         </div>
 
         {remedies.length > 0 && (
@@ -965,16 +996,37 @@ function AnalysisCard({
             <RemedyList remedies={remedies} selectedRemedies={selectedRemedies} onPick={onPick} />
           </>
         )}
+
+        <div className="h-px bg-[#E3E2DF] my-3.5" />
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-[#888786] mb-2">Add custom remedy</div>
+        <SearchableSelect 
+          value=""
+          onChange={(v) => { if(v) onPick({ remedyName: v, remedyId: v, normalizedScore: 0 } as any) }}
+          options={medicineOptions}
+          placeholder="Search and add a remedy manually..."
+        />
       </div>
     </div>
   );
 }
 
-function SymptomGroup({ label, items, tone }: { label: string; items: string[]; tone: 'phy' | 'mind' | 'fu' }) {
+function EditableSymptomGroup({ label, value, onChange, placeholder = '—' }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const [localValue, setLocalValue] = React.useState(value);
+
+  React.useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
   return (
-    <div className="bg-[#F4F3F1] border border-[#E3E2DF] rounded-md p-2.5">
-      <div className="text-[9px] font-semibold uppercase tracking-wide text-[#888786] mb-2">{label}</div>
-      {items.length ? items.map((s, i) => <Chip key={i} text={s} tone={tone} />) : <span className="text-[11px] text-[#888786] italic">—</span>}
+    <div className="bg-[#F4F3F1] border border-[#E3E2DF] rounded-md p-2.5 flex flex-col group transition-colors focus-within:border-[#2563EB] focus-within:bg-[#EFF6FF] min-h-[60px]">
+      <div className="text-[9px] font-semibold uppercase tracking-wide text-[#888786] mb-2 group-focus-within:text-[#2563EB]">{label}</div>
+      <AutoSizeTextarea 
+        value={localValue} 
+        onChange={(e) => setLocalValue(e.target.value)} 
+        onBlur={() => onChange(localValue)}
+        placeholder={placeholder}
+        className="w-full bg-transparent text-[11.5px] font-medium text-[#4A4A47] outline-none resize-none placeholder:text-[#888786] p-0" 
+      />
     </div>
   );
 }
@@ -1037,13 +1089,11 @@ function RxDraftCard({
               <input value={rx.medicationName} onChange={(e) => onUpdate(idx, 'medicationName', e.target.value)}
                 className="text-[17px] font-semibold tracking-tight bg-transparent outline-none text-[#0F0F0E] min-w-0 flex-1" />
               <span className="text-[13px] font-semibold px-3 py-1 rounded-full bg-[#2563EB] text-white shrink-0">{rx.dosage}</span>
-              {rxItems.length > 1 && (
-                <button onClick={() => onRemove(idx)}
-                  className="w-6 h-6 rounded-full bg-red-50 border border-red-200 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors shrink-0"
-                  title="Remove remedy">
-                  <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-                </button>
-              )}
+              <button onClick={() => onRemove(idx)}
+                className="w-6 h-6 rounded-full bg-red-50 border border-red-200 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors shrink-0"
+                title="Remove remedy">
+                <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+              </button>
             </div>
             <div className="grid grid-cols-3 gap-2.5 max-md:grid-cols-2">
               <RxField label="Potency">
@@ -1076,8 +1126,6 @@ function RxDraftCard({
 }
 
 function ManualEntry({ state }: { state: UseConsultationStateReturn }) {
-  const rx = state.rxItems[0];
-  // Same option sources as the case-history remedy chart
   const { data: lookups } = useRemedyLookups();
   const { data: dayCharges = [] } = useDayCharges();
   const medicineOptions = (lookups?.medicines || []).map((m) => m.name);
@@ -1087,25 +1135,48 @@ function ManualEntry({ state }: { state: UseConsultationStateReturn }) {
 
   const inputCls = 'w-full px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] bg-white text-[14px] text-[#0F0F0E] font-medium outline-none focus:border-[#3B82F6] focus:ring-4 focus:ring-[#EFF6FF] transition-all hover:border-[#CBD5E1]';
   const taCls = 'w-full px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] bg-white text-[14px] leading-relaxed text-[#0F0F0E] font-medium outline-none focus:border-[#3B82F6] focus:ring-4 focus:ring-[#EFF6FF] transition-all hover:border-[#CBD5E1] resize-y';
-  const update = (field: keyof CreatePrescriptionItemInput, value: string) => {
+  
+  const items = state.rxItems.length > 0 ? state.rxItems : [{ medicationName: '', genericName: '', dosage: '', frequency: '', duration: '', route: 'Globules', instructions: '' } as CreatePrescriptionItemInput];
+
+  const update = (idx: number, field: keyof CreatePrescriptionItemInput, value: string) => {
     state.setRxItems((prev) => {
-      const next = prev.length ? [...prev] : [{ medicationName: '', genericName: '', dosage: '', frequency: '', duration: '', route: 'Globules', instructions: '' }];
-      next[0] = { ...next[0], [field]: value } as CreatePrescriptionItemInput;
+      const next = prev.length ? [...prev] : [{ medicationName: '', genericName: '', dosage: '', frequency: '', duration: '', route: 'Globules', instructions: '' } as CreatePrescriptionItemInput];
+      if (!next[idx]) {
+        next[idx] = { medicationName: '', genericName: '', dosage: '', frequency: '', duration: '', route: 'Globules', instructions: '' } as CreatePrescriptionItemInput;
+      }
+      next[idx] = { ...next[idx], [field]: value } as CreatePrescriptionItemInput;
       return next;
     });
   };
-  // Days are stored on `duration` as e.g. "7 days"; the select works on the bare number (case-history parity).
-  const daysValue = (rx?.duration || '').replace(/\s*days?$/i, '');
-  // Selecting days auto-updates the next review date (today + N days).
-  const onDaysChange = (v: string) => {
-    update('duration', v ? `${v} days` : '');
+
+  const addRemedy = () => {
+    state.setRxItems((prev) => {
+      const current = prev.length ? [...prev] : [{ medicationName: '', genericName: '', dosage: '', frequency: '', duration: '', route: 'Globules', instructions: '' } as CreatePrescriptionItemInput];
+      return [...current, { medicationName: '', genericName: '', dosage: '', frequency: '', duration: '', route: 'Globules', instructions: '' } as CreatePrescriptionItemInput];
+    });
+  };
+
+  const removeRemedy = (idx: number) => {
+    state.setRxItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const onDaysChange = (idx: number, v: string) => {
+    update(idx, 'duration', v ? `${v} days` : '');
     const n = parseInt(v, 10);
     if (!isNaN(n) && n > 0) {
+      let maxD = n;
+      items.forEach((r, i) => {
+         if (i !== idx) {
+           const d = parseInt(String(r.duration).replace(/\s*days?$/i, ''), 10) || 0;
+           if (d > maxD) maxD = d;
+         }
+      });
       const d = new Date();
-      d.setDate(d.getDate() + n);
+      d.setDate(d.getDate() + maxD);
       state.setFollowUp(d.toISOString().split('T')[0] || '');
     }
   };
+
   return (
     // No overflow-hidden here — it would clip the searchable dropdowns (e.g. Days) and break their scrolling.
     <div className="bg-white border border-[#E2E8F0] shadow-sm rounded-2xl">
@@ -1123,29 +1194,46 @@ function ManualEntry({ state }: { state: UseConsultationStateReturn }) {
           <input value={state.soapData.assessment} onChange={(e) => state.setSoapData((p) => ({ ...p, assessment: e.target.value }))} className={inputCls} />
         </div>
         
-        <div className="pt-4 border-t border-[#F1F5F9]">
-          <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-widest text-[#64748B] mb-2">Remedy</label>
-              <SearchableSelect value={rx?.medicationName || ''} onChange={(v) => update('medicationName', v)} options={medicineOptions} placeholder="Select remedy" />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-widest text-[#64748B] mb-2">Potency</label>
-              <SearchableSelect value={rx?.dosage || ''} onChange={(v) => update('dosage', v)} options={potencyOptions} placeholder="Select potency" />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-widest text-[#64748B] mb-2">Frequency</label>
-              <SearchableSelect value={rx?.frequency || ''} onChange={(v) => update('frequency', v)} options={frequencyOptions} placeholder="Select frequency" />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-widest text-[#64748B] mb-2">Days</label>
-              {dayOptions.length > 0 ? (
-                <SearchableSelect value={daysValue} onChange={onDaysChange} options={dayOptions} placeholder="Select days" />
-              ) : (
-                <input type="number" value={daysValue} onChange={(e) => onDaysChange(e.target.value)} className={inputCls} placeholder="Days" />
-              )}
-            </div>
-          </div>
+        <div className="pt-4 border-t border-[#F1F5F9] space-y-6">
+          {items.map((rx, idx) => {
+            const daysValue = String(rx?.duration || '').replace(/\s*days?$/i, '');
+            return (
+              <div key={idx} className="relative bg-[#F8FAFC] border border-[#E2E8F0] p-4 rounded-xl">
+                {items.length > 1 && (
+                  <button onClick={() => removeRemedy(idx)} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors">
+                    <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                  </button>
+                )}
+                <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[#64748B] mb-2">Remedy</label>
+                    <SearchableSelect value={rx?.medicationName || ''} onChange={(v) => update(idx, 'medicationName', v)} options={medicineOptions} placeholder="Select remedy" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[#64748B] mb-2">Potency</label>
+                    <SearchableSelect value={rx?.dosage || ''} onChange={(v) => update(idx, 'dosage', v)} options={potencyOptions} placeholder="Select potency" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[#64748B] mb-2">Frequency</label>
+                    <SearchableSelect value={rx?.frequency || ''} onChange={(v) => update(idx, 'frequency', v)} options={frequencyOptions} placeholder="Select frequency" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-[#64748B] mb-2">Days</label>
+                    {dayOptions.length > 0 ? (
+                      <SearchableSelect value={daysValue} onChange={(v) => onDaysChange(idx, v)} options={dayOptions} placeholder="Select days" />
+                    ) : (
+                      <input type="number" value={daysValue} onChange={(e) => onDaysChange(idx, e.target.value)} className={inputCls} placeholder="Days" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          
+          <button onClick={addRemedy} className="text-[13px] font-bold text-[#2563EB] hover:text-[#1D4ED8] bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+            <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+            Add another remedy
+          </button>
         </div>
 
         <div className="pt-4 border-t border-[#F1F5F9] space-y-4">

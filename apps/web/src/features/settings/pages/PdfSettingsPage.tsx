@@ -225,9 +225,9 @@ export default function PdfSettingsPage() {
         <div>
           <h1 className="pp-page-hero-title">
             <Layout size={22} style={{ color: 'var(--pp-blue)' }} />
-            PDF & Report Designer
+            Letterhead
           </h1>
-          <p className="pp-page-hero-sub">Manage institutional branding and clinical document layouts.</p>
+          <p className="pp-page-hero-sub">Manage institutional branding and letterhead layouts.</p>
         </div>
         <div className="pp-page-hero-actions pdf-hero-actions">
           <style>{`
@@ -249,142 +249,10 @@ export default function PdfSettingsPage() {
               }
             }
           `}</style>
-          <div className="appt-segmented-toggle">
-            <button
-              type="button"
-              className={`appt-segmented-btn ${activeTab === 'templates' ? 'active' : ''}`}
-              onClick={() => setActiveTab('templates')}
-            >
-              <FileText size={16} /> Templates
-            </button>
-            <button
-              type="button"
-              className={`appt-segmented-btn ${activeTab === 'letterhead' ? 'active' : ''}`}
-              onClick={() => setActiveTab('letterhead')}
-            >
-              <Printer size={16} /> Letterhead
-            </button>
-          </div>
-          {activeTab === 'templates' && (
-            <button className="btn-primary" onClick={handleOpenCreate}>
-              <Plus size={16} strokeWidth={1.8} /> Add Template
-            </button>
-          )}
         </div>
       </div>
 
-      {activeTab === 'templates' ? (
-        <>
-          <div className="pp-stat-grid">
-            <div className="pp-stat-card-enhanced">
-              <div className="pp-stat-label">Total Templates</div>
-              <div className="pp-stat-value is-primary">{configs.length}</div>
-            </div>
-            <div className="pp-stat-card-enhanced">
-              <div className="pp-stat-label">Active Listing</div>
-              <div className="pp-stat-value is-primary">{filteredConfigs.length}</div>
-            </div>
-          </div>
-
-          <div className="pp-filter-card">
-            <div className="pp-filter-search-wrap">
-              <Search size={14} />
-              <input
-                type="text"
-                placeholder="Search templates..."
-                className="pp-filter-search-input"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="pp-table-container-enhanced">
-            {isLoading ? (
-              <TableSkeleton rows={5} columns={5} />
-            ) : filteredConfigs.length === 0 ? (
-              <EmptyState
-                icon={Layout}
-                title={search ? "No matches found" : "No configurations found"}
-                description={search ? `No PDF templates matching "${search}" were found.` : "Add a new PDF template to customize your clinical reports."}
-                actionLabel={search ? "Clear Search" : "Add Template"}
-                onAction={search ? () => setSearch('') : handleOpenCreate}
-                variant="card"
-                className="my-8"
-              />
-            ) : (
-              <>
-                <table className="pp-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '80px' }}>ID</th>
-                      <th>Template Name</th>
-                      <th>Margin</th>
-                      <th style={{ width: '120px' }}>Type</th>
-                      <th style={{ width: '150px' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedData.map((config: any) => (
-                      <tr key={config.id} className="pp-hover-row" onClick={() => handleOpenEdit(config)} style={{ cursor: 'pointer' }}>
-                        <td data-label="ID" className="plat-table-cell font-mono text-xs color-muted">{config.id}</td>
-                        <td data-label="Name" className="plat-table-cell font-semibold">
-                          <div className="flex items-center gap-2">
-                            {config.templateName}
-                            {config.isDefault && <CheckCircle2 size={14} className="text-success" />}
-                          </div>
-                        </td>
-                        <td data-label="Margin" className="plat-table-cell font-mono text-xs">{config.margin}</td>
-                        <td data-label="Type" className="plat-table-cell font-medium" style={{ color: '#64748b' }}>
-                          {config.isDefault ? 'Default' : 'Custom'}
-                        </td>
-                        <td data-label="Actions" className="plat-table-cell">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              className="plat-btn plat-btn-sm plat-btn-icon"
-                              onClick={(e) => { e.stopPropagation(); handlePrintPreview(config); }}
-                              title="Preview & Print"
-                            >
-                              <Eye size={14} />
-                            </button>
-                            <button
-                              className="plat-btn plat-btn-sm plat-btn-icon"
-                              onClick={(e) => { e.stopPropagation(); handleOpenEdit(config); }}
-                              title="Edit Template"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              className="plat-btn plat-btn-sm plat-btn-icon plat-btn-danger"
-                              onClick={(e) => { e.stopPropagation(); if (confirm(`Delete config?`)) deletePdf.mutate(config.id); }}
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )}
-          </div>
-
-          {!isLoading && filteredConfigs.length > 0 && (
-            <div style={{ marginTop: '20px' }}>
-              <Pagination
-                totalItems={totalItems}
-                itemsPerPage={itemsPerPage}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
-                onLimitChange={setItemsPerPage}
-              />
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="plat-settings-grid">
+      <div className="plat-settings-grid">
           <style>{`
             .plat-settings-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
             @media (min-width: 1024px) { .plat-settings-grid { grid-template-columns: 1.2fr 0.8fr; } }
@@ -407,15 +275,6 @@ export default function PdfSettingsPage() {
 
           {/* Letterhead Designer Form */}
           <div className="pp-table-container-enhanced letterhead-designer-card" style={{ padding: '20px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 40 }}>
-              <div className="pp-empty-icon-circle" style={{ width: 52, height: 52, marginBottom: 0, background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)' }}>
-                <ShieldCheck size={26} />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--pp-ink)', margin: 0, letterSpacing: '-0.02em' }}>Letterhead Identity Designer</h2>
-                <p style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)', margin: '4px 0 0 0', fontWeight: 500 }}>Configure the branding nodes used across all automated clinical documents.</p>
-              </div>
-            </div>
 
             {clinicForm && (
               <form onSubmit={handleClinicSubmit}>
@@ -821,79 +680,6 @@ export default function PdfSettingsPage() {
             </div>
           </div>
         </div>
-      )}
-      <Drawer
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingId ? 'Edit Configuration' : 'Add PDF Configuration'}
-        maxWidth="500px"
-      >
-        <form onSubmit={handleSubmit}>
-          <div className="plat-modal-body" style={{ padding: 0 }}>
-            <div className="plat-form-section" style={{ border: 'none', boxShadow: 'none', padding: 0 }}>
-              <div className="plat-form-grid-multi">
-                <div className="plat-form-group">
-                  <label className="plat-form-label font-bold">Template Name *</label>
-                  <input
-                    className="plat-form-input"
-                    value={form.templateName}
-                    onChange={e => setForm(f => ({ ...f, templateName: e.target.value }))}
-                    required
-                    placeholder="e.g. Standard Prescription"
-                  />
-                </div>
-                <div className="plat-form-group">
-                  <label className="plat-form-label font-bold">Margin (CSS value)</label>
-                  <input
-                    className="plat-form-input"
-                    value={form.margin}
-                    onChange={e => setForm(f => ({ ...f, margin: e.target.value }))}
-                    placeholder="e.g. 20mm, 1in"
-                  />
-                </div>
-              </div>
-
-              <div className="plat-form-group mt-6">
-                <label className="plat-form-label font-bold">Header HTML</label>
-                <textarea
-                  className="plat-form-input font-mono text-xs leading-relaxed"
-                  style={{ minHeight: '180px' }}
-                  value={form.headerHtml}
-                  onChange={e => setForm(f => ({ ...f, headerHtml: e.target.value }))}
-                  placeholder="<div>Clinic Header...</div>"
-                />
-              </div>
-
-              <div className="plat-form-group mt-6">
-                <label className="plat-form-label font-bold">Footer HTML</label>
-                <textarea
-                  className="plat-form-input font-mono text-xs leading-relaxed"
-                  style={{ minHeight: '180px' }}
-                  value={form.footerHtml}
-                  onChange={e => setForm(f => ({ ...f, footerHtml: e.target.value }))}
-                  placeholder="<div>Reg No: 12345...</div>"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 py-4 mt-2">
-                <input
-                  type="checkbox"
-
-
-                  checked={form.isDefault}
-                  onChange={e => setForm(f => ({ ...f, isDefault: e.target.checked }))}
-                />
-                <span className="plat-checkbox-label">Set as default configuration</span>
-              </div>
-            </div>
-          </div>
-          <div className="plat-modal-footer" style={{ padding: '24px 0 0 0', marginTop: '24px' }}>
-            <button type="button" className="plat-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button type="submit" className="plat-btn plat-btn-primary px-8">Save Configuration</button>
-          </div>
-        </form>
-      </Drawer>
-
-    </div>
+      </div>
   );
 }
