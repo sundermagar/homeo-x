@@ -78,10 +78,11 @@ export function ClinicAdminDashboard() {
     patientsCount,
     revenueBreakdown,
     todaysExpenses,
-    staffOnDuty,
+    staffOnDuty: rawStaff,
     queue,
     topBilling,
   } = dayData;
+  const staffOnDuty = rawStaff as StaffItem[];
 
   // Formatting helpers
   const fmt = (n: number) => {
@@ -101,8 +102,8 @@ export function ClinicAdminDashboard() {
   };
 
   // Doctor load calculations
-  const doctors = staffOnDuty.filter((s: StaffItem) => s.role === 'Doctor' || s.role?.toLowerCase().includes('doc'));
-  const maxDocVisits = Math.max(...doctors.map((d: StaffItem) => d.count || 0), 1);
+  const doctors = staffOnDuty.filter(s => s.role === 'Doctor' || s.role?.toLowerCase().includes('doc'));
+  const maxDocVisits = Math.max(...doctors.map(d => d.count || 0), 1);
 
   // Approvals - No backend data currently exists for this, so we show an empty real state
   const approvals: any[] = [];
@@ -156,7 +157,7 @@ export function ClinicAdminDashboard() {
             <div className="cad-panel-subtitle">TODAY</div>
           </div>
           <div className="cad-bar-list">
-            {doctors.length > 0 ? doctors.map((doc: StaffItem, i: number) => (
+            {doctors.length > 0 ? doctors.map((doc, i) => (
               <div key={i} className="cad-bar-item">
                 <div className="cad-bar-label">{doc.name}</div>
                 <div className="cad-bar-track">
@@ -260,7 +261,7 @@ export function ClinicAdminDashboard() {
             <div className="cad-panel-subtitle">MANAGE</div>
           </div>
           <div className="cad-staff-list">
-            {manageStaff.length > 0 ? manageStaff.map((staff: StaffItem, i: number) => (
+            {manageStaff.length > 0 ? manageStaff.map((staff, i) => (
               <StaffRow key={i} staff={staff} getInitials={getInitials} />
             )) : (
               <div className="cad-empty-state" style={{ padding: '20px 0' }}>No staff data</div>
