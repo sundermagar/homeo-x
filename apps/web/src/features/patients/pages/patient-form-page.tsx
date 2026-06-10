@@ -120,10 +120,10 @@ export default function PatientFormPage() {
     try {
       if (isEdit) {
         await updateMutation.mutateAsync({ regid: Number(regid), ...form });
-        navigate(`/patients/${regid}`);
+        navigate(`/medical-cases/${regid}`);
       } else {
         const result = await createMutation.mutateAsync(form);
-        navigate(`/patients/${result.regid}`);
+        navigate(`/medical-cases/${result.regid}`);
       }
     } catch (err: any) {
       setErrors([err.response?.data?.message || err.message]);

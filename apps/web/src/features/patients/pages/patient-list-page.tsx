@@ -188,9 +188,6 @@ export default function PatientListPage() {
       <button className="appt-kebab-item" onClick={() => { setDrawerRegid(p.regid); setIsDrawerOpen(true); closeMenu(); }}>
         <Edit2 size={14} /> Edit Patient
       </button>
-      <button className="appt-kebab-item" onClick={() => { navigate(`/patients/${p.regid}`); closeMenu(); }}>
-        <User size={14} /> Detail
-      </button>
       <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName, p.regid); closeMenu(); }}>
         <MessageCircle size={14} /> WhatsApp
       </button>

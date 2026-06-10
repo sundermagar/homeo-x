@@ -377,7 +377,7 @@ export function DoctorDashboard() {
 
         <div 
           className="dd-action-card"
-          onClick={() => navigate(activeConsultation?.regid ? `/patients/${activeConsultation.regid}` : '/patients')}
+          onClick={() => navigate(activeConsultation?.regid ? `/medical-cases/${activeConsultation.regid}` : '/patients')}
         >
           <div className="dd-action-icon">
             <Activity size={20} />

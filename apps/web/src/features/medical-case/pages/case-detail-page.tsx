@@ -1,3 +1,461 @@
+
+function TimelineVisitCard({ dateKey, data, isFirst, isLast, medicalCase }: { dateKey: string, data: any, isFirst: boolean, isLast: boolean, medicalCase: any }) {
+  const [isVisitExpanded, setIsVisitExpanded] = useState(isFirst);
+  const [isRxExpanded, setIsRxExpanded] = useState(true);
+  const [isNotesExpanded, setIsNotesExpanded] = useState(true);
+  const [expandedReports, setExpandedReports] = useState<Record<number, boolean>>({});
+
+  const rxItem = data.rxItems?.[0];
+  const soapItem = data.soapItems?.[0];
+  const followupItem = data.followupItems?.[0];
+  const vitalItem = data.vitalItems?.[0];
+  const labItem = data.labItems?.[0];
+  const mediaItem = data.mediaItems?.[0];
+  
+  const visitId = rxItem?.visitId ?? rxItem?.visit_id ?? rxItem?.consultationId ?? rxItem?.consultation_id
+    ?? soapItem?.visitId ?? soapItem?.visit_id
+    ?? followupItem?.visitId ?? followupItem?.visit_id
+    ?? vitalItem?.visitId ?? vitalItem?.visit_id
+    ?? labItem?.visitId ?? labItem?.visit_id
+    ?? mediaItem?.visitId ?? mediaItem?.visit_id;
+
+  const resolveUrl = (url: string) => {
+    if (!url) return '#';
+    if (url.startsWith('http')) return url;
+    const baseUrl = import.meta.env['VITE_API_URL'] || '';
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const dateObj = new Date(dateKey + 'T00:00:00');
+  const isToday = dateObj.toDateString() === new Date().toDateString();
+  const formattedDate = dateObj.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+
+  // Extract SOAP diagnosis
+  const soapDiagnosis = data.soapItems.map((s: any) => {
+    const parts: string[] = [];
+    if (s.subjective) parts.push(`S: ${s.subjective}`);
+    if (s.objective) parts.push(`O: ${s.objective}`);
+    if (s.assessment) parts.push(`A: ${s.assessment}`);
+    if (s.plan) parts.push(`P: ${s.plan}`);
+    if (!parts.length) {
+      if (s.diagnosis) parts.push(s.diagnosis);
+      if (s.complaint) parts.push(s.complaint);
+      if (s.notes) parts.push(s.notes);
+    }
+    return parts.join('\n');
+  }).filter(Boolean);
+
+  return (
+    <div style={{ display: 'flex', gap: '0', position: 'relative' }}>
+
+      {/* Left: Timeline track + date box */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '60px', flexShrink: 0 }}>
+        {/* Date box */}
+        <div style={{
+          width: '36px',
+          minHeight: '38px',
+          borderRadius: '8px',
+          background: isToday
+            ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+            : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+          color: 'white',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 800,
+          lineHeight: 1.1,
+          flexShrink: 0,
+          boxShadow: isToday ? '0 2px 6px rgba(59,130,246,0.3)' : '0 2px 6px rgba(99,102,241,0.2)',
+          marginTop: '12px',
+          zIndex: 1,
+          position: 'relative'
+        }}>
+          <span style={{ fontSize: '0.9rem', fontWeight: 900 }}>{dateObj.getDate()}</span>
+          <span style={{ fontSize: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>{dateObj.toLocaleString('default', { month: 'short' })}</span>
+        </div>
+        {/* Vertical connector line */}
+        {!isLast && (
+          <div style={{
+            width: '2px',
+            flex: 1,
+            minHeight: '24px',
+            background: 'linear-gradient(to bottom, var(--pp-purple), var(--pp-blue-border))',
+            marginTop: '4px',
+            borderRadius: '1px'
+          }} />
+        )}
+      </div>
+
+      {/* Right: Content card */}
+      <div style={{ flex: 1, paddingBottom: isLast ? '0' : '16px', paddingLeft: '12px', minWidth: 0 }}>
+        {/* Header row */}
+        <div
+          onClick={() => setIsVisitExpanded(!isVisitExpanded)}
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            cursor: 'pointer',
+            userSelect: 'none',
+            paddingTop: '14px',
+            paddingBottom: '10px'
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {formattedDate}
+              {isToday && <span style={{ padding: '2px 8px', borderRadius: '10px', background: 'var(--pp-blue-tint)', color: 'var(--pp-blue)', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>Today</span>}
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+              {data.rxItems.length > 0 && <span style={{ padding: '2px 8px', borderRadius: '12px', background: 'var(--pp-purple-faded)', color: 'var(--pp-purple)', fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}><Pill size={10} /> {data.rxItems.length} prescription{data.rxItems.length !== 1 ? 's' : ''}</span>}
+              {soapDiagnosis.length > 0 && <span style={{ padding: '2px 8px', borderRadius: '12px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}><Stethoscope size={10} /> {soapDiagnosis.length} diagnosis</span>}
+              {data.followupItems.length > 0 && <span style={{ padding: '2px 8px', borderRadius: '12px', background: 'var(--pp-warning-bg)', color: 'var(--pp-warning-fg)', fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}><FileText size={10} /> {data.followupItems.length} follow-up</span>}
+              {data.vitalItems.length > 0 && <span style={{ padding: '2px 8px', borderRadius: '12px', background: 'var(--pp-vitals-tag-bg)', color: 'var(--pp-vitals-tag-text)', fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}><Activity size={10} /> {data.vitalItems.length} vitals</span>}
+              {data.labItems.length > 0 && <span style={{ padding: '2px 8px', borderRadius: '12px', background: 'var(--pp-labs-tag-bg)', color: 'var(--pp-labs-tag-text)', fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}><FlaskConical size={10} /> {data.labItems.length} lab report{data.labItems.length !== 1 ? 's' : ''}</span>}
+              {data.mediaItems.length > 0 && <span style={{ padding: '2px 8px', borderRadius: '12px', background: 'var(--bg-surface-2)', color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}><Image size={10} /> {data.mediaItems.length} media</span>}
+            </div>
+          </div>
+          <ChevronDown size={18} style={{ color: 'var(--pp-text-3)', transform: isVisitExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', marginTop: '3px', flexShrink: 0 }} />
+        </div>
+
+      {/* Expanded Content */}
+      {isVisitExpanded && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '8px' }}>
+
+          {/* Prescriptions Table */}
+          {data.rxItems.length > 0 && (
+            <div style={{
+              border: '1px solid var(--border-main)',
+              borderRadius: '10px',
+              overflow: 'hidden'
+            }}>
+              <div 
+                onClick={() => setIsRxExpanded(!isRxExpanded)}
+                style={{ cursor: 'pointer', background: 'var(--bg-surface-2)', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: isRxExpanded ? '1px solid var(--border-main)' : 'none' }}
+              >
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Pill size={13} /> Prescriptions
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {visitId && (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <PrintPrescriptionButton
+                        visitId={String(visitId)}
+                        inlineData={(() => {
+                          const rxItems = data.rxItems.map((rx: any) => ({
+                            medicationName: rx.remedy_name || rx.remedyName || rx.remedy || '',
+                            genericName: rx.generic_name || rx.genericName || rx.generic || '',
+                            dosage: rx.potency_name || rx.potencyName || rx.potency || rx.dosage || '',
+                            frequency: rx.frequency_name || rx.frequencyName || rx.frequency || '',
+                            duration: String(rx.days || rx.duration || ''),
+                            route: rx.route || '',
+                            instructions: rx.instructions || rx.rxprescription || '',
+                            quantity: rx.quantity,
+                            date: rx.date || rx.createdAt || (dateKey + 'T12:00:00'),
+                          }));
+
+                          const nextFollowup = data.followupItems.find((n: any) => n.follow_up || n.followUp || n.followup);
+                          const nextDate = nextFollowup?.follow_up || nextFollowup?.followUp || nextFollowup?.followup;
+
+                          const followUpNotes = data.followupItems.map((n: any) => n.notes).filter(Boolean).join('\n');
+
+                          const soapItem = data.soapItems?.[0];
+                          const soapData = soapItem ? {
+                            subjective: soapItem.subjective || '',
+                            objective: soapItem.objective || '',
+                            assessment: soapItem.assessment || '',
+                            plan: soapItem.plan || '',
+                          } : undefined;
+
+                          const vitalItem = data.vitalItems?.[0];
+                          const vitals = vitalItem ? {
+                            heightCm: vitalItem.heightCm || vitalItem.height || undefined,
+                            weightKg: vitalItem.weightKg || vitalItem.weight || undefined,
+                            bmi: vitalItem.bmi || undefined,
+                            temperatureF: vitalItem.temperatureF || vitalItem.temperature || undefined,
+                            pulseRate: vitalItem.pulseRate || vitalItem.pulse || undefined,
+                            systolicBp: vitalItem.systolicBp || vitalItem.systolic || undefined,
+                            diastolicBp: vitalItem.diastolicBp || vitalItem.diastolic || undefined,
+                            oxygenSaturation: vitalItem.oxygenSaturation || vitalItem.spo2 || undefined,
+                          } : undefined;
+
+                          return {
+                            soapData,
+                            rxItems,
+                            vitals,
+                            doctor: {
+                              name: medicalCase?.doctorName || medicalCase?.doctor_name || undefined,
+                            },
+                            advice: followUpNotes || undefined,
+                            followUp: nextDate || undefined,
+                            visit: {
+                              id: String(visitId),
+                              completedAt: dateKey + 'T12:00:00',
+                            },
+                            patient: medicalCase ? {
+                              firstName: medicalCase.patientName || '',
+                              lastName: '',
+                              dateOfBirth: medicalCase.dateOfBirth || medicalCase.dob || undefined,
+                              gender: medicalCase.gender || undefined,
+                              mrn: String(medicalCase.regid || medicalCase.id || ''),
+                              phone: medicalCase.mobile || medicalCase.phone || '',
+                            } : null,
+                          };
+                        })()}
+                        variant="outline"
+                        size="sm"
+                        label="Print"
+                        className="h-7 py-1 px-2.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border-indigo-200 dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-950/30 dark:border-indigo-800/40"
+                      />
+                    </div>
+                  )}
+                  <ChevronDown size={14} style={{ color: 'var(--pp-text-3)', transform: isRxExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                </div>
+              </div>
+
+              {isRxExpanded && (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--pp-purple-faded)', borderBottom: '1px solid var(--border-main)' }}>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800, fontSize: '0.72rem', color: 'var(--pp-purple)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Remedy</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800, fontSize: '0.72rem', color: 'var(--pp-purple)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Potency</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 800, fontSize: '0.72rem', color: 'var(--pp-purple)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Frequency</th>
+                      <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800, fontSize: '0.72rem', color: 'var(--pp-purple)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Days</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.rxItems.map((rx: any, ri: number) => (
+                      <tr key={ri} style={{ borderBottom: ri < data.rxItems.length - 1 ? '1px solid var(--border-main)' : 'none' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-main)' }}>{rx.remedy_name || rx.remedyName || '—'}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <span style={{ padding: '3px 10px', background: 'var(--pp-purple-faded)', border: '1px solid var(--border-main)', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--pp-purple)' }}>
+                            {rx.potency_name || rx.potencyName || '—'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', color: 'var(--pp-purple)', fontWeight: 600 }}>{rx.frequency_name || rx.frequencyName || '—'}</td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800, color: 'var(--text-main)' }}>{rx.days || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+
+            </div>
+          )}
+
+          {/* SOAP / Diagnosis Section */}
+          {soapDiagnosis.length > 0 && (
+            <div style={{
+              padding: '14px 18px',
+              background: 'var(--pp-warning-bg)',
+              border: '1px solid var(--pp-warning-border)',
+              borderRadius: '10px',
+              borderLeft: '4px solid var(--pp-warning-fg)'
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-warning-fg)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Stethoscope size={13} /> Diagnosis / Assessment
+              </div>
+              {soapDiagnosis.map((text: string, si: number) => (
+                <div key={si} style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginTop: si > 0 ? '8px' : 0 }}>{text}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Follow-up Notes */}
+          {data.followupItems.length > 0 && (
+            <div style={{
+              background: 'var(--pp-success-bg)',
+              border: '1px solid var(--pp-success-border)',
+              borderRadius: '10px',
+              borderLeft: '4px solid var(--pp-success-fg)',
+              overflow: 'hidden'
+            }}>
+              <div 
+                onClick={() => setIsNotesExpanded(!isNotesExpanded)}
+                style={{ cursor: 'pointer', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-success-fg)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileText size={13} /> Follow-up Notes
+                </div>
+                <ChevronDown size={14} style={{ color: 'var(--pp-success-fg)', transform: isNotesExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </div>
+              
+              {isNotesExpanded && (
+                <div style={{ padding: '0 18px 14px 18px' }}>
+                  {data.followupItems.map((note: any, ni: number) => (
+                    <div key={ni} style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginTop: ni > 0 ? '8px' : 0 }}>{note.notes}</div>
+                  ))}
+                </div>
+              )}
+
+              {/* Next Follow-up date banner at the bottom of Follow-up Notes */}
+              {(() => {
+                const nextFollowup = data.followupItems.find((n: any) => n.follow_up || n.followUp || n.followup);
+                const nextDate = nextFollowup?.follow_up || nextFollowup?.followUp || nextFollowup?.followup;
+                if (!nextDate) return null;
+                return (
+                  <div style={{ padding: '10px 18px', borderTop: '1px solid var(--pp-success-border)', background: 'var(--pp-success-bg)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Calendar size={13} style={{ color: 'var(--pp-success-fg)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.78rem', color: 'var(--pp-success-fg)', fontWeight: 700 }}>
+                      Next Follow-up:{' '}
+                      <span style={{ color: 'var(--text-main)', fontWeight: 800 }}>
+                        {new Date(nextDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Vitals */}
+          {data.vitalItems.length > 0 && (
+            <div style={{
+              padding: '14px 18px',
+              background: 'var(--pp-vitals-bg)',
+              border: '1px solid var(--pp-vitals-border)',
+              borderRadius: '10px',
+              borderLeft: '4px solid var(--pp-vitals-accent)'
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-vitals-title)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Activity size={13} /> Vitals Recorded
+              </div>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                {data.vitalItems.map((vital: any, vi: number) => (
+                  <div key={vi} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%' }}>
+                    {(vital.weightKg ?? vital.weight) != null && <div style={{ fontSize: '0.85rem', color: 'var(--pp-vitals-tag-text)', background: 'var(--pp-vitals-tag-bg)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--pp-vitals-tag-border)' }}><strong>Weight:</strong> {vital.weightKg ?? vital.weight} kg</div>}
+                    {(vital.heightCm ?? vital.height) != null && <div style={{ fontSize: '0.85rem', color: 'var(--pp-vitals-tag-text)', background: 'var(--pp-vitals-tag-bg)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--pp-vitals-tag-border)' }}><strong>Height:</strong> {vital.heightCm ?? vital.height} cm</div>}
+                    {(vital.systolicBp ?? vital.bp) != null && <div style={{ fontSize: '0.85rem', color: 'var(--pp-vitals-tag-text)', background: 'var(--pp-vitals-tag-bg)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--pp-vitals-tag-border)' }}><strong>BP:</strong> {vital.systolicBp ?? vital.bp}{vital.diastolicBp ? `/${vital.diastolicBp}` : ''} mmHg</div>}
+                    {(vital.pulseRate ?? vital.pulse) != null && <div style={{ fontSize: '0.85rem', color: 'var(--pp-vitals-tag-text)', background: 'var(--pp-vitals-tag-bg)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--pp-vitals-tag-border)' }}><strong>Pulse:</strong> {vital.pulseRate ?? vital.pulse} /min</div>}
+                    {(vital.temperatureF ?? vital.temperature) != null && <div style={{ fontSize: '0.85rem', color: 'var(--pp-vitals-tag-text)', background: 'var(--pp-vitals-tag-bg)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--pp-vitals-tag-border)' }}><strong>Temp:</strong> {vital.temperatureF ?? vital.temperature} °F</div>}
+                    {(vital.oxygenSaturation ?? vital.spO2 ?? vital.spo2) != null && <div style={{ fontSize: '0.85rem', color: 'var(--pp-vitals-tag-text)', background: 'var(--pp-vitals-tag-bg)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--pp-vitals-tag-border)' }}><strong>SpO₂:</strong> {vital.oxygenSaturation ?? vital.spO2 ?? vital.spo2}%</div>}
+                    {(vital.bmi) != null && <div style={{ fontSize: '0.85rem', color: 'var(--pp-vitals-tag-text)', background: 'var(--pp-vitals-tag-bg)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--pp-vitals-tag-border)' }}><strong>BMI:</strong> {vital.bmi}</div>}
+                    {(vital.bloodSugar ?? vital.blood_sugar) != null && <div style={{ fontSize: '0.85rem', color: 'var(--pp-vitals-tag-text)', background: 'var(--pp-vitals-tag-bg)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--pp-vitals-tag-border)' }}><strong>Blood Sugar:</strong> {vital.bloodSugar ?? vital.blood_sugar} mg/dL</div>}
+                    {(vital.respiratoryRate ?? vital.respiratory_rate) != null && <div style={{ fontSize: '0.85rem', color: 'var(--pp-vitals-tag-text)', background: 'var(--pp-vitals-tag-bg)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--pp-vitals-tag-border)' }}><strong>RR:</strong> {vital.respiratoryRate ?? vital.respiratory_rate} /min</div>}
+                    {vital.notes && <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', width: '100%', marginTop: '4px', fontStyle: 'italic' }}><strong>Notes:</strong> {vital.notes}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Lab Reports */}
+          {data.labItems.length > 0 && (
+            <div style={{
+              padding: '14px 18px',
+              background: 'var(--pp-labs-bg)',
+              border: '1px solid var(--pp-labs-border)',
+              borderRadius: '10px',
+              borderLeft: '4px solid var(--pp-labs-accent)'
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-labs-title)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FlaskConical size={13} /> Lab Reports & Investigations
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {data.labItems.map((lab: any, li: number) => {
+                  let parsedData: any = {};
+                  if (lab.data) {
+                    try { parsedData = typeof lab.data === 'string' ? JSON.parse(lab.data) : lab.data; } catch (e) { parsedData = {}; }
+                  }
+                  const metaKeys = ['investDate', 'attachmentUrl', 'summary', 'id'];
+                  const hasData = parsedData && Object.keys(parsedData).filter(k => !metaKeys.includes(k)).some(k => parsedData[k]);
+                  const fileUrl = parsedData?.attachmentUrl || lab.attachmentUrl || lab.url || lab.fileUrl;
+                  const isReportExpanded = expandedReports[li] || false;
+
+                  return (
+                    <div key={li} style={{ fontSize: '0.85rem', color: 'var(--pp-labs-tag-text)', padding: '12px', background: 'var(--pp-labs-tag-bg)', border: '1px solid var(--pp-labs-tag-border)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--pp-labs-title)' }}>{lab.type || lab.investigationName || lab.investigation_name || 'Lab Report'}</div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {hasData && (
+                            <button 
+                              onClick={() => setExpandedReports(prev => ({ ...prev, [li]: !prev[li] }))}
+                              style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--pp-labs-accent)', background: 'transparent', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--pp-labs-tag-border)' }}
+                            >
+                              <Eye size={12} /> {isReportExpanded ? 'Hide Report' : 'View Report'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {hasData && isReportExpanded && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px', marginTop: '4px' }}>
+                          {Object.entries(parsedData).map(([k, v], idx) => (
+                            v ? <div key={idx} style={{ background: 'var(--pp-labs-bg)', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--pp-labs-border)', display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--pp-labs-title)', textTransform: 'uppercase', opacity: 0.8 }}>{k.replace(/_/g, ' ')}</span>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--pp-labs-tag-text)' }}>{String(v)}</span>
+                            </div> : null
+                          ))}
+                        </div>
+                      )}
+                      
+                      {(lab.summary || lab.notes || lab.result) && <div style={{ marginTop: '4px', fontStyle: 'italic', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{lab.summary || lab.notes || lab.result}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Media */}
+          {data.mediaItems.length > 0 && (
+            <div style={{
+              padding: '14px 18px',
+              background: 'var(--bg-surface-2)',
+              border: '1px solid var(--border-main)',
+              borderRadius: '10px',
+              borderLeft: '4px solid var(--pp-text-3)'
+            }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Image size={13} /> Uploaded Media
+              </div>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {data.mediaItems.map((media: any, mi: number) => (
+                  <a 
+                    key={mi} 
+                    href={resolveUrl(media.url || media.fileUrl || '')} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    style={{ 
+                      display: 'flex', flexDirection: 'column', gap: '4px', 
+                      padding: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-main)', 
+                      borderRadius: '8px', textDecoration: 'none', color: 'var(--text-main)' 
+                    }}
+                  >
+                    {media.url?.match(/\.(jpeg|jpg|gif|png)$/i) || media.fileUrl?.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                      <img src={resolveUrl(media.url || media.fileUrl)} alt="Media" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px' }} />
+                    ) : (
+                      <div style={{ width: '80px', height: '80px', background: 'var(--bg-surface-2)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <FileText size={24} style={{ color: 'var(--pp-text-3)' }} />
+                      </div>
+                    )}
+                    <span style={{ fontSize: '0.7rem', fontWeight: 600, maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {media.fileName || media.name || 'File'}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* If no data for this date at all */}
+          {data.rxItems.length === 0 && soapDiagnosis.length === 0 && data.followupItems.length === 0 && data.vitalItems.length === 0 && data.labItems.length === 0 && data.mediaItems.length === 0 && (
+            <div style={{ padding: '12px', color: 'var(--pp-text-3)', fontSize: '0.85rem', textAlign: 'center', fontStyle: 'italic' }}>
+              No clinical data recorded for this date.
+            </div>
+          )}
+
+        </div>
+      )}
+
+      </div>{/* end right content */}
+    </div>
+  );
+}
+
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -9,7 +467,7 @@ import {
   MessageSquare, Send, BrainCircuit, ClipboardList, FlaskConical, Microscope,
   Printer, Paperclip, Upload, X, Eye, Loader2, Trash2, Thermometer,
   TrendingUp, Stethoscope, Scale, Syringe, BarChart3, Pill, Check, User,
-  Video, FileAudio, ChevronLeft,
+  Video, FileAudio, ChevronLeft, Image, ChevronDown,
   MoveVertical,
   LayoutList,
   LayoutGrid,
@@ -62,6 +520,7 @@ import { useAuthStore } from '@/shared/stores/auth-store';
 import { Pagination } from '@/components/shared/pagination';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { ClinicBrandingHeader } from '../components/clinic-branding-header';
+import { PrintPrescriptionButton } from '@/components/print/print-prescription-button';
 import { printHtml } from '@/lib/print';
 import { generatePrescriptionHtml } from '@/lib/print-templates';
 import type { PrescriptionPrintData } from '@/lib/print-templates';
@@ -69,7 +528,7 @@ import { getClinicLetterhead, getDoctorLetterhead } from '@/lib/clinic-letterhea
 import { useOrganizations } from '../../platform/hooks/use-organizations';
 import { usePdfSettings } from '../../settings/hooks/use-settings';
 import '../styles/medical-case.css';
-export function useTableGrouping(data: any[], dateField: string = 'createdAt') {
+function useTableGrouping(data: any[], dateField: string = 'createdAt') {
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
   const toggleDate = (date: string) => {
     setExpandedDates(prev => {
@@ -94,7 +553,7 @@ export function useTableGrouping(data: any[], dateField: string = 'createdAt') {
   return { expandedDates, toggleDate, groupedData };
 }
 
-export function DateGroupCell({ dateVal, isFirst, isExpanded, itemsCount, onToggle }: any) {
+function DateGroupCell({ dateVal, isFirst, isExpanded, itemsCount, onToggle }: any) {
   if (isFirst) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -138,7 +597,7 @@ const TABS = [
   { id: 'analytics', label: 'Graph (H/W)', icon: BarChart3 },
 ];
 
-export function AutoSaveNoteArea({ value, onChange, onSave, placeholder = '', minHeight = '120px' }: { value: string, onChange: (v: string) => void, onSave: (val: string) => Promise<void>, placeholder?: string, minHeight?: string }) {
+function AutoSaveNoteArea({ value, onChange, onSave, placeholder = '', minHeight = '120px' }: { value: string, onChange: (v: string) => void, onSave: (val: string) => Promise<void>, placeholder?: string, minHeight?: string }) {
   // Local state to prevent parent re-renders on every keystroke
   const [localValue, setLocalValue] = useState(value);
   const lastPropValueRef = useRef(value);
@@ -1118,1020 +1577,247 @@ export default function MedicalCaseDetailPage() {
     <div className="mc-detail-container animate-fade-in">
 
       {/* ─── Redesigned Header Section ─── */}
-      <div className="patient-profile-card">
-        <div className="profile-top-row">
-          <div className="profile-identity">
-            <button
-              onClick={() => navigate('/patients')}
-              style={{
-                cursor: 'pointer',
-                background: 'transparent',
-                border: 'none',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '8px',
-                borderRadius: '8px',
-                transition: 'background 0.2s',
-                marginRight: '8px'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              title="Back to Patient List"
-            >
-              <ArrowLeft size={24} />
-            </button>
-            <div className="profile-name-id">
-              <h1 className="profile-name">{formatName(medicalCase.patientName)}</h1>
-              <span className="profile-id">Patient #{regid}</span>
-            </div>
-            <button
-              className={`profile-status-chip ${activePackage?.status === 'Active' ? 'active' : ''}`}
-              onClick={() => setShowAssignModal(true)}
-              style={{ cursor: 'pointer', border: 'none', outline: 'none', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}
-              title="Assign or view package"
-            >
-              {activePackage?.status === 'Active' ? <Award size={12} /> : <Clock size={12} />}
-              {activePackage?.packageName 
-                ? `${activePackage.packageName} (${activePackage.status})${activePackage.expiryDate ? ` • Expires ${new Date(activePackage.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : ''}`
-                : 'No active plan'}
-            </button>
+      {/* ─── Consolidated Read-Only Case History ─── */}
+      <div style={{ padding: '24px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-            {/* ABHA Health ID Chip */}
-            {abhaStatus?.isLinked ? (
-              <div 
-                className="profile-status-chip active" 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '6px',
-                  background: 'rgba(34, 197, 94, 0.15)',
-                  borderColor: 'rgba(34, 197, 94, 0.3)',
-                  color: '#4ade80',
-                  paddingRight: '6px',
-                  position: 'relative',
-                  zIndex: 20,
-                  pointerEvents: 'auto'
-                }}
-              >
-                <ShieldCheck size={12} />
-                <span>ABHA: {abhaStatus.abhaId}</span>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('🟢 FETCH HISTORY CLICKED! isHistoryDrawerOpen will be set to true');
-                    setIsHistoryDrawerOpen(true);
-                    console.log('🟢 setIsHistoryDrawerOpen(true) called');
-                  }}
-                  title="Fetch External History"
-                  style={{
-                    background: 'rgba(99, 102, 241, 0.2)',
-                    border: 'none',
-                    color: '#818cf8',
-                    cursor: 'pointer',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    marginLeft: '4px',
-                    position: 'relative',
-                    zIndex: 50,
-                    pointerEvents: 'auto'
-                  }}
-                >
-                  Fetch History
-                </button>
-                <button
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!confirm('Remove ABHA link from this patient?')) return;
-                    try {
-                      await abhaUnlinkMutation.mutateAsync();
-                      toast({ title: 'ABHA Unlinked', description: 'ABHA ID removed from patient profile', variant: 'success' });
-                    } catch (err: any) {
-                      toast({ title: 'Failed', description: err.message, variant: 'error' });
-                    }
-                  }}
-                  disabled={abhaUnlinkMutation.isPending}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#f87171',
-                    cursor: 'pointer',
-                    padding: '2px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s',
-                    position: 'relative',
-                    zIndex: 50,
-                    pointerEvents: 'auto'
-                  }}
-                  title="Unlink ABHA ID"
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.2)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                >
-                  <Unlink size={12} />
-                </button>
-              </div>
-            ) : (
+        {/* ─── Personal Details Card ─── */}
+        <div style={{
+          background: 'var(--bg-card)',
+          borderRadius: '16px',
+          border: '1px solid var(--border-main)',
+          boxShadow: 'var(--pp-shadow-sm)',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            padding: '16px 24px',
+            background: 'linear-gradient(135deg, var(--bg-surface-2) 0%, var(--bg-card) 100%)',
+            borderBottom: '1px solid var(--border-main)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
-                onClick={() => setShowAbhaModal(true)}
-                className="profile-status-chip"
-                style={{
-                  background: 'rgba(59, 130, 246, 0.15)',
-                  borderColor: 'rgba(59, 130, 246, 0.3)',
-                  color: '#60a5fa',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)';
-                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
-                }}
+                onClick={() => navigate('/patients')}
+                style={{ cursor: 'pointer', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', borderRadius: '4px', color: 'var(--text-muted)' }}
+                title="Back to Patient List"
               >
-                <Link2 size={12} />
-                <span>Link ABHA</span>
+                <ArrowLeft size={18} />
               </button>
-            )}
-          </div>
-
-          <div className="profile-actions">
-            <button className="profile-btn" onClick={() => {
-              const phone = medicalCase.phone || medicalCase.mobile || '';
-              if (phone) {
-                navigate(`/communications/whatsapp/inbox?phone=${encodeURIComponent(phone)}`);
-              } else {
-                alert('No phone number available for this patient.');
-              }
-            }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="profile-bottom-grid">
-          <div className="profile-info-cell">
-            <label>GENDER</label>
-            <span>{medicalCase.gender || 'Not Defined'}</span>
-          </div>
-          <div className="profile-info-cell">
-            <label>AGE</label>
-            <span>{ageString || 'Unknown'}</span>
-          </div>
-          <div className="profile-info-cell">
-            <label>PHONE</label>
-            <div className="info-with-icon">
-              <Phone size={14} /> {medicalCase.mobile || medicalCase.phone || '—'}
-            </div>
-          </div>
-
-          <div className="profile-info-cell">
-            <label>DOCTOR</label>
-            <div className="info-with-icon">
-              <Stethoscope size={14} /> {formatName(medicalCase.doctorName) || '—'}
-            </div>
-          </div>
-          <div className="profile-info-cell">
-            <label>REGISTERED</label>
-            <span>{(() => {
-              const regDate = medicalCase.registeredAt || medicalCase.createdAt;
-              if (!regDate) return '—';
-              return new Date(regDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-            })()}</span>
-          </div>
-
-          <div className="profile-info-cell">
-            <label>ADDRESS</label>
-            <span title={medicalCase.address}>{medicalCase.address || 'Not provided'}</span>
-          </div>
-          <div className="profile-info-cell">
-            <label>CONDITION</label>
-            <span title={medicalCase.condition}>{medicalCase.condition || 'General'}</span>
-          </div>
-        </div>
-      </div>
-
-
-      {/* ─── Layout with Left Tabs ─── */}
-      <div className="mc-layout-wrapper">
-        {/* ─── Tab Navigation ─── */}
-        <div className="mc-left-tabs-container">
-          <div className="mc-left-tabs">
-            {TABS.map(tab => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  className={`mc-left-tab ${activeTab === tab.id ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    if (tab.id === 'summary') rxWorkflow.setActiveTab(null);
-                  }}
-                  title={tab.label}
-                >
-                  <Icon size={20} />
-                  <span className="mc-left-tab-label">{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-
-        {/* ─── Main Content & Sidebar Grid ─── */}
-        <div className="mc-body-grid">
-
-          <div className="mc-body-main">
-            {tabContent || (
-              <div className="mc-tab-empty">
-                <History size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
-                <p>Select a tab to view clinical data</p>
-              </div>
-            )}
-
-            {/* ─── Billing Summary (Positioned below Prescription Table) ─── */}
-            {activeTab === 'summary' && user?.permissions?.canViewBilling && (
-              <div style={{
-                marginTop: '32px',
-                padding: '24px',
-                background: '#fff',
-                border: '1px solid var(--border-main)',
-                borderRadius: '16px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
-                    <div style={{ padding: '8px', background: '#f5f3ff', borderRadius: '10px', color: '#7c3aed' }}>
-                      <CreditCard size={20} />
-                    </div>
-                    Billing Overview
-                  </div>
-                  {displayDate && (
-                    <div style={{ background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>
-                      {displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </div>
-                  )}
-                </div>
-
-                {billingValues.hasActivePackage && (
-                  <div style={{ background: `${billingValues.activePackageColor || '#3b82f6'}1a`, border: `1px solid ${billingValues.activePackageColor || '#3b82f6'}33`, padding: '8px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '-4px' }}>
-                    <span style={{ fontSize: '1rem' }}>💎</span>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: billingValues.activePackageColor || '#1e40af' }}>
-                      Active Plan: {billingValues.activePackageName}
-                    </span>
-                    <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Charges Waived</span>
-                  </div>
-                )}
-
-                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '12px', overflow: 'hidden' }}>
-                  {(() => {
-                    const rows = [
-                      { label: 'Consultation Fee', value: billingValues.regular, color: '#1e293b', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalRegular > 0 && billingValues.regular === 0, originalValue: billingValues.originalRegular },
-                      { label: 'Medicine', value: billingValues.daysCharge, color: '#475569', tab: 'regular', isCovered: billingValues.hasActivePackage && billingValues.originalDaysCharge > 0 && billingValues.daysCharge === 0, originalValue: billingValues.originalDaysCharge },
-                      ...(billingValues.hasActivePackage ? [{
-                        label: 'Package Plan',
-                        value: billingValues.packagePrice,
-                        color: '#1e293b',
-                        tab: 'regular',
-                        noEdit: true,
-                        isActivePlanRow: true,
-                        isPurchase: billingValues.isPurchaseDate,
-                        originalValue: billingValues.originalPackagePrice
-                      }] : []),
-                      { label: 'Additional Charge', value: billingValues.additional, color: '#64748b', tab: 'custom' },
-                      { label: 'Total Bill Amount', value: billingValues.total, color: '#7c3aed', bold: true, tab: 'regular' },
-                      { label: 'Amount Received', value: billingValues.received, color: '#059669', tab: 'payment' },
-                      { label: 'Pending Balance', value: billingValues.balance, color: '#dc2626', bold: true, noEdit: true },
-                    ];
-                    return rows.map((row: any, idx) => {
-                      const isActivePlanRow = !!row.isActivePlanRow;
-                      return (
-                        <div
-                          key={idx}
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 140px 40px',
-                            padding: '10px 16px',
-                            borderBottom: idx === rows.length - 1 ? 'none' : '1px solid #f1f5f9',
-                            alignItems: 'center',
-                            background: idx % 2 === 0 ? 'transparent' : '#f8fafc',
-                          }}
-                        >
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <span style={{
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              color: '#475569',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}>
-                              {row.label}
-                            </span>
-                          </div>
-
-                          <span style={{ fontSize: '0.95rem', fontWeight: row.bold ? 800 : 700, color: row.color, textAlign: 'right', paddingRight: '20px' }}>
-                            {isActivePlanRow ? (
-                              row.isPurchase ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                                  <span style={{ color: row.color || '#1e293b', fontWeight: 800 }}>₹{row.value}</span>
-                                  <span style={{
-                                    fontSize: '0.62rem',
-                                    background: '#ecfdf5',
-                                    color: '#047857',
-                                    padding: '1px 6px',
-                                    borderRadius: '4px',
-                                    fontWeight: 700,
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.01em'
-                                  }}>
-                                    today billed
-                                  </span>
-                                </div>
-                              ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: 500, color: '#64748b' }}>Value:</span>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>₹{row.originalValue}</span>
-                                  </div>
-                                  <span style={{
-                                    fontSize: '0.62rem',
-                                    background: `${row.color}15`,
-                                    color: row.color,
-                                    padding: '2px 8px',
-                                    borderRadius: '6px',
-                                    fontWeight: 700,
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.02em',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}>
-                                    <span className="mc-pulse-dot"></span>
-                                    already billed
-                                  </span>
-                                </div>
-                              )
-                            ) : row.isCovered ? (
-                              <>
-                                <del style={{ color: '#94a3b8', fontSize: '0.75rem', marginRight: '6px' }}>₹{row.originalValue}</del>
-                                <span style={{ color: '#059669', fontWeight: 800 }}>₹0</span>
-                              </>
-                            ) : (
-                              `₹${row.value}`
-                            )}
-                          </span>
-
-                          {row.noEdit || !isToday ? (
-                            <div style={{ width: '28px', height: '28px' }} />
-                          ) : (
-                            <button
-                              onClick={() => {
-                                if (row.action) {
-                                  row.action();
-                                } else {
-                                  setActiveBillingTab(row.tab as any);
-                                  setShowBillingModal(true);
-                                }
-                              }}
-                              style={{
-                                width: '28px',
-                                height: '28px',
-                                padding: '0',
-                                background: '#fff',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                color: '#64748b',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                transition: 'all 0.2s'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = '#f5f3ff';
-                                e.currentTarget.style.color = '#7c3aed';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = '#fff';
-                                e.currentTarget.style.color = '#64748b';
-                              }}
-                            >
-                              <Edit size={12} />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-                {billingValues.received > 0 && (
-                  <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={() => setShowReceiptModal(true)}
-                      style={{
-                        padding: '6px 14px',
-                        fontSize: '13px',
-                        background: '#2563EB',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        boxShadow: '0 2px 4px -1px rgba(37, 99, 235, 0.2)'
-                      }}
-                    >
-                      <Share2 size={14} /> Share Payment Receipt
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-          </div>
-
-          <aside className="mc-body-side">
-
-
-            {/* ─── Clinical History / Follow-up Timeline ─── */}
-            <div className="mc-side-card" style={{ marginBottom: '16px' }}>
-              <div className="mc-side-card-header">
-                <div className="mc-side-card-title">
-                  <History size={16} />
-                  {displayDate
-                    ? `Follow Up on ${displayDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`
-                    : "No Follow-up"
-                  }
-                </div>
-              </div>
-              <div className="mc-side-card-body" style={{ padding: '16px' }}>
-                <AutoSaveNoteArea
-                  value={followUpNote}
-                  onChange={setFollowUpNote}
-                  placeholder={displayDate ? "Record patient follow-up or status..." : "No history available"}
-                  onSave={handleSaveNote}
-                  minHeight="180px"
-                />
-              </div>
+              <User size={18} style={{ color: 'var(--pp-purple)' }} />
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>Patient Details</span>
             </div>
 
-            {/* ─── Homeo Details Snapshot ─── */}
-            <HomeoDetailsSnapshotWidget
-              currentHomeoDetail={currentVisitHomeoDetail}
-              isToday={!!isToday}
-              isPendingScan={parsePrescriptionMutation.isPending}
-              onTriggerScan={triggerPrescriptionScan}
-              onEditAssessment={handleEditHomeoDetails}
-              prescriptionFileInputRef={prescriptionFileInputRef}
-              handlePrescriptionFileChange={handlePrescriptionFileChange}
-            />
-
-
-
-
-            {/* ─── Global Diagnosis Form Drawer ─── */}
-            {showDiagnosisDrawer && ReactDOM.createPortal(
-              <>
-                <div className="mc-drawer-backdrop" onClick={() => setShowDiagnosisDrawer(false)} />
-                <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '680px', width: '100%' }}>
-                  <header className="mc-drawer-header" style={{ background: 'var(--pp-blue)', color: 'white' }}>
-                    <div className="mc-drawer-header-title">
-                      <Sparkles size={18} /> AI Follow up
-                    </div>
-                    <button className="mc-drawer-close" onClick={() => setShowDiagnosisDrawer(false)} style={{ color: 'white', opacity: 0.8 }}>
-                      <X size={16} />
-                    </button>
-                  </header>
-
-                  <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div style={{ padding: '10px 14px', background: 'var(--pp-warm-1)', borderRadius: '8px', border: '1px solid var(--pp-warm-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Calendar size={14} style={{ color: 'var(--pp-blue)' }} />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-ink)' }}>
-                        Record Date: {(displayDate || new Date()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
-
-                    {isDirectEdit ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Summary Text
-                        </label>
-                        <textarea
-                          value={diagForm.diagnosis || diagForm.complaint || ''}
-                          onChange={(e) => setDiagForm((prev: any) => ({ ...prev, diagnosis: e.target.value, complaint: e.target.value }))}
-                          placeholder="Type or edit the summary text here..."
-                          className="pp-textarea"
-                          style={{ minHeight: '300px', fontSize: '0.92rem', lineHeight: 1.6, padding: '14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}
-                        />
-                      </div>
-                    ) : (
-                      <AiFollowupTranscriptPanel
-                        visitId={currentVisitId || visitId || `regid-${regid}`}
-                        patientAge={(() => {
-                          const dob = medicalCase?.dateOfBirth || medicalCase?.dob;
-                          if (!dob) return undefined;
-                          const yrs = Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
-                          return yrs > 0 ? yrs : undefined;
-                        })()}
-                        patientGender={medicalCase?.gender}
-                        initialSummary={diagForm.diagnosis || diagForm.complaint}
-                        onSummaryChange={(s) => setDiagForm((prev: any) => ({ ...prev, diagnosis: s, complaint: s }))}
-                      />
-                    )}
-
-                  </div>
-
-                  <footer style={{
-                    padding: '20px 24px',
-                    background: '#f8fafc',
-                    borderTop: '1px solid #e2e8f0',
-                    display: 'flex',
-                    gap: '12px',
-                    position: 'sticky',
-                    bottom: 0,
-                    zIndex: 10
-                  }}>
-                    <button
-                      onClick={() => setShowDiagnosisDrawer(false)}
-                      style={{
-                        flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1',
-                        background: 'white', color: '#64748b', fontWeight: 600, cursor: 'pointer'
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSaveDiagnosis}
-                      style={{
-                        flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
-                        background: 'var(--pp-blue)', color: 'white', fontWeight: 700,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', gap: '8px',
-                        boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.1)'
-                      }}
-                    >
-                      <Save size={18} /> Save 
-                    </button>
-                  </footer>
-                </div>
-              </>
-              , document.body)}
-
-            {/* ─── AI Prescription Scan Preview Drawer ─── */}
-            {showPrescriptionPreview && scannedPrescription && ReactDOM.createPortal(
-              <>
-                <div className="mc-drawer-backdrop" onClick={() => setShowPrescriptionPreview(false)} />
-                <div className="mc-drawer animate-slide-in-right" style={{ maxWidth: '540px' }}>
-                  <header className="mc-drawer-header" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white' }}>
-                    <div className="mc-drawer-header-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <BrainCircuit size={18} /> AI Scanned Details
-                    </div>
-                    <button className="mc-drawer-close" onClick={() => setShowPrescriptionPreview(false)} style={{ color: 'white', opacity: 0.8 }}>
-                      <X size={16} />
-                    </button>
-                  </header>
-
-                  <div style={{ padding: '24px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {isScannedPrescription && (
-                      <div style={{ padding: '10px 14px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Sparkles size={14} style={{ color: '#7c3aed' }} />
-                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#5b21b6' }}>
-                          Handwritten prescription successfully scanned by AI
-                        </span>
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Diagnosis</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={scannedPrescription.diagnosis}
-                        onChange={e => setScannedPrescription({ ...scannedPrescription, diagnosis: e.target.value })}
-                        placeholder="Diagnosis parsed from image..."
-                        style={{ minHeight: '60px', fontSize: '1rem', fontWeight: 700 }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Complaint Intensity</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={scannedPrescription.complaint}
-                        onChange={e => setScannedPrescription({ ...scannedPrescription, complaint: e.target.value })}
-                        placeholder="Complaints parsed from image..."
-                        style={{ minHeight: '100px' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Medication Taking</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {scannedMedicationRows.map((row, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '8px',
-                              padding: '12px',
-                              background: '#f8fafc',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Medication #{idx + 1}
-                              </span>
-                              <button
-                                type="button"
-                                className="btn-ghost"
-                                style={{
-                                  color: '#ef4444',
-                                  padding: '6px',
-                                  border: '1px solid transparent',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  background: '#fef2f2',
-                                  transition: 'all 0.2s ease'
-                                }}
-                                onClick={() => removeScannedMedicationRow(idx)}
-                                title="Remove medication"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Medicine Name</label>
-                                <input
-                                  type="text"
-                                  className="pp-input"
-                                  placeholder="Enter medicine name"
-                                  value={row.medicine}
-                                  onChange={e => updateScannedMedicationRow(idx, 'medicine', e.target.value)}
-                                  style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem' }}
-                                  autoComplete="off"
-                                />
-                              </div>
-
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Frequency</label>
-                                  <select
-                                    className="pp-input"
-                                    value={row.frequency}
-                                    onChange={e => updateScannedMedicationRow(idx, 'frequency', e.target.value)}
-                                    style={{ width: '100%', padding: '8px', fontSize: '0.85rem', height: '38px', background: 'white' }}
-                                  >
-                                    <option value="Once">Once</option>
-                                    <option value="Twice">Twice</option>
-                                    <option value="Thrice">Thrice</option>
-                                    <option value="Bed Time">Bed Time</option>
-                                    <option value="Empty Stomach">Empty Stomach</option>
-                                    <option value="weekly">weekly</option>
-                                  </select>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <label style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Patient Issue</label>
-                                    <button
-                                      type="button"
-                                      disabled={!row.medicine.trim() || aiDetectingIdx === idx}
-                                      onClick={() => detectScannedMedicineIssue(idx, row.medicine)}
-                                      title="AI auto-detect issue from medicine name"
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        fontSize: '0.6rem',
-                                        fontWeight: 700,
-                                        color: aiDetectingIdx === idx ? '#94a3b8' : '#7c3aed',
-                                        background: aiDetectingIdx === idx ? '#f1f5f9' : 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
-                                        border: '1px solid',
-                                        borderColor: aiDetectingIdx === idx ? '#e2e8f0' : '#c4b5fd',
-                                        borderRadius: '6px',
-                                        padding: '3px 8px',
-                                        cursor: !row.medicine.trim() || aiDetectingIdx === idx ? 'not-allowed' : 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        opacity: !row.medicine.trim() ? 0.4 : 1,
-                                        letterSpacing: '0.02em',
-                                        textTransform: 'uppercase',
-                                      }}
-                                    >
-                                      {aiDetectingIdx === idx ? (
-                                        <><Loader2 size={10} className="animate-spin" /> Detecting...</>
-                                      ) : (
-                                        <><Sparkles size={10} /> AI Detect</>
-                                      )}
-                                    </button>
-                                  </div>
-                                  <input
-                                    type="text"
-                                    className="pp-input"
-                                    placeholder="e.g. Fever"
-                                    value={row.issue}
-                                    onChange={e => updateScannedMedicationRow(idx, 'issue', e.target.value)}
-                                    style={{ width: '100%', padding: '8px 12px', fontSize: '0.85rem', height: '38px', background: 'white' }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={addScannedMedicationRow}
-                        style={{
-                          alignSelf: 'flex-start',
-                          marginTop: '4px',
-                          padding: '6px 12px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          color: '#7c3aed',
-                          background: '#f5f3ff',
-                          border: '1px dashed #c4b5fd',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <Plus size={14} /> Add Medication
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Investigation</label>
-                      <textarea
-                        className="pp-textarea"
-                        value={scannedPrescription.investigation}
-                        onChange={e => setScannedPrescription({ ...scannedPrescription, investigation: e.target.value })}
-                        placeholder="Investigations parsed from image..."
-                        style={{ minHeight: '80px' }}
-                      />
-                    </div>
-                  </div>
-
-                  <footer style={{
-                    padding: '20px 24px',
-                    background: '#f8fafc',
-                    borderTop: '1px solid #e2e8f0',
-                    display: 'flex',
-                    gap: '12px',
-                    position: 'sticky',
-                    bottom: 0,
-                    zIndex: 10
-                  }}>
-                    <button
-                      onClick={() => setShowPrescriptionPreview(false)}
-                      style={{
-                        flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #cbd5e1',
-                        background: 'white', color: '#64748b', fontWeight: 600, cursor: 'pointer'
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={triggerPrescriptionScan}
-                      style={{
-                        flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #c4b5fd',
-                        background: '#f5f3ff', color: '#7c3aed', fontWeight: 600, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                      }}
-                    >
-                      <RefreshCw size={14} /> Refetch
-                    </button>
-                    <button
-                      onClick={handleSaveScannedPrescription}
-                      disabled={isSavingScannedPrescription}
-                      style={{
-                        flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
-                        background: isSavingScannedPrescription ? '#94a3b8' : 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white', fontWeight: 700,
-                        cursor: isSavingScannedPrescription ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', gap: '8px',
-                        boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.1)'
-                      }}
-                    >
-                      {isSavingScannedPrescription ? (
-                        <><Loader2 size={18} className="animate-spin" /> Saving...</>
-                      ) : (
-                        <><Save size={18} /> Save Details</>
-                      )}
-                    </button>
-                  </footer>
-                </div>
-              </>
-              , document.body)}
-
-            <PaymentReceiptModal
-              isOpen={showReceiptModal}
-              onClose={() => setShowReceiptModal(false)}
-              patientData={medicalCase}
-              billingData={billingValues}
-            />
-          </aside>
-
-
-
-        </div>
-      </div>
-
-      {/* ─── Mobile Floating Action Bar Removed ─── */}
-
-      {/* ─── Mobile Drawer ─── */}
-      {mobileDrawer && (
-        <>
-          <div className="mc-drawer-backdrop" onClick={() => setMobileDrawer(null)} />
-          <div className="mc-drawer">
-            <div className="mc-drawer-header">
-              <div className="mc-drawer-header-title">
-                {mobileDrawer === 'followup' && <><FileText size={18} /> Follow-up Notes</>}
-                {mobileDrawer === 'billing' && <><CreditCard size={18} /> Billing Summary</>}
-                {mobileDrawer === 'contact' && <><Phone size={18} /> Patient Contact</>}
-                {mobileDrawer === 'package' && <><Package size={18} /> Package Info</>}
-              </div>
-              <button className="mc-drawer-close" onClick={() => setMobileDrawer(null)}>
-                <X size={16} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              {/* WhatsApp Action */}
+              <button onClick={() => {
+                const phone = medicalCase.phone || medicalCase.mobile || '';
+                if (phone) {
+                  navigate(`/communications/whatsapp/inbox?phone=${encodeURIComponent(phone)}`);
+                } else {
+                  alert('No phone number available for this patient.');
+                }
+              }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D366', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
+                WhatsApp
               </button>
-            </div>
-            <div className="mc-drawer-body">
-              {mobileDrawer === 'followup' && (
-                <>
-                  <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '12px' }}>
-                    {(notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup').length > 0 ? (
-                      (notes || []).filter((n: any) => n.notesType === 'Followup' || n.noteType === 'Followup')
-                        .sort((a: any, b: any) => new Date(b.createdAt || b.created_at || b.dateval || 0).getTime() - new Date(a.createdAt || a.created_at || a.dateval || 0).getTime())
-                        .map((note: any) => (
-                          <div key={note.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--border-main)', fontSize: '0.85rem' }}>
-                            <div style={{ color: 'var(--pp-text-3)', fontSize: '0.7rem', marginBottom: '4px' }}>
-                              {(note.createdAt || note.created_at || note.dateval) ? new Date(note.createdAt || note.created_at || note.dateval).toLocaleDateString('en-GB', {
-                                day: '2-digit', month: 'short', year: 'numeric',
-                                hour: '2-digit', minute: '2-digit'
-                              }) : '—'}
-                            </div>
-                            <div style={{ color: 'var(--pp-ink)', lineHeight: 1.5 }}>{note.notes}</div>
-                          </div>
-                        ))
-                    ) : (
-                      <div style={{ color: 'var(--pp-text-3)', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>
-                        No follow-up notes yet. Add one below.
-                      </div>
-                    )}
-                  </div>
-                  <AutoSaveNoteArea
-                    value={followUpNote}
-                    onChange={setFollowUpNote}
-                    onSave={handleSaveNote}
-                    placeholder="Add follow-up notes here..."
-                    minHeight="200px"
-                  />
-                </>
-              )}
 
+              {/* Package Action */}
+              <button
+                onClick={() => setShowAssignModal(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: activePackage?.status === 'Active' ? 'var(--pp-success-bg)' : 'var(--pp-unregistered-bg)', border: `1px solid ${activePackage?.status === 'Active' ? 'var(--pp-success-border)' : 'var(--pp-unregistered-border)'}`, color: activePackage?.status === 'Active' ? 'var(--pp-success-fg)' : 'var(--pp-unregistered-fg)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                title="Assign or view package"
+              >
+                {activePackage?.status === 'Active' ? <Award size={14} /> : <Clock size={14} />}
+                {activePackage?.packageName 
+                  ? `${activePackage.packageName} (${activePackage.status})`
+                  : 'No active plan / Add Package'}
+              </button>
 
-              {mobileDrawer === 'billing' && (
-                <>
-                  <div className="mc-side-card" style={{ background: 'var(--bg-card)' }}>
-                    <div className="mc-side-card-body">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Total</span>
-                        <strong style={{ color: 'var(--pp-ink)' }}>₹{billingValues.total}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Paid</span>
-                        <strong style={{ color: 'var(--pp-success-fg)' }}>₹{billingValues.received}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', padding: '8px 0' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Balance</span>
-                        <strong style={{ color: 'var(--pp-danger-fg)' }}>₹{billingValues.balance}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 800, color: 'var(--pp-blue)', borderTop: '2px solid var(--border-main)', paddingTop: '14px', marginTop: '8px' }}>
-                        <span>Outstanding</span>
-                        <strong>₹{billingValues.balance}</strong>
-                      </div>
-                    </div>
-                  </div>
-                  {isToday && (
-                    <button
-                      onClick={() => {
-                        setMobileDrawer(null);
-                        setActiveBillingTab('payment');
-                        setShowBillingModal(true);
-                      }}
-                      style={{
-                        width: '100%', padding: '14px', background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)',
-                        border: '1px solid #BBF7D0', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
-                      }}
-                    >
-                      Record Payment
-                    </button>
-                  )}
-                </>
-              )}
-
-              {mobileDrawer === 'contact' && (
-                <div className="mc-side-card" style={{ background: 'white' }}>
-                  <div className="mc-side-card-body" style={{ gap: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: 'var(--pp-text-3)' }}>Name</span>
-                      <strong>{medicalCase.patientName || '—'}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: 'var(--pp-text-3)' }}>Mobile</span>
-                      <strong>{medicalCase.mobile || '—'}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: 'var(--pp-text-3)' }}>Email</span>
-                      <strong>{medicalCase.email || '—'}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                      <span style={{ color: 'var(--pp-text-3)' }}>Address</span>
-                      <strong style={{ textAlign: 'right', maxWidth: '60%' }}>{medicalCase.address || '—'}</strong>
-                    </div>
-                    {medicalCase.mobile && (
-                      <a
-                        href={`tel:${medicalCase.mobile}`}
-                        style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                          width: '100%', padding: '12px', background: '#2563eb', color: 'white',
-                          border: 'none', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem',
-                          textDecoration: 'none', marginTop: '8px'
-                        }}
-                      >
-                        <Phone size={16} /> Call Patient
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {mobileDrawer === 'package' && (
-                <>
-                  <div className="mc-side-card" style={{ background: 'white' }}>
-                    <div className="mc-side-card-body" style={{ gap: '14px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Scheme</span>
-                        <strong>{activePackage?.packageName || '—'}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Status</span>
-                        <span style={{
-                          padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
-                          background: activePackage?.status === 'Active' ? '#dcfce7' : '#fef3c7',
-                          color: activePackage?.status === 'Active' ? '#166534' : '#92400e'
-                        }}>
-                          {activePackage?.status || '—'}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                        <span style={{ color: 'var(--pp-text-3)' }}>Expiry</span>
-                        <strong>{activePackage?.expiryDate ? new Date(activePackage.expiryDate).toLocaleDateString() : '—'}</strong>
-                      </div>
-                    </div>
-                  </div>
+              {/* ABHA Action */}
+              {abhaStatus?.isLinked ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--pp-success-bg)', border: '1px solid var(--pp-success-border)', color: 'var(--pp-success-fg)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                  <ShieldCheck size={14} /> ABHA: {abhaStatus.abhaId}
                   <button
-                    onClick={() => { setMobileDrawer(null); setShowAssignModal(true); }}
-                    style={{
-                      width: '100%', padding: '14px', background: 'var(--pp-blue-faded)', color: 'var(--pp-blue)',
-                      border: '1px solid #C7D2FE', borderRadius: '10px', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer'
+                    onClick={async (e) => {
+                      e.preventDefault(); e.stopPropagation();
+                      if (!confirm('Remove ABHA link from this patient?')) return;
+                      try {
+                        await abhaUnlinkMutation.mutateAsync();
+                        toast({ title: 'ABHA Unlinked', description: 'ABHA ID removed', variant: 'success' });
+                      } catch (err: any) { toast({ title: 'Failed', description: err.message, variant: 'error' }); }
                     }}
+                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: '6px', padding: '0', display: 'flex', alignItems: 'center' }}
+                    title="Unlink ABHA"
                   >
-                    Manage Package
+                    <Unlink size={14} />
                   </button>
-                </>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAbhaModal(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--pp-blue-tint)', border: '1px solid var(--pp-blue-border)', color: 'var(--pp-blue)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  <Link2 size={14} /> Link ABHA
+                </button>
               )}
             </div>
           </div>
-        </>
-      )}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '0',
+            padding: '0'
+          }}>
+            {[
+              { label: 'Full Name', value: formatName(medicalCase.patientName) || '—' },
+              { label: 'Gender', value: medicalCase.gender === 'M' ? 'Male' : medicalCase.gender === 'F' ? 'Female' : medicalCase.gender || '—' },
+              { label: 'Age', value: ageString || '—' },
+              { label: 'Date of Birth', value: (() => { const dob = medicalCase.dateOfBirth || medicalCase.dob; return dob ? new Date(dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; })() },
+              { label: 'Phone', value: medicalCase.mobile || medicalCase.phone || '—' },
+              { label: 'Email', value: medicalCase.email || '—' },
+              { label: 'Address', value: medicalCase.address || '—' },
+              { label: 'City', value: medicalCase.city || '—' },
+              { label: 'Doctor', value: formatName(medicalCase.doctorName) || '—' },
+              { label: 'Registration ID', value: medicalCase.regid || regid || '—' },
+              { label: 'Registered On', value: (() => { const d = medicalCase.registeredAt || medicalCase.createdAt; return d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; })() },
+            ].map((item, i) => (
+              <div key={i} style={{
+                padding: '14px 24px',
+                borderBottom: '1px solid var(--border-main)',
+                borderRight: '1px solid var(--border-main)'
+              }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{item.label}</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)', wordBreak: 'break-word' }}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ─── Full Case History Timeline ─── */}
+        <div style={{
+          background: 'var(--bg-card)',
+          borderRadius: '16px',
+          border: '1px solid var(--border-main)',
+          boxShadow: 'var(--pp-shadow-sm)',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            padding: '16px 24px',
+            background: 'linear-gradient(135deg, var(--bg-surface-2) 0%, var(--bg-card) 100%)',
+            borderBottom: '1px solid var(--border-main)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>Complete Case History</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '4px' }}>
+              ({(prescriptionsHistory || []).length} prescriptions)
+            </span>
+          </div>
+
+          <div style={{ padding: '0' }}>
+            {(() => {
+              // Group ALL data by date
+              const allRx = prescriptionsHistory || [];
+              const allSoap = fullData?.soap || [];
+              const allFollowup = (fullData?.notes || []).filter((n: any) =>
+                n.notesType === 'Followup' || n.noteType === 'Followup' || n.notes_type === 'Followup'
+              );
+
+              const allVitals = fullData?.vitals || [];
+              const allLabs = fullData?.investigations || [];
+              const allMedia = fullData?.images || [];
+
+              // Collect unique dates from all sources
+              const dateMap = new Map<string, { 
+                rxItems: any[]; 
+                soapItems: any[]; 
+                followupItems: any[];
+                vitalItems: any[];
+                labItems: any[];
+                mediaItems: any[];
+              }>();
+
+              const getDateKey = (d: any): string | null => {
+                const raw = d?.created_at || d?.createdAt || d?.dateval || d?.recordedAt || d?.recorded_at || d?.visitDate || d?.visit_date || d?.date_val;
+                if (!raw) return null;
+                const date = new Date(raw);
+                if (isNaN(date.getTime())) return null;
+                return date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+              };
+
+              const initializeDate = (key: string) => {
+                if (!dateMap.has(key)) {
+                  dateMap.set(key, { rxItems: [], soapItems: [], followupItems: [], vitalItems: [], labItems: [], mediaItems: [] });
+                }
+              };
+
+              allRx.forEach((rx: any) => {
+                const key = getDateKey(rx);
+                if (!key) return;
+                initializeDate(key);
+                dateMap.get(key)!.rxItems.push(rx);
+              });
+
+              allSoap.forEach((s: any) => {
+                const key = getDateKey(s);
+                if (!key) return;
+                initializeDate(key);
+                dateMap.get(key)!.soapItems.push(s);
+              });
+
+              allFollowup.forEach((n: any) => {
+                const key = getDateKey(n);
+                if (!key) return;
+                initializeDate(key);
+                dateMap.get(key)!.followupItems.push(n);
+              });
+
+              allVitals.forEach((v: any) => {
+                const key = getDateKey(v);
+                if (!key) return;
+                initializeDate(key);
+                dateMap.get(key)!.vitalItems.push(v);
+              });
+
+              allLabs.forEach((l: any) => {
+                const key = getDateKey(l);
+                if (!key) return;
+                initializeDate(key);
+                dateMap.get(key)!.labItems.push(l);
+              });
+
+              allMedia.forEach((m: any) => {
+                const key = getDateKey(m);
+                if (!key) return;
+                initializeDate(key);
+                dateMap.get(key)!.mediaItems.push(m);
+              });
+
+              // Sort dates descending (newest first)
+              const sortedDates = Array.from(dateMap.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+
+              if (sortedDates.length === 0) {
+                return (
+                  <div style={{ padding: '48px 24px', textAlign: 'center', color: '#94a3b8' }}>
+                    <History size={48} style={{ opacity: 0.15, marginBottom: '16px' }} />
+                    <p style={{ fontSize: '0.95rem', fontWeight: 600 }}>No case history found for this patient.</p>
+                    <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Prescriptions, diagnoses, and follow-up notes will appear here once recorded.</p>
+                  </div>
+                );
+              }
+
+              return sortedDates.map(([dateKey, data], idx) => (
+                  <TimelineVisitCard key={dateKey} dateKey={dateKey} data={data} isFirst={idx === 0} isLast={idx === sortedDates.length - 1} medicalCase={medicalCase} />
+                ));})()}
+          </div>
+        </div>
+
+      </div>
+
 
       {showVitalsModal && <VitalsFormModal initialData={editingVitals} visitId={medicalCase.id} regid={Number(regid)} onClose={() => {
         setShowVitalsModal(false);
@@ -2208,91 +1894,133 @@ export default function MedicalCaseDetailPage() {
 }
 
 function MedicalCasePageSkeleton() {
+  const shimmer = {
+    background: 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)',
+    backgroundSize: '200% 100%',
+    animation: 'shimmer 1.5s infinite',
+    borderRadius: '6px'
+  } as React.CSSProperties;
+
   return (
-    <div className="mc-detail-container animate-fade-in" style={{ padding: '12px' }}>
-      {/* ─── Redesigned Header Card Skeleton ─── */}
-      <div className="patient-profile-card">
-        <div className="profile-top-row">
-          <div className="profile-identity">
-            <button 
-              disabled
-              style={{ 
-                background: 'transparent', 
-                border: 'none', 
-                color: 'white', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                padding: '8px',
-                borderRadius: '8px',
-                marginRight: '8px',
-                opacity: 0.5
-              }}
-            >
-              <ArrowLeft size={24} />
-            </button>
-            <div className="profile-name-id">
-              <div className="skeleton-box" style={{ width: '180px', height: '24px', marginBottom: '6px' }} />
-              <div className="skeleton-box" style={{ width: '90px', height: '14px' }} />
-            </div>
-            <div className="skeleton-box" style={{ width: '130px', height: '24px', borderRadius: '100px' }} />
-            <div className="skeleton-box" style={{ width: '100px', height: '24px', borderRadius: '100px' }} />
+    <div style={{ padding: '0', fontFamily: 'inherit' }}>
+      <style>{`
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .sk-pulse { background: linear-gradient(90deg, #f1f5f9 25%, #e8edf4 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.6s ease-in-out infinite; border-radius: 6px; }
+      `}</style>
+
+      {/* Patient header skeleton */}
+      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '20px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="sk-pulse" style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
+            <div className="sk-pulse" style={{ width: '140px', height: '22px' }} />
           </div>
-          <div className="profile-actions">
-            <div className="skeleton-box" style={{ width: '150px', height: '36px', borderRadius: '8px' }} />
-            <div className="skeleton-box" style={{ width: '100px', height: '36px', borderRadius: '8px' }} />
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <div className="sk-pulse" style={{ width: '100px', height: '36px', borderRadius: '8px' }} />
+            <div className="sk-pulse" style={{ width: '130px', height: '36px', borderRadius: '8px' }} />
+            <div className="sk-pulse" style={{ width: '100px', height: '36px', borderRadius: '8px' }} />
           </div>
         </div>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '24px',
-          marginTop: '24px',
-          borderTop: '1px solid rgba(255,255,255,0.1)',
-          paddingTop: '20px'
-        }}>
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div className="skeleton-box" style={{ width: '60px', height: '10px', opacity: 0.2, borderRadius: '4px' }} />
-              <div className="skeleton-box" style={{ width: '100px', height: '14px', opacity: 0.4, borderRadius: '4px' }} />
+        {/* Patient info grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0' }}>
+          {[100, 60, 80, 60, 110, 60, 70].map((w, i) => (
+            <div key={i} style={{ padding: '14px 20px', borderRight: i < 6 ? '1px solid #f1f5f9' : 'none' }}>
+              <div className="sk-pulse" style={{ width: '50px', height: '9px', marginBottom: '8px' }} />
+              <div className="sk-pulse" style={{ width: `${w}px`, height: '14px' }} />
+            </div>
+          ))}
+        </div>
+        {/* Row 2 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0', borderTop: '1px solid #f1f5f9' }}>
+          {[70, 120, 80, 90, 60, 0, 0].map((w, i) => (
+            <div key={i} style={{ padding: '14px 20px', borderRight: i < 6 ? '1px solid #f1f5f9' : 'none' }}>
+              {w > 0 && <>
+                <div className="sk-pulse" style={{ width: '50px', height: '9px', marginBottom: '8px' }} />
+                <div className="sk-pulse" style={{ width: `${w}px`, height: '14px' }} />
+              </>}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="mc-body-grid" style={{ marginTop: '32px' }}>
-        <div className="mc-body-main">
-          {/* Main Content Area Shimmer */}
-          <div className="pp-card" style={{ padding: '32px', minHeight: '400px', marginBottom: '24px' }}>
-            <div className="skeleton-box skeleton-text title" style={{ width: '30%', marginBottom: '32px' }} />
-            <div className="skeleton-box" style={{ width: '100%', height: '300px', borderRadius: '16px' }} />
-          </div>
-
-          {/* ─── Itemized Billing Summary Skeleton ─── */}
-          <div style={{ padding: '20px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px' }}>
-            <div className="skeleton-box skeleton-text title" style={{ width: '120px', height: '14px', marginBottom: '20px' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid #f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 40px', padding: '10px 16px', borderBottom: i === 5 ? 'none' : '1px solid #f1f5f9' }}>
-                  <div className="skeleton-box skeleton-text" style={{ width: '80px', height: '10px' }} />
-                  <div className="skeleton-box skeleton-text" style={{ width: '60px', height: '14px', marginLeft: 'auto' }} />
-                  <div className="skeleton-box" style={{ width: '28px', height: '28px', borderRadius: '6px', marginLeft: 'auto' }} />
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* Case History Timeline skeleton */}
+      <div style={{ padding: '24px', background: '#f8fafc', minHeight: '400px' }}>
+        {/* Section title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+          <div className="sk-pulse" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />
+          <div className="sk-pulse" style={{ width: '180px', height: '18px' }} />
+          <div className="sk-pulse" style={{ width: '80px', height: '18px', marginLeft: '8px', borderRadius: '20px' }} />
         </div>
 
-        <aside className="mc-body-side">
-          {[1, 2].map(i => (
-            <div key={i} className="mc-side-card" style={{ padding: '20px', background: 'white' }}>
-              <div className="skeleton-box skeleton-text title" style={{ width: '60%', marginBottom: '16px' }} />
-              <div className="skeleton-box skeleton-text" style={{ width: '100%', marginBottom: '10px' }} />
-              <div className="skeleton-box skeleton-text" style={{ width: '80%', marginBottom: '10px' }} />
-              <div className="skeleton-box skeleton-text" style={{ width: '90%' }} />
+        {/* Timeline cards */}
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          {[0, 1, 2].map((cardIdx) => (
+            <div key={cardIdx} style={{ display: 'flex', borderBottom: cardIdx < 2 ? '1px solid #f1f5f9' : 'none' }}>
+              {/* Left: date box + line */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '60px', flexShrink: 0, padding: '14px 0' }}>
+                <div className="sk-pulse" style={{ width: '48px', height: '52px', borderRadius: '12px' }} />
+                {cardIdx < 2 && <div className="sk-pulse" style={{ width: '2px', flex: 1, minHeight: '40px', marginTop: '6px', borderRadius: '2px' }} />}
+              </div>
+              {/* Right: content */}
+              <div style={{ flex: 1, padding: '16px 16px 16px 12px', minWidth: 0 }}>
+                {/* Date + badges row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <div className="sk-pulse" style={{ width: '160px', height: '16px' }} />
+                  {cardIdx === 0 && <div className="sk-pulse" style={{ width: '50px', height: '16px', borderRadius: '20px' }} />}
+                  <div style={{ marginLeft: '8px', display: 'flex', gap: '6px' }}>
+                    {[70, 80, 65].map((w, bi) => (
+                      <div key={bi} className="sk-pulse" style={{ width: `${w}px`, height: '20px', borderRadius: '12px' }} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Expanded content for first card only */}
+                {cardIdx === 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* Prescription table skeleton */}
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div style={{ background: '#f8fafc', padding: '10px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
+                        <div className="sk-pulse" style={{ width: '100px', height: '12px' }} />
+                        <div className="sk-pulse" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
+                      </div>
+                      <div style={{ background: '#f5f3ff', padding: '10px 14px', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 60px', gap: '8px' }}>
+                        {[80, 60, 70, 30].map((w, hi) => <div key={hi} className="sk-pulse" style={{ width: `${w}px`, height: '10px' }} />)}
+                      </div>
+                      {[0].map(ri => (
+                        <div key={ri} style={{ padding: '10px 14px', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 60px', gap: '8px' }}>
+                          {[120, 50, 60, 20].map((w, ci) => <div key={ci} className="sk-pulse" style={{ width: `${w}px`, height: '14px' }} />)}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Follow-up notes skeleton */}
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderLeft: '4px solid #22c55e', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div style={{ padding: '14px 18px' }}>
+                        <div className="sk-pulse" style={{ width: '120px', height: '11px', marginBottom: '10px' }} />
+                        <div className="sk-pulse" style={{ width: '100%', height: '12px', marginBottom: '6px' }} />
+                        <div className="sk-pulse" style={{ width: '80%', height: '12px' }} />
+                      </div>
+                      {/* Next follow-up skeleton */}
+                      <div style={{ borderTop: '1px solid #bbf7d0', background: '#dcfce7', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className="sk-pulse" style={{ width: '13px', height: '13px', borderRadius: '50%' }} />
+                        <div className="sk-pulse" style={{ width: '180px', height: '12px' }} />
+                      </div>
+                    </div>
+
+                    {/* Lab report skeleton */}
+                    <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderLeft: '4px solid #f97316', borderRadius: '10px', padding: '12px 16px' }}>
+                      <div className="sk-pulse" style={{ width: '160px', height: '11px', marginBottom: '10px' }} />
+                      <div style={{ background: '#ffedd5', padding: '10px 12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="sk-pulse" style={{ width: '100px', height: '14px' }} />
+                        <div className="sk-pulse" style={{ width: '80px', height: '24px', borderRadius: '6px' }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
-        </aside>
+        </div>
       </div>
     </div>
   );
@@ -2420,11 +2148,11 @@ function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; cas
               {currentVaccines.map((vac: any, idx: number) => {
                 if (vac.isHeader) {
                   return (
-                    <tr key={`hdr-${vac.id}`} style={{ background: '#f0f9ff' }}>
-                      <td colSpan={5} style={{ padding: '10px 14px', borderBottom: '1px solid #dbeafe' }}>
+                    <tr key={`hdr-${vac.id}`} style={{ background: 'var(--pp-blue-tint)' }}>
+                      <td colSpan={5} style={{ padding: '10px 14px', borderBottom: '1px solid var(--pp-blue-border)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <Calendar size={13} style={{ color: 'var(--pp-blue)' }} />
-                          <span style={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#1e40af' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--pp-blue)' }}>
                             {vac.label}
                           </span>
                           {vac.months !== undefined && vac.months !== 999 && (
@@ -2459,7 +2187,7 @@ function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; cas
                     </td>
                     <td>
                       {vac.months !== null && vac.months !== undefined ? (
-                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: vac.months === 0 ? '#f0fdf4' : '#eff6ff', color: vac.months === 0 ? '#16a34a' : '#2563eb', border: `1px solid ${vac.months === 0 ? '#bbf7d0' : '#bfdbfe'}` }}>
+                        <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: vac.months === 0 ? 'var(--pp-success-bg)' : 'var(--pp-blue-tint)', color: vac.months === 0 ? 'var(--pp-success-fg)' : 'var(--pp-blue)', border: `1px solid ${vac.months === 0 ? 'var(--pp-success-border)' : 'var(--pp-blue-border)'}` }}>
                           {vac.months === 0 ? 'At Birth' : `${vac.months} Months`}
                         </span>
                       ) : (
@@ -2468,11 +2196,11 @@ function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; cas
                     </td>
                     <td>
                       {isDone ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: 'var(--pp-success-bg)', color: 'var(--pp-success-fg)', border: '1px solid var(--pp-success-border)' }}>
                           <Check size={12} /> Administered
                         </span>
                       ) : (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 600, background: '#fef9c3', color: '#a16207', border: '1px solid #fde68a' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 600, background: 'var(--pp-warning-bg)', color: 'var(--pp-warning-fg)', border: '1px solid var(--pp-warning-border)' }}>
                           <AlertCircle size={11} /> Pending
                         </span>
                       )}
@@ -2482,7 +2210,7 @@ function VaccineView({ regid, caseVaccines, onAppendNote }: { regid: number; cas
                         <button
                           onClick={() => handleMarkDone(vac.id)}
                           disabled={savingId === vac.id}
-                          style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #e2e8f0', background: 'white', color: '#2563eb', cursor: 'pointer' }}
+                          style={{ padding: '6px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid var(--border-main)', background: 'var(--bg-card)', color: 'var(--pp-blue)', cursor: 'pointer' }}
                         >
                           {savingId === vac.id ? '...' : 'Mark Done'}
                         </button>
@@ -2607,7 +2335,7 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div className="pp-card" style={{ padding: '24px', border: '1px solid #eef2f6' }}>
+      <div className="pp-card" style={{ padding: '24px', border: '1px solid var(--border-main)' }}>
         <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--pp-blue)', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.025em' }}>Quick Record Height/Weight</div>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1 1 180px' }}>
@@ -2624,17 +2352,17 @@ function AnalyticsView({ vitals, regid, visitId, name, phone, clinicName, onAppe
             </div>
             <input type="number" className="pp-input" style={{ width: '100%', borderRadius: '8px', padding: '10px 16px' }} value={wVal} onChange={e => setWVal(e.target.value)} placeholder={weightUnit} />
           </div>
-          <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ padding: '10px 24px', height: '44px', borderRadius: '8px', fontWeight: 700, background: '#2563eb' }}>
+          <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ padding: '10px 24px', height: '44px', borderRadius: '8px', fontWeight: 700, background: 'var(--pp-blue)' }}>
             {saving ? 'Saving...' : 'Save H/W'}
           </button>
-          <button className="btn-secondary" onClick={handleShare} disabled={sending} style={{ padding: '10px 20px', height: '44px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #e2e8f0', background: 'white', color: 'var(--pp-text-3)' }}>
+          <button className="btn-secondary" onClick={handleShare} disabled={sending} style={{ padding: '10px 20px', height: '44px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--border-main)', background: 'var(--bg-card)', color: 'var(--pp-text-3)' }}>
             <Send size={14} /> {sending ? 'Sending...' : 'Share Latest'}
           </button>
           {onAppendNote && vitals?.length > 0 && (
             <button
               className="btn-secondary"
               onClick={handleCopyToFollowup}
-              style={{ padding: '10px 20px', height: '44px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #dcfce7', background: 'white', color: '#16a34a' }}
+              style={{ padding: '10px 20px', height: '44px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--pp-success-border)', background: 'var(--bg-card)', color: 'var(--pp-success-fg)' }}
               title="Copy Latest to Follow-up"
             >
               <Copy size={14} /> Copy Latest
@@ -3338,7 +3066,7 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
           <button
             onClick={() => fileInputRef.current?.click()}
             className="btn-secondary"
-            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }}
+            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', background: 'var(--bg-surface-2)', border: '1px solid var(--border-main)', color: 'var(--text-secondary)', borderRadius: '8px', fontWeight: 600, fontSize: '0.85rem' }}
             disabled={isScanning}
           >
             {isScanning ? <Loader2 size={16} className="animate-spin" style={{ marginRight: '6px' }} /> : <Sparkles size={16} style={{ marginRight: '6px', color: '#8b5cf6' }} />}
@@ -3367,23 +3095,23 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
             />
           ) : (
             <>
-              <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #ddd6fe', marginBottom: '20px' }}>
-                <div style={{ padding: '12px 16px', background: '#f5f3ff', borderBottom: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FlaskConical size={15} style={{ color: '#8b5cf6' }} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#5b21b6' }}>Investigation History</span>
-                  <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
+              <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid var(--pp-purple-faded)', marginBottom: '20px' }}>
+                <div style={{ padding: '12px 16px', background: 'var(--pp-purple-faded)', borderBottom: '1px solid var(--border-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FlaskConical size={15} style={{ color: 'var(--pp-purple)' }} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-purple)' }}>Investigation History</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--pp-purple)', fontWeight: 600, marginLeft: '4px' }}>({investigations.length})</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', padding: '16px', gap: '16px', background: '#f8fafc' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '16px', gap: '16px', background: 'var(--bg-surface-2)' }}>
                   {sortedInvs.length === 0 ? (
                     <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>No investigations found for this page.</div>
                   ) : (
                     sortedInvs.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(inv => {
                       const dateVal = inv.investDate || 0;
                       return (
-                        <div key={inv.id} className="pp-card hover-card" style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                        <div key={inv.id} className="pp-card hover-card" style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--border-main)', background: 'var(--bg-card)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div style={{ background: '#f5f3ff', color: '#7c3aed', padding: '6px 12px', borderRadius: '8px', fontWeight: 800, fontSize: '0.85rem' }}>
+                              <div style={{ background: 'var(--pp-purple-faded)', color: 'var(--pp-purple)', padding: '6px 12px', borderRadius: '8px', fontWeight: 800, fontSize: '0.85rem' }}>
                                 {inv.type}
                               </div>
                               <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -3401,16 +3129,16 @@ function LabsView({ investigations, regid, visitId, onAppendNote, isDateFiltered
                             </div>
                           </div>
                           
-                          <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: '1.6', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '12px' }}>
                             {inv.data?.summary || inv.summary || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No summary available</span>}
                           </div>
                           
                           {inv.data && Object.keys(inv.data).filter(k => !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '12px', background: '#f1f5f9', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '12px', background: 'var(--bg-surface-2)', borderRadius: '8px' }}>
                               {Object.entries(inv.data).filter(([k, v]) => v && !['investDate', 'attachmentUrl', 'summary', 'id'].includes(k)).map(([k, v]) => (
-                                <div key={k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px', background: 'white', padding: '6px 10px', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', border: '1px solid #e2e8f0' }}>
-                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{k}</span>
-                                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>{String(v)}</span>
+                                <div key={k} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '6px', background: 'var(--bg-card)', padding: '6px 10px', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', border: '1px solid var(--border-main)' }}>
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{k}</span>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>{String(v)}</span>
                                 </div>
                               ))}
                             </div>
@@ -4812,14 +4540,14 @@ function DiagnosisView({
         </div>
       ) : (
         <>
-          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid #fde68a', marginBottom: '20px' }}>
-            <div style={{ padding: '12px 16px', background: '#fffbeb', borderBottom: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={15} style={{ color: '#d97706' }} />
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#92400e' }}>Clinical Assessment History</span>
-              <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 600, marginLeft: '4px' }}>({soapRecords.length})</span>
+          <div className="pp-card pp-table-scroll" style={{ padding: 0, borderRadius: '12px', border: '1px solid var(--pp-warning-border)', marginBottom: '20px' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--pp-warning-bg)', borderBottom: '1px solid var(--pp-warning-border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={15} style={{ color: 'var(--pp-warning-fg)' }} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--pp-warning-fg)' }}>Clinical Assessment History</span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--pp-warning-fg)', fontWeight: 600, marginLeft: '4px' }}>({soapRecords.length})</span>
             </div>
             <table className="mc-data-table" style={{ marginBottom: 0 }}>
-              <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f4f3f1' }}>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-surface-2)' }}>
                 <tr>
                   <th style={{ width: '120px' }}>Date</th>
                   <th>Summary</th>
@@ -4840,8 +4568,8 @@ function DiagnosisView({
                           key={record.id}
                           className="hover-row"
                           style={{
-                            background: idx > 0 ? '#f8fafc' : 'white',
-                            borderLeft: idx > 0 ? '3px solid #e2e8f0' : 'none'
+                            background: idx > 0 ? 'var(--bg-surface-2)' : 'var(--bg-card)',
+                            borderLeft: idx > 0 ? '3px solid var(--border-main)' : 'none'
                           }}
                         >
                           <td className="appt-cell-mono">

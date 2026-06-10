@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { ProtectedRoute } from '@/shared/components/protected-route';
 import { RoleGuard } from '@/shared/components/role-guard';
 import { AppLayout } from '@/shared/layouts/app-layout';
@@ -24,7 +24,11 @@ const ConsultationPage = lazy(() => import('@/features/consultation/consultation
 // Patient Module (Selective merge from shiva)
 const PatientListPage = lazy(() => import('@/features/patients/pages/patient-list-page'));
 const PatientFormPage = lazy(() => import('@/features/patients/pages/patient-form-page'));
-const PatientDetailPage = lazy(() => import('@/features/patients/pages/patient-detail-page'));
+
+const PatientDetailRedirect = () => {
+  const { regid } = useParams();
+  return <Navigate to={`/medical-cases/${regid}`} replace />;
+};
 
 
 
@@ -155,7 +159,7 @@ export function AppRouter() {
               {/* ─── Patient Module ─── */}
               <Route path="/patients" element={<PatientListPage />} />
               <Route path="/patients/add" element={<Navigate to="/patients?add=true" replace />} />
-              <Route path="/patients/:regid" element={<PatientDetailPage />} />
+              <Route path="/patients/:regid" element={<PatientDetailRedirect />} />
               <Route path="/patients/:regid/edit" element={<PatientFormPage />} />
 
 

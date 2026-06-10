@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Download, Printer } from 'lucide-react';
 
@@ -43,6 +44,7 @@ function DailyCollectionCard({ label, amount, count, icon, type = 'default' }: {
 }
 
 export default function BillingListPage() {
+  const navigate = useNavigate();
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [page, setPage] = useState(1);
   const [regidFilter, setRegidFilter] = useState('');
@@ -335,7 +337,7 @@ export default function BillingListPage() {
                 <button 
                   className="bill-btn bill-btn-primary" 
                   style={{ width: '100%' }}
-                  onClick={() => window.location.href = `/patients/${bill.regid}`}
+                  onClick={() => navigate(`/medical-cases/${bill.regid}`)}
                 >
                   View Details
                 </button>

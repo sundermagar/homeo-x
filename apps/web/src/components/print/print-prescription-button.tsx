@@ -34,6 +34,21 @@ interface PrintPrescriptionButtonProps {
       instructions?: string;
       quantity?: number;
     }>;
+    doctor?: {
+      name?: string;
+      qualification?: string;
+      registrationNumber?: string;
+    };
+    vitals?: {
+      heightCm?: number;
+      weightKg?: number;
+      bmi?: number;
+      temperatureF?: number;
+      pulseRate?: number;
+      systolicBp?: number;
+      diastolicBp?: number;
+      oxygenSaturation?: number;
+    };
     advice?: string;
     followUp?: string;
     visit?: {
@@ -75,10 +90,7 @@ export function PrintPrescriptionButton({
   const handlePrint = () => {
     const inlineData = getInlineData ? getInlineData() : initialInlineData;
     // Determine data source: inline (in-memory) data takes priority over API data
-    const useInline = inlineData && (
-      (inlineData.soapData?.subjective || inlineData.soapData?.assessment) ||
-      (inlineData.rxItems && inlineData.rxItems.length > 0)
-    );
+    const useInline = !!inlineData;
 
     if (!useInline && !summary) return;
 
@@ -120,7 +132,7 @@ export function PrintPrescriptionButton({
 
       printData = {
         clinic: clinic as any,
-        doctor: getDoctorLetterhead(),
+        doctor: getDoctorLetterhead(inlineData.doctor),
         patient: {
           name: patientName,
           age: patientAge,
@@ -144,6 +156,18 @@ export function PrintPrescriptionButton({
           : undefined,
         diagnosis: inlineData.soapData?.assessment
           ? { assessment: inlineData.soapData.assessment }
+          : undefined,
+        vitals: inlineData.vitals
+          ? {
+              heightCm: inlineData.vitals.heightCm ?? undefined,
+              weightKg: inlineData.vitals.weightKg ?? undefined,
+              bmi: inlineData.vitals.bmi ?? undefined,
+              temperatureF: inlineData.vitals.temperatureF ?? undefined,
+              pulseRate: inlineData.vitals.pulseRate ?? undefined,
+              systolicBp: inlineData.vitals.systolicBp ?? undefined,
+              diastolicBp: inlineData.vitals.diastolicBp ?? undefined,
+              oxygenSaturation: inlineData.vitals.oxygenSaturation ?? undefined,
+            }
           : undefined,
         medications: (inlineData.rxItems || []).map(item => ({
           name: item.medicationName,
@@ -201,19 +225,37 @@ export function PrintPrescriptionButton({
         if (labMatch && labMatch[1]) labOrders = labMatch[1].split(',').map((s: string) => s.trim());
       }
 
-      const medications = summary!.prescriptions?.flatMap((rx: any) =>
-        (rx.items || []).map((item: any) => ({
-          name: item.medicationName,
-          genericName: item.genericName,
-          dosage: item.dosage,
-          frequency: item.frequency,
-          duration: item.duration,
-          route: item.route,
-          instructions: item.instructions,
-          quantity: item.quantity,
-          date: item.date || rx.createdAt || summary!.visit.completedAt || summary!.visit.startedAt || summary!.visit.checkedInAt || new Date().toISOString(),
-        })),
-      ) ?? [];
+      let medications: any[] = [];
+      const rxList = summary?.prescriptions;
+      if (rxList && rxList.length > 0) {
+        if (rxList[0]?.items) {
+          medications = rxList.flatMap((rx: any) =>
+            (rx.items || []).map((item: any) => ({
+              name: item.medicationName ?? item.remedy ?? item.name,
+              genericName: item.genericName,
+              dosage: item.dosage ?? item.potency,
+              frequency: item.frequency,
+              duration: item.duration,
+              route: item.route,
+              instructions: item.instructions ?? item.rxprescription,
+              quantity: item.quantity,
+              date: item.date || rx.createdAt || summary!.visit.completedAt || summary!.visit.startedAt || summary!.visit.checkedInAt || new Date().toISOString(),
+            }))
+          );
+        } else {
+          medications = rxList.map((item: any) => ({
+            name: item.remedy ?? item.medicationName ?? item.name,
+            genericName: item.genericName,
+            dosage: item.potency ?? item.dosage,
+            frequency: item.frequency,
+            duration: item.duration ?? item.days,
+            route: item.route,
+            instructions: item.instructions ?? item.rxprescription,
+            quantity: item.quantity,
+            date: item.date || item.createdAt || summary!.visit.completedAt || summary!.visit.startedAt || summary!.visit.checkedInAt || new Date().toISOString(),
+          }));
+        }
+      }
 
       printData = {
         clinic: clinic as any,
@@ -265,10 +307,7 @@ export function PrintPrescriptionButton({
   };
 
   // Enable button if we have inline data OR API summary
-  const hasData = !!(getInlineData || (initialInlineData && (
-    (initialInlineData.soapData?.subjective || initialInlineData.soapData?.assessment) ||
-    (initialInlineData.rxItems && initialInlineData.rxItems.length > 0)
-  ))) || !!summary;
+  const hasData = !!(getInlineData || initialInlineData) || !!summary;
 
   return (
     <Button

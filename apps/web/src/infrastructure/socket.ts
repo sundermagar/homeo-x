@@ -14,7 +14,7 @@ let socket: Socket | null = null;
 let whatsappSocket: Socket | null = null;
 
 // Track the userId the socket was created for so we can detect stale auth
-let socketCreatedForUserId: string | undefined = undefined;
+let socketCreatedForUserId: string | number | undefined = undefined;
 
 export function getSocket(): Socket {
   const token = useAuthStore.getState().token;

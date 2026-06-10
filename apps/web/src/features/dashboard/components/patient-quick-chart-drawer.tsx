@@ -428,7 +428,7 @@ export function PatientQuickChartDrawer({
         </div>
 
         {/* Bottom Pinned Bar */}
-        <div className="p-5 border-t border-slate-100 bg-white space-y-2">
+        <div className="p-5 border-t border-slate-100 bg-white">
           <button
             onClick={() => {
               onClose();
@@ -438,15 +438,6 @@ export function PatientQuickChartDrawer({
           >
             <Stethoscope size={16} />
             Full Medical Record
-          </button>
-          <button
-            onClick={() => {
-              onClose();
-              navigate(`/patients/${regid}`);
-            }}
-            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs py-2.5 rounded-xl transition-colors"
-          >
-            Patient Profile
           </button>
         </div>
       </div>
