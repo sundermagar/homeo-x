@@ -132,7 +132,7 @@ export default function PatientListPage() {
     if (!phone) return alert('No phone number available.');
     const cleaned = phone.replace(/\D/g, '');
     const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
-    
+
     sendText.mutate({
       phone: finalPhone,
       message: `Dear ${name || 'Patient'},\n\nThank you for registering with MMC HomeoTech. Your Registration ID is *${regid}*.\n\nPlease use this ID for all future communications.\n\nBest regards,\nYour Clinic`
@@ -194,22 +194,6 @@ export default function PatientListPage() {
       <button className="appt-kebab-item" onClick={() => { openWhatsApp(p.phone, p.fullName, p.regid); closeMenu(); }}>
         <MessageCircle size={14} /> WhatsApp
       </button>
-      <button className="appt-kebab-item" onClick={() => {
-        const envUrl = import.meta.env['VITE_API_URL'];
-        const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
-        window.open(`${apiBase}/medical-cases/remedy-chart/pdf/${p.regid}?token=${token}`, '_blank');
-        closeMenu();
-      }}>
-        <Printer size={14} /> Print Prescription
-      </button>
-      <button className="appt-kebab-item" onClick={() => {
-        const envUrl = import.meta.env['VITE_API_URL'];
-        const apiBase = envUrl ? (envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`) : '/api';
-        window.open(`${apiBase}/medical-cases/pdf/summary/${p.regid}?token=${token}`, '_blank');
-        closeMenu();
-      }}>
-        <Download size={14} /> Download Report
-      </button>
       <div className="appt-kebab-divider" />
       <button className="appt-kebab-item" style={{ color: 'var(--pp-blue)' }} onClick={() => { setAssignPkgPatient({ regid: p.regid, name: p.fullName }); closeMenu(); }}>
         <Zap size={14} /> Assign Package
@@ -252,12 +236,12 @@ export default function PatientListPage() {
             onChange={e => handleSearchChange(e.target.value)}
           />
         </div>
-        
+
         <div className="pp-filter-controls">
           <div className="appt-segmented-toggle">
-             <button className={`appt-segmented-btn ${viewMode === 'grid' ? 'is-active' : ''}`} onClick={() => setViewMode('grid')} title="Grid View">
-               <Grid size={16} /> Grid
-             </button>
+            <button className={`appt-segmented-btn ${viewMode === 'grid' ? 'is-active' : ''}`} onClick={() => setViewMode('grid')} title="Grid View">
+              <Grid size={16} /> Grid
+            </button>
           </div>
 
           <div className="pp-filter-group">
@@ -280,7 +264,7 @@ export default function PatientListPage() {
       {isLoading ? (
         <TableSkeleton rows={10} cols={6} />
       ) : combinedPatients.length === 0 ? (
-        <EmptyState 
+        <EmptyState
           icon={ClipboardList}
           title={debouncedSearch ? "No matches found" : "No patients registered"}
           description={debouncedSearch ? `We couldn't find any patient matching "${debouncedSearch}".` : "Your clinic's patient registry is empty."}
@@ -306,8 +290,8 @@ export default function PatientListPage() {
               </thead>
               <tbody>
                 {combinedPatients.map((p: any, idx: number) => (
-                  <tr 
-                    key={p.regid} 
+                  <tr
+                    key={p.regid}
                     className="pp-hover-row"
                   >
                     <td data-label="#">
