@@ -7,6 +7,7 @@ import { validate, validateQuery } from '../middleware/validate.js';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
 import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg.js';
 import { NotificationsRepositoryPg } from '../../repositories/notifications.repository.pg.js';
+import { PaymentRepositoryPg } from '../../repositories/payment.repository.pg.js';
 import { triggerNotificationToRoles } from '../notification-trigger.js';
 import {
   CreateBillUseCase,
@@ -125,7 +126,7 @@ export function createBillingRouter(): Router {
     requirePermission('BILLING_WRITE'),
     validate(createBillSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const useCase = new CreateBillUseCase(getRepo(req));
+      const useCase = new CreateBillUseCase(getRepo(req), new PaymentRepositoryPg(req.tenantDb));
       const result = await useCase.execute(req.body);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });
@@ -152,7 +153,7 @@ export function createBillingRouter(): Router {
     requirePermission('BILLING_WRITE'),
     validate(createCustomBillSchema),
     asyncHandler(async (req: Request, res: Response) => {
-      const useCase = new CreateCustomBillUseCase(getRepo(req));
+      const useCase = new CreateCustomBillUseCase(getRepo(req), new PaymentRepositoryPg(req.tenantDb));
       const result = await useCase.execute(req.body);
       if (!result.success) {
         res.status(400).json({ success: false, error: result.error });
@@ -292,12 +293,12 @@ export function createBillingRouter(): Router {
                 FROM receipt
                 WHERE receiptdate = ${legacyDate}
                   AND deleted_at IS NULL
-                  AND regid > 0
+                 
                 GROUP BY mode`
           ),
           db.execute(
             sql`SELECT COUNT(*) as cnt FROM receipt
-                WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0`
+                WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL`
           ),
           db.execute(
             sql`SELECT COALESCE(SUM(amount), 0) as total FROM expenses
@@ -432,12 +433,21 @@ export function createBillingRouter(): Router {
         } else {
           const modeCode = { Cash: 'C', Card: 'S', Cheque: 'B', Online: 'O', UPI: 'U' }[mode] || 'C';
           const rows: any[] = await db.execute(
-            sql`SELECT r.*, cd.regid as rid, cd.first_name
+            sql`SELECT r.*, 
+                       COALESCE(cd.regid, p.regid) as rid, 
+                       COALESCE(cd.first_name, up.name) as first_name
                 FROM receipt r
-                LEFT JOIN case_datas cd ON cd.id = r.regid
+                LEFT JOIN LATERAL (
+                  SELECT regid FROM payments p2 
+                  WHERE p2.amount = r.amount::numeric 
+                    AND abs(extract(epoch from p2.created_at - r.created_at)) < 5 
+                  LIMIT 1
+                ) p ON r.regid IS NULL
+                LEFT JOIN case_datas cd ON cd.id = r.regid OR (r.regid IS NULL AND cd.regid = p.regid)
+                LEFT JOIN unregistered_patients up ON r.regid IS NULL AND up.id = p.regid
                 WHERE r.receiptdate = ${legacyDate}
                   AND r.deleted_at IS NULL
-                  AND r.regid > 0
+                 
                   AND r.mode = ${modeCode}
                 ORDER BY r.id DESC`
           );
@@ -489,7 +499,7 @@ export function createBillingRouter(): Router {
           ] = await Promise.all([
             db.execute(
               sql`SELECT mode, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total
-                  FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0
+                  FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL
                   GROUP BY mode`
             ),
             db.execute(
@@ -514,7 +524,7 @@ export function createBillingRouter(): Router {
                   WHERE (ac.dateval = ${legacyDate} OR ac.dateval = ${isoDate}) AND ac.deleted_at IS NULL AND c.type = 'Product'`
             ),
             db.execute(
-              sql`SELECT COUNT(*) as cnt FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0`
+              sql`SELECT COUNT(*) as cnt FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL`
             )
           ]);
 
@@ -616,7 +626,7 @@ export function createBillingRouter(): Router {
           // Get receipts sum minus product charges
           const recRes: any[] = await db.execute(
             sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM receipt
-                WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL AND regid > 0`
+                WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL`
           );
           const dayCollection = Number(recRes[0]?.total) || 0;
 

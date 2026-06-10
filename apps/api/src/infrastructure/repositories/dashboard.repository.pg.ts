@@ -86,6 +86,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         key.startsWith('activity:') ||
         key.startsWith('revSeries:') ||
         key.startsWith('multiRevSeries:') ||
+        key.startsWith('revBreakdown:') ||
+        key.startsWith('topBilling:') ||
         key.startsWith('recentTransactions:')
       ) {
         DashboardRepositoryPg.cache.delete(key);
@@ -200,7 +202,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   async getKpis(period: string, contextId: number, doctorId?: number): Promise<DashboardKpis> {
     return this.getCached(`kpis:${contextId}:${period}:${doctorId ?? ''}`, 5 * 60_000, async () => {
       const sp = await this.getSearchPath();
-      const isPlatformView = (sp.includes('public') && !sp.includes('tenant_')) || !contextId || contextId === 0;
+      // Platform view should only be triggered if we are NOT in a tenant schema.
+      const isPlatformView = !sp.includes('tenant_');
 
       console.log(`[Dashboard] Context: ${contextId} (${typeof contextId}), Path: ${sp}, Platform: ${isPlatformView}`);
 
@@ -248,35 +251,35 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           finance_cte AS (
             SELECT
               COALESCE(sum(curr_bill_charges), 0)::numeric as curr_charges,
-              COALESCE(sum(curr_bill_received), 0)::numeric as curr_received,
-              COALESCE(sum(curr_bill_received), 0) + COALESCE(sum(curr_receipt_amt), 0) as curr_revenue,
+              COALESCE(sum(curr_receipt_amt), 0) as curr_received,
+              COALESCE(sum(curr_receipt_amt), 0) as curr_revenue,
               COALESCE(sum(curr_expenses), 0)::int as curr_expenses,
               COALESCE(sum(prev_bill_charges), 0)::numeric as prev_charges,
-              COALESCE(sum(prev_bill_received), 0)::numeric as prev_received,
-              COALESCE(sum(prev_bill_received), 0) + COALESCE(sum(prev_receipt_amt), 0) as prev_revenue
+              COALESCE(sum(prev_receipt_amt), 0) as prev_received,
+              COALESCE(sum(prev_receipt_amt), 0) as prev_revenue
             FROM (
-              SELECT b.charges as curr_bill_charges, b.received as curr_bill_received, 0 as curr_receipt_amt, 0 as curr_expenses, 0 as prev_bill_charges, 0 as prev_bill_received, 0 as prev_receipt_amt
+              SELECT b.charges as curr_bill_charges, 0 as curr_receipt_amt, 0 as curr_expenses, 0 as prev_bill_charges, 0 as prev_receipt_amt
               FROM bills b
               WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
               AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL OR b.clinic_id = 0 OR b.clinic_id = 1)
               ${docBillFilter}
               UNION ALL
-              SELECT 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric), 0, 0, 0, 0
+              SELECT 0, CAST(NULLIF(r.amount::text, '') AS numeric), 0, 0, 0
               FROM receipt r
               WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
               AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL OR r.clinic_id = 0 OR r.clinic_id = 1)
               UNION ALL
-              SELECT 0, 0, 0, amount, 0, 0, 0 FROM expenses
+              SELECT 0, 0, amount, 0, 0 FROM expenses
               WHERE exp_date >= ${start}::date AND exp_date < ${boundary}::date AND (deleted_at IS NULL OR deleted_at::text = '')
               AND (clinic_id = ${contextId} OR clinic_id IS NULL OR clinic_id = 0 OR clinic_id = 1)
               UNION ALL
-              SELECT 0, 0, 0, 0, b.charges, b.received, 0
+              SELECT 0, 0, 0, b.charges, 0
               FROM bills b
               WHERE b.bill_date >= ${prevStart}::date AND b.bill_date < ${prevBoundary}::date AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
               AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL OR b.clinic_id = 0 OR b.clinic_id = 1)
               ${docBillFilter}
               UNION ALL
-              SELECT 0, 0, 0, 0, 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric)
+              SELECT 0, 0, 0, 0, CAST(NULLIF(r.amount::text, '') AS numeric)
               FROM receipt r
               WHERE r.created_at >= ${prevStart}::timestamp AND r.created_at < ${prevBoundary}::timestamp AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
               AND (r.clinic_id = ${contextId} OR r.clinic_id IS NULL OR r.clinic_id = 0 OR r.clinic_id = 1)
@@ -688,23 +691,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         FROM generate_series(0, 5) m
       ),
       rev_combined AS (
-        -- Bills
-        SELECT date_trunc('month', b.bill_date)::date as m, sum(b.received) as amt 
-        FROM bills b
-        JOIN case_datas pb ON pb.regid = b.regid
-        WHERE b.bill_date >= date_trunc('month', NOW()) - interval '6 months' 
-          ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'b.payment_mode') : "")}
-          AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-          AND pb.regid = b.regid
-          AND (b.clinic_id = ${contextId} OR b.clinic_id IS NULL OR b.clinic_id = 0 OR b.clinic_id = 1)
-        GROUP BY 1
-        
-        UNION ALL
-        
         -- Receipts
         SELECT date_trunc('month', r.created_at)::date as m, sum(CAST(NULLIF(r.amount::text, '') AS numeric)) as amt 
         FROM receipt r
-        JOIN case_datas pr ON pr.regid = r.regid
+        LEFT JOIN case_datas pr ON pr.regid = r.regid
         WHERE r.created_at >= date_trunc('month', NOW()) - interval '6 months'
           ${sql.raw(modeFilter ? modeFilter.replace('payment_mode', 'r.mode') : "")}
           AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
@@ -762,31 +752,30 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         SELECT generate_series(${seriesStart}::timestamp, ${seriesEnd}::timestamp, ${sql.raw(`'${interval}'`)}::interval)::timestamp as p
       ),
       rev_combined AS (
-        -- Bills
-        SELECT 
-          date_trunc(${sql.raw(`'${truncUnit}'`)}, b.bill_date)::timestamp as p,
-          b.received as amt,
-          CASE WHEN (LOWER(COALESCE(b.payment_mode, '')) = 'cash' OR b.payment_mode IS NULL OR b.payment_mode = '') THEN b.received ELSE 0 END as cash_amt,
-          CASE WHEN LOWER(COALESCE(b.payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN b.received ELSE 0 END as upi_amt
-        FROM bills b
-        JOIN case_datas pb ON pb.regid = b.regid
-        WHERE b.bill_date >= ${seriesStart}::timestamp AND b.bill_date <= ${seriesEnd}::timestamp
-          AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-          AND (pb.clinic_id = ${contextId} OR pb.clinic_id IS NULL)
-        
-        UNION ALL
-        
-        -- Receipts
+        -- Receipts (mode: 'C'=cash, 'U'=upi, or full words)
         SELECT 
           date_trunc(${sql.raw(`'${truncUnit}'`)}, r.created_at)::timestamp as p,
           CAST(NULLIF(r.amount::text, '') AS numeric) as amt,
-          CASE WHEN (LOWER(COALESCE(r.mode, '')) = 'cash' OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as cash_amt,
-          CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as upi_amt
+          CASE WHEN (LOWER(COALESCE(r.mode, '')) IN ('cash', 'c') OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as cash_amt,
+          CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'u', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as upi_amt
         FROM receipt r
-        JOIN case_datas pr ON pr.regid = r.regid
+        LEFT JOIN case_datas pr ON pr.regid = r.regid
         WHERE r.created_at >= ${seriesStart}::timestamp AND r.created_at <= ${seriesEnd}::timestamp
           AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
           AND (pr.clinic_id = ${contextId} OR pr.clinic_id IS NULL)
+        
+        UNION ALL
+
+        -- Payments table (UPI/card transactions from billing)
+        SELECT
+          date_trunc(${sql.raw(`'${truncUnit}'`)}, py.payment_date)::timestamp as p,
+          COALESCE(py.amount, 0) as amt,
+          CASE WHEN (LOWER(COALESCE(py.payment_mode, '')) IN ('cash', 'c') OR py.payment_mode IS NULL OR py.payment_mode = '') THEN COALESCE(py.amount, 0) ELSE 0 END as cash_amt,
+          CASE WHEN LOWER(COALESCE(py.payment_mode, '')) IN ('upi', 'u', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN COALESCE(py.amount, 0) ELSE 0 END as upi_amt
+        FROM payments py
+        WHERE py.payment_date >= ${seriesStart}::timestamp AND py.payment_date <= ${seriesEnd}::timestamp
+          AND py.status = 'Completed'
+          AND (py.deleted_at IS NULL OR py.deleted_at::text = '')
       )
       SELECT 
         to_char(periods.p, ${labelFormat}) as month, 
@@ -847,7 +836,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               'paid' AS status,
               r.created_at
             FROM receipt r
-            JOIN case_datas pr ON pr.regid = r.regid
+            LEFT JOIN case_datas pr ON pr.regid = r.regid
             WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
               AND (pr.deleted_at IS NULL OR pr.deleted_at::text = '')
           )
@@ -928,42 +917,43 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         return { physicalCurrency: 0, physicalCurrencyPct: 0, upiCard: 0, upiCardPct: 0, pending: 0, pendingCount: 0, perPatient: 0 };
       }
 
-      const amountCol = revInfo.amountCol;
-      const dateCol = revInfo.name === 'receipt' ? 'created_at' : 'bill_date';
-      const modeCol = revInfo.name === 'receipt' ? 'mode' : 'payment_mode';
-
       const [combinedRes, patCountRes] = await Promise.all([
         this.db.execute(sql`
           SELECT
             COALESCE(sum(cash_amt), 0) as cash_total,
             COALESCE(sum(upi_amt), 0) as upi_total,
-            COALESCE(sum(charges), 0) as pending_charges,
-            COALESCE(sum(received), 0) as pending_received,
-            count(*) FILTER (WHERE type = 'B') as pending_count
+            COALESCE(sum(balance), 0) as pending_charges,
+            count(*) FILTER (WHERE balance > 0) as pending_count
           FROM (
             SELECT
-              'B' as type,
-              CASE WHEN (LOWER(COALESCE(b.payment_mode, '')) = 'cash' OR b.payment_mode IS NULL OR b.payment_mode = '') THEN b.received ELSE 0 END as cash_amt,
-              CASE WHEN LOWER(COALESCE(b.payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN b.received ELSE 0 END as upi_amt,
-              CAST(NULLIF(b.charges::text, '') AS numeric) as charges,
-              CAST(NULLIF(b.received::text, '') AS numeric) as received
-            FROM bills b
-            JOIN case_datas pb ON pb.regid = b.regid
-            WHERE b.bill_date >= ${start}::date AND b.bill_date < ${boundary}::date
-              AND (b.deleted_at IS NULL OR b.deleted_at::text = '')
-              AND (pb.clinic_id = ${contextId} OR pb.clinic_id IS NULL)
+              CASE WHEN (LOWER(COALESCE(payment_mode, '')) IN ('cash', 'c') OR payment_mode IS NULL OR payment_mode = '') THEN received ELSE 0 END as cash_amt,
+              CASE WHEN LOWER(COALESCE(payment_mode, '')) IN ('upi', 'u', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN received ELSE 0 END as upi_amt,
+              balance
+            FROM bills
+            WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date
+              AND (deleted_at IS NULL OR deleted_at::text = '')
+              AND (clinic_id = ${contextId} OR clinic_id IS NULL)
 
             UNION ALL
 
             SELECT
-              'R',
-              CASE WHEN (LOWER(COALESCE(r.mode, '')) = 'cash' OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END,
-              CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END,
-              0, 0
-            FROM receipt r
-            JOIN case_datas pr ON pr.regid = r.regid
-            WHERE r.created_at >= ${start}::timestamp AND r.created_at < ${boundary}::timestamp
-              AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
+              CASE WHEN (LOWER(COALESCE(mode, '')) IN ('cash', 'c') OR mode IS NULL OR mode = '') THEN CAST(NULLIF(amount::text, '') AS numeric) ELSE 0 END,
+              CASE WHEN LOWER(COALESCE(mode, '')) IN ('upi', 'u', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(amount::text, '') AS numeric) ELSE 0 END,
+              0
+            FROM receipt
+            WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp
+              AND (deleted_at IS NULL OR deleted_at::text = '')
+              
+            UNION ALL
+            
+            SELECT
+              CASE WHEN (LOWER(COALESCE(payment_mode, '')) IN ('cash', 'c') OR payment_mode IS NULL OR payment_mode = '') THEN COALESCE(amount, 0) ELSE 0 END,
+              CASE WHEN LOWER(COALESCE(payment_mode, '')) IN ('upi', 'u', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN COALESCE(amount, 0) ELSE 0 END,
+              0
+            FROM payments
+            WHERE payment_date >= ${start}::timestamp AND payment_date < ${boundary}::timestamp
+              AND status = 'Completed'
+              AND (deleted_at IS NULL OR deleted_at::text = '')
           ) t
         `),
         this.db.execute(sql`
@@ -976,7 +966,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const combined = (combinedRes as any[])[0] || {};
       const cashTotal = Number(combined.cash_total) || 0;
       const upiCardTotal = Number(combined.upi_total) || 0;
-      const pendingTotal = Math.max(0, (Number(combined.pending_charges) || 0) - (Number(combined.pending_received) || 0));
+      const pendingTotal = Math.max(0, Number(combined.pending_charges) || 0);
       const pendingCount = Number(combined.pending_count) || 0;
 
       const grandTotal = cashTotal + upiCardTotal || 1;
@@ -1132,20 +1122,20 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
       const [uRes, dRes] = await Promise.all([
         this.db.execute(sql`
-        SELECT u.name, u.type as specialty, count(a.id)::int as visit_count
+        SELECT u.id, u.name, u.type as specialty, u.is_active, 'employee' as category, count(a.id)::int as visit_count
         FROM users u
         LEFT JOIN appointments a ON a.${sql.identifier(docCol)} = u.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
         WHERE (u.deleted_at IS NULL OR u.deleted_at::text = '') 
           AND u.type IN ('Doctor', 'Staff', 'Receptionist', 'Clinicadmin')
-        GROUP BY u.name, u.type
+        GROUP BY u.id, u.name, u.type, u.is_active
         LIMIT 20
       `).catch(() => []),
         this.db.execute(sql`
-        SELECT d.name, d.designation as specialty, count(a.id)::int as visit_count
+        SELECT d.id, d.name, d.designation as specialty, TRUE as is_active, 'doctor' as category, count(a.id)::int as visit_count
         FROM doctors d
         LEFT JOIN appointments a ON a.${sql.identifier(docCol)} = d.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
         WHERE (d.deleted_at IS NULL OR d.deleted_at::text = '')
-        GROUP BY d.name, d.designation
+        GROUP BY d.id, d.name, d.designation
         LIMIT 20
       `).catch(() => [])
       ]);
@@ -1166,9 +1156,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       result.sort((a, b) => (Number(b.visit_count) || 0) - (Number(a.visit_count) || 0));
 
       return result.map(r => ({
+        id: r.id,
         name: r.name || 'Unknown',
-        role: r.specialty || 'Doctor',
-        count: r.visit_count,
+        role: r.specialty || 'Staff',
+        category: r.category || 'employee',
+        isActive: r.is_active === undefined ? true : r.is_active,
+        count: r.visit_count || 0
       }));
     });
   }

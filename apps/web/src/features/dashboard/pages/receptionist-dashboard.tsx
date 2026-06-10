@@ -603,35 +603,46 @@ export function ReceptionistDashboard() {
         </div>
 
         {/* Dispatch & Birthdays Combined */}
-        <div className="rd-compact-card" style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', border: '1px solid var(--border-main)', borderRadius: '12px' }}>
           {/* Dispatch Queue List */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-main)' }}>
-            <div className="cad-sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              DISPATCH QUEUE
-              <span className="dash-badge badge-primary">{pendingDispatch.length} PENDING</span>
+          <div style={{ padding: '16px 16px', borderBottom: '1px solid var(--border-main)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#f3f4f6', padding: '8px 12px', borderRadius: '8px', marginBottom: '12px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.05em' }}>DISPATCH QUEUE</span>
             </div>
-            <div className="cad-queue-list" style={{ paddingRight: '4px' }}>
+            <div className="db-scroll" style={{ maxHeight: '160px', overflowY: 'auto', paddingRight: '4px' }}>
               {isQueueLoading ? (
-                <div className="cad-sidebar-empty">Loading dispatch queue...</div>
+                <div style={{ padding: '12px 0', color: '#64748b', fontSize: '13px' }}>Loading dispatch queue...</div>
               ) : pendingDispatch.length === 0 ? (
-                <div className="cad-sidebar-empty">
-                  <Package size={20} style={{ opacity: 0.3 }} />
-                  <p>No pending dispatch</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0 12px' }}>
+                  <Package size={22} style={{ color: '#94a3b8' }} strokeWidth={1.5} />
+                  <span style={{ fontSize: '14px', color: '#0f172a' }}>No pending dispatch</span>
                 </div>
               ) : (
                 <>
                   {pendingDispatch.map((item: any) => (
-                    <div key={item.id} className="cad-queue-item">
-                      <div className="cad-queue-avatar" style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', border: 'none' }}>
-                        <Package size={14} />
+                    <div key={item.id} className="cad-queue-item" style={{ gap: '12px', padding: '8px 0' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f5f3ff', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Package size={16} />
                       </div>
                       <div className="cad-queue-info">
-                        <div className="cad-queue-name">{item.patientName || 'Unknown Patient'}</div>
-                        <div className="cad-queue-meta">#{item.caseId} · {item.postType}</div>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#111827' }}>{item.patientName || 'Unknown Patient'}</div>
+                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>#{item.caseId || item.id} · {item.postType}</div>
                       </div>
                       <button
-                        className="dash-action-btn"
-                        style={{ border: '1px solid var(--pp-blue-border)', color: 'var(--pp-blue)' }}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          border: '1px solid #dbeafe',
+                          background: '#ffffff',
+                          color: '#2563eb',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          flexShrink: 0
+                        }}
                         onClick={() => {
                           setAssignModal(item);
                           setAssignPcd('');
@@ -643,7 +654,7 @@ export function ReceptionistDashboard() {
                         }}
                         title="Assign dispatch details"
                       >
-                        <ArrowUpRight size={13} />
+                        <ArrowUpRight size={14} />
                       </button>
                     </div>
                   ))}
@@ -653,20 +664,19 @@ export function ReceptionistDashboard() {
           </div>
 
           {/* Birthday List */}
-          <div style={{ padding: '12px 16px' }}>
-            <div className="cad-sidebar-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              TODAY'S BIRTHDAYS
+          <div style={{ padding: '16px 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f3f4f6', padding: '8px 12px', borderRadius: '8px', marginBottom: '12px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TODAY'S BIRTHDAYS</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {birthdays.length > 0 && selectedBirthdays.size > 0 && (
                   <button
-                    className="dash-action-btn"
                     style={{
                       background: '#25D366',
                       color: 'white',
                       border: 'none',
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                      fontSize: 9,
+                      padding: '4px 10px',
+                      borderRadius: '12px',
+                      fontSize: '10px',
                       fontWeight: 700,
                       cursor: sendingBulk ? 'not-allowed' : 'pointer',
                       display: 'flex',
@@ -681,15 +691,17 @@ export function ReceptionistDashboard() {
                     <Send size={10} /> {sendingBulk ? 'Sending...' : `Send (${selectedBirthdays.size})`}
                   </button>
                 )}
-                <span className="dash-badge badge-primary">{birthdays.length}</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563eb', background: '#eff6ff', padding: '2px 8px', borderRadius: '12px' }}>
+                  {birthdays.length}
+                </span>
               </div>
             </div>
             
-            <div className="cad-queue-list" style={{ paddingRight: '4px' }}>
+            <div>
               {birthdays.length === 0 ? (
-                <div className="cad-sidebar-empty">
-                  <Cake size={20} style={{ opacity: 0.3 }} />
-                  <p>No birthdays today</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0 12px', paddingRight: '4px' }}>
+                  <Cake size={22} style={{ color: '#94a3b8' }} strokeWidth={1.5} />
+                  <span style={{ fontSize: '14px', color: '#0f172a' }}>No birthdays today</span>
                 </div>
               ) : (
                 <>
@@ -699,9 +711,9 @@ export function ReceptionistDashboard() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 12,
-                      padding: '8px 0',
-                      borderBottom: '1px solid var(--pp-warm-1)',
+                      padding: '8px 0 12px',
                       cursor: 'pointer',
+                      paddingRight: '4px'
                     }}
                     onClick={toggleSelectAllBirthdays}
                   >
@@ -709,43 +721,57 @@ export function ReceptionistDashboard() {
                       type="checkbox"
                       checked={allBirthdaysSelected}
                       onChange={toggleSelectAllBirthdays}
-                      style={{ width: 14, height: 14, accentColor: '#ec4899', cursor: 'pointer' }}
+                      style={{ width: 16, height: 16, accentColor: '#ec4899', cursor: 'pointer', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                     />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Select All ({validBirthdays.length})
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      SELECT ALL ({validBirthdays.length})
                     </span>
                   </div>
 
-                  {birthdays.map((b: BirthdayPatient) => {
-                    const name = `${b.first_name || ''} ${b.surname || ''}`.trim() || 'Unknown';
-                    const phone = b.mobile1 || b.phone || '';
-                    const isSelected = selectedBirthdays.has(b.regid);
-                    return (
-                      <div key={b.regid} className="cad-queue-item" style={{ background: isSelected ? 'rgba(236, 72, 153, 0.04)' : undefined }}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleBirthdaySelect(b.regid)}
-                          disabled={!phone}
-                          style={{ width: 14, height: 14, accentColor: '#ec4899', cursor: phone ? 'pointer' : 'not-allowed', flexShrink: 0 }}
-                        />
-                        <div className="cad-queue-avatar" style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899', border: 'none' }}>
-                          {name.charAt(0).toUpperCase()}
+                  <div className="db-scroll" style={{ maxHeight: '160px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {birthdays.map((b: BirthdayPatient) => {
+                      const name = `${b.first_name || ''} ${b.surname || ''}`.trim() || 'Unknown';
+                      const phone = b.mobile1 || b.phone || '';
+                      const isSelected = selectedBirthdays.has(b.regid);
+                      return (
+                        <div key={b.regid} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', background: isSelected ? 'rgba(236, 72, 153, 0.04)' : undefined, borderBottom: '1px solid #f1f5f9' }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleBirthdaySelect(b.regid)}
+                            disabled={!phone}
+                            style={{ width: 16, height: 16, accentColor: '#ec4899', cursor: phone ? 'pointer' : 'not-allowed', flexShrink: 0, borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                          />
+                          <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fdf2f8', color: '#db2777', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 600, flexShrink: 0 }}>
+                            {name.charAt(0).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: '2px' }}>{name}</div>
+                            <div style={{ fontSize: 11, color: '#6b7280' }}>#{b.regid} · {b.dob ? new Date(b.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Unknown'}</div>
+                          </div>
+                          <button
+                            onClick={() => handleBirthdayWhatsApp(phone, name)}
+                            title={`Send WhatsApp to ${phone}`}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#64748b',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '4px',
+                              transition: 'all 0.2s',
+                              flexShrink: 0
+                            }}
+                          >
+                            <MessageSquare size={16} />
+                          </button>
                         </div>
-                        <div className="cad-queue-info">
-                          <div className="cad-queue-name">{name}</div>
-                          <div className="cad-queue-meta">#{b.regid} · {formatDob(b.dob)}</div>
-                        </div>
-                        <button
-                          className="dash-action-btn"
-                          onClick={() => handleBirthdayWhatsApp(phone, name)}
-                          title={`Send WhatsApp to ${phone}`}
-                        >
-                          <MessageCircle size={13} style={{ color: 'var(--pp-text-3)' }} />
-                        </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </>
               )}
             </div>

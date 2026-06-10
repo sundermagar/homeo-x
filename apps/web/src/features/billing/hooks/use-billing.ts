@@ -89,38 +89,30 @@ export function useCollectionSummary(date?: string) {
   return useQuery({
     queryKey: ['billing', 'collection', date],
     queryFn: async () => {
-      const collection = await apiClient.get<{ success: boolean; data: DailyCollectionSummary }>(
-        '/billing/daily',
+      const ext = await apiClient.get<{ success: boolean; data: ExtendedDailySummaryData }>(
+        '/billing/extended-summary',
         { params: { date } }
       );
 
-      const deposits = await apiClient.get<{ success: boolean; data: any[] }>(
-        '/deposits/cash',
-        { params: { date } }
-      ).catch(() => ({ data: { data: [] as any[] } }));
-
-      const expenses = await apiClient.get<{ success: boolean; data: any[] }>(
-        '/expenses',
-        { params: { date } }
-      ).catch(() => ({ data: { data: [] as any[] } }));
-
-      const records = collection.data?.data?.records || [];
+      const d = ext.data?.data;
+      
       const summary: CollectionSummary = {
         date: (date || new Date().toISOString().split('T')[0]) as string,
-        totalCharges: collection.data?.data?.totalCharges || 0,
-        totalReceived: collection.data?.data?.totalReceived || 0,
-        totalBalance: collection.data?.data?.totalBalance || 0,
-        cashReceived: records.filter((r: any) => r.paymentMode === 'Cash').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
-        cardReceived: records.filter((r: any) => r.paymentMode === 'Card').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
-        chequeReceived: records.filter((r: any) => r.paymentMode === 'Cheque').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
-        onlineReceived: records.filter((r: any) => r.paymentMode === 'Online').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
-        upiReceived: records.filter((r: any) => r.paymentMode === 'UPI').reduce((s: number, r: any) => s + (r.received || 0), 0) || 0,
-        recordCount: collection.data?.data?.recordCount || 0,
+        totalCharges: 0, // Not accurately provided by extended-summary, but we only need received
+        totalReceived: d?.collection || 0,
+        totalBalance: 0, 
+        cashReceived: d?.cash || 0,
+        cardReceived: d?.card || 0,
+        chequeReceived: d?.cheque || 0,
+        onlineReceived: d?.online || 0,
+        upiReceived: d?.upi || 0,
+        recordCount: d?.recordCount || 0,
       };
 
       return summary;
     },
     enabled: true,
+    refetchInterval: 10000,
   });
 }
 

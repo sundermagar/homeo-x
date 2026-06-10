@@ -246,6 +246,68 @@ staffRouter.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/staff/:id/toggle-status?category=doctor
+staffRouter.patch('/:id/toggle-status', async (req: Request, res: Response) => {
+  try {
+    const category = parseCategory(req.query.category);
+    if (!category) {
+      res.status(400).json({ success: false, message: 'Missing category query param' });
+      return;
+    }
+    const id = Number(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ success: false, message: 'Invalid id' }); return; }
+    
+    const { isActive } = req.body;
+    if (typeof isActive !== 'boolean') {
+      res.status(400).json({ success: false, message: 'isActive must be a boolean' });
+      return;
+    }
+    
+    // Quick inline query for the toggle, as this is a specific dashboard fast-action
+    if (category === 'doctor') {
+      try {
+        await req.tenantDb.execute(sql`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`);
+      } catch (e) {}
+      const result = await req.tenantDb.execute(sql`UPDATE doctors SET is_active = ${isActive} WHERE id = ${id} RETURNING name, email`);
+      const doc = (result as any[])[0] || (result as any).rows?.[0];
+      if (doc && doc.name) {
+        const email = doc.email || '';
+        await req.tenantDb.execute(sql`
+          UPDATE users SET is_active = ${isActive} 
+          WHERE LOWER(name) = LOWER(${doc.name}) 
+             OR (LOWER(email) = LOWER(${email}) AND ${email} != '')
+        `);
+      }
+    } else {
+      const result = await req.tenantDb.execute(sql`UPDATE users SET is_active = ${isActive} WHERE id = ${id} RETURNING name, email`);
+      const usr = (result as any[])[0] || (result as any).rows?.[0];
+      if (usr && usr.name) {
+        const email = usr.email || '';
+        try {
+          await req.tenantDb.execute(sql`ALTER TABLE doctors ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`);
+          await req.tenantDb.execute(sql`
+            UPDATE doctors SET is_active = ${isActive} 
+            WHERE LOWER(name) = LOWER(${usr.name}) 
+               OR (LOWER(email) = LOWER(${email}) AND ${email} != '')
+          `);
+        } catch (e) {}
+      }
+    }
+    
+    // Emit socket event to invalidate doctor dropdown cache on frontends
+    const io = (req as any).io;
+    if (io) {
+      io.emit('doctorStatusChanged', { doctorId: id, isActive });
+    }
+    
+    // Allow cache to expire naturally or implement Redis invalidation later
+    
+    res.json({ success: true, message: 'Status updated' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // DELETE /api/staff/:id?category=doctor
 staffRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
