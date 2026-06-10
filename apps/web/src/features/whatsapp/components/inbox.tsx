@@ -177,7 +177,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
     setShowMenu(false);
     
     if (selectedConv.patientId) {
-      navigate(`/patients/${selectedConv.patientId}`);
+      navigate(`/medical-cases/${selectedConv.patientId}`);
       return;
     }
     
@@ -189,7 +189,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
       
       if (lookupRes.success && lookupRes.data && lookupRes.data.length > 0) {
         const matchingPatient = lookupRes.data[0];
-        navigate(`/patients/${matchingPatient.regid || matchingPatient.id}`);
+        navigate(`/medical-cases/${matchingPatient.regid || matchingPatient.id}`);
         toast({
           title: "Patient Record Located",
           description: `Directing to ${matchingPatient.name}'s profile page.`

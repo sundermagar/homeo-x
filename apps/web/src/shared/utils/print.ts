@@ -176,14 +176,13 @@ export const printGroupedBills = (group: any, org: Organization) => {
   const bodyRows = group.bills.map((b: any) => {
     const showPeriod = b.fromDate || b.toDate;
     const periodHtml = showPeriod
-      ? `<div style="font-size:11px; color:#2563eb; font-weight:600; margin-bottom:4px;">Period: ${b.fromDate ? format(new Date(b.fromDate), 'dd-MM-yyyy') : ''} &rarr; ${b.toDate ? format(new Date(b.toDate), 'dd-MM-yyyy') : ''}</div>`
+      ? `<div style="font-size:10px; color:#2563eb; font-weight:600; margin-bottom:4px;">Period: ${b.fromDate ? format(new Date(b.fromDate), 'dd-MM-yyyy') : ''} &rarr; ${b.toDate ? format(new Date(b.toDate), 'dd-MM-yyyy') : ''}</div>`
       : '';
     return `
       <tr>
         <td class="label">
-          <div style="font-weight:700; color:#1e293b; margin-bottom:4px;">${b.treatment || b.billType || 'Consultation'}</div>
+          <div style="font-size:12px; font-weight:600; color:#1e293b; margin-bottom:4px;">${b.treatment || b.billType || 'Consultation'}</div>
           ${periodHtml}
-          <div style="font-size:10px; color:#94a3b8;">INV-${b.billNo}</div>
         </td>
         <td class="right amount">₹${b.charges.toLocaleString()}</td>
       </tr>
@@ -197,36 +196,36 @@ export const printGroupedBills = (group: any, org: Organization) => {
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
           * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
-          body { padding: 40px; color: #1e293b; line-height: 1.5; }
+          body { padding: 40px; color: #1e293b; line-height: 1.4; font-size: 12px; }
           .container { max-width: 800px; margin: auto; }
           
-          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f1f5f9; padding-bottom: 30px; }
+          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
           .clinic-info { flex: 1; }
-          .clinic-name { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
-          .clinic-tagline { font-size: 14px; color: #2563EB; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
-          .clinic-details { font-size: 12px; color: #64748b; font-weight: 500; }
-          .logo { width: 80px; height: 80px; border-radius: 12px; object-fit: contain; }
+          .clinic-name { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+          .clinic-tagline { font-size: 11px; color: #2563EB; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+          .clinic-details { font-size: 11px; color: #64748b; font-weight: 500; }
+          .logo { width: 64px; height: 64px; border-radius: 8px; object-fit: contain; }
           
-          .bill-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
-          .meta-box h4 { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
-          .meta-value { font-size: 14px; font-weight: 700; color: #1e293b; }
+          .bill-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+          .meta-box h4 { font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+          .meta-value { font-size: 12px; font-weight: 700; color: #1e293b; }
           
-          .invoice-label-wrap { text-align: center; margin-bottom: 30px; }
-          .invoice-label { display: inline-block; padding: 6px 16px; background: #0f172a; color: #fff; border-radius: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+          .invoice-label-wrap { text-align: center; margin-bottom: 20px; }
+          .invoice-label { display: inline-block; padding: 4px 12px; background: #0f172a; color: #fff; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
           
-          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-          td { padding: 16px 0; border-bottom: 1px dashed #e2e8f0; }
-          .label { font-size: 13px; font-weight: 600; color: #64748b; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+          td { padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
+          .label { font-size: 11px; font-weight: 600; color: #64748b; }
           .right { text-align: right; font-weight: 700; color: #0f172a; }
-          .amount { font-size: 18px; font-weight: 800; }
+          .amount { font-size: 14px; font-weight: 800; }
           
-          .footer { margin-top: 60px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
-          .footer-text { font-size: 11px; color: #94a3b8; font-weight: 600; }
+          .footer { margin-top: 40px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 15px; }
+          .footer-text { font-size: 10px; color: #94a3b8; font-weight: 600; }
           
           @media print {
-            body { padding: 20px; }
+            body { padding: 1.5cm; }
             .no-print { display: none; }
-            @page { margin: 1cm; }
+            @page { margin: 0; }
           }
         </style>
       </head>
@@ -274,15 +273,27 @@ export const printGroupedBills = (group: any, org: Organization) => {
             </tr>
           </table>
 
-          <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 20px; borderRadius: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 15px; borderRadius: 12px;">
              <div>
-                <h4 style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Payment Status</h4>
-                <p style="font-size: 14px; font-weight: 800; color: ${isPaid ? '#10b981' : '#ef4444'}">${isPaid ? 'FULLY SETTLED' : 'PARTIAL SETTLEMENT'}</p>
-                ${!isPaid ? `<p style="font-size: 11px; font-weight: 700; color: #ef4444; margin-top: 4px;">Balance Due: ₹${group.totalBalance.toLocaleString()}</p>` : ''}
+                <h4 style="font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Payment Status</h4>
+                <p style="font-size: 12px; font-weight: 800; color: ${isPaid ? '#10b981' : '#ef4444'}">${isPaid ? 'FULLY SETTLED' : 'PARTIAL SETTLEMENT'}</p>
              </div>
-             <div style="text-align: right;">
-                <h4 style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Total Received</h4>
-                <p style="font-size: 24px; font-weight: 800; color: #0f172a;">₹${group.totalReceived.toLocaleString()}</p>
+             <div style="text-align: right; display: flex; gap: 24px; align-items: center;">
+                <div>
+                   <h4 style="font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Total Received</h4>
+                   <p style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px;">₹${group.totalReceived.toLocaleString()}</p>
+                </div>
+                ${!isPaid ? `
+                <div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 6px 12px; border-radius: 8px; text-align: left;">
+                   <h4 style="font-size: 9px; font-weight: 800; color: #ef4444; text-transform: uppercase;">Balance Due</h4>
+                   <p style="font-size: 18px; font-weight: 800; color: #ef4444; margin-top: 2px;">₹${group.totalBalance.toLocaleString()}</p>
+                </div>
+                ` : `
+                <div style="background: #ecfdf5; border: 1px solid #d1fae5; padding: 6px 12px; border-radius: 8px; text-align: left;">
+                   <h4 style="font-size: 9px; font-weight: 800; color: #10b981; text-transform: uppercase;">Balance Due</h4>
+                   <p style="font-size: 18px; font-weight: 800; color: #10b981; margin-top: 2px;">₹0</p>
+                </div>
+                `}
              </div>
           </div>
 

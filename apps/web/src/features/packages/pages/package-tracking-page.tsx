@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Clock, Phone, User, MessageCircle, Send, CheckSquare, Square, MessageSquare, ChevronRight, Download, Printer } from 'lucide-react';
 import { usePackageExpiryReport } from '../hooks/use-packages';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
@@ -37,6 +38,7 @@ function getStatusIcon(status: string) {
 }
 
 export default function PackageTrackingPage() {
+  const navigate = useNavigate();
   const today = new Date();
   const defaultFrom = today.toISOString().split('T')[0]!;
   const futureDate = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
@@ -569,7 +571,7 @@ export default function PackageTrackingPage() {
               >
                 {isUpdating ? <RefreshCw size={14} className="animate-spin" /> : 'Update Status'}
               </button>
-              <button className="pp-btn pp-btn-primary" onClick={() => window.location.href=`/patients/${selectedRecord.patientId}`}>
+              <button className="pp-btn pp-btn-primary" onClick={() => navigate(`/medical-cases/${selectedRecord.patientId}`)}>
                 <User size={14} /> Profile
               </button>
               <button className="pp-btn pp-btn-primary" style={{ background: '#059669' }} onClick={() => setShowAssignModal(true)}>

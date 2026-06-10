@@ -146,6 +146,24 @@
   --pp-glass-blur: blur(12px);
   --pp-premium-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 12px -4px rgba(0, 0, 0, 0.03);
   --pp-blue-glow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+
+  /* ─── Dynamic Vitals Card Variables (Light) ─── */
+  --pp-vitals-bg: #fdf4ff;
+  --pp-vitals-border: #fbcfe8;
+  --pp-vitals-accent: #d946ef;
+  --pp-vitals-title: #86198f;
+  --pp-vitals-tag-bg: #fae8ff;
+  --pp-vitals-tag-border: #e9d5ff;
+  --pp-vitals-tag-text: #701a75;
+
+  /* ─── Dynamic Labs Card Variables (Light) ─── */
+  --pp-labs-bg: #fff7ed;
+  --pp-labs-border: #fed7aa;
+  --pp-labs-accent: #f97316;
+  --pp-labs-title: #9a3412;
+  --pp-labs-tag-bg: #ffedd5;
+  --pp-labs-tag-border: #fed7aa;
+  --pp-labs-tag-text: #7c2d12;
 }
 
 .dark {
@@ -188,6 +206,24 @@
   --pp-blue-faded: rgba(59, 130, 246, 0.15);
   --pp-purple: #A78BFA;
   --pp-purple-faded: rgba(167, 139, 250, 0.12);
+
+  /* ─── Dynamic Vitals Card Variables (Dark) ─── */
+  --pp-vitals-bg: rgba(217, 70, 239, 0.08);
+  --pp-vitals-border: rgba(217, 70, 239, 0.25);
+  --pp-vitals-accent: #e879f9;
+  --pp-vitals-title: #f5d0fe;
+  --pp-vitals-tag-bg: rgba(217, 70, 239, 0.15);
+  --pp-vitals-tag-border: rgba(217, 70, 239, 0.3);
+  --pp-vitals-tag-text: #f5d0fe;
+
+  /* ─── Dynamic Labs Card Variables (Dark) ─── */
+  --pp-labs-bg: rgba(249, 115, 22, 0.08);
+  --pp-labs-border: rgba(249, 115, 22, 0.25);
+  --pp-labs-accent: #fb923c;
+  --pp-labs-title: #ffedd5;
+  --pp-labs-tag-bg: rgba(249, 115, 22, 0.15);
+  --pp-labs-tag-border: rgba(249, 115, 22, 0.3);
+  --pp-labs-tag-text: #ffedd5;
 
   /* ─── Dark Mode UI Component Variable Mappings ─── */
   --color-gray-50: var(--pp-warm-2);

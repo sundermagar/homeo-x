@@ -12,7 +12,7 @@ const PRINT_STYLES = `
 <style>
   @page {
     size: A4;
-    margin: 12mm 15mm;
+    margin: 0;
   }
   * {
     margin: 0;
@@ -24,6 +24,7 @@ const PRINT_STYLES = `
     font-size: 11px;
     line-height: 1.4;
     color: #1a1a1a;
+    padding: 12mm 15mm;
   }
   .page {
     width: 100%;
@@ -748,8 +749,21 @@ export interface PrescriptionPrintData {
   advice?: string;
   followUp?: string;
   prescriptionNotes?: string;
-  /** Strategy determines column layout: REMEDY shows Potency/Form, TITRATION shows Current Dose/Titration Notes */
   prescriptionStrategy?: 'DOSAGE' | 'REMEDY' | 'TITRATION';
+}
+
+function formatFollowupDate(dateStr?: string | null): string {
+  if (!dateStr) return '—';
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[3]}-${match[2]}-${match[1]}`;
+  }
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
 }
 
 export function generatePrescriptionHtml(data: PrescriptionPrintData): string {
@@ -955,8 +969,8 @@ ${PRINT_STYLES}
   ${data.followUp ? `
     <section class="rx-section">
       <h3 class="rx-section-label">Follow-up</h3>
-      <p class="rx-prose-em">${safe(data.followUp)}</p>
-      ${followUpDate ? `<p class="rx-prose-meta">Suggested: ${followUpDate}</p>` : ''}
+      <p class="rx-prose-em">${safe(formatFollowupDate(data.followUp))}</p>
+      ${followUpDate ? `<p class="rx-prose-meta">Suggested: ${formatFollowupDate(followUpDate)}</p>` : ''}
     </section>
   ` : ''}
 
@@ -1021,13 +1035,13 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
     ? ['#', 'Date', 'Remedy', 'Potency', 'Frequency', 'Duration']
     : isTitration
       ? ['#', 'Date', 'Medication', 'Current Dose', 'Frequency', 'Duration', 'Titration Notes']
-      : ['#', 'Date', 'Medicine', 'Dose', 'Frequency', 'Duration', 'Instructions'];
+      : ['#', 'Date', 'Medicine', 'Dose', 'Frequency', 'Duration'];
 
   const rows = meds.map((med, i) => {
     const numCell = `<td class="rx-md-num">${i + 1}.</td>`;
     const dateStr = (med.date && med.date !== '—' && med.date !== '')
       ? new Date(med.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
-      : new Date(data.visit.date || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
     const dateCell = `<td style="white-space:nowrap; color:#6B7280; font-size:9.5px; font-weight:700;">${dateStr}</td>`;
     const nameCell = `
       <td class="rx-md-name">
@@ -1047,6 +1061,18 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
       </tr>`;
     }
 
+    if (isTitration) {
+      return `<tr>
+        ${numCell}
+        ${dateCell}
+        ${nameCell}
+        <td>${escapeHtml(med.dosage) || '—'}</td>
+        <td>${escapeHtml(med.frequency) || '—'}</td>
+        <td>${escapeHtml(med.duration) || '—'}</td>
+        <td>${med.instructions ? escapeHtml(med.instructions) : '—'}</td>
+      </tr>`;
+    }
+
     return `<tr>
       ${numCell}
       ${dateCell}
@@ -1054,7 +1080,6 @@ function renderMedicationsLetterhead(meds: PrescriptionPrintData['medications'],
       <td>${escapeHtml(med.dosage) || '—'}</td>
       <td>${escapeHtml(med.frequency) || '—'}</td>
       <td>${escapeHtml(med.duration) || '—'}</td>
-      <td>${med.instructions ? escapeHtml(med.instructions) : '—'}</td>
     </tr>`;
   }).join('');
 
