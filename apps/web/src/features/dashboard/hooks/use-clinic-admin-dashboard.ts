@@ -18,6 +18,7 @@ export function useClinicAdminDashboard(period: string = 'month') {
     queryFn: () => fetchClinicAdminDashboard(period),
     staleTime: 2 * 60_000,   // 2 min — financial aggregates don't need real-time refresh
     gcTime: 10 * 60_000,     // keep in cache 10 min after unmount
+    refetchInterval: 10000,  // Auto refresh every 10 seconds
   });
 }
 

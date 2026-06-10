@@ -232,6 +232,7 @@ export interface ClinicAdminDashboardData {
   collectionRateTrend: number;
   avgWaitTime: number;
   avgWaitTimeTrend: number;
+  todaysExpenses: number;
   // Revenue breakdown
   revenueBreakdown: RevenueBreakdown;
   revenueSeries: RevenueSeries[];

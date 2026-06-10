@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/async-handler.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { validate, validateQuery } from '../middleware/validate.js';
 import { ExpenseRepositoryPg } from '../../repositories/accounts.repository.pg.js';
+import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg.js';
 import {
   ListExpensesUseCase,
   GetExpenseUseCase,
@@ -68,6 +69,7 @@ export function createExpensesRouter(): Router {
         res.status(400).json({ success: false, error: result.error });
         return;
       }
+      DashboardRepositoryPg.clearQueueCache();
       res.status(201).json({ success: true, data: result.data });
     }),
   );
@@ -88,6 +90,7 @@ export function createExpensesRouter(): Router {
         res.status(400).json({ success: false, error: result.error });
         return;
       }
+      DashboardRepositoryPg.clearQueueCache();
       res.json({ success: true, data: result.data });
     }),
   );
@@ -107,6 +110,7 @@ export function createExpensesRouter(): Router {
         res.status(404).json({ success: false, error: result.error });
         return;
       }
+      DashboardRepositoryPg.clearQueueCache();
       res.json({ success: true });
     }),
   );

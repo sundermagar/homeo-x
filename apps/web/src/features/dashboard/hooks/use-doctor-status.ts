@@ -37,7 +37,7 @@ export function useDoctorStatus(isDoctor: boolean) {
 
     const handler = (data: any) => {
       console.log('Real-time status update received:', data);
-      qc.setQueryData(statusKeys.doctor, data.isActive);
+      qc.invalidateQueries({ queryKey: statusKeys.doctor });
     };
 
     socket.on('doctorStatusChanged', handler);

@@ -24,12 +24,9 @@ export class BookAppointmentUseCase {
     private readonly staffRepo?: StaffRepository,
   ) { }
 
-  private async resolveConsultationFee(dto: CreateAppointmentDto): Promise<number | undefined> {
-    if (dto.doctorId && this.staffRepo) {
-      const doctor = await this.staffRepo.findById('doctor', dto.doctorId);
-      if (doctor?.consultationFee !== null && doctor?.consultationFee !== undefined) {
-        return Number(doctor.consultationFee);
-      }
+  private resolveConsultationFee(dto: CreateAppointmentDto, doctor?: any): number | undefined {
+    if (doctor?.consultationFee !== null && doctor?.consultationFee !== undefined) {
+      return Number(doctor.consultationFee);
     }
     return dto.consultationFee !== undefined ? Number(dto.consultationFee) : undefined;
   }
@@ -52,7 +49,18 @@ export class BookAppointmentUseCase {
       }
     }
 
-    const fee = await this.resolveConsultationFee(dto);
+    let doctor: any = undefined;
+    if (dto.doctorId && this.staffRepo) {
+      doctor = await this.staffRepo.findById('doctor', dto.doctorId);
+      if (!doctor) return fail('Doctor not found', 'NOT_FOUND');
+      
+      // Strict inactive check
+      if (doctor.isActive === false) {
+        return fail('Cannot book an appointment for an inactive doctor.', 'VALIDATION');
+      }
+    }
+
+    const fee = this.resolveConsultationFee(dto, doctor);
     const createDto = { ...dto, consultationFee: fee };
     const id = await this.repo.create({ ...createDto, patientId, unregisteredPatientId });
 

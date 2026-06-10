@@ -176,6 +176,7 @@ export class DashboardUseCases {
           collectionRateTrend: Number(kpis.collectionRateTrend) || 0,
           avgWaitTime: kpis.avgWaitTime,
           avgWaitTimeTrend: Number(kpis.avgWaitTimeTrend) || 0,
+          todaysExpenses: kpis.todaysExpenses,
           revenueBreakdown,
           revenueSeries,
           cashSeries,
