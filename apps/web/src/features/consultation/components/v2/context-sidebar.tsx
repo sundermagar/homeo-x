@@ -129,23 +129,26 @@ export function ContextSidebar({
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex-1 min-h-0 overflow-auto px-3.5 py-3">
-        <div className="flex gap-1 flex-wrap mb-3">
+      {/* Tabs Header (Fixed) */}
+      <div className="px-3.5 py-3 border-b border-[#E2E8F0] bg-white shrink-0 z-10">
+        <div className="flex gap-1 flex-wrap">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
               className={cn(
-                'px-2.5 py-1.5 text-[11.5px] font-medium rounded-md transition-colors',
-                tab === t.key ? 'text-[#2563EB] bg-[#EFF6FF] font-semibold' : 'text-[#888786] hover:bg-[#F4F3F1]',
+                'px-3 py-1.5 text-[11.5px] font-medium rounded-lg transition-all',
+                tab === t.key ? 'text-[#2563EB] bg-[#EFF6FF] font-semibold shadow-sm ring-1 ring-[#BFDBFE]' : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F0F0E]',
               )}
             >
               {t.label}
             </button>
           ))}
         </div>
+      </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 min-h-0 overflow-auto px-3.5 py-3">
         {isHistoryLoading && <p className="text-[12px] text-[#888786] italic px-1 py-3">Loading history…</p>}
 
         {/* History */}
