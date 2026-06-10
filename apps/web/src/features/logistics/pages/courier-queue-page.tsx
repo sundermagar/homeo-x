@@ -292,7 +292,6 @@ export function CourierQueuePage() {
                         </td>
                         <td data-label="Patient Name">
                           <div className="appt-cell-name flex items-center gap-1.5">
-                            <User size={12} className="text-secondary" />
                             <span>{entry.patientName || 'Unknown'}</span>
                           </div>
                         </td>

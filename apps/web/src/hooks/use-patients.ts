@@ -46,11 +46,14 @@ export interface PatientHistoryVisit {
   visitDate: string | null;
   chiefComplaint: string;
   assessment: string | null;
+  advice: string | null;
   prescriptions: Array<{
     remedyName: string;
     potency: string;
     dosage: string | null;
     instructions: string | null;
+    frequency?: string;
+    days?: number | string | null;
   }>;
   vitals: PatientHistoryVitals | null;
   labResults: Array<{

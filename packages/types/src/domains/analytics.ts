@@ -117,6 +117,7 @@ export interface QueueItem {
     weight?: number;
     temp?: number;
   };
+  hasReports?: boolean;
   notes?: string;
   rxMedication?: string;
   rxStatus?: string;

@@ -607,6 +607,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
         .select({
           id: schema.legacySoapNotes.id, visitId: schema.legacySoapNotes.visitId,
           subjective: schema.legacySoapNotes.subjective, assessment: schema.legacySoapNotes.assessment,
+          advice: schema.legacySoapNotes.advice,
           createdAt: schema.legacySoapNotes.createdAt, visitDate: schema.appointments.bookingDate,
         })
         .from(schema.legacySoapNotes)

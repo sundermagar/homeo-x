@@ -1175,7 +1175,8 @@ a {
 }
 
 .db-scroll::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 .db-scroll::-webkit-scrollbar-thumb {

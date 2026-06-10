@@ -81,7 +81,6 @@ const MedicinesPage = lazy(() => import('@/features/settings/pages/MedicinesPage
 const DispensariesPage = lazy(() => import('@/features/settings/pages/DispensariesPage'));
 const ReferralsPage = lazy(() => import('@/features/settings/pages/ReferralSourcesPage'));
 const StickersPage = lazy(() => import('@/features/settings/pages/StickersPage'));
-const CmsManagePage = lazy(() => import('@/features/settings/pages/CmsManagePage'));
 const PdfSettingsPage = lazy(() => import('@/features/settings/pages/PdfSettingsPage'));
 const ExpensesHeadPage = lazy(() => import('@/features/settings/pages/ExpensesHeadPage'));
 const MessageTemplatesPage = lazy(() => import('@/features/settings/pages/MessageTemplatesPage'));
@@ -255,7 +254,6 @@ export function AppRouter() {
               <Route path="/settings/dispensaries" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><DispensariesPage /></RoleGuard>} />
               <Route path="/settings/referrals" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ReferralsPage /></RoleGuard>} />
               <Route path="/settings/stickers" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><StickersPage /></RoleGuard>} />
-              <Route path="/settings/cms" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><CmsManagePage /></RoleGuard>} />
               <Route path="/settings/pdf" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><PdfSettingsPage /></RoleGuard>} />
               <Route path="/settings/expenses" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><ExpensesHeadPage /></RoleGuard>} />
               <Route path="/settings/messages" element={<RoleGuard allowed={['SuperAdmin', 'Admin', 'Clinicadmin']}><MessageTemplatesPage /></RoleGuard>} />

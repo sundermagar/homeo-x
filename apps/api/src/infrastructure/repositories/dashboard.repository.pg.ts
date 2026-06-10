@@ -452,7 +452,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           v.notes as vital_notes,
           rx.first_medication as rx_medication,
           rx.status as rx_status,
-          pay.payment_status
+          pay.payment_status,
+          inv.has_reports
         FROM (
           SELECT
             tw.wl_id,
@@ -523,6 +524,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           ORDER BY p.consultation_id, p.id DESC
         ) rx ON rx.consultation_id::text = q.visit_id::text
         LEFT JOIN (
+          SELECT DISTINCT ON (regid) regid, 1 as has_reports 
+          FROM investigations 
+          WHERE (deleted_at IS NULL OR deleted_at::text = '')
+            AND created_at >= ${today}::timestamp
+        ) inv ON inv.regid = COALESCE(p.regid, p.id, q.patient_id)
+        LEFT JOIN (
           SELECT regid, 'Paid' as payment_status FROM receipt WHERE created_at >= ${today}::timestamp AND created_at < (${today}::date + interval '1 day') AND (deleted_at IS NULL OR deleted_at::text = '') AND CAST(NULLIF(amount::text, '') AS numeric) > 0 GROUP BY regid
           UNION
           SELECT regid, 'Paid' as payment_status FROM bills WHERE bill_date = ${today}::date AND (deleted_at IS NULL OR deleted_at::text = '') AND received >= charges AND charges > 0 GROUP BY regid
@@ -583,6 +590,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           oxygenSaturation: r.oxygen_saturation,
           notes: r.vital_notes
         } : undefined,
+        hasReports: !!r.has_reports,
       }));
       } catch (err: any) {
         console.error('[Dashboard] getTodayQueue failed:', err.message, err.stack);

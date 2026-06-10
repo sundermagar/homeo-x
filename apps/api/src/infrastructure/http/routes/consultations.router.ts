@@ -409,25 +409,30 @@ consultationsRouter.post('/complete', async (req: Request, res: Response, next: 
       try {
         const patientBills = await billingRepo.findByRegid(patientRegid);
         const billDateToMatch = String(appt.bookingDate ?? new Date().toISOString().split('T')[0]);
-        const alreadyBilled = patientBills.bills.some((bill: any) =>
+        const existingBill = patientBills.bills.find((bill: any) =>
           bill.billType === 'Consultation'
           && bill.doctorId === appt.doctorId
-          && bill.charges === requestedConsultationFee
           && bill.billDate === billDateToMatch
         );
 
-        if (requestedConsultationFee > 0 && !alreadyBilled) {
-          const billNo = await billingRepo.nextBillNo();
-          await billingRepo.create({
-            regid: patientRegid,
-            billNo,
-            billDate,
-            charges: requestedConsultationFee,
-            received: 0,
-            paymentMode,
-            billType: 'Consultation',
-            doctorId: appt.doctorId ?? undefined,
-          });
+        if (requestedConsultationFee > 0) {
+          if (existingBill) {
+            if (existingBill.charges !== requestedConsultationFee) {
+              await billingRepo.updateCharges(existingBill.id, requestedConsultationFee);
+            }
+          } else {
+            const billNo = await billingRepo.nextBillNo();
+            await billingRepo.create({
+              regid: patientRegid,
+              billNo,
+              billDate,
+              charges: requestedConsultationFee,
+              received: 0,
+              paymentMode,
+              billType: 'Consultation',
+              doctorId: appt.doctorId ?? undefined,
+            });
+          }
         }
 
         if (medicineCharge > 0) {

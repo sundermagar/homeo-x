@@ -1,16 +1,19 @@
-import { useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { ChevronLeft, Calendar, ChevronRight, Pill, FileText, ClipboardList, Scale, Ruler, Activity, HeartPulse, Thermometer, Droplets, Wind, Calculator, CalendarHeart, PlusCircle, Shield, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../../../lib/cn';
 import type { PatientHistory, PatientHistoryVisit } from '../../../../hooks/use-patients';
 import type { Vitals } from '../../../../types/visit';
+import { useVaccines } from '../../../settings/hooks/use-settings';
+import { useFullMedicalCase, useManageClinicalRecords } from '../../../medical-case/hooks/use-medical-cases';
 
-type Tab = 'hx' | 'vit' | 'rx' | 'lab';
+type Tab = 'hx' | 'vit' | 'rx' | 'lab' | 'vac';
 
 interface ContextSidebarProps {
   collapsed: boolean;
+  patientId: number;
   patientName: string;
   patientInitials: string;
-  patientAge?: number;
+  patientAge?: number | string;
   patientGender: string;
   mrn: string;
   chiefComplaint?: string;
@@ -20,10 +23,11 @@ interface ContextSidebarProps {
   currentVisitId?: string;
   isHistoryLoading: boolean;
   onUpdateVitals: () => void;
-  onCompare: (visit: PatientHistoryVisit) => void;
+  onViewPastVisit: (visit: PatientHistoryVisit) => void;
   onViewLab?: (lab: any) => void;
   onUploadLab?: () => void;
   onBackToQueue: () => void;
+  onRepeatRx?: (prescription: any) => void;
 }
 
 function fmtDate(iso: string | null): string {
@@ -35,7 +39,7 @@ function fmtDate(iso: string | null): string {
   }
 }
 
-const TABS: { key: Tab; label: string }[] = [
+const BASE_TABS: { key: Tab; label: string }[] = [
   { key: 'hx', label: 'History' },
   { key: 'vit', label: 'Vitals' },
   { key: 'rx', label: 'Past Rx' },
@@ -44,6 +48,7 @@ const TABS: { key: Tab; label: string }[] = [
 
 export function ContextSidebar({
   collapsed,
+  patientId,
   patientName,
   patientInitials,
   patientAge,
@@ -55,12 +60,88 @@ export function ContextSidebar({
   currentVisitId,
   isHistoryLoading,
   onUpdateVitals,
-  onCompare,
+  onViewPastVisit,
   onViewLab,
   onUploadLab,
   onBackToQueue,
+  onRepeatRx,
 }: ContextSidebarProps) {
-  const [tab, setTab] = useState<Tab>('hx');
+  const [activeTab, setActiveTab] = useState<Tab>('hx');
+
+  // Fetch all configured vaccines in settings
+  const { data: configuredVaccines = [] } = useVaccines();
+
+  // Fetch case vaccines
+  const { data: fullData } = useFullMedicalCase(patientId);
+  const caseVaccines = fullData?.vaccines || [];
+  const { saveVaccine } = useManageClinicalRecords();
+  const [savingVaccineId, setSavingVaccineId] = useState<number | null>(null);
+
+  const handleMarkDone = async (vaccineId: number) => {
+    setSavingVaccineId(vaccineId);
+    try {
+      await saveVaccine.mutateAsync({ regid: patientId, vaccineId, notes: 'Administered' });
+    } finally {
+      setSavingVaccineId(null);
+    }
+  };
+
+  // Determine applicable vaccines for this patient's age
+  const numericAge = typeof patientAge === 'string' ? parseFloat(patientAge) : patientAge;
+  const patientAgeInMonths = numericAge != null && !isNaN(numericAge) ? numericAge * 12 : undefined;
+
+  const applicableVaccines = patientAgeInMonths != null
+    ? configuredVaccines.filter((v: any) => {
+      if (v.months == null || v.months < patientAgeInMonths || v.months >= patientAgeInMonths + 12 || v.parentId === 0) return false;
+
+      // Smart gender filtering based on label
+      const lowerLabel = (v.label || '').toLowerCase();
+      const pGender = (patientGender || '').toLowerCase();
+      if (lowerLabel.includes('(females)') && pGender !== 'female') return false;
+      if (lowerLabel.includes('(males)') && pGender !== 'male') return false;
+
+      return true;
+    })
+    : [];
+
+  const TABS = [...BASE_TABS];
+  if (applicableVaccines.length > 0) {
+    TABS.push({ key: 'vac', label: 'Vaccines' });
+  }
+
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = () => {
+    if (tabsContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollWidth > clientWidth && scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const el = tabsContainerRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+      // ensure we check after layout completes
+      const timeout = setTimeout(checkScroll, 100);
+      return () => {
+        el.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+        clearTimeout(timeout);
+      };
+    }
+  }, [TABS.length]);
+
+  const scrollTabs = (dir: 'left' | 'right') => {
+    if (tabsContainerRef.current) {
+      tabsContainerRef.current.scrollBy({ left: dir === 'left' ? -120 : 120, behavior: 'smooth' });
+    }
+  };
 
   // Show only genuine PAST visits: drop the visit being consulted right now, and drop
   // empty placeholder records (no complaint / remedy / diagnosis / labs / vitals).
@@ -77,20 +158,20 @@ export function ContextSidebar({
     (v) => String(v.visitId ?? '') !== String(currentVisitId ?? '') && hasContent(v),
   );
   // …but Past Rx and Labs list everything, so a report just uploaded for this visit appears too.
-  const allRx = allVisits.flatMap((v) => v.prescriptions.map((p) => ({ ...p, date: v.visitDate })));
+  const allRx = allVisits.flatMap((v) => v.prescriptions.map((p) => ({ ...p, date: v.visitDate, advice: v.advice })));
   const allLabs = allVisits.flatMap((v) => v.labResults.map((l) => ({ ...l, visitDate: v.visitDate })));
 
-  const vitalCells: { k: string; v: string }[] = currentVitals
+  const vitalCells: { k: string; v: string; Icon: any }[] = currentVitals
     ? [
-      { k: 'Weight', v: currentVitals.weightKg != null ? `${currentVitals.weightKg} kg` : '—' },
-      { k: 'Height', v: currentVitals.heightCm != null ? `${currentVitals.heightCm} cm` : '—' },
-      { k: 'BMI', v: currentVitals.bmi != null ? String(currentVitals.bmi) : '—' },
-      { k: 'BP', v: currentVitals.systolicBp != null ? `${currentVitals.systolicBp}/${currentVitals.diastolicBp ?? '—'}` : '—' },
-      { k: 'Pulse', v: currentVitals.pulseRate != null ? String(currentVitals.pulseRate) : '—' },
-      { k: 'Temp', v: currentVitals.temperatureF != null ? `${currentVitals.temperatureF}°` : '—' },
-      { k: 'SpO₂', v: currentVitals.oxygenSaturation != null ? `${currentVitals.oxygenSaturation}%` : '—' },
-      { k: 'Resp', v: currentVitals.respiratoryRate != null ? String(currentVitals.respiratoryRate) : '—' },
-      { k: 'LMP', v: currentVitals.lmpDate != null ? fmtDate(currentVitals.lmpDate) : '—' },
+      { k: 'Weight', v: currentVitals.weightKg != null ? `${currentVitals.weightKg} kg` : '—', Icon: Scale },
+      { k: 'Height', v: currentVitals.heightCm != null ? `${currentVitals.heightCm} cm` : '—', Icon: Ruler },
+      { k: 'BMI', v: currentVitals.bmi != null ? String(currentVitals.bmi) : '—', Icon: Calculator },
+      { k: 'BP', v: currentVitals.systolicBp != null ? `${currentVitals.systolicBp}/${currentVitals.diastolicBp ?? '—'}` : '—', Icon: Activity },
+      { k: 'Pulse', v: currentVitals.pulseRate != null ? String(currentVitals.pulseRate) : '—', Icon: HeartPulse },
+      { k: 'Temp', v: currentVitals.temperatureF != null ? `${currentVitals.temperatureF}°` : '—', Icon: Thermometer },
+      { k: 'SpO₂', v: currentVitals.oxygenSaturation != null ? `${currentVitals.oxygenSaturation}%` : '—', Icon: Droplets },
+      { k: 'Resp', v: currentVitals.respiratoryRate != null ? `${currentVitals.respiratoryRate}` : '—', Icon: Wind },
+      { k: 'LMP', v: currentVitals.lmpDate != null ? fmtDate(currentVitals.lmpDate) : '—', Icon: CalendarHeart },
     ].filter(c => c.v !== '—')
     : [];
 
@@ -103,52 +184,54 @@ export function ContextSidebar({
         'lg:static lg:z-auto lg:shadow-none lg:shrink-0 lg:transition-[width] lg:translate-x-0',
         collapsed
           ? '-translate-x-full lg:w-0 lg:border-r-0'
-          : 'translate-x-0 border-r border-[#E3E2DF] lg:w-[264px]',
+          : 'translate-x-0 border-r border-[#E2E8F0] lg:w-[280px]',
       )}
     >
       {/* Patient card */}
-      <div className="flex gap-3 items-center px-4 py-4 border-b border-[#E3E2DF]">
-        <div className="w-[42px] h-[42px] rounded-[11px] bg-[#2563EB] text-white flex items-center justify-center font-bold text-sm shrink-0">
+      <div className="flex gap-3.5 items-center px-4 py-5 border-b border-[#E2E8F0] bg-white relative">
+        <div className="w-[46px] h-[46px] rounded-[14px] bg-gradient-to-br from-[#3B82F6] to-[#1D4ED8] text-white flex items-center justify-center font-bold text-[17px] shrink-0 shadow-[0_4px_12px_rgba(37,99,235,0.25)] border border-white/10 ring-1 ring-black/5">
           {patientInitials}
         </div>
-        <div className="min-w-0">
-          <div className="font-semibold text-[14.5px] text-[#0F0F0E] truncate">{patientName}</div>
-          <div className="text-[11.5px] text-[#888786] mt-0.5 font-mono">
-            {patientAge ? `${patientAge}` : '—'} · {patientGender} · {mrn}
+        <div className="min-w-0 flex-1">
+          <div className="font-bold text-[16px] text-[#0F0F0E] truncate tracking-tight leading-tight">{patientName}</div>
+          <div className="text-[12px] font-medium text-[#64748B] mt-1 flex items-center gap-1.5 truncate">
+            {patientAge ? `${patientAge} yrs` : '—'} <span className="w-1 h-1 rounded-full bg-[#CBD5E1]" /> {patientGender} <span className="w-1 h-1 rounded-full bg-[#CBD5E1]" /> <span className="font-mono text-[11px] font-semibold bg-[#F1F5F9] px-1.5 py-0.5 rounded text-[#475569] border border-[#E2E8F0]">{mrn}</span>
           </div>
         </div>
       </div>
 
       {/* Chief complaint */}
       {chiefComplaint && (
-        <div className="px-[18px] py-3 border-b border-[#E3E2DF] relative">
-          <div className="absolute left-0 top-3 bottom-3 w-0.5 bg-[#D97706] rounded-r" />
-          <div className="text-[10px] font-bold uppercase tracking-widest text-[#888786] mb-1.5">Chief complaint</div>
-          <div className="text-[13px] font-medium leading-snug text-[#0F0F0E]">{chiefComplaint}</div>
+        <div className="px-5 py-4 border-b border-[#E2E8F0] bg-gradient-to-br from-[#F8FAFC] to-white relative overflow-hidden">
+          <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#64748B] mb-1.5">Chief complaint</div>
+          <div className="text-[13.5px] font-semibold leading-relaxed text-[#1E293B]">{chiefComplaint}</div>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex-1 min-h-0 overflow-auto px-3.5 py-3">
-        <div className="flex gap-1 flex-wrap mb-3">
+      {/* Tabs Header (Fixed) */}
+      <div className="px-3.5 py-3 border-b border-[#E2E8F0] bg-white shrink-0 z-10">
+        <div className={cn("flex gap-1 flex-nowrap overflow-x-auto pb-2 transition-all", TABS.length > 4 ? "db-scroll" : "[&::-webkit-scrollbar]:hidden")}>
           {TABS.map((t) => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => setActiveTab(t.key)}
               className={cn(
-                'px-2.5 py-1.5 text-[11.5px] font-medium rounded-md transition-colors',
-                tab === t.key ? 'text-[#2563EB] bg-[#EFF6FF] font-semibold' : 'text-[#888786] hover:bg-[#F4F3F1]',
+                'whitespace-nowrap shrink-0 px-2.5 py-1.5 text-[11.5px] font-medium rounded-lg transition-all border flex items-center justify-center',
+                activeTab === t.key ? 'text-[#2563EB] bg-[#EFF6FF] font-semibold shadow-sm border-[#BFDBFE]' : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F0F0E] border-transparent',
               )}
             >
               {t.label}
             </button>
           ))}
         </div>
+      </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 min-h-0 overflow-auto px-3.5 py-3">
         {isHistoryLoading && <p className="text-[12px] text-[#888786] italic px-1 py-3">Loading history…</p>}
 
         {/* History */}
-        {!isHistoryLoading && tab === 'hx' && (
+        {!isHistoryLoading && activeTab === 'hx' && (
           <div className="space-y-2">
             {visits.length === 0 && <p className="text-[12px] text-[#888786] italic px-1 py-3">No previous visits.</p>}
             {visits.map((v, i) => {
@@ -156,19 +239,37 @@ export function ContextSidebar({
                 ? `${v.prescriptions[0].remedyName}${v.prescriptions[0].potency ? ' ' + v.prescriptions[0].potency : ''}`
                 : v.assessment || '—';
               return (
-                <div key={i} className="p-3 border border-[#E3E2DF] rounded-md bg-[#FAFAF8]">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="text-[10px] uppercase tracking-wide text-[#888786] font-medium">{fmtDate(v.visitDate)}</div>
-                    <button
-                      onClick={() => onCompare(v)}
-                      className="text-[10.5px] font-semibold text-[#2563EB] border border-[#E3E2DF] bg-white rounded-md px-2.5 py-0.5 hover:bg-[#EFF6FF] hover:border-[#BFDBFE] transition-colors"
-                    >
-                      Compare
-                    </button>
+                <div key={i} className="group relative p-3.5 bg-white border border-[#E3E2DF] rounded-xl cursor-pointer hover:border-[#BFDBFE] hover:shadow-[0_2px_12px_rgba(37,99,235,0.08)] hover:bg-[#F8FAFC] transition-all duration-200" onClick={() => onViewPastVisit(v)}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-[#64748B]">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span className="text-[10.5px] uppercase tracking-wider font-semibold">{fmtDate(v.visitDate)}</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#3B82F6] group-hover:translate-x-0.5 transition-all" />
                   </div>
-                  <div className="text-[12px] leading-snug text-[#4A4A47]">
-                    {v.chiefComplaint ? <span className="font-medium text-[#0F0F0E]">{v.chiefComplaint}</span> : null}
-                    {v.chiefComplaint ? ' · ' : ''}{remedy}
+
+                  <div className="space-y-2.5">
+                    {v.chiefComplaint && (
+                      <div className="flex items-start gap-2">
+                        <ClipboardList className="w-3.5 h-3.5 text-[#64748B] mt-0.5 shrink-0" />
+                        <div className="text-[12.5px] font-medium text-[#0F0F0E] leading-snug line-clamp-2">
+                          {v.chiefComplaint}
+                        </div>
+                      </div>
+                    )}
+
+                    {remedy !== '—' && (
+                      <div className="flex items-start gap-2">
+                        <Pill className="w-3.5 h-3.5 text-[#3B82F6] mt-0.5 shrink-0" />
+                        <div className="text-[12px] text-[#475569] leading-snug">
+                          {remedy}
+                        </div>
+                      </div>
+                    )}
+
+                    {!v.chiefComplaint && remedy === '—' && (
+                      <div className="text-[12px] italic text-[#888786]">Empty record</div>
+                    )}
                   </div>
                 </div>
               );
@@ -177,60 +278,159 @@ export function ContextSidebar({
         )}
 
         {/* Vitals */}
-        {!isHistoryLoading && tab === 'vit' && (
-          <div>
-            {vitalCells.length > 0 ? (
-              <div className="grid grid-cols-2 gap-1.5">
-                {vitalCells.map((c) => (
-                  <div key={c.k} className="bg-[#FAFAF8] border border-[#E3E2DF] rounded-md px-2.5 py-1.5">
-                    <div className="text-[9px] font-semibold uppercase tracking-wide text-[#888786]">{c.k}</div>
-                    <div className="text-[13px] font-medium text-[#4A4A47] mt-0.5 font-mono">{c.v}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-[12px] text-[#888786] italic px-1 py-3">No vitals recorded for this visit.</p>
-            )}
-            <button onClick={onUpdateVitals} className="mt-3 text-[10px] font-semibold text-[#2563EB] uppercase tracking-wide">
-              Update vitals
-            </button>
+        {!isHistoryLoading && activeTab === 'vit' && (
+          <div className="flex flex-col h-full space-y-2.5">
+            <div>
+              <button
+                onClick={onUpdateVitals}
+                className="w-full flex items-center justify-center gap-2 bg-[#F8FAFC] border border-dashed border-[#BFDBFE] hover:bg-[#EFF6FF] hover:border-[#3B82F6] hover:text-[#2563EB] text-[#3B82F6] text-[12px] font-semibold py-2.5 rounded-xl transition-all mb-2"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Update Vitals</span>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto pb-4">
+              {vitalCells.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {vitalCells.map((c) => (
+                    <div key={c.k} className="bg-white border border-[#E3E2DF] rounded-xl px-3 py-2.5 shadow-[0_1px_4px_rgba(0,0,0,0.02)] transition-colors hover:border-[#BFDBFE]">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <c.Icon className="w-3.5 h-3.5 text-[#64748B]" />
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">{c.k}</div>
+                      </div>
+                      <div className="text-[14px] font-semibold text-[#0F0F0E] font-mono tracking-tight">{c.v}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[12px] text-[#888786] italic px-1 py-3">No vitals recorded for this visit.</p>
+              )}
+            </div>
           </div>
         )}
 
         {/* Past Rx */}
-        {!isHistoryLoading && tab === 'rx' && (
-          <div>
+        {!isHistoryLoading && activeTab === 'rx' && (
+          <div className="space-y-2.5">
             {allRx.length === 0 && <p className="text-[12px] text-[#888786] italic px-1 py-3">No past prescriptions.</p>}
             {allRx.map((p, i) => (
-              <div key={i} className="flex items-center justify-between gap-2 py-2.5 border-b border-dashed border-[#E3E2DF] last:border-0">
-                <span className="text-[13px] font-medium text-[#0F0F0E]">
-                  {p.remedyName}{p.potency ? ` ${p.potency}` : ''}
-                </span>
-                <span className="text-[12px] text-[#888786] font-mono shrink-0">{fmtDate(p.date)}</span>
+              <div key={i} className="group flex items-center justify-between gap-3 p-3 bg-white border border-[#E3E2DF] rounded-xl hover:border-[#BFDBFE] hover:shadow-[0_2px_12px_rgba(37,99,235,0.08)] hover:bg-[#F8FAFC] transition-all duration-200">
+                <div className="flex flex-col min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 mb-1 text-[#64748B]">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span className="text-[10px] uppercase tracking-wider font-semibold">{fmtDate(p.date)}</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <Pill className="w-3.5 h-3.5 text-[#3B82F6] mt-0.5 shrink-0" />
+                    <span className="text-[13px] font-medium text-[#0F0F0E] leading-snug">
+                      {p.remedyName}{p.potency ? ` ${p.potency}` : ''}
+                    </span>
+                  </div>
+                </div>
+                {onRepeatRx && (
+                  <button
+                    onClick={() => onRepeatRx(p)}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-[#2563EB] bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg px-2.5 py-1.5 hover:bg-[#2563EB] hover:text-white hover:border-[#2563EB] transition-all shrink-0 shadow-sm"
+                    title="Repeat this medicine in the manual form"
+                  >
+                    Repeat
+                  </button>
+                )}
               </div>
             ))}
           </div>
         )}
 
         {/* Labs */}
-        {!isHistoryLoading && tab === 'lab' && (
-          <div>
-            <button
-              onClick={() => onUploadLab?.()}
-              className="w-full mb-3 h-9 inline-flex items-center justify-center gap-1.5 text-[11.5px] font-semibold text-[#2563EB] border border-dashed border-[#BFDBFE] bg-[#EFF6FF] rounded-md hover:bg-[#DBEAFE] transition-colors"
-            >
-              + Upload Lab Report
-            </button>
-            {allLabs.length === 0 && <p className="text-[12px] text-[#888786] italic px-1 py-3">No lab results.</p>}
-            {allLabs.map((l, i) => (
-              <button key={i} onClick={() => onViewLab?.(l)} className="w-full text-left py-2.5 border-b border-dashed border-[#E3E2DF] last:border-0 hover:bg-[#FAFAF8] px-1 -mx-1 rounded transition-colors cursor-pointer block">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[13px] font-medium text-[#4A4A47]">{l.type}</span>
-                  <span className="text-[12px] text-[#888786] font-mono shrink-0">{fmtDate(l.date || l.visitDate)}</span>
-                </div>
-                {l.summary && <div className="text-[11.5px] text-[#888786] mt-1 leading-snug line-clamp-2">{l.summary}</div>}
+        {!isHistoryLoading && activeTab === 'lab' && (
+          <div className="flex flex-col h-full space-y-2.5">
+            <div>
+              <button
+                onClick={() => onUploadLab?.()}
+                className="w-full flex items-center justify-center gap-2 bg-[#F8FAFC] border border-dashed border-[#BFDBFE] hover:bg-[#EFF6FF] hover:border-[#3B82F6] hover:text-[#2563EB] text-[#3B82F6] text-[12px] font-semibold py-2.5 rounded-xl transition-all mb-2"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Upload Lab Report</span>
               </button>
-            ))}
+            </div>
+
+            {allLabs.length === 0 && <p className="text-[12px] text-[#888786] italic px-1 py-3">No lab results.</p>}
+
+            <div className="space-y-2.5 overflow-y-auto pb-4">
+              {allLabs.map((l, i) => (
+                <button
+                  key={i}
+                  onClick={() => onViewLab?.(l)}
+                  className="w-full text-left p-3 bg-white border border-[#E3E2DF] rounded-xl hover:border-[#BFDBFE] hover:shadow-[0_2px_12px_rgba(37,99,235,0.08)] hover:bg-[#F8FAFC] transition-all duration-200 block group"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-1.5 text-[#64748B]">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span className="text-[10px] uppercase tracking-wider font-semibold">{fmtDate(l.date || l.visitDate)}</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#3B82F6] group-hover:translate-x-0.5 transition-all" />
+                  </div>
+
+                  <div className="flex items-start gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-[#8B5CF6] mt-0.5 shrink-0" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[12.5px] font-medium text-[#0F0F0E] leading-snug">{l.type}</span>
+                      {l.summary && <div className="text-[11.5px] text-[#64748B] mt-1 leading-snug line-clamp-2">{l.summary}</div>}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Vaccines */}
+        {!isHistoryLoading && activeTab === 'vac' && applicableVaccines.length > 0 && (
+          <div className="flex flex-col gap-3 pb-4">
+            {applicableVaccines.map((v: any) => {
+              const isDone = caseVaccines.some((cv: any) => cv.vaccineId === v.id);
+              const doneRecord = caseVaccines.find((cv: any) => cv.vaccineId === v.id);
+
+              return (
+                <div key={v.id} className="p-3 bg-white rounded-xl border border-[#E2E8F0] shadow-sm flex flex-col gap-2 relative">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
+                      <Shield className="w-4 h-4 text-[#2563EB]" />
+                    </div>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-[13px] font-bold text-[#0F0F0E] truncate leading-tight">{v.label}</span>
+                      {v.description && (
+                        <span className="text-[11px] text-[#64748B] truncate mt-0.5">{v.description}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-1 border-t border-[#F1F5F9] pt-2">
+                    <span className="text-[10px] font-bold text-[#475569] uppercase tracking-wider bg-[#F8FAFC] px-2 py-0.5 rounded-md border border-[#E2E8F0]">
+                      {v.months === 0 ? 'At Birth' : `${v.months} Months`}
+                    </span>
+                    {isDone ? (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-[#16A34A] bg-[#F0FDF4] px-2.5 py-1 rounded-full border border-[#BBF7D0]">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Administered
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleMarkDone(v.id)}
+                        disabled={savingVaccineId === v.id}
+                        className="text-[11px] font-bold text-[#2563EB] bg-white border border-[#BFDBFE] px-2.5 py-1 rounded-md hover:bg-[#EFF6FF] transition-colors disabled:opacity-50"
+                      >
+                        {savingVaccineId === v.id ? 'Saving...' : 'Mark Done'}
+                      </button>
+                    )}
+                  </div>
+                  {isDone && doneRecord?.createdAt && (
+                    <div className="text-[10px] text-[#64748B] mt-1 text-right">
+                      Given on {new Date(doneRecord.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
