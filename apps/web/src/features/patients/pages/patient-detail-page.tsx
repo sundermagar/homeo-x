@@ -34,6 +34,7 @@ export default function PatientDetailPage() {
   const { data: abhaStatus, isLoading: abhaLoading } = useAbhaStatus(numRegid);
   const abhaUnlinkMutation = useAbhaUnlink(numRegid);
 
+  const deleteMutation = useDeletePatient();
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this patient?')) return;
     await deleteMutation.mutateAsync(numRegid);

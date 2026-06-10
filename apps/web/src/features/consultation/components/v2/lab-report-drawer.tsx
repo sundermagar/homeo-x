@@ -7,16 +7,16 @@ import { toast } from '../../../../hooks/use-toast';
 // ── Shared right-side drawer shell (matches the v2 modals) ──
 function Drawer({ title, subtitle, onClose, children }: { title: string; subtitle?: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[400] flex justify-end bg-gray-900/50 backdrop-blur-[2px]" onClick={onClose}>
-      <div className="bg-white shadow-2xl w-full max-w-[480px] h-full overflow-auto p-6 relative animate-in slide-in-from-right duration-200" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 rounded-full border border-[#E3E2DF] text-[#888786] flex items-center justify-center hover:bg-[#F4F3F1]">
-          <X className="h-4 w-4" />
+    <div className="fixed inset-0 z-[400] flex justify-end bg-gray-900/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white shadow-2xl w-full max-w-[480px] h-full overflow-auto p-6 relative animate-in slide-in-from-right duration-300" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 rounded-full border border-[#E2E8F0] text-[#64748B] flex items-center justify-center hover:bg-[#F8FAFC] hover:text-[#0F0F0E] transition-colors shadow-sm">
+          <X className="h-4.5 w-4.5" />
         </button>
-        <div className="flex items-center gap-2 mb-1">
-          <FlaskConical className="h-4 w-4 text-[#2563EB]" />
-          <h2 className="text-lg font-bold tracking-tight text-[#0F0F0E]">{title}</h2>
+        <div className="flex items-center gap-2.5 mb-1 mt-1">
+          <FlaskConical className="h-5 w-5 text-[#2563EB]" />
+          <h2 className="text-[20px] font-bold tracking-tight text-[#0F0F0E]">{title}</h2>
         </div>
-        {subtitle && <p className="text-[12.5px] text-[#888786] mb-4">{subtitle}</p>}
+        {subtitle && <p className="text-[13.5px] font-medium text-[#64748B] mb-8 ml-[30px]">{subtitle}</p>}
         {children}
       </div>
     </div>
@@ -44,23 +44,23 @@ function dataToRows(data: unknown): LabRow[] {
 }
 
 const FLAG_STYLE: Record<'hi' | 'lo' | 'ok', { label: string; cls: string }> = {
-  hi: { label: 'HI', cls: 'bg-[#FEF2F2] text-[#DC2626]' },
-  lo: { label: 'LO', cls: 'bg-[#FFFBEB] text-[#D97706]' },
-  ok: { label: 'OK', cls: 'bg-[#F0FDF4] text-[#16A34A]' },
+  hi: { label: 'HI', cls: 'bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]' },
+  lo: { label: 'LO', cls: 'bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]' },
+  ok: { label: 'OK', cls: 'bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]' },
 };
 
 function LabValues({ data }: { data: unknown }) {
   const rows = dataToRows(data);
   if (rows.length === 0) return null;
   return (
-    <div className="border border-[#E3E2DF] rounded-lg overflow-hidden mb-4">
-      <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-[#888786] bg-[#F4F3F1] border-b border-[#E3E2DF]">Values</div>
+    <div className="border border-[#E2E8F0] rounded-xl overflow-hidden shadow-sm mb-6">
+      <div className="px-4 py-3 text-[13px] font-bold tracking-wide bg-[#F8FAFC] text-[#334155] border-b border-[#E2E8F0]">Values</div>
       {rows.map((r, i) => (
-        <div key={i} className="flex items-center gap-3 px-3 py-2 border-b border-[#F4F3F1] last:border-0">
-          <span className="text-[12.5px] font-medium text-[#4A4A47] flex-1 min-w-0">{r.name}</span>
-          <span className="text-[12.5px] font-mono text-[#0F0F0E] text-right">{r.value}</span>
+        <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-[#E2E8F0] last:border-0 bg-white hover:bg-[#F8FAFC] transition-colors">
+          <span className="text-[13.5px] font-medium text-[#1E293B] flex-1 min-w-0">{r.name}</span>
+          <span className="text-[13.5px] font-mono font-semibold text-[#0F0F0E] text-right">{r.value}</span>
           {r.flag && (
-            <span className={`text-[9.5px] font-bold tracking-wide px-1.5 py-0.5 rounded ${FLAG_STYLE[r.flag].cls}`}>{FLAG_STYLE[r.flag].label}</span>
+            <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md ${FLAG_STYLE[r.flag].cls}`}>{FLAG_STYLE[r.flag].label}</span>
           )}
         </div>
       ))}
@@ -71,8 +71,8 @@ function LabValues({ data }: { data: unknown }) {
 function SummaryBlock({ text }: { text: string }) {
   return (
     <>
-      <div className="text-[10px] font-bold uppercase tracking-widest text-[#888786] mb-2">Summary</div>
-      <div className="text-[13px] leading-relaxed text-[#4A4A47] bg-[#FAFAF8] border border-[#E3E2DF] rounded-lg p-3 whitespace-pre-line">{text}</div>
+      <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#64748B] mb-2 mt-2">Summary</div>
+      <div className="text-[13.5px] font-medium leading-relaxed text-[#1E293B] bg-white border border-[#E2E8F0] shadow-sm rounded-xl p-4 whitespace-pre-line hover:border-[#CBD5E1] transition-colors">{text}</div>
     </>
   );
 }

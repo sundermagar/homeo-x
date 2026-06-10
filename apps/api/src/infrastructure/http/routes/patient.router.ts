@@ -212,7 +212,8 @@ patientRouter.get('/:regid/history', authMiddleware, requirePermission('PATIENT_
       visitDate: string | null;
       chiefComplaint: string;
       assessment: string | null;
-      prescriptions: Array<{ remedyName: string; potency: string; dosage: string | null; instructions: string | null }>;
+      advice: string | null;
+      prescriptions: Array<{ remedyName: string; potency: string; dosage: string | null; instructions: string | null; frequency: string; days: number | string | null }>;
       vitals: any | null;
       labResults: Array<{ type: string; date: string | null; summary: string | null; data: unknown }>;
     };
@@ -229,6 +230,7 @@ patientRouter.get('/:regid/history', authMiddleware, requirePermission('PATIENT_
           visitDate: toDate(dateVal),
           chiefComplaint: '',
           assessment: null,
+          advice: null,
           prescriptions: [],
           vitals: null,
           labResults: [],
@@ -246,6 +248,7 @@ patientRouter.get('/:regid/history', authMiddleware, requirePermission('PATIENT_
       const b = ensure(s.visitId, date);
       if (!b.chiefComplaint) b.chiefComplaint = s.subjective || '';
       if (!b.assessment) b.assessment = s.assessment || null;
+      if (!b.advice) b.advice = s.advice || null;
     }
 
     for (const p of prescriptions) {
@@ -259,6 +262,8 @@ patientRouter.get('/:regid/history', authMiddleware, requirePermission('PATIENT_
         potency: p.potencyName || p.potency_name || p.potency || '',
         dosage,
         instructions: p.instructions || p.prescription || null,
+        frequency: freq || '',
+        days: days || null,
       });
     }
 
