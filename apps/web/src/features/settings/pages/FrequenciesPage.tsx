@@ -84,15 +84,15 @@ export default function FrequenciesPage() {
     <div className="plat-page fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Clock size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+          <h1 className="pp-page-hero-title">
+            <Clock size={22} strokeWidth={1.8} />
             Dosage Frequencies
           </h1>
-          <p className="plat-header-sub">Manage how often medicines should be taken (e.g. TDS, OD, BD).</p>
+          <p className="pp-page-hero-sub">Manage how often medicines should be taken (e.g. TDS, OD, BD).</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
             <Plus size={14} strokeWidth={1.6} />
             Add Frequency

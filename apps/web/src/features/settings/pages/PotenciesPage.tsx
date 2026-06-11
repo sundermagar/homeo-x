@@ -75,15 +75,15 @@ export default function PotenciesPage() {
     <div className="plat-page fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Sparkles size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+          <h1 className="pp-page-hero-title">
+            <Sparkles size={22} strokeWidth={1.8} />
             Potencies
           </h1>
-          <p className="plat-header-sub">Manage medicine potencies (e.g. 30C, 200C, 1M).</p>
+          <p className="pp-page-hero-sub">Manage medicine potencies (e.g. 30C, 200C, 1M).</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
             <Plus size={14} strokeWidth={1.6} />
             Add Potency

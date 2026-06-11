@@ -224,7 +224,7 @@ export default function PdfSettingsPage() {
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
-            <Layout size={22} style={{ color: 'var(--pp-blue)' }} />
+            <Layout size={22} strokeWidth={1.8} />
             Letterhead
           </h1>
           <p className="pp-page-hero-sub">Manage institutional branding and letterhead layouts.</p>

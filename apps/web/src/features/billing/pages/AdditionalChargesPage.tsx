@@ -98,16 +98,16 @@ export default function AdditionalChargesPage() {
   };
 
   return (
-    <div className="pp-page-container plat-page animate-fade-in">
-      <div className="plat-header">
+    <div className="pp-page-container bill-page animate-fade-in">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <PlusCircle size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <PlusCircle size={22} strokeWidth={1.8} />
             Additional Charges
           </h1>
-          <p className="plat-header-sub">Manage extra services and charges for patient billing.</p>
+          <p className="pp-page-hero-sub">Manage extra services and charges for patient billing.</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
             <PlusCircle size={14} />
             Add Charge
@@ -115,34 +115,32 @@ export default function AdditionalChargesPage() {
         </div>
       </div>
 
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <span className="plat-stat-label">Total Charges</span>
-          <span className="plat-stat-value">{total}</span>
-        </div>
-      </div>
-
-      <div className="plat-filters">
-        <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
+      <div className="pp-filter-card" style={{ marginBottom: 24 }}>
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input
-            className="plat-filter-input plat-search-input"
+            className="pp-filter-search-input"
             placeholder="Search charges..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <input
-          type="text"
-          className="plat-filter-input"
-          style={{ width: 140, fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }}
-          placeholder="Filter by Reg ID..."
-          value={regidFilter}
-          onChange={e => { setRegidFilter(e.target.value); setPage(1); }}
-        />
+        <div className="pp-filter-controls">
+          <input
+            type="text"
+            className="pp-input"
+            style={{ width: 140, fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }}
+            placeholder="Filter by Reg ID..."
+            value={regidFilter}
+            onChange={e => { setRegidFilter(e.target.value); setPage(1); }}
+          />
+          <span style={{ fontSize: '12px', color: 'var(--pp-text-muted)', fontFamily: 'var(--pp-font-mono)' }}>
+            {total} Total Charges
+          </span>
+        </div>
       </div>
 
-      <div className="plat-card">
+      <div className="appt-card">
         {isLoading ? (
           <TableSkeleton rows={8} columns={7} />
         ) : filtered.length === 0 ? (
@@ -156,17 +154,17 @@ export default function AdditionalChargesPage() {
             className="my-8"
           />
         ) : (
-          <div className="plat-table-container" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
-            <table className="plat-table">
+          <div className="pp-table-scroll" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
+            <table className="pp-table">
               <thead>
                 <tr>
-                  <th style={{ width: 60 }}>ID</th>
-                  <th>Patient</th>
-                  <th>Charge Name</th>
-                  <th style={{ width: 100 }}>Qty</th>
-                  <th style={{ width: 110 }}>Price</th>
-                  <th style={{ width: 110 }}>Received</th>
-                  <th style={{ width: 100 }}>Actions</th>
+                  <th style={{ width: '8%' }}>ID</th>
+                  <th style={{ width: '25%' }}>Patient</th>
+                  <th style={{ width: '25%' }}>Charge Name</th>
+                  <th style={{ width: '10%' }}>Qty</th>
+                  <th style={{ width: '12%' }}>Price</th>
+                  <th style={{ width: '12%' }}>Received</th>
+                  <th style={{ width: '8%' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,7 +190,7 @@ export default function AdditionalChargesPage() {
                     </td>
                     <td data-label="Actions">
                       <div className="plat-cell-val">
-                        <div className="flex justify-end gap-3" style={{ width: '100%' }}>
+                        <div className="flex gap-3" style={{ width: '100%' }}>
                           <button className="plat-btn plat-btn-sm plat-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(c)}>
                             <Edit2 size={13} />
                           </button>

@@ -451,15 +451,15 @@ export default function AccountManagersPage() {
   };
   return (
     <div className="plat-page">
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <UserCog size={16} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <UserCog size={22} strokeWidth={1.8} />
             {META.label}
           </h1>
-          <p className="plat-header-sub">{META.description}</p>
+          <p className="pp-page-hero-sub">{META.description}</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}>
             <Plus size={14} />
             Add Manager

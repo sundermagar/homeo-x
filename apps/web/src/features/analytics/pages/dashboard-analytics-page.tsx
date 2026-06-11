@@ -34,7 +34,7 @@ export function DashboardAnalyticsPage() {
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
-            <TrendingUp size={22} style={{ color: 'var(--pp-blue)' }} />
+            <TrendingUp size={22} strokeWidth={1.8} />
             Analytics Overview
           </h1>
           <p className="pp-page-hero-sub">Real-time overview of clinical case distributions and financial performance.</p>

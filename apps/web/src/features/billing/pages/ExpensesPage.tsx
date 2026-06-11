@@ -138,15 +138,15 @@ export default function ExpensesPage() {
   return (
     <div className="pp-page-container bill-page animate-fade-in">
       {/* ─── Header ─── */}
-      <div className="bill-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="bill-header-title">
-            <DollarSign size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
+          <h1 className="pp-page-hero-title">
+            <DollarSign size={22} strokeWidth={1.8} />
             Clinic Expenses
           </h1>
-          <p className="bill-header-sub">Record and track clinic expenses by category.</p>
+          <p className="pp-page-hero-sub">Record and track clinic expenses by category.</p>
         </div>
-        <div className="bill-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="bill-btn bill-btn-primary" onClick={handleOpenCreate}>
             <PlusCircle size={14} strokeWidth={2} />
             Add Expense
@@ -177,37 +177,44 @@ export default function ExpensesPage() {
       </div>
 
       {/* ─── Filter Bar ─── */}
-      <div className="bill-filters">
-        <div className="bill-search-wrap">
-          <Search size={14} className="bill-search-icon" strokeWidth={2} />
+      <div className="pp-filter-card" style={{ marginBottom: 24 }}>
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input 
-            className="bill-filter-input bill-search-input" 
+            className="pp-filter-search-input" 
             placeholder="Search expenses..." 
             value={search} 
             onChange={e => setSearch(e.target.value)} 
           />
         </div>
-        <select className="bill-filter-input" style={{ width: 160 }} value={headFilter} onChange={e => setHeadFilter(e.target.value)}>
-          <option value="">All Categories</option>
-          {heads.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
-        </select>
-        <input 
-          type="date" 
-          className="bill-filter-input" 
-          style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} 
-          value={fromDate} 
-          onChange={e => setFromDate(e.target.value)} 
-        />
-        <input 
-          type="date" 
-          className="bill-filter-input" 
-          style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} 
-          value={toDate} 
-          onChange={e => setToDate(e.target.value)} 
-        />
+        <div className="pp-filter-controls">
+          <select 
+            className="pp-filter-select" 
+            style={{ width: 160 }} 
+            value={headFilter} 
+            onChange={e => setHeadFilter(e.target.value)}
+          >
+            <option value="">All Categories</option>
+            {heads.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
+          </select>
+          <input 
+            type="date" 
+            className="pp-input" 
+            style={{ width: 'auto', fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem', height: '36px', borderRadius: '8px', padding: '0 12px', border: '1px solid var(--border-main)' }} 
+            value={fromDate} 
+            onChange={e => setFromDate(e.target.value)} 
+          />
+          <input 
+            type="date" 
+            className="pp-input" 
+            style={{ width: 'auto', fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem', height: '36px', borderRadius: '8px', padding: '0 12px', border: '1px solid var(--border-main)' }} 
+            value={toDate} 
+            onChange={e => setToDate(e.target.value)} 
+          />
+        </div>
       </div>
 
-      <div className="bill-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
+      <div className="appt-card" style={{ boxShadow: 'var(--pp-premium-shadow)' }}>
         {isLoading ? (
           <TableSkeleton rows={10} columns={6} />
         ) : filtered.length === 0 ? (
@@ -221,16 +228,16 @@ export default function ExpensesPage() {
             className="my-8"
           />
         ) : (
-          <div className="bill-table-container">
-            <table className="bill-table">
+          <div className="pp-table-scroll">
+            <table className="pp-table">
               <thead>
                 <tr>
-                  <th style={{ width: 60 }}>ID</th>
-                  <th style={{ width: 120 }}>Date</th>
-                  <th>Category</th>
-                  <th>Description</th>
-                  <th style={{ width: 120 }}>Amount</th>
-                  <th style={{ width: 100 }}>Actions</th>
+                  <th style={{ width: '8%' }}>ID</th>
+                  <th style={{ width: '15%' }}>Date</th>
+                  <th style={{ width: '20%' }}>Category</th>
+                  <th style={{ width: '32%' }}>Description</th>
+                  <th style={{ width: '15%' }}>Amount</th>
+                  <th style={{ width: '10%' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,7 +262,7 @@ export default function ExpensesPage() {
                     </td>
                     <td data-label="Actions">
                       <div className="plat-cell-val">
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+                        <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                           <button className="bill-btn bill-btn-sm bill-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(e)}>
                             <Edit2 size={13} strokeWidth={2} />
                           </button>

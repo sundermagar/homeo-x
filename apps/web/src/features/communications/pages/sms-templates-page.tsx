@@ -125,15 +125,15 @@ export default function SmsTemplatesPage() {
   return (
     <div className="plat-page animate-fade-in">
       {/* Header */}
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <MessageSquare size={16} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <MessageSquare size={22} strokeWidth={1.8} />
             Archived SMS Templates
           </h1>
-          <p className="plat-header-sub">{templates.length} templates · Legacy template repository (Read Only)</p>
+          <p className="pp-page-hero-sub">{templates.length} templates · Legacy template repository (Read Only)</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-ghost" disabled title="Creation disabled">
             <Plus size={14} /> New Template
           </button>

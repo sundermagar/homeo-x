@@ -76,15 +76,15 @@ export default function CouriersPage() {
     <div className="plat-page fade-in">
       
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Truck size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Truck size={22} strokeWidth={1.8} />
             Courier Services
           </h1>
-          <p className="plat-header-sub">Manage shipping partners and tracking integration for medicine delivery.</p>
+          <p className="pp-page-hero-sub">Manage shipping partners and tracking integration for medicine delivery.</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
             <Plus size={14} />
             Add Courier

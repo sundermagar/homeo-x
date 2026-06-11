@@ -77,15 +77,15 @@ export default function CalendarPage() {
   return (
     <div className="appt-page">
       {/* Header */}
-      <div className="appt-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="appt-header-title">
-            <Calendar size={20} strokeWidth={1.6} className="appt-panel-title-icon" />
+          <h1 className="pp-page-hero-title">
+            <Calendar size={22} strokeWidth={1.8} />
             Appointment Calendar
           </h1>
-          <p className="appt-header-sub">Manage practitioner schedules and availability</p>
+          <p className="pp-page-hero-sub">Manage practitioner schedules and availability</p>
         </div>
-        <div className="appt-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div className="pp-page-hero-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div className="appt-segmented-toggle" style={{ display: 'flex', background: 'var(--bg-surface-2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-main)' }}>
             <a href="/appointments" className="appt-segmented-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderRadius: '6px' }}>
               <List size={16} strokeWidth={1.6} /> List

@@ -192,7 +192,7 @@ export default function BillingListPage() {
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
-            <Receipt size={22} strokeWidth={1.6} />
+            <Receipt size={22} strokeWidth={1.8} />
             Billing & Finance
           </h1>
           <p className="pp-page-hero-sub">Manage clinic invoices, daily collections, and patient accounts.</p>

@@ -533,16 +533,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             {!effectiveCollapsed && <span className="sidebar-brand">{user?.clinicName || 'MMC'}</span>}
           </div>
           <div className="sidebar-header-actions">
-            {!isMobile && (
-              <button className="collapse-toggle-btn" onClick={toggleSidebarCollapse}>
-                {effectiveCollapsed ? <ChevronRight size={18} strokeWidth={2} /> : <ChevronRight size={18} strokeWidth={2} className="rotate-180" />}
-              </button>
-            )}
             <button className="mh-menu-btn sidebar-header-close" onClick={onClose}>
               <X size={20} strokeWidth={1.6} />
             </button>
           </div>
         </div>
+
+        {!isMobile && (
+          <button className="collapse-toggle-btn" onClick={toggleSidebarCollapse}>
+            {effectiveCollapsed ? <ChevronRight size={18} strokeWidth={2.5} /> : <ChevronRight size={18} strokeWidth={2.5} className="rotate-180" />}
+          </button>
+        )}
 
         <nav className="sidebar-nav">
           {visibleNav.map((item) => {

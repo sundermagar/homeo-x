@@ -30,13 +30,13 @@ export default function StaffManagementPage() {
 
   return (
     <div className="plat-page fade-in">
-      <div className="plat-header" style={{ marginBottom: '24px' }}>
+      <div className="pp-page-hero" style={{ marginBottom: '24px' }}>
         <div>
-          <h1 className="plat-header-title">
-            <Users size={22} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Users size={22} strokeWidth={1.8} />
             Staff Management
           </h1>
-          <p className="plat-header-sub">Manage doctors, employees, receptionists, clinic administrators, and dispensary staff.</p>
+          <p className="pp-page-hero-sub">Manage doctors, employees, receptionists, clinic administrators, and dispensary staff.</p>
         </div>
       </div>
 

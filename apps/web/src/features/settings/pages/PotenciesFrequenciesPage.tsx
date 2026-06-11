@@ -47,13 +47,13 @@ export default function PotenciesFrequenciesPage() {
     <div className="plat-page fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Settings2 size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+          <h1 className="pp-page-hero-title">
+            <Settings2 size={22} strokeWidth={1.8} />
             Medicine Metadata
           </h1>
-          <p className="plat-header-sub">Manage standard potencies and dosage frequencies for prescriptions.</p>
+          <p className="pp-page-hero-sub">Manage standard potencies and dosage frequencies for prescriptions.</p>
         </div>
       </div>
 

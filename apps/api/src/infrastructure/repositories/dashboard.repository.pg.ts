@@ -23,6 +23,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   private static cachedSearchPath: WeakMap<object, string> = new WeakMap();
   private static cachedDoctorIdByUser: Map<string, number> = new Map();
   private static cache = new Map<string, { data: unknown; expires: number }>();
+  private static activePromises = new Map<string, Promise<any>>();
 
   /**
    * Maps a `users.id` to the `doctors.id` used on appointment rows. Modern flows enforce equality,
@@ -72,10 +73,21 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   private getCached<T>(key: string, ttlMs: number, fetch: () => Promise<T>): Promise<T> {
     const entry = DashboardRepositoryPg.cache.get(key);
     if (entry && entry.expires > Date.now()) return Promise.resolve(entry.data as T);
-    return fetch().then(data => {
+    
+    const existingPromise = DashboardRepositoryPg.activePromises.get(key);
+    if (existingPromise) return existingPromise;
+
+    const promise = fetch().then(data => {
       DashboardRepositoryPg.cache.set(key, { data, expires: Date.now() + ttlMs });
+      DashboardRepositoryPg.activePromises.delete(key);
       return data;
+    }).catch(err => {
+      DashboardRepositoryPg.activePromises.delete(key);
+      throw err;
     });
+
+    DashboardRepositoryPg.activePromises.set(key, promise);
+    return promise;
   }
 
   public static clearQueueCache(): void {
@@ -771,19 +783,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         WHERE r.created_at >= ${seriesStart}::timestamp AND r.created_at <= ${seriesEnd}::timestamp
           AND (r.deleted_at IS NULL OR r.deleted_at::text = '')
           AND (pr.clinic_id = ${contextId} OR pr.clinic_id IS NULL)
-        
-        UNION ALL
-
-        -- Payments table (UPI/card transactions from billing)
-        SELECT
-          date_trunc(${sql.raw(`'${truncUnit}'`)}, py.payment_date)::timestamp as p,
-          COALESCE(py.amount, 0) as amt,
-          CASE WHEN (LOWER(COALESCE(py.payment_mode, '')) IN ('cash', 'c') OR py.payment_mode IS NULL OR py.payment_mode = '') THEN COALESCE(py.amount, 0) ELSE 0 END as cash_amt,
-          CASE WHEN LOWER(COALESCE(py.payment_mode, '')) IN ('upi', 'u', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN COALESCE(py.amount, 0) ELSE 0 END as upi_amt
-        FROM payments py
-        WHERE py.payment_date >= ${seriesStart}::timestamp AND py.payment_date <= ${seriesEnd}::timestamp
-          AND py.status = 'Completed'
-          AND (py.deleted_at IS NULL OR py.deleted_at::text = '')
       )
       SELECT 
         to_char(periods.p, ${labelFormat}) as month, 
@@ -934,8 +933,8 @@ export class DashboardRepositoryPg implements IDashboardRepository {
             count(*) FILTER (WHERE balance > 0) as pending_count
           FROM (
             SELECT
-              CASE WHEN (LOWER(COALESCE(payment_mode, '')) IN ('cash', 'c') OR payment_mode IS NULL OR payment_mode = '') THEN received ELSE 0 END as cash_amt,
-              CASE WHEN LOWER(COALESCE(payment_mode, '')) IN ('upi', 'u', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN received ELSE 0 END as upi_amt,
+              0 as cash_amt,
+              0 as upi_amt,
               balance
             FROM bills
             WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date
@@ -950,17 +949,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
               0
             FROM receipt
             WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp
-              AND (deleted_at IS NULL OR deleted_at::text = '')
-              
-            UNION ALL
-            
-            SELECT
-              CASE WHEN (LOWER(COALESCE(payment_mode, '')) IN ('cash', 'c') OR payment_mode IS NULL OR payment_mode = '') THEN COALESCE(amount, 0) ELSE 0 END,
-              CASE WHEN LOWER(COALESCE(payment_mode, '')) IN ('upi', 'u', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN COALESCE(amount, 0) ELSE 0 END,
-              0
-            FROM payments
-            WHERE payment_date >= ${start}::timestamp AND payment_date < ${boundary}::timestamp
-              AND status = 'Completed'
               AND (deleted_at IS NULL OR deleted_at::text = '')
           ) t
         `),
@@ -1047,9 +1035,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           count(*) FILTER (WHERE type = 'P' AND is_curr = false) as prev_patients
         FROM (
           -- Current Month Revenue
-          SELECT 'R' as type, true as is_curr, received as curr_rev, 0 as curr_charges, 0 as curr_received, 0 as prev_rev FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
-          UNION ALL
-          SELECT 'R', true, CAST(NULLIF(amount::text, '') AS numeric), 0, 0, 0 FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
+          SELECT 'R' as type, true as is_curr, CAST(NULLIF(amount::text, '') AS numeric) as curr_rev, 0 as curr_charges, 0 as curr_received, 0 as prev_rev FROM receipt WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
           UNION ALL
           -- Current Month Patients
           SELECT 'P', true, 0, 0, 0, 0 FROM case_datas WHERE created_at >= ${start} AND created_at < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
@@ -1058,8 +1044,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           SELECT 'C', true, 0, CAST(NULLIF(charges::text, '') AS numeric), CAST(NULLIF(received::text, '') AS numeric), 0 FROM bills WHERE bill_date >= ${start} AND bill_date < ${boundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
           UNION ALL
           -- Previous Month Revenue
-          SELECT 'R', false, 0, 0, 0, received FROM bills WHERE bill_date >= ${prevStart} AND bill_date < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
-          UNION ALL
           SELECT 'R', false, 0, 0, 0, CAST(NULLIF(amount::text, '') AS numeric) FROM receipt WHERE created_at >= ${prevStart} AND created_at < ${prevBoundary} AND (deleted_at IS NULL OR deleted_at::text = '') AND (clinic_id = ${contextId} OR clinic_id IS NULL)
           UNION ALL
           -- Previous Month Patients

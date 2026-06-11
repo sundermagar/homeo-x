@@ -66,15 +66,15 @@ export default function CallStatusesPage() {
 
   return (
     <div className="plat-page fade-in">
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <PhoneCall size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+          <h1 className="pp-page-hero-title">
+            <PhoneCall size={22} strokeWidth={1.8} />
             Call Statuses
           </h1>
-          <p className="plat-header-sub">Manage follow-up statuses like "Interested", "Call Later", etc.</p>
+          <p className="pp-page-hero-sub">Manage follow-up statuses like "Interested", "Call Later", etc.</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
             <Plus size={14} strokeWidth={1.6} />
             Add Call Status

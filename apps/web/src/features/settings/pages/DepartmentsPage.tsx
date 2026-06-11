@@ -70,15 +70,15 @@ export default function DepartmentsPage() {
     <div className="plat-page fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Layers size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+          <h1 className="pp-page-hero-title">
+            <Layers size={22} strokeWidth={1.8} />
             Departments
           </h1>
-          <p className="plat-header-sub">Manage clinic departments and medical specializations.</p>
+          <p className="pp-page-hero-sub">Manage clinic departments and medical specializations.</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
             <Plus size={14} strokeWidth={1.6} />
             Add Department

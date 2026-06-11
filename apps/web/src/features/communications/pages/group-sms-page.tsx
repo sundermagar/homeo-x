@@ -76,7 +76,7 @@ export default function GroupSmsPage() {
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
-            <MessageCircle size={22} style={{ color: '#25D366' }} strokeWidth={2} />
+            <MessageCircle size={22} strokeWidth={1.8} />
             WhatsApp Messaging
           </h1>
           <p className="pp-page-hero-sub">Securely communicate with patients via Meta Cloud API</p>

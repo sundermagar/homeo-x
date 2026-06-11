@@ -134,36 +134,35 @@ export default function ViewBalancePage() {
   };
 
   return (
-    <div className="pp-page-container animate-fade-in" style={{ padding: '24px 32px' }}>
+    <div className="pp-page-container bill-page animate-fade-in">
       {/* Premium Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+      <div className="pp-page-hero">
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 600, color: 'var(--pp-text-primary)', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 8px 0' }}>
-            <Wallet size={24} style={{ color: 'var(--pp-blue)' }} />
+          <h1 className="pp-page-hero-title">
+            <Wallet size={22} strokeWidth={1.8} />
             View Balance
           </h1>
-          <p style={{ margin: 0, fontSize: '14px', color: 'var(--pp-text-muted)' }}>
+          <p className="pp-page-hero-sub">
             Track patients with outstanding balances and manage follow-up notes.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={exportToCSV} className="pp-btn pp-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
-            <FileText size={16} /> Excel
+        <div className="pp-page-hero-actions">
+          <button onClick={exportToCSV} className="btn-secondary">
+            <FileText size={14} /> Excel
           </button>
-          <button onClick={handlePrint} className="pp-btn pp-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
-            <Download size={16} /> PDF
+          <button onClick={handlePrint} className="btn-secondary">
+            <Download size={14} /> PDF
           </button>
         </div>
       </div>
 
       {/* Filters Area */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div style={{ position: 'relative', width: '280px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '10px', color: 'var(--pp-text-muted)' }} />
+      <div className="pp-filter-card" style={{ marginBottom: 24 }}>
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input
             type="text"
-            className="pp-input"
-            style={{ width: '100%', paddingLeft: '36px', height: '36px', borderRadius: '8px' }}
+            className="pp-filter-search-input"
             placeholder="Search by RegID, Patient or Doctor..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
@@ -173,12 +172,14 @@ export default function ViewBalancePage() {
               onClick={() => { setSearchQuery(''); setPage(1); }}
               style={{ position: 'absolute', right: '12px', top: '10px', background: 'none', border: 'none', color: 'var(--pp-text-muted)', cursor: 'pointer', padding: 0 }}
             >
-              <X size={16} />
+              <X size={14} />
             </button>
           )}
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--pp-text-muted)', fontFamily: 'var(--pp-font-mono)' }}>
-          {filteredBalances.length} record{filteredBalances.length !== 1 ? 's' : ''}
+        <div className="pp-filter-controls">
+          <span style={{ fontSize: '12px', color: 'var(--pp-text-muted)', fontFamily: 'var(--pp-font-mono)' }}>
+            {filteredBalances.length} record{filteredBalances.length !== 1 ? 's' : ''}
+          </span>
         </div>
       </div>
 

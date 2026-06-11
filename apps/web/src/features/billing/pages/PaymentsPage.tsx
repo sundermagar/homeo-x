@@ -202,13 +202,13 @@ export default function PaymentsPage() {
             <table className="pp-table">
               <thead>
                 <tr>
-                  <th style={{ width: 60 }}>#</th>
-                  <th style={{ width: 130 }}>Date &amp; Time</th>
-                  <th>Patient</th>
-                  <th style={{ width: 130 }}>Amount</th>
-                  <th style={{ width: 110 }}>Mode</th>
-                  <th style={{ width: 100 }}>Reference</th>
-                  <th style={{ width: 90 }}>Status</th>
+                  <th style={{ width: '8%' }}>#</th>
+                  <th style={{ width: '15%' }}>Date &amp; Time</th>
+                  <th style={{ width: '25%' }}>Patient</th>
+                  <th style={{ width: '15%' }}>Amount</th>
+                  <th style={{ width: '12%' }}>Mode</th>
+                  <th style={{ width: '15%' }}>Reference</th>
+                  <th style={{ width: '10%' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -272,7 +272,7 @@ export default function PaymentsPage() {
 
                     <td data-label="Reference">
                       <div className="plat-cell-val">
-                        <div style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.7rem', color: 'var(--pp-text-3)', lineHeight: 1.5, textAlign: 'right' }}>
+                        <div style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.7rem', color: 'var(--pp-text-3)', lineHeight: 1.5 }}>
                           {payment.orderId   && <div title={payment.orderId}>ORD: {payment.orderId.slice(-8)}</div>}
                           {payment.paymentId && <div title={payment.paymentId}>PAY: {payment.paymentId.slice(-8)}</div>}
                           {!payment.orderId && !payment.paymentId && (

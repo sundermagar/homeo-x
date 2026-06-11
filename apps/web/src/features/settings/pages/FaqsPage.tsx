@@ -91,15 +91,15 @@ export default function FaqsPage() {
     <div className="plat-page fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <HelpCircle size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <HelpCircle size={22} strokeWidth={1.8} />
             Knowledge Base & FAQs
           </h1>
-          <p className="plat-header-sub">Manage common questions and internal library for your clinic staff.</p>
+          <p className="pp-page-hero-sub">Manage common questions and internal library for your clinic staff.</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
             <Plus size={14} />
             Add New Entry

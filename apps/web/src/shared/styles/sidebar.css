@@ -129,7 +129,7 @@
 
 @media (min-width: 1024px) {
   .sidebar {
-    position: static;
+    position: relative;
     transform: none;
     box-shadow: none;
     width: 256px;
@@ -195,16 +195,28 @@
 }
 
 .collapse-toggle-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  padding: 6px;
-  border-radius: 6px;
+  position: absolute;
+  top: 28.5px; /* Vertically align with the middle of the logo area (header is 57px, so 57/2 = 28.5) */
+  right: -14px;
+  transform: translateY(-50%);
+  z-index: 101;
+  background: white;
+  border: 1px solid var(--border-main);
+  color: #334155;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.dark .collapse-toggle-btn {
+  background: var(--bg-card);
 }
 
 @media (max-width: 768px) {
@@ -215,7 +227,14 @@
 
 .collapse-toggle-btn:hover {
   background: var(--bg-surface-2);
+  border-color: #94a3b8;
   color: var(--primary);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.collapse-toggle-btn:active {
+  transform: translateY(-50%) scale(0.95);
 }
 
 .rotate-180 {

@@ -104,16 +104,16 @@ export function RolesPermissionsPage() {
 
   return (
     <div className="plat-page fade-in">
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div className="plat-header-left">
-          <h1 className="plat-header-title">
-            <Shield size={20} strokeWidth={2} style={{ color: 'var(--pp-blue)' }} />
+          <h1 className="pp-page-hero-title">
+            <Shield size={22} strokeWidth={1.8} />
             Security & Identity Matrix
           </h1>
-          <p className="plat-header-sub">Define organizational hierarchies and cross-module capability nodes.</p>
+          <p className="pp-page-hero-sub">Define organizational hierarchies and cross-module capability nodes.</p>
         </div>
 
-        <div className="plat-header-actions" style={{ flexWrap: 'wrap' }}>
+        <div className="pp-page-hero-actions" style={{ flexWrap: 'wrap' }}>
           <div className="plat-view-toggle-group">
             <button
               className={`plat-view-toggle-btn ${activeTab === 'matrix' ? 'is-active' : ''}`}
@@ -288,7 +288,7 @@ export function RolesPermissionsPage() {
             <div className="plat-card-header">
               <div className="plat-header-left">
                 <h3 className="plat-card-title">Global Capability Dictionary</h3>
-                <p className="plat-header-sub">System-wide definition of permission nodes available to the RBAC engine.</p>
+                <p className="pp-page-hero-sub">System-wide definition of permission nodes available to the RBAC engine.</p>
               </div>
               <button className="plat-btn plat-btn-primary" onClick={() => { setEditPerm(null); setPermModalOpen(true); }}>
                 <Plus size={14} />

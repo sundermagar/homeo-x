@@ -153,39 +153,38 @@ export default function DepositsPage() {
 
   return (
     <div className="pp-page-container bill-page animate-fade-in">
-      <div className="bill-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="bill-header-title">
-            <Building size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Building size={22} strokeWidth={1.8} />
             Deposits Management
           </h1>
-          <p className="bill-header-sub">Record and track bank and cash deposits.</p>
+          <p className="pp-page-hero-sub">Record and track bank and cash deposits.</p>
         </div>
-        <div className="bill-header-actions">
-          <button className="bill-btn bill-btn-primary" onClick={() => setIsModalOpen(true)}>
+        <div className="pp-page-hero-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div className="bill-view-toggle-group">
+            <button 
+              type="button" 
+              className={`bill-view-toggle-btn${activeTab === 'bank' ? ' is-active' : ''}`} 
+              onClick={() => { setActiveTab('bank'); setPage(1); }}
+              style={{ padding: '8px 20px', fontSize: '0.85rem' }}
+            >
+              <Building size={14} /> Bank Deposits
+            </button>
+            <button 
+              type="button" 
+              className={`bill-view-toggle-btn${activeTab === 'cash' ? ' is-active' : ''}`} 
+              onClick={() => { setActiveTab('cash'); setPage(1); }}
+              style={{ padding: '8px 20px', fontSize: '0.85rem' }}
+            >
+              <Banknote size={14} /> Cash Deposits
+            </button>
+          </div>
+          <button className="bill-btn bill-btn-primary" onClick={() => setIsModalOpen(true)} style={{ height: '100%' }}>
             <PlusCircle size={14} />
             Add Deposit
           </button>
         </div>
-      </div>
-
-      <div className="bill-view-toggle-group" style={{ marginBottom: 20, width: 'fit-content' }}>
-        <button 
-          type="button" 
-          className={`bill-view-toggle-btn${activeTab === 'bank' ? ' is-active' : ''}`} 
-          onClick={() => { setActiveTab('bank'); setPage(1); }}
-          style={{ padding: '8px 20px', fontSize: '0.85rem' }}
-        >
-          <Building size={14} /> Bank Deposits
-        </button>
-        <button 
-          type="button" 
-          className={`bill-view-toggle-btn${activeTab === 'cash' ? ' is-active' : ''}`} 
-          onClick={() => { setActiveTab('cash'); setPage(1); }}
-          style={{ padding: '8px 20px', fontSize: '0.85rem' }}
-        >
-          <Banknote size={14} /> Cash Deposits
-        </button>
       </div>
 
       <div className="bill-stats-bar">
@@ -209,15 +208,28 @@ export default function DepositsPage() {
         </div>
       </div>
 
-      <div className="plat-filters">
-        <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
-          <input className="plat-filter-input plat-search-input" placeholder="Search remarks..." value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="pp-filter-card" style={{ marginBottom: 24 }}>
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
+          <input 
+            className="pp-filter-search-input" 
+            placeholder="Search remarks..." 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+          />
         </div>
-        <input type="date" className="plat-filter-input" style={{ fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem' }} value={dateFilter} onChange={e => setDateFilter(e.target.value)} />
+        <div className="pp-filter-controls">
+          <input 
+            type="date" 
+            className="pp-input" 
+            style={{ width: 'auto', fontFamily: 'var(--pp-font-mono)', fontSize: '0.82rem', height: '36px', borderRadius: '8px', padding: '0 12px', border: '1px solid var(--border-main)' }} 
+            value={dateFilter} 
+            onChange={e => setDateFilter(e.target.value)} 
+          />
+        </div>
       </div>
 
-      <div className="plat-card">
+      <div className="appt-card">
         {isLoading ? (
           <TableSkeleton rows={5} columns={7} />
         ) : filtered.length === 0 ? (
@@ -231,17 +243,17 @@ export default function DepositsPage() {
             className="my-8"
           />
         ) : (
-          <div className="plat-table-container">
-            <table className="plat-table">
+          <div className="pp-table-scroll">
+            <table className="pp-table">
               <thead>
                 <tr>
-                  <th style={{ width: 60 }}>ID</th>
-                  <th style={{ width: 120 }}>Date</th>
-                  <th>Amount</th>
-                  <th>Bank/Account</th>
-                  <th>Remark</th>
-                  <th style={{ width: 80 }}>Status</th>
-                  <th style={{ width: 80 }}>Actions</th>
+                  <th style={{ width: '8%' }}>ID</th>
+                  <th style={{ width: '12%' }}>Date</th>
+                  <th style={{ width: '15%' }}>Amount</th>
+                  <th style={{ width: '25%' }}>Bank/Account</th>
+                  <th style={{ width: '20%' }}>Remark</th>
+                  <th style={{ width: '10%' }}>Status</th>
+                  <th style={{ width: '10%' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>

@@ -535,7 +535,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                         </span>
                       </td>
                       <td data-label="Action" onClick={(e) => e.stopPropagation()}>
-                        <div className="appt-kebab-wrap" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                        <div className="appt-kebab-wrap" style={{ display: 'flex', gap: '6px' }}>
                           <button
                             className="appt-kebab-btn"
                             style={{ color: 'var(--pp-blue)' }}

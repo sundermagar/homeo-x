@@ -83,7 +83,7 @@ export function StickerPage() {
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
-            <Package size={22} strokeWidth={1.6} />
+            <Package size={22} strokeWidth={1.8} />
             Stickers Workspace
           </h1>
           <p className="pp-page-hero-sub">Generate labels and manage pending prescriptions for dispensing</p>

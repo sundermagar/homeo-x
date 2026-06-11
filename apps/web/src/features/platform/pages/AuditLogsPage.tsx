@@ -85,10 +85,10 @@ export default function AuditLogsPage() {
   return (
     <div className="plat-page fade-in">
       {/* ─── Header ─── */}
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">Audit Logs</h1>
-          <p className="plat-header-sub">Track all platform admin actions for compliance and security</p>
+          <h1 className="pp-page-hero-title">Audit Logs</h1>
+          <p className="pp-page-hero-sub">Track all platform admin actions for compliance and security</p>
         </div>
         <div className="plat-stats-bar" style={{ marginBottom: 0, gridTemplateColumns: 'auto' }}>
           <div className="plat-stat-card">

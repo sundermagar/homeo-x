@@ -67,18 +67,18 @@ export default function ExpensesHeadPage() {
   };
 
   return (
-    <div className="plat-page fade-in">
+    <div className="pp-page-container bill-page animate-fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Wallet size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Wallet size={22} strokeWidth={1.8} />
             Expenses Head
           </h1>
-          <p className="plat-header-sub">Manage categories for clinic accounting and expense tracking.</p>
+          <p className="pp-page-hero-sub">Manage categories for clinic accounting and expense tracking.</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
             <Plus size={14} />
             Add Expense Head
@@ -86,32 +86,24 @@ export default function ExpensesHeadPage() {
         </div>
       </div>
 
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Expense Categories</p>
-          <p className="plat-stat-value plat-stat-value-primary">{heads.length}</p>
-        </div>
-        <div className="plat-stat-card">
-          <p className="plat-stat-label">Active Listing</p>
-          <p className="plat-stat-value plat-stat-value-success">
-            {filtered.length}
-          </p>
-        </div>
-      </div>
-
-      <div className="plat-filters">
-        <div className="plat-search-wrap">
-          <Search size={14} className="plat-search-icon" />
+      <div className="pp-filter-card" style={{ marginBottom: 24 }}>
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
           <input
-            className="plat-form-input plat-search-input"
+            className="pp-filter-search-input"
             placeholder="Search categories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <div className="pp-filter-controls">
+          <span style={{ fontSize: '12px', color: 'var(--pp-text-muted)', fontFamily: 'var(--pp-font-mono)' }}>
+            {heads.length} Categories • {filtered.length} Active
+          </span>
+        </div>
       </div>
 
-      <div className="plat-card">
+      <div className="appt-card">
         {isLoading ? (
           <TableSkeleton rows={5} columns={5} />
         ) : filtered.length === 0 ? (
@@ -126,15 +118,15 @@ export default function ExpensesHeadPage() {
           />
         ) : (
           <>
-          <div className="plat-table-container">
-            <table className="plat-table">
+          <div className="pp-table-scroll">
+            <table className="pp-table">
               <thead>
                 <tr>
-                  <th style={{ width: '60px' }}>ID</th>
-                  <th>Category Name</th>
-                  <th>Description</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '120px' }}>Actions</th>
+                  <th style={{ width: '10%' }}>ID</th>
+                  <th style={{ width: '30%' }}>Category Name</th>
+                  <th style={{ width: '35%' }}>Description</th>
+                  <th style={{ width: '15%' }}>Status</th>
+                  <th style={{ width: '10%' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -158,7 +150,7 @@ export default function ExpensesHeadPage() {
                     </td>
                     <td data-label="Actions" className="plat-table-cell">
                       <div className="plat-cell-val">
-                        <div className="flex justify-end gap-3" style={{ width: '100%' }}>
+                        <div className="flex gap-3" style={{ width: '100%' }}>
                           <button className="plat-btn plat-btn-sm plat-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(head)}>
                             <Edit2 size={13} />
                           </button>

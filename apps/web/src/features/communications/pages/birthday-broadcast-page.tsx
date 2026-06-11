@@ -80,7 +80,7 @@ export default function BirthdayBroadcastPage() {
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
-            <Gift size={22} style={{ color: 'var(--pp-danger-fg)' }} /> Birthday Broadcast
+            <Gift size={22} strokeWidth={1.8} /> Birthday Broadcast
           </h1>
           <p className="pp-page-hero-sub">Send personalized greetings to patients celebrating today ({format(new Date(), 'dd MMMM')})</p>
         </div>

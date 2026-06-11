@@ -206,7 +206,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
             bookingTime: form.bookingTime!,
             visitType: form.visitType,
             consultationFee: form.consultationFee || 0,
-            notes: 'Initial consultation booked during registration.',
+            notes: form.notes || 'Initial consultation booked during registration.',
           }).catch(err => console.error('Auto appointment booking failed', err));
         }
         
@@ -378,6 +378,19 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
                       ))}
                     </div>
                   )}
+                </div>
+
+                <div className="form-group" style={{ marginTop: '16px' }}>
+                  <label className="drawer-label">Chief Complaint</label>
+                  <textarea
+                    className="drawer-input"
+                    name="notes"
+                    value={form.notes}
+                    onChange={handleChange}
+                    placeholder="Enter patient's chief complaint or symptoms..."
+                    rows={2}
+                    style={{ resize: 'vertical' }}
+                  />
                 </div>
               </div>
             )}

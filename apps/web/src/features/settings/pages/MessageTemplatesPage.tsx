@@ -73,15 +73,15 @@ export default function MessageTemplatesPage() {
     <div className="plat-page fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <MessageSquare size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <MessageSquare size={22} strokeWidth={1.8} />
             Message Templates
           </h1>
-          <p className="plat-header-sub">Configure pre-defined communication templates.</p>
+          <p className="pp-page-hero-sub">Configure pre-defined communication templates.</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
             <Plus size={14} />
             Add Template

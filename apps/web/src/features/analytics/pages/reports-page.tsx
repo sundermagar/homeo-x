@@ -55,13 +55,13 @@ export function ReportsPage() {
   return (
     <div className="pp-page-container plat-page animate-fade-in">
       {/* Header */}
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div className="plat-header-left">
-          <h1 className="plat-header-title">
+          <h1 className="pp-page-hero-title">
             {icon}
             {title}
           </h1>
-          <p className="plat-header-sub">Exportable records for clinical performance, financial tracking, and patient demographics.</p>
+          <p className="pp-page-hero-sub">Exportable records for clinical performance, financial tracking, and patient demographics.</p>
         </div>
       </div>
 

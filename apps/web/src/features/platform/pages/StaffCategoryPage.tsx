@@ -326,12 +326,12 @@ export default function StaffCategoryPage({ category }: { category: StaffCategor
 
   return (
     <div className="plat-page fade-in">
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title"><Icon size={20} className="color-primary" /> {meta.label}</h1>
-          <p className="plat-header-sub">{meta.description}</p>
+          <h1 className="pp-page-hero-title"><Icon size={22} strokeWidth={1.8} /> {meta.label}</h1>
+          <p className="pp-page-hero-sub">{meta.description}</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={() => { setEditingId(null); setModalOpen(true); }}><Plus size={14} /> Add {meta.label.replace(/s$/, '')}</button>
         </div>
       </div>

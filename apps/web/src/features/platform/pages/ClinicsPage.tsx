@@ -121,7 +121,7 @@ export default function ClinicsPage() {
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
-            <Building2 size={22} strokeWidth={1.6} />
+            <Building2 size={22} strokeWidth={1.8} />
             Clinics & Organizations
           </h1>
           <p className="pp-page-hero-sub">Manage all {orgs.length} registered clinic organisations.</p>

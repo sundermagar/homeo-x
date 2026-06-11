@@ -83,15 +83,15 @@ export default function StocksLogPage() {
   return (
     <div className="plat-page fade-in">
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <History size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+          <h1 className="pp-page-hero-title">
+            <History size={22} strokeWidth={1.8} />
             Stock Logs
           </h1>
-          <p className="plat-header-sub">Track inventory movements — add or deduct stock for medicines in the catalog.</p>
+          <p className="pp-page-hero-sub">Track inventory movements — add or deduct stock for medicines in the catalog.</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenAdd}>
             <Plus size={14} /> Add Stock
           </button>

@@ -85,7 +85,7 @@ export default function StickersPage() {
       <div className="pp-page-hero">
         <div>
           <h1 className="pp-page-hero-title">
-            <StickyNote size={22} style={{ color: 'var(--pp-blue)' }} />
+            <StickyNote size={22} strokeWidth={1.8} />
             Medicine Stickers
           </h1>
           <p className="pp-page-hero-sub">Configure templates for printing medicine dosage stickers.</p>

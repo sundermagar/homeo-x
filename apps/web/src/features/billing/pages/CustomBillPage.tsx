@@ -178,15 +178,15 @@ export default function CustomBillPage() {
   const navigate = useNavigate();
   return (
     <div className="bill-page fade-in" style={{ maxWidth: '860px' }}>
-      <div className="bill-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="bill-header-title">
-            <FilePlus size={20} strokeWidth={1.6} style={{ color: 'var(--pp-blue)' }} />
+          <h1 className="pp-page-hero-title">
+            <FilePlus size={22} strokeWidth={1.8} />
             Custom Bill
           </h1>
-          <p className="bill-header-sub">Create a manual invoice for miscellaneous charges.</p>
+          <p className="pp-page-hero-sub">Create a manual invoice for miscellaneous charges.</p>
         </div>
-        <div className="bill-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="bill-btn" onClick={() => navigate('/billing')}>
             <ChevronLeft size={14} strokeWidth={2} />
             Back to Billing

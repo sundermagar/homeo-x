@@ -79,17 +79,17 @@ export default function AccountsPage() {
     <div className="plat-page fade-in">
 
       {/* ─── Header ─── */}
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <UserCog size={20} strokeWidth={1.6} style={{ color: 'var(--primary)' }} />
+          <h1 className="pp-page-hero-title">
+            <UserCog size={22} strokeWidth={1.8} />
             Clinic Accounts
           </h1>
-          <p className="plat-header-sub">
+          <p className="pp-page-hero-sub">
             Consolidated clinical directory. View all user accounts (Doctors, Clinic Admins, Receptionists, Employees, and Finance Managers) mapped to each clinic's system.
           </p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={openCreate} style={{ background: '#0f172a', borderColor: '#0f172a' }}>
             <Plus size={14} strokeWidth={2.4} />
             Create Admin User

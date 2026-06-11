@@ -74,15 +74,15 @@ export default function ReferralSourcesPage() {
     <div className="plat-page fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Users size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Users size={22} strokeWidth={1.8} />
             Referral Sources
           </h1>
-          <p className="plat-header-sub">Manage where your patients are coming from (Doctors, Marketing, etc.).</p>
+          <p className="pp-page-hero-sub">Manage where your patients are coming from (Doctors, Marketing, etc.).</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="plat-btn plat-btn-primary" onClick={handleOpenCreate}>
             <Plus size={14} />
             Add Source

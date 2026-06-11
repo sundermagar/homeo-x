@@ -73,15 +73,15 @@ export default function DayChargesPage() {
 
   return (
     <div className="pp-page-container bill-page animate-fade-in">
-      <div className="bill-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Calendar size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Calendar size={22} strokeWidth={1.8} />
             Day Charges
           </h1>
-          <p className="plat-header-sub">Configure duration-based pricing for treatments.</p>
+          <p className="pp-page-hero-sub">Configure duration-based pricing for treatments.</p>
         </div>
-        <div className="bill-header-actions">
+        <div className="pp-page-hero-actions">
           <button className="bill-btn bill-btn-primary" onClick={handleOpenCreate}>
             <PlusCircle size={14} />
             Add Day Charge
@@ -89,21 +89,24 @@ export default function DayChargesPage() {
         </div>
       </div>
 
-      <div className="plat-stats-bar">
-        <div className="plat-stat-card">
-          <span className="plat-stat-label">Charge Plans</span>
-          <span className="plat-stat-value">{charges.length}</span>
+      <div className="pp-filter-card" style={{ marginBottom: 24 }}>
+        <div className="pp-filter-search-wrap">
+          <Search size={14} />
+          <input
+            className="pp-filter-search-input"
+            placeholder="Search by days..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="pp-filter-controls">
+          <span style={{ fontSize: '12px', color: 'var(--pp-text-muted)', fontFamily: 'var(--pp-font-mono)' }}>
+            {charges.length} Charge Plans
+          </span>
         </div>
       </div>
 
-      <div className="plat-filters">
-        <div className="plat-search-wrap">
-          <Search size={16} className="plat-search-icon" />
-          <input className="plat-filter-input plat-search-input" placeholder="Search by days..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-      </div>
-
-      <div className="plat-card">
+      <div className="appt-card">
         {isLoading ? (
           <TableSkeleton rows={5} columns={4} />
         ) : filtered.length === 0 ? (
@@ -117,14 +120,14 @@ export default function DayChargesPage() {
             className="my-8"
           />
         ) : (
-          <div className="plat-table-container">
-            <table className="plat-table">
+          <div className="pp-table-scroll">
+            <table className="pp-table">
               <thead>
                 <tr>
-                  <th style={{ width: 60 }}>ID</th>
-                  <th>Duration (Days)</th>
-                  <th style={{ width: 150 }}>Charges</th>
-                  <th style={{ width: 100 }}>Actions</th>
+                  <th style={{ width: '10%' }}>ID</th>
+                  <th style={{ width: '45%' }}>Duration (Days)</th>
+                  <th style={{ width: '30%' }}>Charges</th>
+                  <th style={{ width: '15%' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -141,7 +144,7 @@ export default function DayChargesPage() {
                     </td>
                     <td data-label="Actions">
                       <div className="plat-cell-val">
-                        <div className="flex justify-end gap-3" style={{ width: '100%' }}>
+                        <div className="flex gap-3" style={{ width: '100%' }}>
                           <button className="plat-btn plat-btn-sm plat-btn-icon" style={{ width: 36, height: 36, borderRadius: 10 }} onClick={() => handleOpenEdit(c)}>
                             <Edit2 size={13} />
                           </button>

@@ -9,15 +9,15 @@ export default function StaffManagementPage() {
     <div className="plat-page fade-in">
 
 
-      <div className="plat-header">
+      <div className="pp-page-hero">
         <div>
-          <h1 className="plat-header-title">
-            <Users size={20} className="color-primary" />
+          <h1 className="pp-page-hero-title">
+            <Users size={22} strokeWidth={1.8} />
             Staff Management
           </h1>
-          <p className="plat-header-sub">Manage platform users, receptionists, and clinical assistants.</p>
+          <p className="pp-page-hero-sub">Manage platform users, receptionists, and clinical assistants.</p>
         </div>
-        <div className="plat-header-actions">
+        <div className="pp-page-hero-actions">
           <Link to="/platform/accounts" className="plat-btn plat-btn-primary">
             <UserPlus size={14} />
             Manage Login Accounts
