@@ -20,6 +20,8 @@ export class CreatePatientUseCase {
     ]);
 
     // ─── Background: Auto-bill registration fee ───
+    // DISABLED: User requested to remove automatic registration fees, only consultation fee is charged
+    /*
     const regFee = input.registrationFee !== undefined ? input.registrationFee : (org?.registrationFee || 0);
     
     if (regFee > 0) {
@@ -43,6 +45,7 @@ export class CreatePatientUseCase {
         }
       })();
     }
+    */
 
     // ─── Background: Link to unregistered patient record ───
     if (input.unregisteredId) {

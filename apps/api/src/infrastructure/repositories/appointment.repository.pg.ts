@@ -480,9 +480,17 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
         if (config.schedule && config.slotDuration) {
           let y, m, dNum;
           if (date.includes('-')) {
-             [y, m, dNum] = date.split('-');
+             const parts = date.split('-');
+             if (parts.length === 3) {
+                if (parts[0]!.length === 4) { [y, m, dNum] = parts; }
+                else { [dNum, m, y] = parts; }
+             }
           } else if (date.includes('/')) {
-             [dNum, m, y] = date.split('/');
+             const parts = date.split('/');
+             if (parts.length === 3) {
+                if (parts[2]!.length === 4) { [dNum, m, y] = parts; }
+                else { [y, m, dNum] = parts; }
+             }
           }
           if (y && m && dNum) {
             const dObj = new Date(Number(y), Number(m) - 1, Number(dNum));
@@ -510,9 +518,17 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
           const end = match[2]!;
           let y, m, dNum;
           if (date.includes('-')) {
-             [y, m, dNum] = date.split('-');
+             const parts = date.split('-');
+             if (parts.length === 3) {
+                if (parts[0]!.length === 4) { [y, m, dNum] = parts; }
+                else { [dNum, m, y] = parts; }
+             }
           } else if (date.includes('/')) {
-             [dNum, m, y] = date.split('/');
+             const parts = date.split('/');
+             if (parts.length === 3) {
+                if (parts[2]!.length === 4) { [dNum, m, y] = parts; }
+                else { [y, m, dNum] = parts; }
+             }
           }
           let isClosed = false;
           if (y && m && dNum) {
@@ -535,12 +551,25 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
 
     if (slotsList.length === 0) {
       let isClosed = false;
+      
+      // First, check JSON config for closure
       try {
         const config = JSON.parse(timingConfigStr || '{}');
         if (config.schedule) {
           let y, m, dNum;
-          if (date.includes('-')) { [y, m, dNum] = date.split('-'); }
-          else if (date.includes('/')) { [dNum, m, y] = date.split('/'); }
+          if (date.includes('-')) {
+             const parts = date.split('-');
+             if (parts.length === 3) {
+                if (parts[0]!.length === 4) { [y, m, dNum] = parts; }
+                else { [dNum, m, y] = parts; }
+             }
+          } else if (date.includes('/')) {
+             const parts = date.split('/');
+             if (parts.length === 3) {
+                if (parts[2]!.length === 4) { [dNum, m, y] = parts; }
+                else { [y, m, dNum] = parts; }
+             }
+          }
           if (y && m && dNum) {
             const dObj = new Date(Number(y), Number(m) - 1, Number(dNum));
             const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dObj.getDay()];
@@ -549,11 +578,42 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
             }
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        // Not JSON, check legacy string for closure
+        if (timingConfigStr) {
+          let y, m, dNum;
+          if (date.includes('-')) {
+             const parts = date.split('-');
+             if (parts.length === 3) {
+                if (parts[0]!.length === 4) { [y, m, dNum] = parts; }
+                else { [dNum, m, y] = parts; }
+             }
+          } else if (date.includes('/')) {
+             const parts = date.split('/');
+             if (parts.length === 3) {
+                if (parts[2]!.length === 4) { [dNum, m, y] = parts; }
+                else { [y, m, dNum] = parts; }
+             }
+          }
+          if (y && m && dNum) {
+            const dObj = new Date(Number(y), Number(m) - 1, Number(dNum));
+            const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dObj.getDay()];
+            const closedRegex = new RegExp(`${dayName}\\s*Closed`, 'i');
+            if (closedRegex.test(timingConfigStr)) {
+              isClosed = true;
+            }
+          }
+        }
+      }
 
       if (!isClosed) {
-        const fallbackSlotDuration = timingConfigStr ? (JSON.parse(timingConfigStr).slotDuration || 15) : 15;
-        slotsList = generateTimeSlots('09:00 AM', '08:00 PM', fallbackSlotDuration);
+        let fallbackSlotDuration = 15;
+        if (timingConfigStr) {
+          try {
+            fallbackSlotDuration = JSON.parse(timingConfigStr).slotDuration || 15;
+          } catch (e) {}
+        }
+        slotsList = generateTimeSlots('09:00 AM', '05:00 PM', fallbackSlotDuration);
       }
     }
 

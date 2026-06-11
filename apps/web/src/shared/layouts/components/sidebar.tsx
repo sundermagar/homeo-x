@@ -56,7 +56,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const unreadCount = unreadResponse?.count || 0;
 
   const toggleFolder = (label: string) => {
-    setExpandedFolders(prev => ({ ...prev, [label]: !prev[label] }));
+    setExpandedFolders(prev => {
+      // If clicking the currently open folder, close it
+      if (prev[label]) {
+        return {};
+      }
+      // Otherwise, open ONLY the clicked folder (closing others like Membership)
+      return { [label]: true };
+    });
   };
 
   // Normalize the user's role — demo tokens may use uppercase or camelCase
