@@ -31,14 +31,7 @@ export interface MonthWiseResult {
 export interface MonthWiseDueSummary {
   month: number;
   total_due: number;
-  informed: number;
-  cured: number;
-  left_uncured: number;
-  reg_only: number;
-  discontinued: number;
-  pickup: number;
-  courier: number;
-  reserve_medicine: number;
+  statuses: Record<string, number>;
 }
 
 export interface MonthWiseDueDetail {

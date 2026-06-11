@@ -156,6 +156,8 @@ export function HomeopathyConsultationLayoutV2({
   const suggestSoap = useSuggestSoap();
   const extractDisease = useExtractDiseaseRubrics();
   const homeopathyConsult = useHomeopathyConsult();
+  const { data: lookups } = useRemedyLookups();
+  const medicineOptions = (lookups?.medicines || []).map((m) => m.name);
 
   // ── Next patient / back to queue ──
   const handleNextPatient = useCallback(() => {
@@ -746,6 +748,17 @@ export function HomeopathyConsultationLayoutV2({
                         <RemedyList remedies={remedies} selectedRemedies={selectedRemedyNames} onPick={pickRemedy} />
                       </div>
                     )}
+
+                    <div className="mt-8">
+                      <div className="h-px bg-[#E3E2DF] my-3.5" />
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-[#888786] mb-2">Add custom remedy</div>
+                      <SearchableSelect 
+                        value=""
+                        onChange={(v) => { if(v) pickRemedy({ remedyName: v, remedyId: v, normalizedScore: 0 } as any) }}
+                        options={medicineOptions}
+                        placeholder="Search and add a remedy manually..."
+                      />
+                    </div>
                   </div>
                 )}
 

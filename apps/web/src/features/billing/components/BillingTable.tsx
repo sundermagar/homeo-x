@@ -580,7 +580,13 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
                 className="bill-form-input"
                 style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }}
                 value={receiveAmount}
-                onChange={e => setReceiveAmount(Number(e.target.value))}
+                max={receivingBill ? receivingBill.balance : (receivingGroup ? receivingGroup.totalBalance : 0)}
+                onChange={e => {
+                  let val = Number(e.target.value);
+                  const maxAllowed = receivingBill ? receivingBill.balance : (receivingGroup ? receivingGroup.totalBalance : 0);
+                  if (val > maxAllowed) val = maxAllowed;
+                  setReceiveAmount(val);
+                }}
               />
             </div>
 
@@ -628,7 +634,7 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
             <button
               className="bill-btn bill-btn-primary"
               style={{ width: '100%', marginTop: 24, height: 48, borderRadius: 14, fontSize: '0.95rem' }}
-              disabled={recordPayment.isPending}
+              disabled={recordPayment.isPending || receiveAmount <= 0 || receiveAmount > (receivingBill ? receivingBill.balance : (receivingGroup ? receivingGroup.totalBalance : 0))}
               onClick={receivingBill ? handleReceivePayment : handleReceiveGroupPayment}
             >
               {recordPayment.isPending ? 'Saving...' : 'Confirm Payment'}

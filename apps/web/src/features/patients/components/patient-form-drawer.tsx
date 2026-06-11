@@ -207,7 +207,7 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
             bookingTime: form.bookingTime!, // Checked in condition above
             visitType: form.visitType,
             consultationFee: form.consultationFee || 0,
-            notes: 'Initial consultation booked during registration.',
+            notes: '',
           });
         }
         

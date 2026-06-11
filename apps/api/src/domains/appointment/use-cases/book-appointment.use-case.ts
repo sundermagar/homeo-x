@@ -25,10 +25,13 @@ export class BookAppointmentUseCase {
   ) { }
 
   private resolveConsultationFee(dto: CreateAppointmentDto, doctor?: any): number | undefined {
+    if (dto.consultationFee !== undefined && dto.consultationFee !== null) {
+      return Number(dto.consultationFee);
+    }
     if (doctor?.consultationFee !== null && doctor?.consultationFee !== undefined) {
       return Number(doctor.consultationFee);
     }
-    return dto.consultationFee !== undefined ? Number(dto.consultationFee) : undefined;
+    return undefined;
   }
 
   async execute(dto: CreateAppointmentDto): Promise<Result<{ id: number; tokenNo?: number }>> {

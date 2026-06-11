@@ -244,6 +244,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
                     city: form.city,
                     registrationFee: form.registrationFee ? Number(form.registrationFee) : undefined,
                     courierOutstation: false,
+                    assistantDoctor: form.doctorId || undefined,
                 });
                 finalPatientId = newPatient.regid;
             } catch (err: any) {

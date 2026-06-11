@@ -319,23 +319,39 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
           SELECT regid, todate, call_status
           FROM RankedPotencies
           WHERE rn = 1
+            AND extract(year from todate) = ${year}
+        ),
+        Aggregated AS (
+          SELECT 
+            extract(month from lp.todate)::int as month,
+            COALESCE(
+              (
+                SELECT a.call_status 
+                FROM appointments a 
+                WHERE a.patient_id = p.id AND NULLIF(a.call_status, '') IS NOT NULL 
+                ORDER BY a.created_at DESC LIMIT 1
+              ),
+              (
+                SELECT pa.call_status 
+                FROM pending_appointments pa 
+                WHERE pa.regid = lp.regid AND NULLIF(pa.call_status, '') IS NOT NULL 
+                ORDER BY pa.id DESC LIMIT 1
+              ),
+              'Unassigned'
+            ) as status,
+            count(*)::int as cnt
+          FROM LastPotencies lp
+          JOIN case_datas p ON p.regid = lp.regid
+          WHERE 1=1
+            ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          GROUP BY 1, 2
         )
         SELECT 
-          extract(month from lp.todate)::int as month,
-          count(*)::int as total_due,
-          count(CASE WHEN LOWER(lp.call_status) = 'informed' THEN 1 END)::int as informed,
-          count(CASE WHEN LOWER(lp.call_status) = 'cured' THEN 1 END)::int as cured,
-          count(CASE WHEN LOWER(lp.call_status) = 'left uncured' THEN 1 END)::int as left_uncured,
-          count(CASE WHEN LOWER(lp.call_status) = 'reg only' THEN 1 END)::int as reg_only,
-          count(CASE WHEN LOWER(lp.call_status) = 'discontinued' THEN 1 END)::int as discontinued,
-          count(CASE WHEN LOWER(lp.call_status) = 'pickup' THEN 1 END)::int as pickup,
-          count(CASE WHEN LOWER(lp.call_status) = 'courier' THEN 1 END)::int as courier,
-          count(CASE WHEN LOWER(lp.call_status) = 'reserve medicine' THEN 1 END)::int as reserve_medicine
-        FROM LastPotencies lp
-        JOIN case_datas p ON p.regid = lp.regid
-        WHERE extract(year from lp.todate) = ${year}
-          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
-        GROUP BY extract(month from lp.todate)
+          month,
+          sum(cnt)::int as total_due,
+          json_object_agg(status, cnt)::jsonb as statuses
+        FROM Aggregated
+        GROUP BY month
         ORDER BY month ASC
       `);
       return dues as any as MonthWiseDueSummary[];
@@ -437,11 +453,11 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
       const res = await this.db.execute(sql`
         SELECT 
           p.regid, 
-          b.created_at as date,
+          b.created_at::date as date,
           p.first_name, 
           p.surname, 
           b.payment_mode as payment_method, 
-          b.received as amount
+          sum(b.received)::int as amount
         FROM case_datas p
         JOIN bills b ON b.regid = p.regid 
           AND (b.deleted_at IS NULL OR b.deleted_at::text = '') 
@@ -449,7 +465,8 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
           AND (p.deleted_at IS NULL OR p.deleted_at::text = '')
           ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
           AND COALESCE(NULLIF(p.reference, ''), 'Direct') = ${reference || 'Direct'}
-        ORDER BY b.created_at DESC
+        GROUP BY p.regid, b.created_at::date, p.first_name, p.surname, b.payment_mode
+        ORDER BY b.created_at::date DESC
       `);
       return res as any[];
     } catch { return []; }

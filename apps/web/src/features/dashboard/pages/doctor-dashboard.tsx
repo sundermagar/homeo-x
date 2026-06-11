@@ -283,7 +283,7 @@ export function DoctorDashboard() {
                 {activeConsultation.age || '—'} Yrs {activeConsultation.gender?.charAt(0) || ''} · MRN-{activeConsultation.regid} · New case
               </div>
               <div className="dd-active-green-box">
-                <strong>Chief complaint:</strong> {activeConsultation.notes || 'Routine checkup. Documented symptoms pending triage.'}
+                <strong>Chief complaint:</strong> {activeConsultation.notes || 'No chief complaint provided.'}
               </div>
               <div className="dd-active-green-actions">
                 <button className="dd-btn-start" onClick={() => handleStartConsultation(activeConsultation)}>
@@ -408,7 +408,7 @@ export function DoctorDashboard() {
                       <div className="dd-list-avatar blue">{initials}</div>
                       <div className="dd-list-info">
                         <div className="dd-list-name">{a.patientName}</div>
-                        <div className="dd-list-sub">MRN-{a.regid} · {a.notes || 'Routine checkup'}</div>
+                        <div className="dd-list-sub">MRN-{a.regid} {a.notes ? `· ${a.notes}` : ''}</div>
                       </div>
                     </div>
                   );

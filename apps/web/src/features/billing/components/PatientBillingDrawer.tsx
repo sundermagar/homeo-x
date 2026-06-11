@@ -276,7 +276,12 @@ export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Pr
                 className="bill-form-input"
                 style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'var(--pp-font-mono)' }}
                 value={receiveAmount}
-                onChange={e => setReceiveAmount(Number(e.target.value))}
+                max={receivingGroup.totalBalance}
+                onChange={e => {
+                  let val = Number(e.target.value);
+                  if (val > receivingGroup.totalBalance) val = receivingGroup.totalBalance;
+                  setReceiveAmount(val);
+                }}
               />
             </div>
             <div className="bill-form-group" style={{ marginTop: 16 }}>
@@ -323,7 +328,7 @@ export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Pr
               className="bill-btn bill-btn-primary"
               style={{ width: '100%', marginTop: 24, height: 48, borderRadius: 14, fontSize: '0.95rem' }}
               onClick={handleReceiveGroupPayment}
-              disabled={recordPayment.isPending || receiveAmount <= 0}
+              disabled={recordPayment.isPending || receiveAmount <= 0 || receiveAmount > receivingGroup.totalBalance}
             >
               Confirm Payment (₹{receiveAmount})
             </button>
