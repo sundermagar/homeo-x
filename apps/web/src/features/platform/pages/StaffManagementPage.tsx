@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Users, Stethoscope, User, Phone, Shield, Plus } from 'lucide-react';
+import { Users, Stethoscope, User, Phone, Shield, Plus, Hospital } from 'lucide-react';
 import DoctorsPage from './DoctorsPage';
 import EmployeesPage from './EmployeesPage';
 import ReceptionistsPage from './ReceptionistsPage';
 import ClinicAdminsPage from './ClinicAdminsPage';
+import DispensariesTabPage from './DispensariesTabPage';
 import '../styles/platform.css';
 
-type Tab = 'doctors' | 'employees' | 'receptionists' | 'clinicadmins';
+type Tab = 'doctors' | 'employees' | 'receptionists' | 'clinicadmins' | 'dispensaries';
 
 const tabActionLabels: Record<Tab, string> = {
   doctors: 'Register Doctor',
   employees: 'Add Employee',
   receptionists: 'Add Receptionist',
-  clinicadmins: 'Add Admin'
+  clinicadmins: 'Add Admin',
+  dispensaries: 'Add Staff Account'
 };
 
 export default function StaffManagementPage() {
@@ -34,7 +36,7 @@ export default function StaffManagementPage() {
             <Users size={22} className="color-primary" />
             Staff Management
           </h1>
-          <p className="plat-header-sub">Manage doctors, employees, receptionists, and clinic administrators.</p>
+          <p className="plat-header-sub">Manage doctors, employees, receptionists, clinic administrators, and dispensary staff.</p>
         </div>
       </div>
 
@@ -64,6 +66,12 @@ export default function StaffManagementPage() {
           >
             <Shield size={14} /> Clinic Admins
           </button>
+          <button 
+            className={`plat-view-toggle-btn ${activeTab === 'dispensaries' ? 'is-active' : ''}`} 
+            onClick={() => handleTabChange('dispensaries')}
+          >
+            <Hospital size={14} /> Dispensaries
+          </button>
         </div>
         <button 
           className="plat-btn plat-btn-primary" 
@@ -79,6 +87,7 @@ export default function StaffManagementPage() {
         {activeTab === 'employees' && <EmployeesPage actionTrigger={actionTrigger} />}
         {activeTab === 'receptionists' && <ReceptionistsPage actionTrigger={actionTrigger} />}
         {activeTab === 'clinicadmins' && <ClinicAdminsPage actionTrigger={actionTrigger} />}
+        {activeTab === 'dispensaries' && <DispensariesTabPage actionTrigger={actionTrigger} />}
       </div>
     </div>
   );

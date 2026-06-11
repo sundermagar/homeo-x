@@ -320,6 +320,7 @@ export class PatientRepositoryPg implements PatientRepository {
     if (input.pin !== undefined) updateData.pin = input.pin;
     if (input.altAddress !== undefined) updateData.altAddress = input.altAddress;
     if (input.religion !== undefined) updateData.religion = input.religion;
+    if ((input as any).bloodGroup !== undefined) updateData.bloodGroup = (input as any).bloodGroup;
     if (input.occupation !== undefined) updateData.occupation = input.occupation;
     if (input.dateOfBirth !== undefined) {
       updateData.dateOfBirth = input.dateOfBirth || null;

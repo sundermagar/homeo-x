@@ -15,6 +15,8 @@ export interface MedicalCase {
   gender?: string | null;
   address?: string | null;
   dateOfBirth?: string | null;
+  bloodGroup?: string | null;
+  religion?: string | null;
   abhaId?: string | null;
   city?: string | null;
   state?: string | null;

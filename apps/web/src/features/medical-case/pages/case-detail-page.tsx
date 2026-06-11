@@ -19,11 +19,24 @@ function TimelineVisitCard({ dateKey, data, isFirst, isLast, medicalCase }: { da
     ?? labItem?.visitId ?? labItem?.visit_id
     ?? mediaItem?.visitId ?? mediaItem?.visit_id;
 
+  const token = useAuthStore((s) => s.token);
   const resolveUrl = (url: string) => {
     if (!url) return '#';
-    if (url.startsWith('http')) return url;
-    const baseUrl = import.meta.env['VITE_API_URL'] || '';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    let finalUrl = url;
+    if (!url.startsWith('http')) {
+      const baseUrl = import.meta.env['VITE_API_URL'] || '';
+      finalUrl = `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    }
+    if (token) {
+      try {
+        const urlObj = new URL(finalUrl);
+        urlObj.searchParams.set('token', token);
+        return urlObj.toString();
+      } catch (e) {
+        return finalUrl;
+      }
+    }
+    return finalUrl;
   };
 
   const dateObj = new Date(dateKey + 'T00:00:00');
@@ -51,7 +64,9 @@ function TimelineVisitCard({ dateKey, data, isFirst, isLast, medicalCase }: { da
       {/* Left: Timeline track + date box */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '60px', flexShrink: 0 }}>
         {/* Date box */}
-        <div style={{
+        <div 
+          onClick={() => setIsVisitExpanded(!isVisitExpanded)}
+          style={{
           width: '36px',
           minHeight: '38px',
           borderRadius: '8px',
@@ -69,7 +84,11 @@ function TimelineVisitCard({ dateKey, data, isFirst, isLast, medicalCase }: { da
           boxShadow: isToday ? '0 2px 6px rgba(59,130,246,0.3)' : '0 2px 6px rgba(99,102,241,0.2)',
           marginTop: '12px',
           zIndex: 1,
-          position: 'relative'
+          position: 'relative',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          transform: isVisitExpanded ? 'scale(1.08)' : 'scale(1)',
+          filter: isVisitExpanded ? 'brightness(1.1)' : 'brightness(1)'
         }}>
           <span style={{ fontSize: '0.9rem', fontWeight: 900 }}>{dateObj.getDate()}</span>
           <span style={{ fontSize: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>{dateObj.toLocaleString('default', { month: 'short' })}</span>
@@ -1676,6 +1695,8 @@ export default function MedicalCaseDetailPage() {
               { label: 'Gender', value: medicalCase.gender === 'M' ? 'Male' : medicalCase.gender === 'F' ? 'Female' : medicalCase.gender || '—' },
               { label: 'Age', value: ageString || '—' },
               { label: 'Date of Birth', value: (() => { const dob = medicalCase.dateOfBirth || medicalCase.dob; return dob ? new Date(dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; })() },
+              { label: 'Blood Group', value: medicalCase.bloodGroup || '—' },
+              { label: 'Religion', value: medicalCase.religion || '—' },
               { label: 'Phone', value: medicalCase.mobile || medicalCase.phone || '—' },
               { label: 'Email', value: medicalCase.email || '—' },
               { label: 'Address', value: medicalCase.address || '—' },
@@ -1802,7 +1823,7 @@ export default function MedicalCaseDetailPage() {
 
               if (sortedDates.length === 0) {
                 return (
-                  <div style={{ padding: '48px 24px', textAlign: 'center', color: '#94a3b8' }}>
+                  <div style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#94a3b8' }}>
                     <History size={48} style={{ opacity: 0.15, marginBottom: '16px' }} />
                     <p style={{ fontSize: '0.95rem', fontWeight: 600 }}>No case history found for this patient.</p>
                     <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Prescriptions, diagnoses, and follow-up notes will appear here once recorded.</p>

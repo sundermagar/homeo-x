@@ -193,37 +193,32 @@ export function PatientFormDrawer({ isOpen, onClose, regid, onSuccess }: Patient
         const patientResult = await createMutation.mutateAsync({
            ...form,
            referredById: refSearch || undefined,
-           // no unregisteredId
         });
         
-        // If a time slot is selected, book the appointment (Skip if we already have an unregistered patient as the backend links existing ones)
+        // If a time slot is selected, book the appointment in the background
         if (form.bookingTime && form.assistantDoctor && patientResult.regid) {
-          await createApptMutation.mutateAsync({
+          createApptMutation.mutateAsync({
             patientId: patientResult.regid,
             patientName: `${form.firstName} ${form.surname}`.trim(),
             phone: form.phone || form.mobile1,
             doctorId: Number(form.assistantDoctor),
-            bookingDate: form.bookingDate!, // Guaranteed to have a default in INIT_FORM
-            bookingTime: form.bookingTime!, // Checked in condition above
+            bookingDate: form.bookingDate!, 
+            bookingTime: form.bookingTime!,
             visitType: form.visitType,
             consultationFee: form.consultationFee || 0,
             notes: 'Initial consultation booked during registration.',
-          });
+          }).catch(err => console.error('Auto appointment booking failed', err));
         }
         
-        // Auto-send WhatsApp registration text
+        // Auto-send WhatsApp registration text in the background
         if (patientResult?.regid && (form.phone || form.mobile1)) {
           const rawPhone = form.phone || form.mobile1;
           const cleaned = rawPhone.replace(/\D/g, '');
           const finalPhone = cleaned.length === 10 ? `91${cleaned}` : cleaned;
-          try {
-            await sendText.mutateAsync({
-              phone: finalPhone,
-              message: `Dear ${form.firstName} ${form.surname},\n\nThank you for registering with MMC HomeoTech. Your Registration ID is *${patientResult.regid}*.\n\nPlease use this ID for all future communications.\n\nBest regards,\nYour Clinic`
-            });
-          } catch (err) {
-            console.error('Auto WhatsApp failed', err);
-          }
+          sendText.mutateAsync({
+            phone: finalPhone,
+            message: `Dear ${form.firstName} ${form.surname},\n\nThank you for registering with MMC HomeoTech. Your Registration ID is *${patientResult.regid}*.\n\nPlease use this ID for all future communications.\n\nBest regards,\nYour Clinic`
+          }).catch(err => console.error('Auto WhatsApp failed', err));
         }
         
         onSuccess?.();

@@ -58,6 +58,12 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
     const { search, page = 1, limit = 50 } = filters;
     const offset = (page - 1) * limit;
 
+    let baseCondition = undefined;
+    if (search) {
+      const searchTerms = `%${search}%`;
+      baseCondition = sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`;
+    }
+
     let query = this.db
       .select({
         id: schema.medicalCases.id,
@@ -77,11 +83,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
       .$dynamic();
 
-    if (search) {
-      const searchTerms = `%${search}%`;
-      query = query.where(
-        sql`(${schema.patients.firstName} ILIKE ${searchTerms} OR ${schema.patients.surname} ILIKE ${searchTerms} OR ${schema.patients.phone} ILIKE ${searchTerms})`
-      );
+    if (baseCondition) {
+      query = query.where(baseCondition);
     }
 
     const rows = await query
@@ -94,9 +97,18 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
       age: row.age ?? this._calculateAge(row.dob ?? row.date_of_birth),
     }));
 
-    const [countRes] = await this.db
+    // Count TOTAL with same filters (don't do a full table scan!)
+    let countQuery = this.db
       .select({ count: sql<number>`count(*)::int` })
-      .from(schema.medicalCases);
+      .from(schema.medicalCases)
+      .leftJoin(schema.patients, eq(schema.medicalCases.regid, schema.patients.regid))
+      .$dynamic();
+
+    if (baseCondition) {
+      countQuery = countQuery.where(baseCondition);
+    }
+
+    const [countRes] = await countQuery;
 
     return { data: hydrated, total: countRes?.count ?? 0 };
   }
@@ -234,6 +246,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           gender: schema.patients.gender,
           address: schema.patients.address,
           dateOfBirth: schema.patients.dateOfBirth,
+          bloodGroup: schema.patients.bloodGroup,
+          religion: schema.patients.religion,
           abhaId: sql<string | null>`abha_id`,
           city: schema.patients.city,
           state: schema.patients.state,
@@ -271,6 +285,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
             gender: schema.patients.gender,
             address: schema.patients.address,
             dateOfBirth: schema.patients.dateOfBirth,
+            bloodGroup: schema.patients.bloodGroup,
+            religion: schema.patients.religion,
             abhaId: sql<string | null>`abha_id`,
             city: schema.patients.city,
             state: schema.patients.state,
@@ -302,6 +318,8 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           gender: patient.gender,
           address: patient.address,
           dateOfBirth: patient.dateOfBirth,
+          bloodGroup: patient.bloodGroup,
+          religion: patient.religion,
           abhaId: patient.abhaId,
           city: patient.city,
           state: patient.state,

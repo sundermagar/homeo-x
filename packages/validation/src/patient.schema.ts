@@ -6,7 +6,7 @@ export const createPatientSchema = z.object({
   title: z.string().max(20).optional(),
   firstName: z.string().min(1, 'First name is required').max(100),
   middleName: z.string().max(100).optional(),
-  surname: z.string().min(1, 'Surname is required').max(100),
+  surname: z.string().max(100).optional(),
   gender: z.enum(['M', 'F', 'Other']).default('M'),
   dateOfBirth: z.string().min(1, 'Date of Birth is required'),
   // Contact
