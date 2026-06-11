@@ -21,7 +21,8 @@ doctorsRouter.get('/', authMiddleware, async (req: Request, res: Response, next:
     const result = await repo.findAll({
       category: 'doctor',
       page: 1,
-      limit: 100,
+      limit: 1000,
+      clinicId,
     });
 
     // Check users table for is_active flag from PUBLIC schema (not tenant)

@@ -12,7 +12,7 @@ import {
   useReferenceDetails,
   useProductDetails
 } from '../hooks/use-analytics';
-import { useReferrals } from '../../settings/hooks/use-settings';
+import { useReferrals, useCallStatuses } from '../../settings/hooks/use-settings';
 import { useSmsTemplates, useSendWhatsApp } from '@/features/communications/hooks/use-communications';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { Pagination } from '@/components/shared/pagination';
@@ -274,6 +274,7 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
 function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: string[], data: unknown[]) => void }) {
   const year = new Date().getFullYear();
   const { data: summary, isLoading } = useMonthWiseDues(year);
+  const { data: callStatuses = [] } = useCallStatuses();
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -283,19 +284,25 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
 
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+  const customStatusNames = callStatuses.map((s: any) => s.name);
   const columns = [
-    'Month', 'Total Dues', 'Informed', 'Cured', 'Left Uncured',
-    'Reg only', 'Discontinued', 'Pickup', 'Courier', 'Reserve Medicine'
+    'Month', 'Total Dues', ...customStatusNames, 'Unassigned'
   ];
   const fields = [
-    'month_name', 'total_due', 'informed', 'cured', 'left_uncured',
-    'reg_only', 'discontinued', 'pickup', 'courier', 'reserve_medicine'
+    'month_name', 'total_due', ...customStatusNames, 'Unassigned'
   ];
 
-  const exportData = (summary ?? []).map(s => ({
-    ...s,
-    month_name: `${monthNames[Number(s.month) - 1]}-${year}`
-  }));
+  const exportData = (summary ?? []).map((s: any) => {
+    const exportedRow: Record<string, any> = {
+      month_name: `${monthNames[Number(s.month) - 1]}-${year}`,
+      total_due: s.total_due,
+    };
+    for (const st of customStatusNames) {
+      exportedRow[st] = s.statuses?.[st] ?? 0;
+    }
+    exportedRow['Unassigned'] = s.statuses?.['Unassigned'] ?? 0;
+    return exportedRow;
+  });
 
   return (
     <div className="plat-card animate-fade-in">
@@ -331,20 +338,20 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
                   <td className="plat-mono-data" style={{ textAlign: 'center', fontWeight: 700, color: 'var(--pp-danger-fg)' }}>
                     {Number(r.total_due ?? 0).toLocaleString('en-IN')}
                   </td>
-                  <td className="plat-mono-data" style={{ textAlign: 'center' }}>{r.informed ?? 0}</td>
-                  <td className="plat-mono-data" style={{ textAlign: 'center' }}>{r.cured ?? 0}</td>
-                  <td className="plat-mono-data" style={{ textAlign: 'center' }}>{r.left_uncured ?? 0}</td>
-                  <td className="plat-mono-data" style={{ textAlign: 'center' }}>{r.reg_only ?? 0}</td>
-                  <td className="plat-mono-data" style={{ textAlign: 'center' }}>{r.discontinued ?? 0}</td>
-                  <td className="plat-mono-data" style={{ textAlign: 'center' }}>{r.pickup ?? 0}</td>
-                  <td className="plat-mono-data" style={{ textAlign: 'center' }}>{r.courier ?? 0}</td>
-                  <td className="plat-mono-data" style={{ textAlign: 'center' }}>{r.reserve_medicine ?? 0}</td>
+                  {customStatusNames.map((st: string, idx: number) => (
+                    <td key={idx} className="plat-mono-data" style={{ textAlign: 'center' }}>
+                      {r.statuses?.[st] ?? 0}
+                    </td>
+                  ))}
+                  <td className="plat-mono-data" style={{ textAlign: 'center' }}>
+                    {r.statuses?.['Unassigned'] ?? 0}
+                  </td>
                 </tr>
               );
             })}
             {(!summary || summary.length === 0) && (
               <tr>
-                <td colSpan={10}>
+                <td colSpan={columns.length}>
                   <EmptyState
                     icon={CreditCard}
                     title="No dues found"

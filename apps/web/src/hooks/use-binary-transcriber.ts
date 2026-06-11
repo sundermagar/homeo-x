@@ -184,6 +184,16 @@ export function useBinaryTranscriber({
 
       const timeSinceLastChunk = Date.now() - lastChunkTimeRef.current;
       if (timeSinceLastChunk > 3000) {
+        if (audioContextRef.current?.state === 'suspended') {
+          console.warn(`[Audio Watchdog] Context is suspended. Waiting for user interaction...`);
+          audioContextRef.current.resume().then(() => {
+            if (audioContextRef.current?.state === 'running') {
+              lastChunkTimeRef.current = Date.now();
+            }
+          }).catch(() => {});
+          return;
+        }
+
         console.warn(`[Audio Watchdog] Mic thread flatlined (${timeSinceLastChunk}ms). Rebuilding...`);
         isRebuilding = true;
 
@@ -234,6 +244,29 @@ export function useBinaryTranscriber({
     }, 1000);
 
     return () => clearInterval(watchdogInterval);
+  }, [isRecording]);
+
+  // Global listener to auto-resume AudioContext after a system interruption (e.g. file dialog)
+  useEffect(() => {
+    if (!isRecording) return;
+    const handleInteraction = () => {
+      if (audioContextRef.current?.state === 'suspended') {
+        console.log('[BinaryTranscriber] User interaction detected, attempting to resume AudioContext...');
+        audioContextRef.current.resume().then(() => {
+          if (audioContextRef.current?.state === 'running') {
+            lastChunkTimeRef.current = Date.now();
+          }
+        }).catch(() => {});
+      }
+    };
+
+    window.addEventListener('click', handleInteraction, { capture: true });
+    window.addEventListener('keydown', handleInteraction, { capture: true });
+
+    return () => {
+      window.removeEventListener('click', handleInteraction, { capture: true });
+      window.removeEventListener('keydown', handleInteraction, { capture: true });
+    };
   }, [isRecording]);
 
   useEffect(() => {

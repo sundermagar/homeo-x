@@ -434,7 +434,7 @@ patientRouter.put('/:regid', authMiddleware, requirePermission('PATIENT_WRITE'),
 });
 
 // DELETE /api/patients/:regid
-patientRouter.delete('/:regid', authMiddleware, requirePermission('DELETE_PATIENTS'), async (req: Request, res: Response) => {
+patientRouter.delete('/:regid', authMiddleware, requirePermission('PATIENT_DELETE'), async (req: Request, res: Response) => {
   try {
     const regid = Number(req.params.regid);
     if (isNaN(regid)) { res.status(400).json({ success: false, message: 'Invalid regid' }); return; }
@@ -481,7 +481,7 @@ patientRouter.post('/:regid/family', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/patients/:regid/family/:id
-patientRouter.delete('/:regid/family/:id', authMiddleware, requirePermission('DELETE_PATIENTS'), async (req: Request, res: Response) => {
+patientRouter.delete('/:regid/family/:id', authMiddleware, requirePermission('PATIENT_DELETE'), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const repo = getRepo(req);
