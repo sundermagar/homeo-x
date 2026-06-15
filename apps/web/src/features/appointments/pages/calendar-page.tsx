@@ -59,8 +59,8 @@ export default function CalendarPage() {
   });
 
   useEffect(() => {
-    apiClient.get('/doctors').then(({ data: d }) => {
-      setDoctors(Array.isArray(d) ? d : []);
+    apiClient.get('/doctors').then(({ data }) => {
+      setDoctors(Array.isArray(data?.data) ? data.data : []);
     }).catch(() => {});
   }, []);
 
@@ -109,10 +109,25 @@ export default function CalendarPage() {
         <div className="appt-card">
           {/* Nav */}
           <div className="appt-card-header">
-            <div className="appt-cal-nav">
-              <button className="appt-btn appt-btn-icon" onClick={prevMonth}><ChevronLeft size={15} strokeWidth={1.6} /></button>
-              <span className="appt-cal-month-label">{MONTHS[month]} {year}</span>
-              <button className="appt-btn appt-btn-icon" onClick={nextMonth}><ChevronRight size={15} strokeWidth={1.6} /></button>
+            <div className="appt-cal-nav" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <button className="appt-btn appt-btn-icon" onClick={prevMonth}><ChevronLeft size={15} strokeWidth={1.6} /></button>
+                <span className="appt-cal-month-label">{MONTHS[month]} {year}</span>
+                <button className="appt-btn appt-btn-icon" onClick={nextMonth}><ChevronRight size={15} strokeWidth={1.6} /></button>
+              </div>
+              {!isDoctor && (
+                <select
+                  className="pp-select"
+                  style={{ width: '180px', height: '32px', fontSize: '13px' }}
+                  value={doctorFilter}
+                  onChange={(e) => setDoctorFilter(e.target.value)}
+                >
+                  <option value="">All Practitioners</option>
+                  {doctors.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <button
               className="appt-btn appt-btn-sm"

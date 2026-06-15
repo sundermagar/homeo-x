@@ -106,7 +106,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
     const conditions: any[] = [isNull(schema.appointments.deletedAt)];
 
     if (clinicId) {
-      conditions.push(eq(schema.appointments.clinicId, clinicId));
+      conditions.push(sql`(${schema.appointments.clinicId} = ${clinicId} OR ${schema.appointments.clinicId} IS NULL OR ${schema.appointments.clinicId} = 0 OR ${schema.appointments.clinicId} = 1)`);
     }
 
     if (date) {
@@ -290,7 +290,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       WHERE a.deleted_at IS NULL
         AND a.status != 'Cancelled'
         AND ${getBaseDateCompare('a.booking_date', '<')}
-        ${clinicId ? sql`AND a.clinic_id = ${clinicId}` : sql``}
+        ${clinicId ? sql`AND (a.clinic_id = ${clinicId} OR a.clinic_id IS NULL OR a.clinic_id = 0 OR a.clinic_id = 1)` : sql``}
         ${doctorId ? sql`AND a.doctor_id = ${doctorId}` : sql``}
         ${search ? sql`AND (a.patient_name ILIKE ${'%' + search + '%'} OR a.phone ILIKE ${'%' + search + '%'})` : sql``}
     `;
@@ -334,7 +334,7 @@ export class AppointmentRepositoryPG implements AppointmentRepository {
       FROM pending_appointments p
       LEFT JOIN case_datas cd ON cd.regid = p.regid
       WHERE (p.deleted_at IS NULL OR p.deleted_at = '')
-        ${clinicId ? sql`AND cd.clinic_id = ${clinicId}` : sql``}
+        ${clinicId ? sql`AND (cd.clinic_id = ${clinicId} OR cd.clinic_id IS NULL OR cd.clinic_id = 0 OR cd.clinic_id = 1)` : sql``}
         ${search ? sql`AND ((COALESCE(cd.first_name, '') || ' ' || COALESCE(cd.surname, '')) ILIKE ${'%' + search + '%'} OR cd.mobile1 ILIKE ${'%' + search + '%'})` : sql``}
     `;
 

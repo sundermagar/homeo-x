@@ -19,6 +19,7 @@ import { useOrganizations } from '@/features/platform/hooks/use-organizations';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Pagination } from '@/components/shared/pagination';
 import { EmptyState } from '@/components/shared/empty-state';
+import { apiClient } from '@/infrastructure/api-client';
 import '../styles/appointments.css';
 
 const STATUS_OPTIONS = ['', ...Object.values(AppointmentStatus)];
@@ -46,6 +47,14 @@ export default function AppointmentListPage() {
   const [toDate, setToDate] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [doctorFilter, setDoctorFilter] = useState('');
+  const [doctors, setDoctors] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    apiClient.get('/doctors').then(({ data }) => {
+      setDoctors(Array.isArray(data?.data) ? data.data : []);
+    }).catch(() => {});
+  }, []);
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerApptId, setDrawerApptId] = useState<number | null>(null);
@@ -96,7 +105,7 @@ export default function AppointmentListPage() {
     status: status || undefined,
     from_date: fromDate || (tab === 'all' ? undefined : today),
     to_date: toDate || (tab === 'all' ? undefined : today),
-    doctor_id: isDoctor ? user?.id : undefined,
+    doctor_id: isDoctor ? user?.id : (doctorFilter ? Number(doctorFilter) : undefined),
     page,
     limit: pageSize,
   });
@@ -247,9 +256,15 @@ export default function AppointmentListPage() {
               <option value="">All Statuses</option>
               {STATUS_OPTIONS.filter(Boolean).map(s => <option key={s} value={s}>{s}</option>)}
             </select>
+            {!isDoctor && (
+              <select className="pp-select" style={{ width: 'auto', minWidth: 150 }} value={doctorFilter} onChange={e => { setDoctorFilter(e.target.value); setPage(1); }}>
+                <option value="">All Practitioners</option>
+                {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            )}
             <input className="pp-input" style={{ width: 'auto' }} type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); if (tab === 'today') setTab('all'); setPage(1); }} title="From Date" />
             <input className="pp-input" style={{ width: 'auto' }} type="date" value={toDate} onChange={e => { setToDate(e.target.value); if (tab === 'today') setTab('all'); setPage(1); }} title="To Date" />
-            <button className="btn-secondary" onClick={() => { setSearch(''); setStatus(''); setFromDate(''); setToDate(''); setTab('today'); setPage(1); }}>
+            <button className="btn-secondary" onClick={() => { setSearch(''); setStatus(''); setDoctorFilter(''); setFromDate(''); setToDate(''); setTab('today'); setPage(1); }}>
               <Filter size={13} strokeWidth={1.6} /> Clear
             </button>
           </div>

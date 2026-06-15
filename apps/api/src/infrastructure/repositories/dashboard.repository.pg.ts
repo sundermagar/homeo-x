@@ -41,8 +41,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const rows = await this.db.execute(sql`
         SELECT d.id
         FROM users u
-        JOIN doctors d ON LOWER(d.email) = LOWER(u.email)
-        WHERE u.id = ${userId} AND u.email IS NOT NULL AND u.email <> ''
+        JOIN doctors d ON (
+          (u.email IS NOT NULL AND u.email <> '' AND LOWER(d.email) = LOWER(u.email))
+          OR
+          (LOWER(REPLACE(TRIM(d.name), 'dr. ', '')) = LOWER(REPLACE(TRIM(u.name), 'dr. ', '')))
+        )
+        WHERE u.id = ${userId}
           AND (u.deleted_at IS NULL OR u.deleted_at::text = '')
           AND (d.deleted_at IS NULL OR d.deleted_at::text = '')
         LIMIT 1
