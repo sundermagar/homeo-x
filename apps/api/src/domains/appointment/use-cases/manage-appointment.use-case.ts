@@ -3,11 +3,13 @@ import { AppointmentStatus, type UpdateAppointmentDto } from '@mmc/types';
 import { type Result, ok, fail } from '../../../shared/result.js';
 import type { NotificationsRepository } from '../../communication/ports/notifications.repository.js';
 import { triggerNotification } from '../../../infrastructure/http/notification-trigger.js';
+import type { BillingRepository } from '../../billing/ports/billing.repository.js';
 
 export class ManageAppointmentUseCase {
   constructor(
     private readonly repo: AppointmentRepository,
     private readonly notifRepo?: NotificationsRepository,
+    private readonly billingRepo?: BillingRepository,
   ) {}
 
   private async notifyDoctor(doctorId: number, clinicId: number | undefined, type: 'APPOINTMENT_REMINDER' | 'APPOINTMENT_CANCELLED' | 'VISIT_COMPLETED', title: string, message: string): Promise<void> {
@@ -84,6 +86,15 @@ export class ManageAppointmentUseCase {
           status === AppointmentStatus.Absent ? 'Patient Marked Absent' : 'Appointment Cancelled',
           `${appt.patientName || 'Patient'}'s appointment on ${appt.bookingDate}${time} is ${status.toLowerCase()}.${reasonSuffix}`,
         );
+      }
+      
+      if (this.billingRepo && appt.bookingDate) {
+        const regid = appt.patientId || (appt as any).regid; // some records might use regid
+        if (regid) {
+          await this.billingRepo.deleteUnpaidConsultationBill(regid, appt.bookingDate).catch(e => {
+            console.error(`Failed to delete unpaid consultation bill for regid ${regid}:`, e);
+          });
+        }
       }
     } else if (status === AppointmentStatus.Completed || status === AppointmentStatus.Done) {
       if (appt.doctorId) {

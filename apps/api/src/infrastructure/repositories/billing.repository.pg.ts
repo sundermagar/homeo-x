@@ -316,6 +316,25 @@ export class BillingRepositoryPg implements BillingRepository {
     return false;
   }
 
+  async deleteUnpaidConsultationBill(regid: number, date: string): Promise<boolean> {
+    const [existing] = await this.db.select().from(bills)
+      .where(
+        and(
+          eq(bills.regid, regid),
+          eq(bills.billDate, date),
+          eq(bills.billType, 'Consultation'),
+          eq(bills.received, 0),
+          isNull(bills.deletedAt)
+        )
+      ).limit(1);
+
+    if (existing) {
+      await this.db.update(bills).set({ deletedAt: new Date() }).where(eq(bills.id, existing.id));
+      return true;
+    }
+    return false;
+  }
+
   async nextBillNo(): Promise<number> {
     try {
       // Atomic sequence — safe under concurrent bill creation
