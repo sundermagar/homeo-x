@@ -103,7 +103,7 @@ export function ClinicAdminDashboard() {
   };
 
   // Doctor load calculations
-  const doctors = staffOnDuty.filter(s => s.role === 'Doctor' || s.role?.toLowerCase().includes('doc'));
+  const doctors = staffOnDuty.filter(s => s.role === 'Doctor' || s.role?.toLowerCase().includes('doc') || s.name.toLowerCase().startsWith('dr'));
   const maxDocVisits = Math.max(...doctors.map(d => d.count || 0), 1);
 
   // Approvals - No backend data currently exists for this, so we show an empty real state
