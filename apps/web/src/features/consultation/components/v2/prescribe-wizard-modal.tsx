@@ -203,6 +203,36 @@ export function PrescribeWizardModal({
             <h2 className="text-lg font-bold tracking-tight text-[#0F0F0E]">Review prescription</h2>
             <p className="text-[13px] text-[#4A4A47] mt-1 mb-4">Verify the details before prescribing. You can still go back and edit.</p>
 
+            {/* ── Active Package Indicator ── */}
+            <div className={cn(
+              "border rounded-md p-3 mb-4 flex items-center justify-between",
+              hasActivePackage ? "bg-[#ECFDF5] border-[#10B981]" : "bg-[#F3F4F6] border-[#E5E7EB]"
+            )}>
+              <div className="flex items-center gap-2.5">
+                <div className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-full",
+                  hasActivePackage ? "bg-[#D1FAE5] text-[#10B981]" : "bg-[#E5E7EB] text-[#6B7280]"
+                )}>
+                  <Package className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className={cn("text-[13px] font-semibold", hasActivePackage ? "text-[#065F46]" : "text-[#374151]")}>
+                    {hasActivePackage ? activePackage.packageName : "No Active Package"}
+                  </div>
+                  {hasActivePackage && activePackage.expiryDate && (
+                    <div className="text-[11px] font-medium text-[#047857] mt-0.5">
+                      Expires: {new Date(activePackage.expiryDate).toLocaleDateString('en-GB')}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {hasActivePackage && (
+                <div className="bg-[#10B981] text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
+                  Active
+                </div>
+              )}
+            </div>
+
             {/* ── Service / Delivery Mode ── */}
             <div className="border border-[#E3E2DF] rounded-md p-3.5 mb-4">
               <div className="text-[11px] font-semibold uppercase tracking-wide text-[#888786] mb-3">Service / Dispatch</div>

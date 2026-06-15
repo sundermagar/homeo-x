@@ -424,9 +424,9 @@ export function DoctorDashboard() {
             <div className="dd-timeline-meta">ASSIGNED TO YOU</div>
           </div>
           <div>
-            {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation' || a.status === 'Absent')).length > 0 ? (
+            {todayAppts.filter(a => (a.status === 'Waitlist' || a.status === 'Consultation' || a.status === 'Absent')).length > 0 ? (
               <div style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 4 }} className="db-scroll">
-                {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation' || a.status === 'Absent')).map(a => {
+                {todayAppts.filter(a => (a.status === 'Waitlist' || a.status === 'Consultation' || a.status === 'Absent')).map(a => {
                   const initials = (a.patientName || '').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
                   return (
                     <div key={a.id} className={`dd-list-item ${a.status === 'Absent' ? 'opacity-50' : ''}`}>

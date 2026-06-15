@@ -100,7 +100,20 @@ export function ReceptionistDashboard() {
       return data.data || [];
     }
   });
-  const pendingDispatch = dispatchQueue.filter((e: any) => e.isAssign === 0);
+  const pendingDispatch = Object.values(dispatchQueue.filter((e: any) => e.isAssign === 0).reduce((acc: any, item: any) => {
+    const key = item.randId || item.rand_id || item.id;
+    if (!acc[key]) {
+      acc[key] = {
+        ...item,
+        remediesList: [{ remedy: item.remedy, potency: item.potency, days: item.days, frequency: item.frequency }]
+      };
+    } else {
+      if (item.remedy) {
+        acc[key].remediesList.push({ remedy: item.remedy, potency: item.potency, days: item.days, frequency: item.frequency });
+      }
+    }
+    return acc;
+  }, {}));
 
   const [vitalsTarget, setVitalsTarget] = useState<{ regid: number; visitId: number } | null>(null);
   // Report upload modal state
@@ -1032,7 +1045,19 @@ export function ReceptionistDashboard() {
                     <div style={{ fontSize: '12px', color: 'var(--pp-text-3)', fontWeight: 600 }}>Case #{assignModal.caseId}</div>
                   </div>
                 </div>
-                {assignModal.remedy && (
+                {assignModal.remediesList && assignModal.remediesList.length > 0 ? (
+                  <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--pp-warm-2)' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Prescribed Remedies ({assignModal.remediesList.length})</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {assignModal.remediesList.map((r: any, idx: number) => (
+                        <div key={idx} style={{ fontSize: '13px', fontWeight: 600, color: 'var(--pp-ink)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--pp-blue)' }}></span>
+                          {r.remedy} {r.potency} — {r.days} days
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : assignModal.remedy && (
                   <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--pp-warm-2)' }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Prescribed Remedy</div>
                     <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--pp-ink)' }}>{assignModal.remedy} {assignModal.potency} — {assignModal.days} days</div>

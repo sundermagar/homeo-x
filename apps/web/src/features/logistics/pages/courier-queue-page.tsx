@@ -33,6 +33,7 @@ interface CourierEntry {
   createdAt: string | null;
   patientName?: string;
   phone?: string;
+  remediesList?: { remedy: string | null; potency: string | null; days: string | null }[];
 }
 
 export function CourierQueuePage() {
@@ -82,6 +83,22 @@ export function CourierQueuePage() {
       return data.data as CourierEntry[];
     }
   });
+
+  const groupedQueue = React.useMemo(() => {
+    const map = new Map<string, CourierEntry>();
+    queue.forEach(entry => {
+      if (!map.has(entry.randId)) {
+        map.set(entry.randId, {
+          ...entry,
+          remediesList: [{ remedy: entry.remedy, potency: entry.potency, days: entry.days }]
+        });
+      } else {
+        const existing = map.get(entry.randId)!;
+        existing.remediesList!.push({ remedy: entry.remedy, potency: entry.potency, days: entry.days });
+      }
+    });
+    return Array.from(map.values());
+  }, [queue]);
 
   // Mark all as read on mount
   useEffect(() => {
@@ -186,18 +203,18 @@ export function CourierQueuePage() {
     );
   };
 
-  const filteredQueue = queue.filter(e => {
+  const filteredQueue = groupedQueue.filter(e => {
     if (!searchTerm) return true;
     const s = searchTerm.toLowerCase();
     return (
       e.patientName?.toLowerCase().includes(s) ||
       String(e.caseId).includes(s) ||
-      e.remedy?.toLowerCase().includes(s)
+      e.remediesList?.some(r => r.remedy?.toLowerCase().includes(s))
     );
   });
 
-  const pendingCount = queue.filter(e => e.isAssign === 0).length;
-  const assignedCount = queue.filter(e => e.isAssign === 1).length;
+  const pendingCount = groupedQueue.filter(e => e.isAssign === 0).length;
+  const assignedCount = groupedQueue.filter(e => e.isAssign === 1).length;
 
   return (
     <div className="pp-page-container animate-fade-in">
@@ -296,10 +313,14 @@ export function CourierQueuePage() {
                           </div>
                         </td>
                         <td data-label="Remedy">
-                          <div className="flex flex-wrap gap-1.5">
-                            {entry.remedy && <span className="appt-badge appt-badge-done">{entry.remedy}</span>}
-                            {entry.potency && <span className="appt-badge appt-badge-done" style={{ opacity: 0.8 }}>{entry.potency}</span>}
-                            {entry.days && <span className="appt-badge appt-badge-absent">{entry.days}d</span>}
+                          <div className="flex flex-wrap gap-2" style={{ maxWidth: '450px' }}>
+                            {entry.remediesList?.map((rem, idx) => (
+                              <div key={idx} className="flex items-center gap-1.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md px-1.5 py-1 shadow-sm">
+                                {rem.remedy && <span className="text-[11px] font-bold text-[#111827]">{rem.remedy}</span>}
+                                {rem.potency && <span className="text-[10px] font-semibold text-[#6B7280]">{rem.potency}</span>}
+                                {rem.days && <span className="text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-1.5 py-0.5 rounded">{rem.days}d</span>}
+                              </div>
+                            ))}
                           </div>
                         </td>
                         <td data-label="Type">
@@ -421,10 +442,16 @@ export function CourierQueuePage() {
                     <div style={{ fontSize: '12px', color: 'var(--pp-text-3)', fontWeight: 600 }}>Case #{assignModal.caseId}</div>
                   </div>
                 </div>
-                {assignModal.remedy && (
+                {assignModal.remediesList && assignModal.remediesList.length > 0 && (
                   <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--pp-warm-2)' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Prescribed Remedy</div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--pp-ink)' }}>{assignModal.remedy} {assignModal.potency} — {assignModal.days} days</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--pp-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Prescribed Remedies</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {assignModal.remediesList.map((rem, i) => (
+                        <div key={i} style={{ fontSize: '13px', fontWeight: 600, color: 'var(--pp-ink)' }}>
+                          • {rem.remedy} {rem.potency} — {rem.days} days
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
