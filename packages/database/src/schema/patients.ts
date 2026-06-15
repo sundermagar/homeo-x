@@ -55,6 +55,12 @@ export const patients = pgTable('case_datas', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
+}, (table) => {
+  return {
+    phoneIdx: index('idx_case_datas_phone').on(table.phone),
+    firstNameIdx: index('idx_case_datas_fname').on(table.firstName),
+    deletedIdx: index('idx_case_datas_deleted').on(table.deletedAt),
+  };
 });
 
 export const unregisteredPatients = pgTable('unregistered_patients', {

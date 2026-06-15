@@ -132,54 +132,17 @@ export function createAccountsRouter(): Router {
     asyncHandler(async (req: Request, res: Response) => {
       const db = req.tenantDb;
       const { bills } = await import('@mmc/database');
-      const { eq, and, desc, isNull, inArray } = await import('drizzle-orm');
+      const { eq, and, isNull, inArray } = await import('drizzle-orm');
 
       const allRegBills = await db.select()
         .from(bills)
-        .where(and(eq(bills.billType, 'Registration'), isNull(bills.deletedAt)))
-        .orderBy(desc(bills.id));
-
-      const dupGroups: Record<string, any[]> = {};
-      for (const b of allRegBills) {
-        if (b.id < 50) continue; // Skip old bills just in case
-        const dateStr = (b.billDate as any) instanceof Date ? (b.billDate as any).toISOString().split('T')[0] : b.billDate;
-        const key = `${b.regid}-${dateStr}`;
-        if (!dupGroups[key]) dupGroups[key] = [];
-        dupGroups[key].push(b);
-      }
+        .where(and(eq(bills.billType, 'Registration'), isNull(bills.deletedAt)));
 
       let deletedCount = 0;
-      for (const [key, bList] of Object.entries(dupGroups)) {
-        if (bList.length > 1) {
-          bList.sort((a, b) => b.charges - a.charges || b.id - a.id);
-          const deleteIds = bList.slice(1).map(b => b.id);
-          await db.update(bills).set({ deletedAt: new Date() }).where(inArray(bills.id, deleteIds));
-          deletedCount += deleteIds.length;
-        }
-      }
-
-      // Do the same for Medicine Days
-      const allMedBills = await db.select()
-        .from(bills)
-        .where(and(eq(bills.billType, 'Consultation'), isNull(bills.deletedAt)))
-        .orderBy(desc(bills.id));
-
-      const medGroups: Record<string, any[]> = {};
-      for (const b of allMedBills) {
-        if (b.id < 50) continue;
-        const dateStr = (b.billDate as any) instanceof Date ? (b.billDate as any).toISOString().split('T')[0] : b.billDate;
-        const key = `${b.regid}-${dateStr}`;
-        if (!medGroups[key]) medGroups[key] = [];
-        medGroups[key].push(b);
-      }
-
-      for (const [key, bList] of Object.entries(medGroups)) {
-        if (bList.length > 1) {
-          bList.sort((a, b) => b.charges - a.charges || b.id - a.id);
-          const deleteIds = bList.slice(1).map(b => b.id);
-          await db.update(bills).set({ deletedAt: new Date() }).where(inArray(bills.id, deleteIds));
-          deletedCount += deleteIds.length;
-        }
+      if (allRegBills.length > 0) {
+        const deleteIds = allRegBills.map(b => b.id);
+        await db.update(bills).set({ deletedAt: new Date() }).where(inArray(bills.id, deleteIds));
+        deletedCount += deleteIds.length;
       }
 
       res.json({ success: true, deletedCount });
@@ -211,7 +174,7 @@ export function createAccountsRouter(): Router {
         }
       };
 
-      // 1. Sync Registration Bill
+      // 1. Sync Consultation Bill (Formerly Registration)
       if (regular !== undefined && regular >= 0) {
         try {
           const [existingReg] = await db
@@ -221,7 +184,8 @@ export function createAccountsRouter(): Router {
               and(
                 eq(bills.regid, regid),
                 eq(bills.billDate, dateval),
-                eq(bills.billType, 'Registration'),
+                eq(bills.billType, 'Consultation'),
+                isNull(bills.customTitle),
                 isNull(bills.deletedAt)
               )
             )
@@ -235,7 +199,7 @@ export function createAccountsRouter(): Router {
               .where(eq(bills.id, existingReg.id));
           } else {
             const billNo = await getNextBillNo();
-            console.log('[pending-bills] Creating Registration bill:', { regid, billNo, dateval, regular });
+            console.log('[pending-bills] Creating Consultation bill:', { regid, billNo, dateval, regular });
             await db.insert(bills).values({
               regid,
               billNo,
@@ -244,14 +208,14 @@ export function createAccountsRouter(): Router {
               received: 0,
               balance: regular,
               paymentMode: 'Cash',
-              billType: 'Registration',
-              customTitle: 'Registration Fee',
+              billType: 'Consultation',
+              customTitle: null,
               createdAt: new Date(),
               updatedAt: new Date(),
             });
-            console.log('[pending-bills] Registration bill created successfully');
+            console.log('[pending-bills] Consultation bill created successfully');
           }
-        } catch(e) { console.error('Failed to sync registration bill', e); }
+        } catch(e) { console.error('Failed to sync consultation bill', e); }
       }
 
       // 2. Sync Consultation Bill (Medicine Days)

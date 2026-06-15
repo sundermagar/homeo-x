@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, varchar, timestamp, text, boolean, real, jsonb, decimal } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, varchar, timestamp, text, boolean, real, jsonb, decimal, index } from 'drizzle-orm/pg-core';
 
 export const growthReferences = pgTable('growth_references', {
   id: serial('id').primaryKey(),
@@ -20,6 +20,12 @@ export const medicalCases = pgTable('medicalcases', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
+}, (table) => {
+  return {
+    regidIdx: index('idx_mc_regid').on(table.regid),
+    statusIdx: index('idx_mc_status').on(table.status),
+    deletedIdx: index('idx_mc_deleted').on(table.deletedAt),
+  };
 });
 
 export const vitals = pgTable('vitals', {
@@ -40,6 +46,11 @@ export const vitals = pgTable('vitals', {
   recordedAt: timestamp('recorded_at').defaultNow(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => {
+  return {
+    regidIdx: index('idx_vitals_regid').on(table.regid),
+    visitIdx: index('idx_vitals_visit').on(table.visitId),
+  };
 });
 
 export const soapNotes = pgTable('soap_notes', {
@@ -60,6 +71,11 @@ export const soapNotes = pgTable('soap_notes', {
   specialtyData: jsonb('specialty_data'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => {
+  return {
+    regidIdx: index('idx_soap_regid').on(table.regid),
+    visitIdx: index('idx_soap_visit').on(table.visitId),
+  };
 });
 
 export const homeoDetails = pgTable('homeo_details', {
@@ -117,6 +133,12 @@ export const investigations = pgTable('investigations', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
+}, (table) => {
+  return {
+    regidIdx: index('idx_inv_regid').on(table.regid),
+    visitIdx: index('idx_inv_visit').on(table.visitId),
+    deletedIdx: index('idx_inv_deleted').on(table.deletedAt),
+  };
 });
 
 export const prescriptions = pgTable('case_potencies', {
@@ -143,6 +165,13 @@ export const prescriptions = pgTable('case_potencies', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
+}, (table) => {
+  return {
+    regidIdx: index('idx_rx_regid').on(table.regid),
+    visitIdx: index('idx_rx_visit').on(table.visitId),
+    datevalIdx: index('idx_rx_dateval').on(table.dateval),
+    deletedIdx: index('idx_rx_deleted').on(table.deletedAt),
+  };
 });
 
 // ─── AI Remedy Chart Session ─────────────────────────────────────────────────

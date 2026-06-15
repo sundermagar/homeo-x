@@ -46,6 +46,46 @@ function fmt(n: number): string {
   return `₹${n}`;
 }
 
+const QueueTimelineList = memo(function QueueTimelineList({ todayAppts, onStartConsultation }: { todayAppts: QueueItem[], onStartConsultation: (a: QueueItem) => void }) {
+  return (
+    <div className="dd-timeline-list db-scroll">
+      {todayAppts.length > 0 ? (
+        todayAppts.map((a, idx) => {
+          let dotClass = '';
+          let statusText = '';
+          if (a.status === 'Completed') { dotClass = 'seen'; statusText = 'Seen'; }
+          else if (a.status === 'Waitlist' || a.status === 'Consultation') { dotClass = 'ready'; statusText = 'Ready'; }
+          else if (a.status === 'Absent') { dotClass = 'absent'; statusText = 'Absent'; }
+          else if (a.status === 'Cancelled') { dotClass = 'cancelled'; statusText = 'Cancelled'; }
+          else { dotClass = 'booked'; statusText = `${a.bookingTime || 'Scheduled'} · booked`; }
+
+          const isBold = a.status === 'Waitlist' || a.status === 'Consultation';
+
+          return (
+            <div 
+              key={`${a.id}-${idx}`} 
+              className="dd-timeline-item"
+              style={{ cursor: 'pointer' }}
+              onClick={() => onStartConsultation(a)}
+            >
+              <div className="dd-timeline-time">{a.bookingTime || '—'}</div>
+              <div className={`dd-timeline-dot ${dotClass}`} />
+              <div className="dd-timeline-content">
+                <div className={`dd-timeline-name ${isBold ? 'bold' : ''}`}>{a.patientName}</div>
+                <div className="dd-timeline-status">{statusText}</div>
+              </div>
+            </div>
+          );
+        })
+      ) : (
+        <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: 13 }}>
+          No appointments today
+        </div>
+      )}
+    </div>
+  );
+});
+
 export function DoctorDashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -331,44 +371,10 @@ export function DoctorDashboard() {
           <div className="dd-timeline-header">
             <div className="dd-timeline-title">Today</div>
             <div className="dd-timeline-meta">
-              {todayAppts.length} · {todayAppts.filter(a => a.status === 'Waitlist').length} LEFT
+              {todayAppts.length} · {todayAppts.filter((a: any) => a.status === 'Waitlist').length} LEFT
             </div>
           </div>
-          <div className="dd-timeline-list db-scroll">
-            {todayAppts.length > 0 ? (
-              todayAppts.map((a, idx) => {
-                let dotClass = '';
-                let statusText = '';
-                if (a.status === 'Completed') { dotClass = 'seen'; statusText = 'Seen'; }
-                else if (a.status === 'Waitlist' || a.status === 'Consultation') { dotClass = 'ready'; statusText = 'Ready'; }
-                else if (a.status === 'Absent') { dotClass = 'absent'; statusText = 'Absent'; }
-                else if (a.status === 'Cancelled') { dotClass = 'cancelled'; statusText = 'Cancelled'; }
-                else { dotClass = 'booked'; statusText = `${a.bookingTime || 'Scheduled'} · booked`; }
-
-                const isBold = a.status === 'Waitlist' || a.status === 'Consultation';
-
-                return (
-                  <div 
-                    key={`${a.id}-${idx}`} 
-                    className="dd-timeline-item"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleStartConsultation(a)}
-                  >
-                    <div className="dd-timeline-time">{a.bookingTime || '—'}</div>
-                    <div className={`dd-timeline-dot ${dotClass}`} />
-                    <div className="dd-timeline-content">
-                      <div className={`dd-timeline-name ${isBold ? 'bold' : ''}`}>{a.patientName}</div>
-                      <div className="dd-timeline-status">{statusText}</div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: 13 }}>
-                No appointments today
-              </div>
-            )}
-          </div>
+          <QueueTimelineList todayAppts={todayAppts} onStartConsultation={handleStartConsultation} />
         </div>
       </div>
 

@@ -479,7 +479,11 @@ export function createBillingRouter(): Router {
       const days = Math.min(parseInt(req.query.days as string, 10) || 32, 60);
 
       try {
-        const rows = [];
+        const legacyDates: string[] = [];
+        const legacyDatesDMY: string[] = [];
+        const isoDates: string[] = [];
+        const daysArr = [];
+
         for (let i = 0; i < days; i++) {
           const d = new Date(endDate + 'T00:00:00');
           d.setDate(d.getDate() - i);
@@ -487,60 +491,115 @@ export function createBillingRouter(): Router {
           const legacyDateDMY = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
           const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-          const [
-            receipts,
-            expRes,
-            cdRes,
-            bdRes,
-            cumCash,
-            cumBank,
-            prodRes,
-            cntRes
-          ] = await Promise.all([
-            db.execute(
-              sql`SELECT mode, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total
-                  FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL
-                  GROUP BY mode`
-            ),
-            db.execute(
-              sql`SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE dateval = ${legacyDate} AND deleted_at IS NULL`
-            ),
-            db.execute(
-              sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit WHERE deposit_date = ${legacyDateDMY} AND deleted_at IS NULL`
-            ),
-            db.execute(
-              sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit WHERE deposit_date = ${legacyDateDMY} AND deleted_at IS NULL`
-            ),
-            db.execute(
-              sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit WHERE deleted_at IS NULL AND dateval <= ${isoDate} AND dateval >= '2021-01-01'`
-            ),
-            db.execute(
-              sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit WHERE deleted_at IS NULL AND dateval <= ${isoDate} AND dateval >= '2021-01-01'`
-            ),
-            db.execute(
-              sql`SELECT COALESCE(SUM(ac.additional_price * ac.additional_quantity), 0) as total
-                  FROM additional_charges ac
-                  LEFT JOIN charges c ON c.id::text = ac.additional_name OR c.charges = ac.additional_name
-                  WHERE (ac.dateval = ${legacyDate} OR ac.dateval = ${isoDate}) AND ac.deleted_at IS NULL AND c.type = 'Product'`
-            ),
-            db.execute(
-              sql`SELECT COUNT(*) as cnt FROM receipt WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL`
-            )
-          ]);
+          daysArr.push({ legacyDate, legacyDateDMY, isoDate });
+          legacyDates.push(`'${legacyDate}'`);
+          legacyDatesDMY.push(`'${legacyDateDMY}'`);
+          isoDates.push(`'${isoDate}'`);
+        }
 
-          const mm: Record<string, number> = {};
-          for (const r of receipts as any[]) mm[r.mode] = Number(r.total) || 0;
-          const cash = mm['C'] || 0;
-          const card = mm['S'] || 0;
-          const cheque = mm['B'] || 0;
-          const online = mm['O'] || 0;
-          const upi = mm['U'] || 0;
+        const legacyIn = sql.raw(legacyDates.join(','));
+        const legacyDmyIn = sql.raw(legacyDatesDMY.join(','));
+        const isoIn = sql.raw(isoDates.join(','));
 
-          const expenses = Number((expRes as any[])[0]?.total) || 0;
-          const cashDeposited = Number((cdRes as any[])[0]?.total) || 0;
-          const bankDeposit = Number((bdRes as any[])[0]?.total) || 0;
-          const cashInHand = (Number((cumCash as any[])[0]?.total) || 0) - (Number((cumBank as any[])[0]?.total) || 0);
-          const productCharges = Number((prodRes as any[])[0]?.total) || 0;
+        const [
+          receiptsRes,
+          expRes,
+          cdRes,
+          bdRes,
+          allCumCashRes,
+          allCumBankRes,
+          prodRes,
+          cntRes
+        ] = await Promise.all([
+          db.execute(
+            sql`SELECT receiptdate, mode, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total
+                FROM receipt WHERE receiptdate IN (${legacyIn}) AND deleted_at IS NULL
+                GROUP BY receiptdate, mode`
+          ),
+          db.execute(
+            sql`SELECT dateval, COALESCE(SUM(amount), 0) as total FROM expenses WHERE dateval IN (${legacyIn}) AND deleted_at IS NULL GROUP BY dateval`
+          ),
+          db.execute(
+            sql`SELECT deposit_date, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit WHERE deposit_date IN (${legacyDmyIn}) AND deleted_at IS NULL GROUP BY deposit_date`
+          ),
+          db.execute(
+            sql`SELECT deposit_date, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit WHERE deposit_date IN (${legacyDmyIn}) AND deleted_at IS NULL GROUP BY deposit_date`
+          ),
+          db.execute(
+            sql`SELECT dateval, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM cash_deposit WHERE deleted_at IS NULL AND dateval <= ${endDate} AND dateval >= '2021-01-01' GROUP BY dateval`
+          ),
+          db.execute(
+            sql`SELECT dateval, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM bank_deposit WHERE deleted_at IS NULL AND dateval <= ${endDate} AND dateval >= '2021-01-01' GROUP BY dateval`
+          ),
+          db.execute(
+            sql`SELECT ac.dateval, COALESCE(SUM(ac.additional_price * ac.additional_quantity), 0) as total
+                FROM additional_charges ac
+                LEFT JOIN charges c ON c.id::text = ac.additional_name OR c.charges = ac.additional_name
+                WHERE (ac.dateval IN (${legacyIn}) OR ac.dateval IN (${isoIn})) AND ac.deleted_at IS NULL AND c.type = 'Product'
+                GROUP BY ac.dateval`
+          ),
+          db.execute(
+            sql`SELECT receiptdate, COUNT(*) as cnt FROM receipt WHERE receiptdate IN (${legacyIn}) AND deleted_at IS NULL GROUP BY receiptdate`
+          )
+        ]);
+
+        // Build lookup maps
+        const receiptsMap: Record<string, Record<string, number>> = {};
+        for (const r of receiptsRes as any[]) {
+          if (!receiptsMap[r.receiptdate]) receiptsMap[r.receiptdate] = {};
+          receiptsMap[r.receiptdate]![r.mode] = Number(r.total) || 0;
+        }
+
+        const expMap: Record<string, number> = {};
+        for (const r of expRes as any[]) expMap[r.dateval] = Number(r.total) || 0;
+
+        const cdMap: Record<string, number> = {};
+        for (const r of cdRes as any[]) cdMap[r.deposit_date] = Number(r.total) || 0;
+
+        const bdMap: Record<string, number> = {};
+        for (const r of bdRes as any[]) bdMap[r.deposit_date] = Number(r.total) || 0;
+
+        const prodMap: Record<string, number> = {};
+        for (const r of prodRes as any[]) prodMap[r.dateval] = Number(r.total) || 0;
+
+        const cntMap: Record<string, number> = {};
+        for (const r of cntRes as any[]) cntMap[r.receiptdate] = Number(r.cnt) || 0;
+
+        // Compute initial cumulative totals up to endDate
+        let runningCumCash = 0;
+        const allCashMap: Record<string, number> = {};
+        for (const r of allCumCashRes as any[]) {
+          const val = Number(r.total) || 0;
+          runningCumCash += val;
+          allCashMap[r.dateval] = val;
+        }
+
+        let runningCumBank = 0;
+        const allBankMap: Record<string, number> = {};
+        for (const r of allCumBankRes as any[]) {
+          const val = Number(r.total) || 0;
+          runningCumBank += val;
+          allBankMap[r.dateval] = val;
+        }
+
+        const rows = [];
+        for (let i = 0; i < days; i++) {
+          const { legacyDate, legacyDateDMY, isoDate } = daysArr[i]!;
+
+          const modes = receiptsMap[legacyDate] || {};
+          const cash = modes['C'] || 0;
+          const card = modes['S'] || 0;
+          const cheque = modes['B'] || 0;
+          const online = modes['O'] || 0;
+          const upi = modes['U'] || 0;
+
+          const expenses = expMap[legacyDate] || 0;
+          const cashDeposited = cdMap[legacyDateDMY] || 0;
+          const bankDeposit = bdMap[legacyDateDMY] || 0;
+          const productCharges = (prodMap[legacyDate] || 0) + (prodMap[isoDate] || 0);
+          const recordCount = cntMap[legacyDate] || 0;
+
+          const cashInHand = runningCumCash - runningCumBank;
 
           rows.push({
             date: legacyDateDMY,
@@ -556,8 +615,12 @@ export function createBillingRouter(): Router {
             deficit: cash - expenses - cashDeposited,
             bankDeposit,
             cashInHand,
-            recordCount: Number((cntRes as any[])[0]?.cnt) || 0,
+            recordCount,
           });
+
+          // Subtract today's deposit for the *next* iteration (yesterday)
+          runningCumCash -= (allCashMap[isoDate] || 0);
+          runningCumBank -= (allBankMap[isoDate] || 0);
         }
 
         res.json({ success: true, data: rows });
@@ -593,21 +656,40 @@ export function createBillingRouter(): Router {
 
         // Count working days (exclude Sundays)
         let workingDays = 0;
+        const legacyDates = [];
+        const daysArr = [];
+
         for (let i = 0; i < daysInMonth; i++) {
           const d = new Date(year, month - 1, i + 1);
-          if (d.getDay() !== 0) workingDays++;
+          const isSunday = d.getDay() === 0;
+          if (!isSunday) workingDays++;
+
+          const legacyDate = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+          const dateDMY = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+
+          daysArr.push({ legacyDate, dateDMY, isSunday });
+          legacyDates.push(`'${legacyDate}'`);
         }
+        
         const dailyTarget = workingDays > 0 ? Math.round(monthlyTarget / workingDays) : 0;
+        const legacyIn = sql.raw(legacyDates.join(','));
+
+        // Single batched query
+        const recRes: any[] = await db.execute(
+          sql`SELECT receiptdate, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM receipt
+              WHERE receiptdate IN (${legacyIn}) AND deleted_at IS NULL
+              GROUP BY receiptdate`
+        );
+
+        const recMap: Record<string, number> = {};
+        for (const r of recRes) recMap[r.receiptdate] = Number(r.total) || 0;
 
         const rows = [];
         let cumulativeCollection = 0;
         let cumulativeTarget = 0;
 
         for (let i = 0; i < daysInMonth; i++) {
-          const d = new Date(year, month - 1, i + 1);
-          const isSunday = d.getDay() === 0;
-          const legacyDate = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
-          const dateDMY = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+          const { legacyDate, dateDMY, isSunday } = daysArr[i]!;
 
           if (isSunday) {
             rows.push({
@@ -623,13 +705,7 @@ export function createBillingRouter(): Router {
             continue;
           }
 
-          // Get receipts sum minus product charges
-          const recRes: any[] = await db.execute(
-            sql`SELECT COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total FROM receipt
-                WHERE receiptdate = ${legacyDate} AND deleted_at IS NULL`
-          );
-          const dayCollection = Number(recRes[0]?.total) || 0;
-
+          const dayCollection = recMap[legacyDate] || 0;
           cumulativeCollection += dayCollection;
           cumulativeTarget += dailyTarget;
 

@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, integer, real, timestamp, text, date } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, integer, real, timestamp, text, date, index } from 'drizzle-orm/pg-core';
 import { patients } from './patients.js';
 import { procedureCodes } from './clinical-codes.js';
 
@@ -24,6 +24,12 @@ export const bills = pgTable('bills', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
+}, (table) => {
+  return {
+    regidIdx: index('idx_bills_regid').on(table.regid),
+    billDateIdx: index('idx_bills_billdate').on(table.billDate),
+    deletedIdx: index('idx_bills_deleted').on(table.deletedAt),
+  };
 });
 
 export const payments = pgTable('payments', {
@@ -41,6 +47,12 @@ export const payments = pgTable('payments', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
+}, (table) => {
+  return {
+    regidIdx: index('idx_payments_regid').on(table.regid),
+    billIdx: index('idx_payments_bill_id').on(table.billId),
+    deletedIdx: index('idx_payments_deleted').on(table.deletedAt),
+  };
 });
 
 export const charges = pgTable('charges', {
@@ -66,4 +78,9 @@ export const additionalCharges = pgTable('additional_charges', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
+}, (table) => {
+  return {
+    datevalIdx: index('idx_add_charges_dateval').on(table.dateval),
+    deletedIdx: index('idx_add_charges_deleted').on(table.deletedAt),
+  };
 });

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp, date, real } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, boolean, timestamp, date, real, index } from 'drizzle-orm/pg-core';
 import type { Role } from '@mmc/types';
 
 /**
@@ -66,6 +66,13 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
+}, (table) => {
+  return {
+    typeIdx: index('idx_users_type').on(table.type),
+    isActiveIdx: index('idx_users_isactive').on(table.isActive),
+    contextIdx: index('idx_users_context').on(table.contextId),
+    deletedIdx: index('idx_users_deleted').on(table.deletedAt),
+  };
 });
 
 // Cache invalidation comment to ensure TS emits the updated types.
