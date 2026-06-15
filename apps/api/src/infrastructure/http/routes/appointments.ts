@@ -261,7 +261,8 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
 // PUT /api/appointments/:id
 appointmentsRouter.put('/:id', asyncHandler(async (req, res) => {
   console.log(`[API] PUT /appointments/${req.params.id} body:`, req.body);
-  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  const billingRepo = new BillingRepositoryPg(req.tenantDb);
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb), billingRepo);
   await manageAppt.update(Number(req.params.id), req.body);
   DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, 'Appointment updated');
@@ -269,7 +270,8 @@ appointmentsRouter.put('/:id', asyncHandler(async (req, res) => {
 
 // DELETE /api/appointments/:id
 appointmentsRouter.delete('/:id', asyncHandler(async (req, res) => {
-  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  const billingRepo = new BillingRepositoryPg(req.tenantDb);
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb), billingRepo);
   await manageAppt.delete(Number(req.params.id));
   DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, 'Appointment deleted');
@@ -279,7 +281,8 @@ appointmentsRouter.delete('/:id', asyncHandler(async (req, res) => {
 appointmentsRouter.post('/:id/status', asyncHandler(async (req, res) => {
   const { status, cancellationReason } = req.body;
   if (!status) throw new BadRequestError('status is required');
-  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  const billingRepo = new BillingRepositoryPg(req.tenantDb);
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb), billingRepo);
   await manageAppt.updateStatus(Number(req.params.id), status, cancellationReason);
   DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, `Status updated to ${status}`);
@@ -287,7 +290,8 @@ appointmentsRouter.post('/:id/status', asyncHandler(async (req, res) => {
 
 // POST /api/appointments/:id/issue-token
 appointmentsRouter.post('/:id/issue-token', asyncHandler(async (req, res) => {
-  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  const billingRepo = new BillingRepositoryPg(req.tenantDb);
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb), billingRepo);
   const result = await manageAppt.issueToken(Number(req.params.id));
   
   if (result.success) {
@@ -355,7 +359,8 @@ appointmentsRouter.post('/waiting/:id/skip', asyncHandler(async (req, res) => {
 // POST /api/appointments/:id/reschedule
 appointmentsRouter.post('/:id/reschedule', asyncHandler(async (req, res) => {
   const { date, time } = req.body;
-  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
+  const billingRepo = new BillingRepositoryPg(req.tenantDb);
+  const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb), billingRepo);
   await manageAppt.reschedule(Number(req.params.id), date, time);
   DashboardRepositoryPg.clearQueueCache();
   sendSuccess(res, undefined, 'Appointment rescheduled');
