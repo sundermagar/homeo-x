@@ -801,8 +801,8 @@
 
 .crm-switch-btn.active {
   background: var(--pp-ink);
-  color: white;
-  box-shadow: 0 4px 12px rgba(51, 65, 85, 0.2);
+  color: var(--bg-card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .crm-switch-btn svg {
