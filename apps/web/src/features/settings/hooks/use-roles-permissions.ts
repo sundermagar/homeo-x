@@ -105,7 +105,28 @@ export function useAssignPermissions() {
       const response = await apiClient.post<{ success: boolean }>(`/roles/${roleId}/permissions`, { permissionIds });
       return response.data;
     },
-    onSuccess: (_, variables) => {
+    onMutate: async ({ roleId, permissionIds }) => {
+      await queryClient.cancelQueries({ queryKey: ['roles', roleId] });
+      
+      const previousRole = queryClient.getQueryData(['roles', roleId]);
+      const allPermissions = queryClient.getQueryData<Permission[]>(['permissions']) || [];
+
+      if (previousRole && typeof previousRole === 'object') {
+        const optimisticPermissions = allPermissions.filter(p => permissionIds.includes(p.id));
+        queryClient.setQueryData(['roles', roleId], {
+          ...previousRole,
+          permissions: optimisticPermissions,
+        });
+      }
+
+      return { previousRole };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousRole) {
+        queryClient.setQueryData(['roles', variables.roleId], context.previousRole);
+      }
+    },
+    onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({ queryKey: ['roles', variables.roleId] });
     },
   });

@@ -71,9 +71,17 @@ appointmentsRouter.get('/', asyncHandler(async (req, res) => {
   const listAppts = new ListAppointmentsUseCase(getRepo(req));
 
   let effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
-  // if ((req.user as any)?.type === 'Doctor') {
-  //   effectiveDoctorId = (req.user as any).contextId;
-  // }
+  const isDoctor = req.user?.type?.toLowerCase() === 'doctor' || req.user?.type?.toLowerCase() === 'medical practitioner';
+
+  if (isDoctor && req.user?.id && effectiveDoctorId === req.user.id) {
+    const dashboardRepo = new DashboardRepositoryPg(req.tenantDb);
+    if (dashboardRepo.resolveDoctorIdForUser) {
+      const resolved = await dashboardRepo.resolveDoctorIdForUser(req.user.id);
+      console.log(`[API] resolving doctor_id for user ${req.user.id} -> ${resolved}`);
+      effectiveDoctorId = resolved;
+      if (effectiveDoctorId === -1) effectiveDoctorId = req.user.id; // fallback if totally unmapped
+    }
+  }
 
   const clinicId = (req as any).user?.contextId;
 
@@ -90,7 +98,10 @@ appointmentsRouter.get('/', asyncHandler(async (req, res) => {
   });
 
   if (result.success) {
+    // console.log(`[API] Returning ${result.data.data.length} appointments for fromDate=${from_date}, toDate=${to_date}. Sample:`, result.data.data.slice(0, 3).map((a: any) => a.bookingDate));
     sendSuccess(res, result.data);
+  } else {
+    throw new BadRequestError(result.error);
   }
 }));
 
@@ -100,10 +111,21 @@ appointmentsRouter.get('/followups', asyncHandler(async (req, res) => {
   const listAppts = new ListAppointmentsUseCase(getRepo(req));
   const clinicId = (req as any).user?.contextId;
 
+  let effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
+  const isDoctor = req.user?.type?.toLowerCase() === 'doctor' || req.user?.type?.toLowerCase() === 'medical practitioner';
+
+  if (isDoctor && req.user?.id && effectiveDoctorId === req.user.id) {
+    const dashboardRepo = new DashboardRepositoryPg(req.tenantDb);
+    if (dashboardRepo.resolveDoctorIdForUser) {
+      effectiveDoctorId = await dashboardRepo.resolveDoctorIdForUser(req.user.id);
+      if (effectiveDoctorId === -1) effectiveDoctorId = req.user.id;
+    }
+  }
+
   const result = await listAppts.executeFollowups({
     fromDate:  from_date || undefined,
     toDate:    to_date || undefined,
-    doctorId:  doctor_id ? Number(doctor_id) : undefined,
+    doctorId:  effectiveDoctorId,
     clinicId,
     search:    search || undefined,
     page:      page ? Number(page) : 1,
@@ -238,6 +260,7 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
 
 // PUT /api/appointments/:id
 appointmentsRouter.put('/:id', asyncHandler(async (req, res) => {
+  console.log(`[API] PUT /appointments/${req.params.id} body:`, req.body);
   const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
   await manageAppt.update(Number(req.params.id), req.body);
   DashboardRepositoryPg.clearQueueCache();

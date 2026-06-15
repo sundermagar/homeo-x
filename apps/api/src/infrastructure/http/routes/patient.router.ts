@@ -5,6 +5,7 @@ import { PatientRepositoryPg } from '../../repositories/patient.repository.pg.js
 import { OrganizationRepositoryPg } from '../../repositories/organization.repository.pg.js';
 import { BillingRepositoryPg } from '../../repositories/billing.repository.pg.js';
 import { MedicalCaseRepositoryPg } from '../../repositories/medical-case.repository.pg.js';
+import { DashboardRepositoryPg } from '../../repositories/dashboard.repository.pg.js';
 import {
   ListPatientsUseCase,
   GetPatientUseCase,
@@ -19,6 +20,19 @@ import { sql } from 'drizzle-orm';
 import { WhatsAppRepositoryPG } from '../../repositories/whatsapp.repository.pg.js';
 import { WhatsAppCloudGateway } from '../../communication/whatsapp-cloud-gateway.js';
 import { SendWhatsAppTemplateUseCase } from '../../../domains/communication/use-cases/send-whatsapp-template.use-case.js';
+
+/**
+ * Resolves a logged-in doctor's users.id → doctors.id.
+ * Necessary because legacy data stores the doctors table ID in appointments/case_datas,
+ * while the JWT carries the users.id.
+ */
+async function resolveEffectiveDoctorId(req: Request, userId: number): Promise<number> {
+  const dashRepo = new DashboardRepositoryPg(req.tenantDb);
+  const resolved = await dashRepo.resolveDoctorIdForUser(userId);
+  // If resolution returns -1 (no match found), fall back to the user's own ID
+  // so they still see any patients that happen to have that ID stored.
+  return resolved > 0 ? resolved : userId;
+}
 
 export const patientRouter: IRouter = Router();
 
@@ -39,10 +53,12 @@ patientRouter.get('/', authMiddleware, requirePermission('PATIENT_VIEW'), async 
       effectiveClinicId = Number(clinicId);
     }
 
-    // Doctor role: auto-scope to only their assigned/appointment patients
+    // Doctor role: auto-scope to only their assigned/appointment patients.
+    // IMPORTANT: resolve users.id → doctors.id to fix the legacy ID mismatch
+    // (e.g. Dr. Aman Verma has user_id=7 but doctor_id=3 in the doctors table).
     let effectiveDoctorId = doctor_id ? Number(doctor_id) : undefined;
     if (req.user?.type === Role.Doctor && req.user?.id) {
-      effectiveDoctorId = req.user.id;
+      effectiveDoctorId = await resolveEffectiveDoctorId(req, req.user.id);
     }
 
     const repo = getRepo(req);
@@ -82,8 +98,12 @@ patientRouter.get('/lookup', authMiddleware, requirePermission('PATIENT_VIEW'), 
       clinicId = Number(req.query.clinicId);
     }
 
-    // Doctor role: scope lookup to only their patients
-    const lookupDoctorId = req.user?.type === Role.Doctor ? req.user?.id : undefined;
+    // Doctor role: scope lookup to only their patients.
+    // Resolve users.id → doctors.id to match what's stored in case_datas.assitant_doctor and appointments.doctor_id.
+    let lookupDoctorId: number | undefined;
+    if (req.user?.type === Role.Doctor && req.user?.id) {
+      lookupDoctorId = await resolveEffectiveDoctorId(req, req.user.id);
+    }
 
     const data = await repo.lookup(query as string, 20, clinicId, lookupDoctorId);
     res.json({ success: true, data });

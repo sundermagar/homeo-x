@@ -236,7 +236,10 @@ export default function PatientListPage() {
 
         <div className="pp-filter-controls">
           <div className="appt-segmented-toggle">
-            <button className={`appt-segmented-btn ${viewMode === 'grid' ? 'is-active' : ''}`} onClick={() => setViewMode('grid')} title="Grid View">
+            <button className={`appt-segmented-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} title="List View">
+              <ListIcon size={16} /> List
+            </button>
+            <button className={`appt-segmented-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')} title="Grid View">
               <Grid size={16} /> Grid
             </button>
           </div>

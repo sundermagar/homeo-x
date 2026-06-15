@@ -41,8 +41,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       const rows = await this.db.execute(sql`
         SELECT d.id
         FROM users u
-        JOIN doctors d ON LOWER(d.email) = LOWER(u.email)
-        WHERE u.id = ${userId} AND u.email IS NOT NULL AND u.email <> ''
+        JOIN doctors d ON (
+          (u.email IS NOT NULL AND u.email <> '' AND LOWER(d.email) = LOWER(u.email))
+          OR
+          (LOWER(REPLACE(TRIM(d.name), 'dr. ', '')) = LOWER(REPLACE(TRIM(u.name), 'dr. ', '')))
+        )
+        WHERE u.id = ${userId}
           AND (u.deleted_at IS NULL OR u.deleted_at::text = '')
           AND (d.deleted_at IS NULL OR d.deleted_at::text = '')
         LIMIT 1
@@ -73,7 +77,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
   private getCached<T>(key: string, ttlMs: number, fetch: () => Promise<T>): Promise<T> {
     const entry = DashboardRepositoryPg.cache.get(key);
     if (entry && entry.expires > Date.now()) return Promise.resolve(entry.data as T);
-    
+
     const existingPromise = DashboardRepositoryPg.activePromises.get(key);
     if (existingPromise) return existingPromise;
 
@@ -409,7 +413,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
       )`;
 
       try {
-      const result = await this.db.execute(sql`
+        const result = await this.db.execute(sql`
         WITH today_waitlist AS (
           SELECT
             w.id as wl_id,
@@ -438,7 +442,12 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           q.booking_time,
           q.visit_id,
           q.notes,
-          COALESCE(NULLIF(p.mobile1, ''), NULLIF(p.phone, ''), NULLIF(q.a_phone, '')) as phone,
+          COALESCE(
+            (SELECT u.id FROM users u WHERE u.type IN ('Doctor', 'Medical Practitioner', 'doctor', 'medical practitioner') AND u.id = q.doctor_id LIMIT 1),
+            (SELECT u.id FROM users u WHERE u.type IN ('Doctor', 'Medical Practitioner', 'doctor', 'medical practitioner') AND d.name IS NOT NULL AND u.name IS NOT NULL AND REPLACE(LOWER(TRIM(u.name)), 'dr. ', '') = REPLACE(LOWER(TRIM(d.name)), 'dr. ', '') LIMIT 1),
+            q.doctor_id
+          ) as resolved_doctor_id,
+          COALESCE(p.mobile1, p.phone, q.a_phone) as phone,
           COALESCE(p.first_name || ' ' || p.surname, q.manual_name, 'Unknown Patient') as patient_name,
           COALESCE(p.regid, p.id, q.patient_id) as regid,
           COALESCE(
@@ -548,62 +557,62 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         ) pay ON pay.regid = COALESCE(p.regid, p.id, q.patient_id)
         ORDER BY q.token_no ASC NULLS LAST, q.id ASC
       `);
-      const allRows = result as any[];
+        const allRows = result as any[];
 
-      allRows.sort((a, b) => {
-        const order: Record<string, number> = {
-          Consultation: 1, Confirmed: 2, Waitlist: 2, Pending: 3, Completed: 4,
-        };
-        const aOrd = order[a.status] ?? 5;
-        const bOrd = order[b.status] ?? 5;
-        if (aOrd !== bOrd) return aOrd - bOrd;
-        return (Number(a.token_no) || 999) - (Number(b.token_no) || 999);
-      });
+        allRows.sort((a, b) => {
+          const order: Record<string, number> = {
+            Consultation: 1, Confirmed: 2, Waitlist: 2, Pending: 3, Completed: 4,
+          };
+          const aOrd = order[a.status] ?? 5;
+          const bOrd = order[b.status] ?? 5;
+          if (aOrd !== bOrd) return aOrd - bOrd;
+          return (Number(a.token_no) || 999) - (Number(b.token_no) || 999);
+        });
 
-      return allRows.map(r => ({
-        id: r.id,
-        wlId: r.wl_id,
-        patientId: r.patient_id,
-        unregisteredId: r.unregistered_patient_id,
-        regid: r.regid,
-        patientName: r.patient_name,
-        doctorName: r.doctor_name,
-        doctorId: r.doctor_id,
-        bookingTime: r.booking_time || '',
-        bookingDate: r.booking_date,
-        visitType: r.visit_type,
-        packageName: r.package_name,
-        packageExpiry: r.package_expiry,
-        tokenNo: r.token_no,
-        status: r.status,
-        phone: r.phone || '',
-        isUrgent: false,
-        age: undefined,
-        gender: undefined,
-        rxMedication: r.rx_medication ? r.rx_medication.trim() : undefined,
-        rxStatus: r.rx_status,
-        paymentStatus: r.payment_status,
-        createdAt: r.created_at,
-        updatedAt: r.updated_at,
-        visitId: r.visit_id,
-        notes: r.notes,
-        vitals: r.systolic_bp || r.weight_kg || r.temperature_f ? {
-          bp: r.systolic_bp && r.diastolic_bp ? `${r.systolic_bp}/${r.diastolic_bp}` : undefined,
-          weight: r.weight_kg,
-          temp: r.temperature_f,
-          // Full fields for VitalsFormModal
-          systolicBp: r.systolic_bp,
-          diastolicBp: r.diastolic_bp,
-          weightKg: r.weight_kg,
-          temperatureF: r.temperature_f,
-          heightCm: r.height_cm,
-          pulseRate: r.pulse_rate,
-          respiratoryRate: r.respiratory_rate,
-          oxygenSaturation: r.oxygen_saturation,
-          notes: r.vital_notes
-        } : undefined,
-        hasReports: !!r.has_reports,
-      }));
+        return allRows.map(r => ({
+          id: r.id,
+          wlId: r.wl_id,
+          patientId: r.patient_id,
+          unregisteredId: r.unregistered_patient_id,
+          regid: r.regid,
+          patientName: r.patient_name,
+          doctorName: r.doctor_name,
+          doctorId: r.resolved_doctor_id,
+          bookingTime: r.booking_time || '',
+          bookingDate: r.booking_date,
+          visitType: r.visit_type,
+          packageName: r.package_name,
+          packageExpiry: r.package_expiry,
+          tokenNo: r.token_no,
+          status: r.status,
+          phone: r.phone || '',
+          isUrgent: false,
+          age: undefined,
+          gender: undefined,
+          rxMedication: r.rx_medication ? r.rx_medication.trim() : undefined,
+          rxStatus: r.rx_status,
+          paymentStatus: r.payment_status,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+          visitId: r.visit_id,
+          notes: r.notes,
+          vitals: r.systolic_bp || r.weight_kg || r.temperature_f ? {
+            bp: r.systolic_bp && r.diastolic_bp ? `${r.systolic_bp}/${r.diastolic_bp}` : undefined,
+            weight: r.weight_kg,
+            temp: r.temperature_f,
+            // Full fields for VitalsFormModal
+            systolicBp: r.systolic_bp,
+            diastolicBp: r.diastolic_bp,
+            weightKg: r.weight_kg,
+            temperatureF: r.temperature_f,
+            heightCm: r.height_cm,
+            pulseRate: r.pulse_rate,
+            respiratoryRate: r.respiratory_rate,
+            oxygenSaturation: r.oxygen_saturation,
+            notes: r.vital_notes
+          } : undefined,
+          hasReports: !!r.has_reports,
+        }));
       } catch (err: any) {
         console.error('[Dashboard] getTodayQueue failed:', err.message, err.stack);
         return [];

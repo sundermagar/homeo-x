@@ -531,7 +531,7 @@ export function ReceptionistDashboard() {
             {todayAppts.length === 0 ? (
               <div className="rd-empty">No appointments today</div>
             ) : (
-              todayAppts.map((a: any, i: number) => {
+              Array.from(new Map(todayAppts.map((a: any) => [a.patientId || a.regid, a])).values()).map((a: any, i: number) => {
                 const patientBills = getPatientBills(a.patientId || a.regid);
                 const hasBills = patientBills.length > 0;
                 const totalBalance = patientBills.reduce((acc: number, b: any) => acc + (b.balance || 0), 0);

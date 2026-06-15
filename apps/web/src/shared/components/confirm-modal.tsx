@@ -10,6 +10,7 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   variant?: 'danger' | 'default';
+  position?: 'center' | 'top';
 }
 
 export function ConfirmModal({
@@ -21,6 +22,7 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
   variant = 'default',
+  position = 'center',
 }: ConfirmModalProps) {
   useEffect(() => {
     if (!isOpen) return;
@@ -34,7 +36,11 @@ export function ConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onCancel}>
+    <div 
+      className="modal-overlay" 
+      onClick={onCancel}
+      style={position === 'top' ? { alignItems: 'flex-start', paddingTop: '15vh' } : undefined}
+    >
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">{title}</h3>

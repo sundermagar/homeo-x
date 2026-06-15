@@ -82,9 +82,20 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
               : f.consultationFee
           }));
         }
+      } else if (editAppointment && form.doctorId) {
+        // Backfill missing fee for editing (e.g. from Reschedule where queue doesn't have the fee)
+        const selectedDoc = doctorsList.find(d => String(d.id) === form.doctorId);
+        if (selectedDoc && (!form.consultationFee || form.consultationFee === '0' || form.consultationFee === '')) {
+          setForm(f => ({
+            ...f,
+            consultationFee: (selectedDoc.consultation_fee !== undefined && selectedDoc.consultation_fee !== null)
+              ? String(selectedDoc.consultation_fee)
+              : f.consultationFee
+          }));
+        }
       }
     }
-  }, [doctorsList, user, editAppointment]);
+  }, [doctorsList, user, editAppointment, form.doctorId, form.consultationFee]);
 
   // Populate form if editing
   useEffect(() => {
@@ -199,10 +210,17 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     }
 
     let normalizedDate = form.bookingDate;
-    if (normalizedDate && normalizedDate.includes('/')) {
-      const parts = normalizedDate.split('/');
-      if (parts.length === 3 && parts[0] && parts[1] && parts[2] && parts[2].length === 4) {
-        normalizedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    if (normalizedDate) {
+      if (normalizedDate.includes('/')) {
+        const parts = normalizedDate.split('/');
+        if (parts.length === 3 && parts[2]!.length === 4) {
+          normalizedDate = `${parts[2]}-${parts[1]!.padStart(2, '0')}-${parts[0]!.padStart(2, '0')}`;
+        }
+      } else if (normalizedDate.includes('-')) {
+        const parts = normalizedDate.split('-');
+        if (parts.length === 3 && parts[0]!.length !== 4) {
+          normalizedDate = `${parts[2]}-${parts[1]!.padStart(2, '0')}-${parts[0]!.padStart(2, '0')}`;
+        }
       }
     }
 

@@ -27,12 +27,14 @@ import {
   Role,
   Permission
 } from '../hooks/use-roles-permissions';
+import { useQueryClient } from '@tanstack/react-query';
 import './roles-permissions.css';
 import '@/features/platform/styles/platform.css';
 import { TableSkeleton } from '@/components/shared/table-skeleton';
 import { Drawer } from '@/shared/components/drawer';
 
 export function RolesPermissionsPage() {
+  const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<'matrix' | 'lab'>('matrix');
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,7 +88,44 @@ export function RolesPermissionsPage() {
       ? currentIds.filter(id => id !== permId)
       : [...currentIds, permId];
 
-    await assignPerms.mutateAsync({ roleId: selectedRoleId, permissionIds: newIds });
+    // Optimistic UI update
+    const previousRole = { ...selectedRole };
+    const allPermsDict = Object.fromEntries(allPermissions.map(p => [p.id, p]));
+    const newPerms = newIds.map(id => allPermsDict[id]);
+    qc.setQueryData(['role', selectedRoleId], { ...selectedRole, permissions: newPerms });
+
+    try {
+      await assignPerms.mutateAsync({ roleId: selectedRoleId, permissionIds: newIds });
+    } catch (err) {
+      qc.setQueryData(['role', selectedRoleId], previousRole);
+    }
+  };
+
+  const handleToggleAllPermissions = async (perms: Permission[], isAssigning: boolean) => {
+    if (!selectedRoleId || !selectedRole) return;
+
+    const currentIds = selectedRole.permissions.map(p => p.id);
+    const targetIds = perms.map(p => p.id);
+    
+    let newIds: number[];
+    if (isAssigning) {
+      const toAdd = targetIds.filter(id => !currentIds.includes(id));
+      newIds = [...currentIds, ...toAdd];
+    } else {
+      newIds = currentIds.filter(id => !targetIds.includes(id));
+    }
+
+    // Optimistic UI update
+    const previousRole = { ...selectedRole };
+    const allPermsDict = Object.fromEntries(allPermissions.map(p => [p.id, p]));
+    const newPerms = newIds.map(id => allPermsDict[id]);
+    qc.setQueryData(['role', selectedRoleId], { ...selectedRole, permissions: newPerms });
+
+    try {
+      await assignPerms.mutateAsync({ roleId: selectedRoleId, permissionIds: newIds });
+    } catch (err) {
+      qc.setQueryData(['role', selectedRoleId], previousRole);
+    }
   };
 
   const handleDeleteRole = async (id: number) => {
@@ -210,9 +249,18 @@ export function RolesPermissionsPage() {
                 {selectedRole ? selectedRole.name : 'Capability Matrix'}
               </div>
               {selectedRole && (
-                <div className="plat-badge plat-badge-success">
-                  <CheckCircle2 size={10} />
-                  <span>Real-time Sync</span>
+                <div className="flex items-center gap-3">
+                  <button 
+                    className="plat-btn plat-btn-sm plat-btn-ghost"
+                    onClick={() => handleToggleAllPermissions(allPermissions, selectedRole.permissions.length !== allPermissions.length)}
+                    disabled={assignPerms.isPending}
+                  >
+                    {selectedRole.permissions.length === allPermissions.length ? 'Revoke All' : 'Grant All'}
+                  </button>
+                  <div className="plat-badge plat-badge-success">
+                    <CheckCircle2 size={10} />
+                    <span>Real-time Sync</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -242,8 +290,21 @@ export function RolesPermissionsPage() {
                       <React.Fragment key={module}>
                         <tr style={{ background: 'var(--pp-warm-2)' }}>
                           <td colSpan={3}>
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                              {module} Domain Capabilities
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                {module} Domain Capabilities
+                              </div>
+                              <button 
+                                className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider disabled:opacity-50"
+                                onClick={() => {
+                                  const groupIds = perms.map(p => p.id);
+                                  const assignedInGroup = selectedRole.permissions.filter(p => groupIds.includes(p.id)).length;
+                                  handleToggleAllPermissions(perms, assignedInGroup !== perms.length);
+                                }}
+                                disabled={assignPerms.isPending}
+                              >
+                                {selectedRole.permissions.filter(p => perms.map(gp => gp.id).includes(p.id)).length === perms.length ? 'Revoke Group' : 'Grant Group'}
+                              </button>
                             </div>
                           </td>
                         </tr>

@@ -22,6 +22,21 @@ export class ManageAppointmentUseCase {
   async update(id: number, dto: UpdateAppointmentDto): Promise<Result<void>> {
     const appt = await this.repo.findById(id);
     if (!appt) return fail('Appointment not found', 'NOT_FOUND');
+
+    // Automatically change status to Rescheduled if date/time changes and it's currently in a terminal state
+    if (
+      (dto.bookingDate && dto.bookingDate !== appt.bookingDate) || 
+      (dto.bookingTime && dto.bookingTime !== appt.bookingTime)
+    ) {
+      if (
+        appt.status === AppointmentStatus.Absent || 
+        appt.status === AppointmentStatus.Cancelled || 
+        appt.status === AppointmentStatus.Done
+      ) {
+        dto.status = AppointmentStatus.Rescheduled;
+      }
+    }
+
     await this.repo.update(id, dto);
     return ok(undefined);
   }
