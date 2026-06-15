@@ -83,6 +83,7 @@ export default function VitalsCheckPage() {
   const [results, setResults] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [savedToHistory, setSavedToHistory] = useState(false);
 
   const [form, setForm] = useState({
     regid: '',
@@ -115,32 +116,43 @@ export default function VitalsCheckPage() {
 
   const selectPatient = (p: any) => {
     // Standardize gender to 'M' or 'F'
-    const gender = (p.gender === 'F' || p.gender === 'Female') ? 'F' : 'M';
+    const g = String(p.gender || '').trim().toLowerCase();
+    const gender = (g === 'f' || g === 'female') ? 'F' : 'M';
     
     // Format DOB for <input type="date" /> (YYYY-MM-DD)
     let dob = '';
-    if (p.dob) {
-      try {
-        const dateObj = new Date(p.dob);
-        if (!isNaN(dateObj.getTime())) {
-          dob = dateObj.toISOString().split('T')[0] ?? '';
+    const rawDob = p.dob || p.dateOfBirth;
+    if (rawDob) {
+      if (typeof rawDob === 'string' && rawDob.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        dob = rawDob;
+      } else if (typeof rawDob === 'string' && rawDob.match(/^\d{4}-\d{2}-\d{2}T/)) {
+        dob = rawDob.split('T')[0] || '';
+      } else {
+        try {
+          const dateObj = new Date(rawDob);
+          if (!isNaN(dateObj.getTime())) {
+            dob = dateObj.toISOString().split('T')[0] ?? '';
+          }
+        } catch (e) {
+          console.warn('Invalid DOB format', rawDob);
         }
-      } catch (e) {
-        console.warn('Invalid DOB format', p.dob);
       }
     }
+
+    const patientName = p.fullName || `${p.firstName || ''} ${p.surname || ''}`.trim();
+    const patientId = p.regid || p.id || '';
 
     setSelectedPatient(p);
     setForm({
       ...form,
-      regid: p.regid,
-      name: p.fullName || '',
+      regid: patientId,
+      name: patientName,
       mobile: p.mobile1 || p.phone || '',
       dob: dob,
       gender
     });
     setSuggestions([]);
-    setSearch(`${p.fullName || ''} (PT-${p.regid})`);
+    setSearch(`${patientName} (PT-${patientId})`);
   };
 
   const handleAnalyze = async (e: React.FormEvent) => {
@@ -152,6 +164,7 @@ export default function VitalsCheckPage() {
 
     setSubmitting(true);
     setErrors([]);
+    setSavedToHistory(false);
     try {
       const { data } = await apiClient.post('/medical-cases/vitals/analyze', {
         dob: form.dob,
@@ -163,13 +176,38 @@ export default function VitalsCheckPage() {
       });
 
       const payload = data?.result ?? data?.data ?? data;
+      let analysisResult: any = null;
+
       if (payload?.result) {
+        analysisResult = payload.result;
         setResults(payload.result);
       } else if (payload?.bmi || payload?.actualHeight) {
+        analysisResult = payload;
         setResults(payload);
       } else {
         setErrors([payload?.message || 'No analytics data returned']);
       }
+
+      // ── Save to Medical History (non-blocking) ──
+      // If a patient is selected (has regid), auto-persist the vitals measurement.
+      if (analysisResult && form.regid) {
+        const bmiValue = analysisResult.bmi
+          ? parseFloat(String(analysisResult.bmi))
+          : undefined;
+
+        apiClient.post('/medical-cases/vitals', {
+          regid: Number(form.regid),
+          heightCm: parseFloat(form.height),
+          weightKg: parseFloat(form.weight),
+          bmi: bmiValue,
+          notes: `Growth Calculator — Age: ${analysisResult.ageDisplay || ''}. Height ${analysisResult.heightAnalysis || ''}. Weight ${analysisResult.weightAnalysis || ''}.`,
+        }).then(() => {
+          setSavedToHistory(true);
+        }).catch((saveErr: any) => {
+          console.warn('[VitalsCheck] Failed to save vitals to history (non-blocking):', saveErr?.message);
+        });
+      }
+
     } catch (err: any) {
       setErrors([err.response?.data?.error || err.response?.data?.message || err.message]);
     } finally {
@@ -183,6 +221,7 @@ export default function VitalsCheckPage() {
     setForm({ regid: '', name: '', mobile: '', dob: '', gender: 'M', height: '', weight: '' });
     setSearch('');
     setErrors([]);
+    setSavedToHistory(false);
   };
 
   return (
@@ -411,6 +450,17 @@ export default function VitalsCheckPage() {
                     <span className="ghub-patient-name">{form.name}</span>
                     <span className="ghub-separator">·</span>
                     <span className="ghub-age-display">Age: {results.ageDisplay}</span>
+                    {savedToHistory && (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        fontSize: '0.72rem', fontWeight: 600, color: '#16a34a',
+                        background: '#dcfce7', borderRadius: '20px', padding: '2px 10px',
+                        marginLeft: '8px'
+                      }}>
+                        <CheckCircle2 size={12} />
+                        Saved to History
+                      </span>
+                    )}
                   </div>
                 </div>
                 <button onClick={reset} className="ghub-recalculate-btn">

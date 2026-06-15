@@ -14,7 +14,9 @@ import {
   ChevronDown,
   BrainCircuit,
   MessageSquare,
-  Bell
+  Bell,
+  CalendarClock,
+  Ban
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -25,6 +27,9 @@ import { apiClient } from '@/infrastructure/api-client';
 import { useAuthStore } from '@/shared/stores/auth-store';
 import { VitalsFormModal } from '../../medical-case/components/vitals-form-modal';
 import { PatientBillingDrawer } from '../../billing/components/PatientBillingDrawer';
+import { Drawer } from '../../../shared/components/drawer';
+import { ConfirmModal } from '../../../shared/components/confirm-modal';
+import { AppointmentForm } from '../../appointments/components/appointment-form';
 import type { QueueItem, IntelligenceInsight, RecentTransaction, SimpleReminder } from '@mmc/types';
 import { DashboardSkeleton } from '@/components/shared/dashboard-skeleton';
 import { PatientQuickChartDrawer } from '../components/patient-quick-chart-drawer';
@@ -59,6 +64,8 @@ export function DoctorDashboard() {
   const [activePatientId, setActivePatientId] = useState<number | null>(null);
   const [billingDrawerRegid, setBillingDrawerRegid] = useState<{ regid: number; patientName: string } | null>(null);
   const [showQuickChart, setShowQuickChart] = useState(false);
+  const [rescheduleItem, setRescheduleItem] = useState<QueueItem | null>(null);
+  const [cancelItem, setCancelItem] = useState<QueueItem | null>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -170,7 +177,7 @@ export function DoctorDashboard() {
 
   const handleReschedule = (item: QueueItem) => {
     setIsMoreMenuOpen(false);
-    navigate(`/appointments/calendar?patient=${item.regid || item.patientId}`);
+    setRescheduleItem(item);
   };
 
   const filteredAppts = todayAppts.filter((a) => {
@@ -291,6 +298,22 @@ export function DoctorDashboard() {
                 </button>
                 <button className="dd-btn-chart" onClick={() => setShowQuickChart(true)}>
                   Open chart
+                </button>
+                <button
+                  className="dd-btn-chart"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)' }}
+                  onClick={() => handleReschedule(activeConsultation)}
+                  title="Reschedule appointment"
+                >
+                  <CalendarClock size={15} /> Reschedule
+                </button>
+                <button
+                  className="dd-btn-chart"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.4)', color: '#fecaca' }}
+                  onClick={() => setCancelItem(activeConsultation)}
+                  title="Cancel appointment"
+                >
+                  <Ban size={15} /> Cancel
                 </button>
               </div>
             </>
@@ -533,6 +556,66 @@ export function DoctorDashboard() {
           }}
         />
       )}
+
+      <Drawer
+        isOpen={!!rescheduleItem}
+        onClose={() => setRescheduleItem(null)}
+        title={
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>Reschedule Appointment</div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: 400 }}>
+              {rescheduleItem?.patientName}
+            </div>
+          </div>
+        }
+        maxWidth="520px"
+      >
+        {rescheduleItem && (
+            <AppointmentForm
+              editAppointment={{
+                id: (rescheduleItem as any).visitId || rescheduleItem.id,
+                patientId: rescheduleItem.patientId || rescheduleItem.regid,
+                patientName: rescheduleItem.patientName,
+                phone: (rescheduleItem as any).phone,
+                doctorId: (rescheduleItem as any).doctorId,
+                bookingDate: (rescheduleItem as any).bookingDate || new Date().toISOString().split('T')[0],
+                bookingTime: (rescheduleItem as any).bookingTime || '',
+                visitType: (rescheduleItem as any).visitType || 'FollowUp',
+                consultationFee: (rescheduleItem as any).consultationFee,
+                notes: rescheduleItem.notes || '',
+                status: (rescheduleItem as any).status || 'Confirmed',
+              } as any}
+              onClose={() => setRescheduleItem(null)}
+              onSuccess={() => {
+                setRescheduleItem(null);
+                qc.invalidateQueries({ queryKey: dashboardKeys.all });
+                qc.invalidateQueries({ queryKey: apptKeys.all });
+              }}
+              onCancel={() => setRescheduleItem(null)}
+            />
+        )}
+      </Drawer>
+
+      <ConfirmModal
+        isOpen={!!cancelItem}
+        title="Cancel Appointment"
+        message={
+          <>
+            Are you sure you want to cancel the appointment for <strong>{cancelItem?.patientName}</strong>? This action cannot be undone.
+          </>
+        }
+        confirmLabel="Cancel Appointment"
+        cancelLabel="Keep Appointment"
+        variant="danger"
+        position="top"
+        onConfirm={() => {
+          if (cancelItem) {
+            handleCancel(cancelItem);
+            setCancelItem(null);
+          }
+        }}
+        onCancel={() => setCancelItem(null)}
+      />
     </div>
   );
 }

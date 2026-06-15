@@ -442,6 +442,11 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           q.booking_time,
           q.visit_id,
           q.notes,
+          COALESCE(
+            (SELECT u.id FROM users u WHERE u.type IN ('Doctor', 'Medical Practitioner', 'doctor', 'medical practitioner') AND u.id = q.doctor_id LIMIT 1),
+            (SELECT u.id FROM users u WHERE u.type IN ('Doctor', 'Medical Practitioner', 'doctor', 'medical practitioner') AND d.name IS NOT NULL AND u.name IS NOT NULL AND REPLACE(LOWER(TRIM(u.name)), 'dr. ', '') = REPLACE(LOWER(TRIM(d.name)), 'dr. ', '') LIMIT 1),
+            q.doctor_id
+          ) as resolved_doctor_id,
           COALESCE(p.mobile1, p.phone, q.a_phone) as phone,
           COALESCE(p.first_name || ' ' || p.surname, q.manual_name, 'Unknown Patient') as patient_name,
           COALESCE(p.regid, p.id, q.patient_id) as regid,
@@ -572,7 +577,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         regid: r.regid,
         patientName: r.patient_name,
         doctorName: r.doctor_name,
-        doctorId: r.doctor_id,
+        doctorId: r.resolved_doctor_id,
         bookingTime: r.booking_time || '',
         bookingDate: r.booking_date,
         visitType: r.visit_type,

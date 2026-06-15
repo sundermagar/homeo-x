@@ -731,7 +731,7 @@ export class MedicalCaseRepositoryPg implements MedicalCaseRepository {
           oxygenSaturation: data.oxygenSaturation,
           bloodSugar: data.bloodSugar,
           notes: finalNotes,
-          recordedAt: data.recordedAt || new Date(),
+          recordedAt: data.recordedAt ? new Date(data.recordedAt as any) : new Date(),
         });
     } catch (err: any) {
       console.error('💥 [MedicalCaseRepositoryPg] Error in saveVitals:', err);
