@@ -166,8 +166,8 @@ export function ClinicAdminDashboard() {
           </div>
           
           <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>₹{totalBilled.toLocaleString()}</div>
-            <div style={{ fontSize: '14px', color: '#64748b' }}>Total collected today</div>
+            <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1 }}>₹{totalBilled.toLocaleString()}</div>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Total collected today</div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
@@ -189,8 +189,8 @@ export function ClinicAdminDashboard() {
                 </Pie>
               </PieChart>
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>{collectedPercentage}%</span>
-                <span style={{ fontSize: '11px', color: '#64748b' }}>collected</span>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>{collectedPercentage}%</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>collected</span>
               </div>
             </div>
             
@@ -199,7 +199,7 @@ export function ClinicAdminDashboard() {
                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: rev.color }} />
-                    <span style={{ fontSize: '14px', color: '#475569', fontWeight: 500 }}>{rev.label}</span>
+                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 500 }}>{rev.label}</span>
                   </div>
                   <span style={{ fontSize: '14px', color: '#1e293b', fontWeight: 700 }}>₹{rev.value.toLocaleString()}</span>
                 </div>
@@ -209,7 +209,7 @@ export function ClinicAdminDashboard() {
 
           {/* Bottom Bar */}
           <div style={{ display: 'flex', justifySelf: 'flex-end', flexDirection: 'column', flex: 1, justifyContent: 'flex-end' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px', color: '#64748b' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
               <span>Received vs Pending</span>
               <span style={{ fontWeight: 600, color: '#1e293b' }}>₹{totalCollected.toLocaleString()} / ₹{totalPending.toLocaleString()}</span>
             </div>

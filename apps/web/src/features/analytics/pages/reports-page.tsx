@@ -365,19 +365,14 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
           </tbody>
         </table>
       </div>
-      <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--pp-warm-4)' }}>
-        <div style={{ fontSize: '0.85rem', color: 'var(--pp-text-3)' }}>
-          Showing {(page - 1) * itemsPerPage + 1} to {Math.min(page * itemsPerPage, (summary ?? []).length)} of {(summary ?? []).length} entries
-        </div>
-        <Pagination
-          currentPage={page}
-          totalPages={Math.ceil((summary ?? []).length / itemsPerPage)}
-          pageSize={itemsPerPage}
-          totalItems={(summary ?? []).length}
-          onPageChange={setPage}
-          onPageSizeChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
-        />
-      </div>
+      <Pagination
+        currentPage={page}
+        totalPages={Math.ceil((summary ?? []).length / itemsPerPage)}
+        pageSize={itemsPerPage}
+        totalItems={(summary ?? []).length}
+        onPageChange={setPage}
+        onPageSizeChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
+      />
     </div>
   );
 }
@@ -489,159 +484,216 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
           </button>
         </div>
       </div>
-      <div style={{ padding: '20px' }}>
+      <>
         {patients.length === 0 ? (
-          <EmptyState
-            icon={Gift}
-            title="No birthdays today"
-            description="There are no patient birthdays recorded for today. Check back tomorrow to send clinical greetings."
-            variant="card"
-            className="my-8"
-          />
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-            {(paginatedPatients as any[]).map((p) => {
-              const smsSent = smsSentIds.includes(Number(p.regid));
-              const isSelected = selectedIds.has(Number(p.id));
-              return (
-                <div key={String(p.id)} style={{
-                  padding: '20px',
-                  border: isSelected ? '2px solid var(--pp-blue)' : '1px solid var(--pp-warm-4)',
-                  borderRadius: '16px',
-                  background: isSelected ? 'var(--pp-blue-tint)' : 'var(--bg-card)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  boxShadow: 'var(--pp-shadow-sm)',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  cursor: 'default',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%' }}>
-                    <button onClick={() => toggleSelect(Number(p.id))}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}>
-                      {isSelected ? <CheckSquare size={16} style={{ color: 'var(--pp-blue)' }} /> : <Square size={16} style={{ color: 'var(--pp-text-3)' }} />}
-                    </button>
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '14px',
-                      background: 'linear-gradient(135deg, var(--pp-blue) 0%, #4F46E5 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontWeight: 900,
-                      fontSize: '1rem',
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
-                      flexShrink: 0,
-                    }}>
-                      {String(p.first_name ?? '').charAt(0)}{String(p.surname ?? '').charAt(0)}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--pp-ink)', letterSpacing: '-0.01em' }}>{String(p.first_name ?? '')} {String(p.surname ?? '')}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--pp-text-3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Activity size={12} style={{ color: 'var(--pp-blue)' }} /> ID #{String(p.regid ?? '')}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{
-                        fontSize: '0.65rem',
-                        fontWeight: 900,
-                        padding: '4px 10px',
-                        borderRadius: '20px',
-                        background: smsSent ? 'var(--pp-success-bg)' : 'var(--pp-warm-2)',
-                        color: smsSent ? 'var(--pp-success-fg)' : 'var(--pp-text-3)',
-                        textTransform: 'uppercase',
-                        border: '1px solid ' + (smsSent ? 'var(--pp-success-border)' : 'var(--pp-warm-4)'),
-                        marginBottom: 8
-                      }}>
-                        {smsSent ? 'Wish Sent' : 'Queued'}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--pp-blue)', fontWeight: 800 }}>
-                        {p.mobile1 ? String(p.mobile1) : '—'}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'flex-end', paddingLeft: 28 }}>
-                    <button onClick={() => openSingleModal(p)}
-                      style={{ background: '#25D366', border: 'none', borderRadius: 8, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'white', fontSize: '0.78rem', fontWeight: 700 }}>
-                      <MessageCircle size={12} /> WhatsApp
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {patients.length > itemsPerPage && (
-          <div style={{ marginTop: 24 }}>
-            <Pagination
-              currentPage={page}
-              totalPages={Math.ceil((patients ?? []).length / itemsPerPage)}
-              pageSize={itemsPerPage}
-              totalItems={(patients ?? []).length}
-              onPageChange={setPage}
-              onPageSizeChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
+          <div style={{ padding: '20px' }}>
+            <EmptyState
+              icon={Gift}
+              title="No birthdays today"
+              description="There are no patient birthdays recorded for today. Check back tomorrow to send clinical greetings."
+              variant="card"
+              className="my-8"
             />
           </div>
+        ) : (
+          <div className="plat-table-container">
+            <table className="plat-table">
+              <thead>
+                <tr style={{ background: 'var(--pp-warm-1)', borderBottom: '1px solid var(--pp-warm-4)' }}>
+                  <th style={{ width: 40, textAlign: 'center', padding: '14px 12px' }}>
+                    <button onClick={toggleAll} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      {selectedIds.size === patients.length && patients.length > 0 ? <CheckSquare size={16} style={{ color: 'var(--pp-blue)' }} /> : <Square size={16} style={{ color: 'var(--pp-text-3)' }} />}
+                    </button>
+                  </th>
+                  <th style={{ padding: '14px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--pp-text-3)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Patient</th>
+                  <th style={{ padding: '14px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--pp-text-3)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reg ID</th>
+                  <th style={{ padding: '14px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--pp-text-3)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mobile</th>
+                  <th style={{ padding: '14px 12px', textAlign: 'center', fontWeight: 700, color: 'var(--pp-text-3)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</th>
+                  <th style={{ padding: '14px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--pp-text-3)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(paginatedPatients as any[]).map((p) => {
+                  const smsSent = smsSentIds.includes(Number(p.regid));
+                  const isSelected = selectedIds.has(Number(p.id));
+                  return (
+                    <tr key={String(p.id)} className="plat-table-row" style={{ background: isSelected ? 'var(--pp-blue-tint)' : 'var(--bg-card)', borderBottom: '1px solid var(--pp-warm-4)', transition: 'all 0.2s ease-in-out' }}>
+                      <td style={{ textAlign: 'center', padding: '16px 12px' }}>
+                        <button onClick={() => toggleSelect(Number(p.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {isSelected ? <CheckSquare size={16} style={{ color: 'var(--pp-blue)' }} /> : <Square size={16} style={{ color: 'var(--pp-text-3)' }} />}
+                        </button>
+                      </td>
+                      <td style={{ padding: '16px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                          <div style={{
+                            width: '36px', height: '36px', borderRadius: '10px',
+                            background: 'linear-gradient(135deg, var(--pp-blue) 0%, #4F46E5 100%)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: 'white', fontWeight: 800, fontSize: '0.85rem', flexShrink: 0,
+                            boxShadow: '0 4px 10px rgba(79, 70, 229, 0.25)', border: '1px solid rgba(255,255,255,0.1)'
+                          }}>
+                            {String(p.first_name ?? '').charAt(0)}{String(p.surname ?? '').charAt(0)}
+                          </div>
+                          <div style={{ fontWeight: 700, color: 'var(--pp-ink)', fontSize: '0.9rem', letterSpacing: '-0.01em' }}>
+                            {String(p.first_name ?? '')} {String(p.surname ?? '')}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px 12px', fontWeight: 600, color: 'var(--pp-text-2)', fontSize: '0.85rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Activity size={14} style={{ color: 'var(--pp-blue)' }} />
+                          <span style={{ fontFamily: 'var(--font-mono)' }}>#{String(p.regid ?? '')}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px 12px', fontWeight: 700, color: 'var(--pp-ink)', fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
+                        {p.mobile1 ? String(p.mobile1) : '—'}
+                      </td>
+                      <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          fontSize: '0.7rem', fontWeight: 800, padding: '4px 12px', borderRadius: '20px',
+                          background: smsSent ? 'var(--pp-success-bg)' : '#FFF3E0',
+                          color: smsSent ? 'var(--pp-success-fg)' : '#E65100', textTransform: 'uppercase',
+                          border: '1px solid ' + (smsSent ? 'var(--pp-success-border)' : '#FFE0B2')
+                        }}>
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: smsSent ? 'var(--pp-success-fg)' : '#FF9800' }} />
+                          {smsSent ? 'Wish Sent' : 'Queued'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 12px', textAlign: 'right' }}>
+                        <button onClick={() => openSingleModal(p)}
+                          style={{ 
+                            background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', 
+                            border: 'none', borderRadius: '8px', padding: '8px 14px', 
+                            display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', 
+                            color: 'white', fontSize: '0.75rem', fontWeight: 700, 
+                            boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)', transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(37, 211, 102, 0.35)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 211, 102, 0.25)'; }}
+                        >
+                          <MessageCircle size={14} /> WhatsApp
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
+        <Pagination
+          currentPage={page}
+          totalPages={Math.ceil((patients ?? []).length / itemsPerPage)}
+          pageSize={itemsPerPage}
+          totalItems={(patients ?? []).length}
+          onPageChange={setPage}
+          onPageSizeChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
+        />
+      </>
 
       {/* Single WhatsApp Modal */}
-      {showSingleModal && singlePatient && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 480 }}>
-            <h3 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <MessageCircle size={18} style={{ color: '#25D366' }} /> Send Birthday Wish
-            </h3>
-            <div style={{ marginBottom: 12 }}>
+      <Drawer
+        isOpen={showSingleModal && singlePatient !== null}
+        onClose={() => setShowSingleModal(false)}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MessageCircle size={20} style={{ color: '#25D366' }} />
+            <span>Send Birthday Wish</span>
+          </div>
+        }
+      >
+        {singlePatient && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-text-3)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Patient Details</label>
               <input type="text" value={`#${singlePatient.regid} - ${singlePatient.first_name} ${singlePatient.surname || ''}`} readOnly
-                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-warm-1)', fontWeight: 600 }} />
+                style={{ width: '100%', padding: '12px 14px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.9rem', background: 'var(--pp-warm-1)', fontWeight: 600, color: 'var(--pp-ink)' }} />
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <div>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-text-3)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>WhatsApp Mobile</label>
               <input type="text" value={singlePatient.mobile1 || ''} readOnly
-                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-warm-1)' }} />
+                style={{ width: '100%', padding: '12px 14px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.9rem', background: 'var(--pp-warm-1)', color: 'var(--pp-ink)' }} />
             </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Template Preview</label>
-              <div style={{ padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-bg-subtle)' }}>
-                Wishing you health, love, wealth, happiness, and just everything your heart desires. Happy Birthday !! Regards, MMC HomeoTech
+            <div>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-text-3)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Template Preview</label>
+              <div style={{ padding: '16px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 12, fontSize: '0.9rem', background: 'var(--pp-bg-subtle)', lineHeight: 1.5, color: 'var(--pp-text-1)' }}>
+                Dear {singlePatient.first_name || 'Patient'},<br /><br />
+                Wishing you health, love, wealth, happiness, and just everything your heart desires.<br />
+                Happy Birthday !!<br /><br />
+                Regards,<br />
+                MMC HomeoTech
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="plat-btn plat-btn-sm" onClick={() => setShowSingleModal(false)}>Cancel</button>
-              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendSingle} disabled={sendText.isPending}>
-                <Send size={12} /> {sendText.isPending ? 'Sending...' : 'Send'}
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
+              <button className="plat-btn" onClick={() => setShowSingleModal(false)}>Cancel</button>
+              <button 
+                style={{ 
+                  background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', color: 'white', border: 'none', borderRadius: 8, padding: '10px 18px', 
+                  display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', 
+                  boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)', transition: 'transform 0.15s ease, box-shadow 0.15s ease' 
+                }} 
+                onClick={sendSingle} 
+                disabled={sendText.isPending}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(37, 211, 102, 0.35)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 211, 102, 0.25)'; }}
+              >
+                <Send size={16} /> {sendText.isPending ? 'Sending...' : 'Send WhatsApp Message'}
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Drawer>
 
       {/* Bulk WhatsApp Modal */}
-      {showBulkModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 480 }}>
-            <h3 style={{ margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <MessageCircle size={18} style={{ color: '#25D366' }} /> Bulk Birthday Wishes ({selectedIds.size})
-            </h3>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'block', marginBottom: 6 }}>Template Preview</label>
-              <div style={{ padding: '10px 12px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 10, fontSize: '0.85rem', background: 'var(--pp-bg-subtle)' }}>
-                Wishing you health, love, wealth, happiness, and just everything your heart desires. Happy Birthday !! Regards, MMC HomeoTech
-              </div>
+      <Drawer
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MessageCircle size={20} style={{ color: '#25D366' }} />
+            <span>Bulk Birthday Wishes ({selectedIds.size})</span>
+          </div>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ padding: '16px', background: '#E3F2FD', borderRadius: 12, border: '1px solid #90CAF9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Activity size={16} style={{ color: '#1976D2' }} />
+              <span style={{ fontWeight: 700, color: '#1565C0', fontSize: '0.9rem' }}>Sending to {selectedIds.size} patients</span>
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className="plat-btn plat-btn-sm" onClick={() => { setShowBulkModal(false); setBulkMessage(''); }}>Cancel</button>
-              <button style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 8, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }} onClick={sendBulk} disabled={sendText.isPending}>
-                <Send size={12} /> {sendText.isPending ? 'Sending...' : `Send to ${selectedIds.size}`}
-              </button>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#1976D2', lineHeight: 1.5 }}>
+              The system will automatically use each patient's registered mobile number and insert their first name into the template.
+            </p>
+          </div>
+          <div>
+            <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--pp-text-3)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Template Preview</label>
+            <div style={{ padding: '16px', border: '1.5px solid var(--pp-warm-4)', borderRadius: 12, fontSize: '0.9rem', background: 'var(--pp-bg-subtle)', lineHeight: 1.5, color: 'var(--pp-text-1)' }}>
+              Dear [Patient Name],<br /><br />
+              Wishing you health, love, wealth, happiness, and just everything your heart desires.<br />
+              Happy Birthday !!<br /><br />
+              Regards,<br />
+              MMC HomeoTech
             </div>
           </div>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
+            <button className="plat-btn" onClick={() => { setShowBulkModal(false); setBulkMessage(''); }}>Cancel</button>
+            <button 
+              style={{ 
+                background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)', color: 'white', border: 'none', borderRadius: 8, padding: '10px 18px', 
+                display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', 
+                boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)', transition: 'transform 0.15s ease, box-shadow 0.15s ease' 
+              }} 
+              onClick={sendBulk} 
+              disabled={sendText.isPending}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(37, 211, 102, 0.35)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 211, 102, 0.25)'; }}
+            >
+              <Send size={16} /> {sendText.isPending ? 'Sending...' : `Send to ${selectedIds.size} Patients`}
+            </button>
+          </div>
         </div>
-      )}
+      </Drawer>
     </div>
   );
 }
@@ -829,16 +881,14 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
             </tbody>
           </table>
         </div>
-        {mergedData.length > itemsPerPage && (
-          <Pagination
-            currentPage={page}
-            totalPages={Math.ceil(mergedData.length / itemsPerPage)}
-            pageSize={itemsPerPage}
-            totalItems={mergedData.length}
-            onPageChange={setPage}
-            onPageSizeChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
-          />
-        )}
+        <Pagination
+          currentPage={page}
+          totalPages={Math.ceil(mergedData.length / itemsPerPage)}
+          pageSize={itemsPerPage}
+          totalItems={mergedData.length}
+          onPageChange={setPage}
+          onPageSizeChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
+        />
 
         <Drawer
           isOpen={!!selectedRef}

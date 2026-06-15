@@ -634,11 +634,11 @@ export function ReceptionistDashboard() {
             </div>
             <div className="db-scroll" style={{ maxHeight: '160px', overflowY: 'auto', paddingRight: '4px' }}>
               {isQueueLoading ? (
-                <div style={{ padding: '12px 0', color: '#64748b', fontSize: '13px' }}>Loading dispatch queue...</div>
+                <div style={{ padding: '12px 0', color: 'var(--text-muted)', fontSize: '13px' }}>Loading dispatch queue...</div>
               ) : pendingDispatch.length === 0 ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0 12px' }}>
                   <Package size={22} style={{ color: '#94a3b8' }} strokeWidth={1.5} />
-                  <span style={{ fontSize: '14px', color: '#0f172a' }}>No pending dispatch</span>
+                  <span style={{ fontSize: '14px', color: 'var(--text-main)' }}>No pending dispatch</span>
                 </div>
               ) : (
                 <>
@@ -724,7 +724,7 @@ export function ReceptionistDashboard() {
               {birthdays.length === 0 ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0 12px', paddingRight: '4px' }}>
                   <Cake size={22} style={{ color: '#94a3b8' }} strokeWidth={1.5} />
-                  <span style={{ fontSize: '14px', color: '#0f172a' }}>No birthdays today</span>
+                  <span style={{ fontSize: '14px', color: 'var(--text-main)' }}>No birthdays today</span>
                 </div>
               ) : (
                 <>
@@ -778,7 +778,7 @@ export function ReceptionistDashboard() {
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: '#64748b',
+                              color: 'var(--text-muted)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',

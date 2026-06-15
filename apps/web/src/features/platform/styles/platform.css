@@ -111,7 +111,7 @@
 }
 
 .plat-stat-value-warning {
-  color: #d97706;
+  color: var(--pp-warning-fg);
 }
 
 .plat-stat-subvalue {
@@ -578,21 +578,21 @@
 }
 
 .role-badge-admin {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #10b98133;
+  background: var(--pp-success-bg);
+  color: var(--pp-success-fg);
+  border: 1px solid var(--pp-success-border);
 }
 
 .role-badge-member {
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #3b82f633;
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
+  border: 1px solid var(--pp-blue-border);
 }
 
 .role-badge-client {
-  background: #fffbeb;
-  color: #d97706;
-  border: 1px solid #f59e0b33;
+  background: var(--pp-warning-bg);
+  color: var(--pp-warning-fg);
+  border: 1px solid var(--pp-warning-border);
 }
 
 .security-stack {
@@ -627,9 +627,9 @@
 }
 
 .status-badge-active {
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #22c55e33;
+  background: var(--pp-success-bg);
+  color: var(--pp-success-fg);
+  border: 1px solid var(--pp-success-border);
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 11px;
@@ -651,7 +651,7 @@
   display: flex;
   gap: 16px;
   padding: 20px;
-  background: white;
+  background: var(--bg-card) ;
   border-bottom: 1px solid var(--pp-warm-4);
   transition: all 0.2s ease;
   position: relative;
@@ -672,13 +672,13 @@
 }
 
 .audit-icon-box-blue {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--pp-blue-tint);
+  color: var(--pp-blue);
 }
 
 .audit-icon-box-gray {
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-surface-2);
+  color: var(--pp-text-3);
 }
 
 .audit-content {
@@ -691,16 +691,16 @@
 .audit-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--pp-ink);
 }
 
 .audit-title span {
   font-weight: 700;
-  color: #2563eb;
+  color: var(--pp-blue);
 }
 
 .audit-title .platform-admin-text {
-  color: #1e293b;
+  color: var(--pp-ink);
   font-weight: 700;
 }
 
@@ -709,7 +709,7 @@
   align-items: center;
   gap: 16px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--pp-text-3);
 }
 
 .audit-meta-item {
@@ -719,24 +719,24 @@
 }
 
 .audit-detail-box {
-  background: #f8fafc;
+  background: var(--bg-surface-2);
   border-radius: 6px;
   padding: 10px 16px;
   font-size: 12px;
-  color: #475569;
+  color: var(--pp-text-2);
   max-width: fit-content;
   margin-top: 4px;
 }
 
 .audit-detail-box b {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--pp-ink);
 }
 
 .audit-right-id {
   font-size: 11px;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--pp-text-4);
   position: absolute;
   top: 20px;
   right: 20px;
@@ -1368,7 +1368,7 @@
   display: flex;
   align-items: center;
   gap: var(--pp-space-4);
-  background: white;
+  background: var(--bg-card) ;
   padding: 6px 12px;
   border-radius: 40px;
   border: 1px solid var(--pp-warm-4);
@@ -1398,7 +1398,7 @@
 .plat-pagination-pill {
   display: inline-flex;
   align-items: center;
-  background: white;
+  background: var(--bg-card) ;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 40px;
   padding: 6px;
@@ -1417,16 +1417,16 @@
   align-items: center;
   gap: 6px;
   border: 1px solid rgba(0, 0, 0, 0.06);
-  background: white;
-  color: #64748b;
+  background: var(--bg-card) ;
+  color: var(--pp-text-3);
   transition: all 0.2s ease;
   cursor: pointer;
   outline: none;
 }
 
 .plat-pagination-btn:hover:not(:disabled) {
-  background: #f8fafc;
-  color: #1e293b;
+  background: var(--bg-surface-2);
+  color: var(--pp-ink);
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
@@ -1439,7 +1439,7 @@
 .plat-pagination-info {
   font-size: 13px;
   font-weight: 400;
-  color: #94a3b8;
+  color: var(--pp-text-4);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1448,7 +1448,7 @@
 }
 
 .plat-pagination-info b {
-  color: #1e293b;
+  color: var(--pp-ink);
   font-weight: 700;
 }
 
@@ -1520,10 +1520,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-main);
   border-radius: 8px;
-  background: white;
-  color: #64748b;
+  background: var(--bg-card) ;
+  color: var(--pp-text-3);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1533,9 +1533,9 @@
 
 .plat-pagination-btn:hover:not(:disabled),
 .plat-pagination-page:hover:not(.is-active) {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #334155;
+  background: var(--bg-surface-2);
+  border-color: var(--border-main);
+  color: var(--pp-text-2);
 }
 
 .plat-pagination-btn:disabled {
@@ -1544,8 +1544,8 @@
 }
 
 .plat-pagination-page.is-active {
-  background: #334155;
-  border-color: #334155;
+  background: var(--pp-ink);
+  border-color: var(--pp-text-2);
   color: white;
   font-size: 13px;
   font-weight: 600;

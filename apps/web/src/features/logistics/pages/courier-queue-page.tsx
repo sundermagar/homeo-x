@@ -315,10 +315,10 @@ export function CourierQueuePage() {
                         <td data-label="Remedy">
                           <div className="flex flex-wrap gap-2" style={{ maxWidth: '450px' }}>
                             {entry.remediesList?.map((rem, idx) => (
-                              <div key={idx} className="flex items-center gap-1.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md px-1.5 py-1 shadow-sm">
-                                {rem.remedy && <span className="text-[11px] font-bold text-[#111827]">{rem.remedy}</span>}
-                                {rem.potency && <span className="text-[10px] font-semibold text-[#6B7280]">{rem.potency}</span>}
-                                {rem.days && <span className="text-[10px] font-bold text-[#2563EB] bg-[#EFF6FF] px-1.5 py-0.5 rounded">{rem.days}d</span>}
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-surface-2)', border: '1px solid var(--border-main)', borderRadius: '6px', padding: '4px 6px', boxShadow: 'var(--pp-shadow-sm)' }}>
+                                {rem.remedy && <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-main)' }}>{rem.remedy}</span>}
+                                {rem.potency && <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)' }}>{rem.potency}</span>}
+                                {rem.days && <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--pp-blue)', background: 'var(--pp-blue-tint)', padding: '2px 6px', borderRadius: '4px' }}>{rem.days}d</span>}
                               </div>
                             ))}
                           </div>

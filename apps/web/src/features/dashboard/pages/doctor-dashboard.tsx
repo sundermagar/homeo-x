@@ -444,7 +444,7 @@ export function DoctorDashboard() {
                         </div>
                         {a.status === 'Absent' && (
                           <div className="flex items-center gap-2">
-                            <div className="plat-badge" style={{ background: '#f1f5f9', color: '#64748b' }}>Absent</div>
+                            <div className="plat-badge" style={{ background: 'var(--bg-surface-2)', color: 'var(--text-muted)' }}>Absent</div>
                             <button 
                               className="plat-btn plat-btn-sm plat-btn-ghost" 
                               style={{ padding: '2px 6px', fontSize: '10px' }}
@@ -568,8 +568,8 @@ export function DoctorDashboard() {
         onClose={() => setRescheduleItem(null)}
         title={
           <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>Reschedule Appointment</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: 400 }}>
+            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>Reschedule Appointment</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontWeight: 400 }}>
               {rescheduleItem?.patientName}
             </div>
           </div>
@@ -693,12 +693,12 @@ const BillingItem = memo(function BillingItem({ patient, id, amount, status, onV
         {patient.charAt(0).toUpperCase()}
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{patient}</span>
-        <span style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>INV-{id}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>{patient}</span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>INV-{id}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>₹{amount}</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-main)' }}>₹{amount}</span>
           <span className={`dash-tag tag-${status.toLowerCase()}`} style={{ padding: '2px 8px', fontSize: 10, borderRadius: '4px', letterSpacing: '0.02em' }}>
             {status.toUpperCase()}
           </span>

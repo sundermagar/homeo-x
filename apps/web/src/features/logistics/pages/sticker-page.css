@@ -5,28 +5,28 @@
 }
 
 .sticker-card {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--bg-card);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border-main);
   border-radius: 20px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--pp-shadow-sm);
 }
 
 .sticker-card:hover {
   transform: translateY(-6px) scale(1.01);
-  border-color: rgba(59, 130, 246, 0.4);
+  border-color: var(--primary);
   box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.15);
 }
 
 .sticker-card-header {
   padding: 20px 24px;
-  background: linear-gradient(to right, rgba(248, 250, 252, 0.8), rgba(255, 255, 255, 0.4));
-  border-bottom: 1px solid #f1f5f9;
+  background: var(--bg-surface-2);
+  border-bottom: 1px solid var(--border-main);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -36,7 +36,7 @@
   margin: 0 0 6px;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   text-transform: capitalize;
 }
 
@@ -44,7 +44,7 @@
   margin: 0;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--pp-text-3);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -96,20 +96,20 @@
   align-items: flex-start;
   gap: 16px;
   padding: 16px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-main);
   border-radius: 12px;
   transition: background 0.2s;
 }
 
 .sticker-medicine-item:hover {
-  background: #f1f5f9;
+  background: var(--bg-surface-2);
 }
 
 .sticker-med-icon {
   color: #3b82f6;
   margin-top: 2px;
-  background: #eff6ff;
+  background: var(--pp-blue-tint);
   padding: 8px;
   border-radius: 10px;
   width: 32px;
@@ -123,25 +123,25 @@
 .sticker-med-name {
   font-weight: 700;
   font-size: 1rem;
-  color: #1e293b;
+  color: var(--pp-ink);
   margin: 0 0 6px;
 }
 
 .sticker-med-meta {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--pp-text-3);
   display: flex;
   gap: 16px;
 }
 
 .sticker-card-footer {
   padding: 20px 24px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-main);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--bg-surface-2);
 }
 
 .sticker-billing {
@@ -152,7 +152,7 @@
 .sticker-billing-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--pp-text-4);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -160,7 +160,7 @@
 .sticker-billing-amount {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .sticker-print-btn {
@@ -201,16 +201,16 @@
   align-items: center;
   justify-content: center;
   padding: 80px 0;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.5);
+  color: var(--pp-text-4);
+  background: var(--bg-surface-2);
   border-radius: 24px;
-  border: 2px dashed #e2e8f0;
+  border: 2px dashed var(--border-main);
   margin-top: 24px;
 }
 
 .sticker-empty h3 {
   margin: 20px 0 8px;
-  color: #1e293b;
+  color: var(--pp-ink);
   font-size: 1.5rem;
   font-weight: 700;
 }
@@ -249,7 +249,7 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    background: white;
+    background: var(--bg-card) ;
   }
 
   .thermal-label {
