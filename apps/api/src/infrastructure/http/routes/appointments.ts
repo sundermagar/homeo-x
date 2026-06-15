@@ -90,7 +90,10 @@ appointmentsRouter.get('/', asyncHandler(async (req, res) => {
   });
 
   if (result.success) {
+    // console.log(`[API] Returning ${result.data.data.length} appointments for fromDate=${from_date}, toDate=${to_date}. Sample:`, result.data.data.slice(0, 3).map((a: any) => a.bookingDate));
     sendSuccess(res, result.data);
+  } else {
+    throw new BadRequestError(result.error);
   }
 }));
 
@@ -238,6 +241,7 @@ appointmentsRouter.post('/', asyncHandler(async (req, res) => {
 
 // PUT /api/appointments/:id
 appointmentsRouter.put('/:id', asyncHandler(async (req, res) => {
+  console.log(`[API] PUT /appointments/${req.params.id} body:`, req.body);
   const manageAppt = new ManageAppointmentUseCase(getRepo(req), new NotificationsRepositoryPg(req.tenantDb));
   await manageAppt.update(Number(req.params.id), req.body);
   DashboardRepositoryPg.clearQueueCache();

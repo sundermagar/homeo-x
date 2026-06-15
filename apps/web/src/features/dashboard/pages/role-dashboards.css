@@ -2053,6 +2053,8 @@ button.pp-link:hover {
 .dd-timeline-dot.seen { background: var(--success); border-color: var(--success); }
 .dd-timeline-dot.ready { background: #d97757; border-color: #d97757; }
 .dd-timeline-dot.booked { border-color: var(--primary); border-width: 2px; }
+.dd-timeline-dot.absent { background: #94a3b8; border-color: #94a3b8; }
+.dd-timeline-dot.cancelled { background: #ef4444; border-color: #ef4444; }
 
 .dd-timeline-content {
   flex: 1;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Clock, Phone, User, MessageCircle, Send, CheckSquare, Square, MessageSquare, ChevronRight, Download, Printer } from 'lucide-react';
+import { Calendar, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Clock, Phone, User, MessageCircle, Send, CheckSquare, Square, MessageSquare, ChevronRight, Download, Printer, Eye, Zap } from 'lucide-react';
 import { usePackageExpiryReport } from '../hooks/use-packages';
 import { useWhatsApp } from '@/features/whatsapp/hooks/use-whatsapp';
 import { toast } from '@/hooks/use-toast';
@@ -54,7 +54,7 @@ export default function PackageTrackingPage() {
   const [statusNotes, setStatusNotes] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignPkgRecord, setAssignPkgRecord] = useState<any>(null);
 
   const { data: packageHistory = [], isLoading: isLoadingHistory } = usePackageHistory(Number(selectedRecord?.regid ?? selectedRecord?.patientId ?? 0));
 
@@ -389,26 +389,27 @@ export default function PackageTrackingPage() {
                       <td className="hide-on-print" data-label="Actions" style={{ textAlign: 'right' }}>
                         <div className="flex justify-end gap-2 fu-action-wrap">
                            <button
-                             className="fu-action-btn wa"
+                             className="fu-action-btn"
                              title="Send WhatsApp"
                              onClick={(e) => { e.stopPropagation(); sendSingleWhatsApp(r); }}
+                             style={{ color: '#25D366', borderColor: '#bbf7d0', background: '#F0FDF4' }}
                            >
-                             <MessageSquare size={14} />
+                             <MessageCircle size={14} />
                            </button>
                            <button
                              className="fu-action-btn"
                              title="Renew Package"
-                             onClick={(e) => { e.stopPropagation(); setSelectedRecord(r); setShowAssignModal(true); }}
-                             style={{ background: 'var(--primary)', borderColor: 'var(--primary)', color: 'white' }}
+                             onClick={(e) => { e.stopPropagation(); setAssignPkgRecord(r); }}
+                             style={{ background: 'var(--pp-blue)', borderColor: 'var(--pp-blue)', color: 'white' }}
                            >
-                             <RefreshCw size={14} />
+                             <Zap size={14} />
                            </button>
                            <button
                              className="fu-action-btn"
                              title="View Details"
                              onClick={(e) => { e.stopPropagation(); setSelectedRecord(r); }}
                            >
-                             <ChevronRight size={14} />
+                             <Eye size={14} />
                            </button>
                         </div>
                       </td>
@@ -574,8 +575,8 @@ export default function PackageTrackingPage() {
               <button className="pp-btn pp-btn-primary" onClick={() => navigate(`/medical-cases/${selectedRecord.patientId}`)}>
                 <User size={14} /> Profile
               </button>
-              <button className="pp-btn pp-btn-primary" style={{ background: '#059669' }} onClick={() => setShowAssignModal(true)}>
-                <RefreshCw size={14} /> Renew Package
+              <button className="pp-btn pp-btn-primary" style={{ background: '#059669' }} onClick={() => setAssignPkgRecord(selectedRecord)}>
+                <Zap size={14} /> Renew Package
               </button>
             </div>
           </div>
@@ -583,13 +584,13 @@ export default function PackageTrackingPage() {
       </Drawer>
 
       {/* Renew Modal */}
-      {showAssignModal && selectedRecord && (
+      {assignPkgRecord && (
         <AssignPackageModal
-          isOpen={showAssignModal}
-          patientId={Number(selectedRecord.regid ?? selectedRecord.patientId)}
-          onClose={() => setShowAssignModal(false)}
+          isOpen={!!assignPkgRecord}
+          patientId={Number(assignPkgRecord.regid ?? assignPkgRecord.patientId)}
+          onClose={() => setAssignPkgRecord(null)}
           onSuccess={() => {
-            setShowAssignModal(false);
+            setAssignPkgRecord(null);
             refetch();
           }}
         />

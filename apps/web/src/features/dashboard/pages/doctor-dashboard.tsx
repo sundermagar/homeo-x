@@ -318,6 +318,8 @@ export function DoctorDashboard() {
                 let statusText = '';
                 if (a.status === 'Completed') { dotClass = 'seen'; statusText = 'Seen'; }
                 else if (a.status === 'Waitlist' || a.status === 'Consultation') { dotClass = 'ready'; statusText = 'Ready'; }
+                else if (a.status === 'Absent') { dotClass = 'absent'; statusText = 'Absent'; }
+                else if (a.status === 'Cancelled') { dotClass = 'cancelled'; statusText = 'Cancelled'; }
                 else { dotClass = 'booked'; statusText = `${a.bookingTime || 'Scheduled'} · booked`; }
 
                 const isBold = a.status === 'Waitlist' || a.status === 'Consultation';
@@ -399,16 +401,41 @@ export function DoctorDashboard() {
             <div className="dd-timeline-meta">ASSIGNED TO YOU</div>
           </div>
           <div>
-            {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation')).length > 0 ? (
+            {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation' || a.status === 'Absent')).length > 0 ? (
               <div style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 4 }} className="db-scroll">
-                {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation')).map(a => {
+                {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation' || a.status === 'Absent')).map(a => {
                   const initials = (a.patientName || '').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
                   return (
-                    <div key={a.id} className="dd-list-item">
-                      <div className="dd-list-avatar blue">{initials}</div>
-                      <div className="dd-list-info">
-                        <div className="dd-list-name">{a.patientName}</div>
-                        <div className="dd-list-sub">MRN-{a.regid} {a.notes ? `· ${a.notes}` : ''}</div>
+                    <div key={a.id} className={`dd-list-item ${a.status === 'Absent' ? 'opacity-50' : ''}`}>
+                      <div className={`dd-list-avatar ${a.status === 'Absent' ? 'gray' : 'blue'}`}>{initials}</div>
+                      <div className="dd-list-info" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                        <div>
+                          <div className="dd-list-name">{a.patientName}</div>
+                          <div className="dd-list-sub">MRN-{a.regid} {a.notes ? `· ${a.notes}` : ''}</div>
+                        </div>
+                        {a.status === 'Absent' && (
+                          <div className="flex items-center gap-2">
+                            <div className="plat-badge" style={{ background: '#f1f5f9', color: '#64748b' }}>Absent</div>
+                            <button 
+                              className="plat-btn plat-btn-sm plat-btn-ghost" 
+                              style={{ padding: '2px 6px', fontSize: '10px' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateStatus.mutate(
+                                  { id: (a as any).visitId || a.id, status: 'Waitlist' },
+                                  {
+                                    onSuccess: () => {
+                                      qc.invalidateQueries({ queryKey: ['dashboard'] });
+                                      qc.invalidateQueries({ queryKey: apptKeys.all });
+                                    }
+                                  }
+                                );
+                              }}
+                            >
+                              Re-add
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

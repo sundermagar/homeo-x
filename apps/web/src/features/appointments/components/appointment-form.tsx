@@ -199,10 +199,17 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     }
 
     let normalizedDate = form.bookingDate;
-    if (normalizedDate && normalizedDate.includes('/')) {
-      const parts = normalizedDate.split('/');
-      if (parts.length === 3 && parts[0] && parts[1] && parts[2] && parts[2].length === 4) {
-        normalizedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    if (normalizedDate) {
+      if (normalizedDate.includes('/')) {
+        const parts = normalizedDate.split('/');
+        if (parts.length === 3 && parts[2]!.length === 4) {
+          normalizedDate = `${parts[2]}-${parts[1]!.padStart(2, '0')}-${parts[0]!.padStart(2, '0')}`;
+        }
+      } else if (normalizedDate.includes('-')) {
+        const parts = normalizedDate.split('-');
+        if (parts.length === 3 && parts[0]!.length !== 4) {
+          normalizedDate = `${parts[2]}-${parts[1]!.padStart(2, '0')}-${parts[0]!.padStart(2, '0')}`;
+        }
       }
     }
 

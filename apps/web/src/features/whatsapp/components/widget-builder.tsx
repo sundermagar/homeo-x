@@ -247,7 +247,7 @@ export const WidgetBuilder = () => {
                 <button
                   onClick={handleSave}
                   disabled={saveWidgetSettings.isPending}
-                  className="w-full bg-pp-blue hover:bg-pp-blue/90 text-white rounded-xl h-11 text-sm font-semibold shadow-sm transition-colors flex items-center justify-center gap-2"
+                  className="w-full pp-btn pp-btn-primary rounded-xl h-11 text-sm font-semibold shadow-sm transition-colors flex items-center justify-center gap-2"
                 >
                   {saveWidgetSettings.isPending && (
                     <Loader2 className="h-4 w-4 animate-spin" />
