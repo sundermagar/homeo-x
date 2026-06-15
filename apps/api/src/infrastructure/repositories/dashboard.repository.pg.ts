@@ -438,7 +438,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           q.booking_time,
           q.visit_id,
           q.notes,
-          COALESCE(p.mobile1, p.phone, q.a_phone) as phone,
+          COALESCE(NULLIF(p.mobile1, ''), NULLIF(p.phone, ''), NULLIF(q.a_phone, '')) as phone,
           COALESCE(p.first_name || ' ' || p.surname, q.manual_name, 'Unknown Patient') as patient_name,
           COALESCE(p.regid, p.id, q.patient_id) as regid,
           COALESCE(

@@ -25,7 +25,8 @@ const EMPTY_FORM = {
 };
 
 export default function ExpensesPage() {
-  const [page, setPage] = useState(1);
+  const [page, setPage]               = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [headFilter, setHeadFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -38,7 +39,7 @@ export default function ExpensesPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const query: ListExpensesQuery = {
-    page, limit: 10,
+    page, limit: itemsPerPage,
     head: headFilter ? parseInt(headFilter, 10) : undefined,
     fromDate: fromDate || undefined,
     toDate: toDate || undefined,
@@ -281,10 +282,10 @@ export default function ExpensesPage() {
       </div>
       <Pagination
         totalItems={total}
-        itemsPerPage={10}
+        itemsPerPage={itemsPerPage}
         currentPage={page}
         onPageChange={(p) => setPage(p)}
-        onLimitChange={() => {}}
+        onLimitChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
       />
 
       <Drawer

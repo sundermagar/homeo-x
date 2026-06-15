@@ -45,6 +45,7 @@ const STATUS_CLASS: Record<string, string> = {
 /* ─── Main Page ─────────────────────────────────────────────────────────────── */
 export default function PaymentsPage() {
   const [page, setPage]               = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [regidFilter, setRegidFilter] = useState('');
   const [fromDate, setFromDate]       = useState('');
   const [toDate, setToDate]           = useState('');
@@ -52,7 +53,7 @@ export default function PaymentsPage() {
 
   const historyQuery = usePaymentHistory({
     page,
-    limit: 10,
+    limit: itemsPerPage,
     regid: regidFilter ? parseInt(regidFilter, 10) : undefined,
   });
 
@@ -305,10 +306,10 @@ export default function PaymentsPage() {
 
       <Pagination
         totalItems={historyQuery.data?.pagination?.total ?? 0}
-        itemsPerPage={10}
+        itemsPerPage={itemsPerPage}
         currentPage={page}
         onPageChange={(p) => setPage(p)}
-        onLimitChange={() => {}}
+        onLimitChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
       />
 
       <Drawer

@@ -22,7 +22,7 @@ export interface IAnalyticsRepository {
   /**
    * Get detailed month-wise financial and clinical grid breakdown (casemonthwise)
    */
-  getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string): Promise<MonthWiseResult[]>;
+  getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string, doctorId?: number): Promise<MonthWiseResult[]>;
 
   /**
    * Get month-wise patient balance dues for a given year

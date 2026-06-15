@@ -16,13 +16,14 @@ const EMPTY_CASH_FORM = { depositDate: new Date().toISOString().split('T')[0], a
 export default function DepositsPage() {
   const [activeTab, setActiveTab] = useState<'bank' | 'cash'>('bank');
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
-  const [page, setPage] = useState(1);
+  const [page, setPage]               = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [dateFilter, setDateFilter] = useState('');
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submissionError, setSubmissionError] = useState('');
 
-  const bankQuery: ListDepositsQuery = { page, limit: 10, date: dateFilter || undefined };
+  const bankQuery: ListDepositsQuery = { page, limit: itemsPerPage, date: dateFilter || undefined };
   const cashQuery: ListDepositsQuery = { page, limit: 10, date: dateFilter || undefined };
 
   const bankQuery_ = useBankDeposits(bankQuery);
@@ -306,10 +307,10 @@ export default function DepositsPage() {
 
       <Pagination
         totalItems={total}
-        itemsPerPage={10}
+        itemsPerPage={itemsPerPage}
         currentPage={page}
         onPageChange={setPage}
-        onLimitChange={() => {}}
+        onLimitChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
       />
 
       <Drawer

@@ -83,7 +83,7 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
   const [toDate, setToDate] = useState(`${currentYear}-12`);
   const [submittedRange, setSubmittedRange] = useState({ from: `${currentYear}-01`, to: `${currentYear}-12` });
   const [page, setPage] = useState(1);
-  const itemsPerPage = 12;
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
   const { data, isLoading } = useCaseMonthWise(submittedRange.from, submittedRange.to);
 
@@ -226,16 +226,16 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
                     {Number(r['card'] ?? 0).toLocaleString('en-IN')}
                   </td>
                   <td className="plat-mono-data" style={{ textAlign: 'center' }}>
-                    {Number(r['coupon'] ?? 0) === 0 ? '' : Number(r['coupon']).toLocaleString('en-IN')}
+                    {Number(r['coupon'] ?? 0).toLocaleString('en-IN')}
                   </td>
                   <td className="plat-mono-data" style={{ textAlign: 'center', fontWeight: 600, color: 'var(--pp-danger-fg)' }}>
                     {Number(r['expenses'] ?? 0).toLocaleString('en-IN')}
                   </td>
                   <td className="plat-mono-data" style={{ textAlign: 'center' }}>
-                    {Number(r['cash_deposit'] ?? 0) === 0 ? '' : Number(r['cash_deposit']).toLocaleString('en-IN')}
+                    {Number(r['cash_deposit'] ?? 0).toLocaleString('en-IN')}
                   </td>
                   <td className="plat-mono-data" style={{ textAlign: 'center' }}>
-                    {Number(r['bank_deposit'] ?? 0) === 0 ? '' : Number(r['bank_deposit']).toLocaleString('en-IN')}
+                    {Number(r['bank_deposit'] ?? 0).toLocaleString('en-IN')}
                   </td>
                   <td className="plat-mono-data" style={{ textAlign: 'center', fontWeight: 700, color: cashInHand < 0 ? 'var(--pp-danger-fg)' : 'var(--pp-ink)' }}>
                     {cashInHand.toLocaleString('en-IN')}
@@ -265,7 +265,7 @@ function CaseMonthWiseTab({ onExport }: { onExport: (filename: string, headers: 
         pageSize={itemsPerPage}
         totalItems={(data ?? []).length}
         onPageChange={setPage}
-        onPageSizeChange={() => { }}
+        onPageSizeChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
       />
     </div>
   );
@@ -276,7 +276,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
   const { data: summary, isLoading } = useMonthWiseDues(year);
   const { data: callStatuses = [] } = useCallStatuses();
   const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   if (isLoading) return <TableSkeleton rows={10} columns={10} />;
 
@@ -375,7 +375,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
           pageSize={itemsPerPage}
           totalItems={(summary ?? []).length}
           onPageChange={setPage}
-          onPageSizeChange={() => { }}
+          onPageSizeChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
         />
       </div>
     </div>
@@ -384,7 +384,7 @@ function MonthWiseDueTab({ onExport }: { onExport: (filename: string, headers: s
 
 function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: string[], data: unknown[]) => void }) {
   const [page, setPage] = useState(1);
-  const itemsPerPage = 8;
+  const [itemsPerPage, setItemsPerPage] = useState(8);
   const { data, isLoading } = useBirthdayList();
   const { data: templates = [] } = useSmsTemplates();
   const { useSendText } = useWhatsApp();
@@ -583,7 +583,7 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
               pageSize={itemsPerPage}
               totalItems={(patients ?? []).length}
               onPageChange={setPage}
-              onPageSizeChange={() => { }}
+              onPageSizeChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
             />
           </div>
         )}
@@ -648,7 +648,7 @@ function BirthdaysTab({ onExport }: { onExport: (filename: string, headers: stri
 
 function ReferencesTab({ onExport }: { onExport: (filename: string, headers: string[], data: unknown[]) => void }) {
   const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -836,7 +836,7 @@ function ReferencesTab({ onExport }: { onExport: (filename: string, headers: str
             pageSize={itemsPerPage}
             totalItems={mergedData.length}
             onPageChange={setPage}
-            onPageSizeChange={() => { }}
+            onPageSizeChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
           />
         )}
 

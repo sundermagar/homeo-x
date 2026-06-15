@@ -31,10 +31,10 @@ export class AnalyticsUseCases {
     }
   }
 
-  async getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string): Promise<Result<MonthWiseResult[]>> {
+  async getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string, doctorId?: number): Promise<Result<MonthWiseResult[]>> {
     try {
       if (!fromYearMth || !toYearMth) return fail('Date range is required', 'VALIDATION');
-      const data = await this.repo.getMonthWiseBreakdown(clinicId, fromYearMth, toYearMth);
+      const data = await this.repo.getMonthWiseBreakdown(clinicId, fromYearMth, toYearMth, doctorId);
       return ok(data);
     } catch (err) {
       return fail(errMsg(err));

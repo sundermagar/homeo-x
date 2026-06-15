@@ -13,7 +13,7 @@ export default function ViewBalancePage() {
   const updateNoteMutation = useUpdateBalanceNote();
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   const [editingRegId, setEditingRegId] = useState<number | null>(null);
   const [editNoteText, setEditNoteText] = useState('');
@@ -28,7 +28,7 @@ export default function ViewBalancePage() {
 
   const paginatedBalances = useMemo(() => {
     return filteredBalances.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-  }, [filteredBalances, page]);
+  }, [filteredBalances, page, itemsPerPage]);
 
   const handleEditNote = (regid: number, currentNote: string | null) => {
     setEditingRegId(regid);
@@ -303,7 +303,7 @@ export default function ViewBalancePage() {
             itemsPerPage={itemsPerPage}
             currentPage={page}
             onPageChange={(p) => setPage(p)}
-            onLimitChange={() => {}}
+            onLimitChange={(l) => { setItemsPerPage(l); setPage(1); }}
           />
         </div>
       )}

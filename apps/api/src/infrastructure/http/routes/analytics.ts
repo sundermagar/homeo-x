@@ -5,6 +5,7 @@ import { sendSuccess } from '../../../shared/response-formatter.js';
 import { AnalyticsRepositoryPg } from '../../repositories/analytics.repository.pg.js';
 import { AnalyticsUseCases } from '../../../domains/analytics/use-cases/analytics.use-cases.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { Role } from '@mmc/types';
 
 const router = Router();
 router.use(authMiddleware);
@@ -37,9 +38,10 @@ router.get('/casemonthwise', asyncHandler(async (req: any, res) => {
   const from = (req.query.from_date as string) || `${new Date().getFullYear()}-01`;
   const to = (req.query.to_date as string) || `${new Date().getFullYear()}-12`;
   const clinicId = req.user?.contextId || req.user?.clinicId || (req.query.clinicId ? Number(req.query.clinicId) : undefined);
+  const doctorId = req.user?.type === Role.Doctor ? req.user.id : undefined;
 
   const useCases = getUseCases(req);
-  const result = await useCases.getMonthWiseBreakdown(clinicId, from, to);
+  const result = await useCases.getMonthWiseBreakdown(clinicId, from, to, doctorId);
   if (!result.success) throw new Error(result.error);
   sendSuccess(res, result.data);
 }));

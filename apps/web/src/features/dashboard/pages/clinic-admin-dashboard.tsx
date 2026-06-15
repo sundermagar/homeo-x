@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PieChart, Pie, Cell } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/infrastructure/api-client';
 import { useClinicAdminDashboard } from '../hooks/use-clinic-admin-dashboard';
@@ -110,14 +111,18 @@ export function ClinicAdminDashboard() {
 
   // Revenue Mix Data - Based on real breakdown
   const revenueMix = [
-    { label: 'Cash', value: revenueBreakdown.physicalCurrency || 0, color: '#16a34a' },
-    { label: 'UPI', value: revenueBreakdown.upiCard || 0, color: '#4f46e5' },
-    { label: 'Card', value: revenueBreakdown.cardAmt || 0, color: '#0ea5e9' },
-    { label: 'Cheque', value: revenueBreakdown.chequeAmt || 0, color: '#eab308' },
-    { label: 'Online', value: revenueBreakdown.onlineAmt || 0, color: '#8b5cf6' },
-    { label: 'Pending', value: revenueBreakdown.pending || 0, color: '#dc2626' },
+    { label: 'Cash', value: revenueBreakdown.physicalCurrency || 0, color: '#34d399' },
+    { label: 'UPI', value: revenueBreakdown.upiCard || 0, color: '#818cf8' },
+    { label: 'Card', value: revenueBreakdown.cardAmt || 0, color: '#38bdf8' },
+    { label: 'Cheque', value: revenueBreakdown.chequeAmt || 0, color: '#fbbf24' },
+    { label: 'Online', value: revenueBreakdown.onlineAmt || 0, color: '#c084fc' },
+    { label: 'Pending', value: revenueBreakdown.pending || 0, color: '#fb7185' },
   ].filter(r => r.value > 0 || r.label === 'Cash' || r.label === 'UPI' || r.label === 'Pending'); // Always show Cash/UPI/Pending, only show others if > 0
   const maxRev = Math.max(...revenueMix.map(r => r.value), 1);
+  const totalCollected = revenueMix.filter(r => r.label !== 'Pending').reduce((sum, r) => sum + r.value, 0);
+  const totalPending = revenueBreakdown.pending || 0;
+  const totalBilled = totalCollected + totalPending;
+  const collectedPercentage = totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 0;
 
   // Staff and Access
   const manageStaff = staffOnDuty;
@@ -151,6 +156,96 @@ export function ClinicAdminDashboard() {
       </div>
 
       {/* ── Middle Row ── */}
+      <div className="cad-grid-row">
+        
+        {/* Revenue Mix */}
+        <div className="cad-panel cad-col-rev">
+          <div className="cad-panel-header">
+            <div className="cad-panel-title">Revenue mix</div>
+            <div className="cad-panel-subtitle">TODAY</div>
+          </div>
+          
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>₹{totalBilled.toLocaleString()}</div>
+            <div style={{ fontSize: '14px', color: '#64748b' }}>Total collected today</div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+            <div style={{ position: 'relative', width: '140px', height: '140px', flexShrink: 0 }}>
+              <PieChart width={140} height={140}>
+                <Pie
+                  data={revenueMix}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={45}
+                  outerRadius={65}
+                  paddingAngle={2}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {revenueMix.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>{collectedPercentage}%</span>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>collected</span>
+              </div>
+            </div>
+            
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '16px' }}>
+              {revenueMix.map((rev, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: rev.color }} />
+                    <span style={{ fontSize: '14px', color: '#475569', fontWeight: 500 }}>{rev.label}</span>
+                  </div>
+                  <span style={{ fontSize: '14px', color: '#1e293b', fontWeight: 700 }}>₹{rev.value.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div style={{ display: 'flex', justifySelf: 'flex-end', flexDirection: 'column', flex: 1, justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px', color: '#64748b' }}>
+              <span>Received vs Pending</span>
+              <span style={{ fontWeight: 600, color: '#1e293b' }}>₹{totalCollected.toLocaleString()} / ₹{totalPending.toLocaleString()}</span>
+            </div>
+            <div style={{ height: '6px', width: '100%', display: 'flex', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${collectedPercentage}%`, background: 'linear-gradient(90deg, #34d399 0%, #38bdf8 50%, #c084fc 100%)' }} />
+              <div style={{ width: `${100 - collectedPercentage}%`, background: '#fb7185' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Staff and Access */}
+        <div className="cad-panel cad-col-staff">
+          <div className="cad-panel-header">
+            <div className="cad-panel-title">Staff & access</div>
+            <div className="cad-panel-subtitle">MANAGE</div>
+          </div>
+          <div className="cad-staff-list">
+            {manageStaff.length > 0 ? manageStaff.map((staff, i) => (
+              <StaffRow key={i} staff={staff} getInitials={getInitials} />
+            )) : (
+              <div className="cad-empty-state" style={{ padding: '20px 0' }}>No staff data</div>
+            )}
+            <div className="cad-staff-item" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+              <div className="cad-staff-avatar add">+</div>
+              <div className="cad-staff-info">
+                <div className="cad-staff-title">Add staff</div>
+                <div className="cad-staff-sub">nurse · receptionist · admin</div>
+              </div>
+              <button className="cad-btn-edit add" onClick={() => navigate('/settings/staff')}>Add</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── Bottom Row ── */}
       <div className="cad-grid-row">
         
         {/* Doctor Load */}
@@ -233,53 +328,6 @@ export function ClinicAdminDashboard() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── Bottom Row ── */}
-      <div className="cad-grid-row">
-        
-        {/* Revenue Mix */}
-        <div className="cad-panel cad-col-rev">
-          <div className="cad-panel-header">
-            <div className="cad-panel-title">Revenue mix</div>
-            <div className="cad-panel-subtitle">TODAY</div>
-          </div>
-          <div className="cad-bar-list">
-            {revenueMix.map((rev, i) => (
-              <div key={i} className="cad-bar-item">
-                <div className="cad-bar-label">{rev.label}</div>
-                <div className="cad-bar-track">
-                  <div className="cad-bar-fill" style={{ width: `${(rev.value / maxRev) * 100}%`, background: rev.color }} />
-                </div>
-                <div className="cad-bar-value">₹{rev.value.toLocaleString()}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Staff and Access */}
-        <div className="cad-panel cad-col-staff">
-          <div className="cad-panel-header">
-            <div className="cad-panel-title">Staff & access</div>
-            <div className="cad-panel-subtitle">MANAGE</div>
-          </div>
-          <div className="cad-staff-list">
-            {manageStaff.length > 0 ? manageStaff.map((staff, i) => (
-              <StaffRow key={i} staff={staff} getInitials={getInitials} />
-            )) : (
-              <div className="cad-empty-state" style={{ padding: '20px 0' }}>No staff data</div>
-            )}
-            <div className="cad-staff-item" style={{ borderBottom: 'none', paddingBottom: 0 }}>
-              <div className="cad-staff-avatar add">+</div>
-              <div className="cad-staff-info">
-                <div className="cad-staff-title">Add staff</div>
-                <div className="cad-staff-sub">nurse · receptionist · admin</div>
-              </div>
-              <button className="cad-btn-edit add" onClick={() => navigate('/settings/staff')}>Add</button>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
   );

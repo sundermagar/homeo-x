@@ -143,7 +143,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
     return { newPatients: filledNewPatients, revenueByMonth: filledRevenue, topDiagnoses };
   }
 
-  async getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string): Promise<MonthWiseResult[]> {
+  async getMonthWiseBreakdown(clinicId?: number, fromYearMth?: string, toYearMth?: string, doctorId?: number): Promise<MonthWiseResult[]> {
     const firstDay = `${fromYearMth}-01`;
     const lastDayDate = new Date(`${toYearMth}-01`);
     lastDayDate.setMonth(lastDayDate.getMonth() + 1);
@@ -167,6 +167,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         FROM case_datas p
         WHERE (p.deleted_at IS NULL)
           ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          ${doctorId ? sql`AND TRIM(p.assistant_doctor) = ${String(doctorId)}` : sql``}
           AND p.dob BETWEEN ${firstDay} AND ${lastDay}
         GROUP BY 1
       ),
@@ -176,6 +177,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         JOIN case_datas p ON p.regid = cp.regid
         WHERE (cp.deleted_at IS NULL OR cp.deleted_at::text = '')
           ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          ${doctorId ? sql`AND TRIM(p.assistant_doctor) = ${String(doctorId)}` : sql``}
           AND cp.sdate BETWEEN ${firstDay} AND ${lastDay}
         GROUP BY 1
       ),
@@ -204,6 +206,7 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
         WHERE (r.deleted_at IS NULL OR r.deleted_at::text = '')
           AND r.mode != 'RB'
           ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          ${doctorId ? sql`AND TRIM(p.assistant_doctor) = ${String(doctorId)}` : sql``}
           AND r.dateval::date BETWEEN ${firstDay} AND ${lastDay}
         GROUP BY 1
       ),
@@ -222,16 +225,22 @@ export class AnalyticsRepositoryPg implements IAnalyticsRepository {
           (ac.additional_name ~ '^\d+$' AND c.id = CAST(ac.additional_name AS INTEGER))
           OR 
           (ac.additional_name !~ '^\d+$' AND c.charges = ac.additional_name)
+        LEFT JOIN case_datas p ON p.regid = ac.regid
         WHERE (ac.deleted_at IS NULL OR ac.deleted_at::text = '')
           AND c.type = 'Product'
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          ${doctorId ? sql`AND TRIM(p.assistant_doctor) = ${String(doctorId)}` : sql``}
           AND ac.created_at::date BETWEEN ${firstDay} AND ${lastDay}
         GROUP BY 1
       ),
       coupons AS (
-        SELECT to_char(created_at, 'YYYY-MM') as month_key, sum(CAST(NULLIF(total_amount, '') AS NUMERIC))::int as total
-        FROM referral
-        WHERE (deleted_at IS NULL)
-          AND created_at::date BETWEEN ${firstDay} AND ${lastDay}
+        SELECT to_char(r.created_at, 'YYYY-MM') as month_key, sum(CAST(NULLIF(r.total_amount, '') AS NUMERIC))::int as total
+        FROM referral r
+        JOIN case_datas p ON p.regid = r.regid
+        WHERE (r.deleted_at IS NULL)
+          ${clinicId ? sql`AND p.clinic_id = ${clinicId}` : sql``}
+          ${doctorId ? sql`AND TRIM(p.assistant_doctor) = ${String(doctorId)}` : sql``}
+          AND r.created_at::date BETWEEN ${firstDay} AND ${lastDay}
         GROUP BY 1
       ),
       cash_deps AS (

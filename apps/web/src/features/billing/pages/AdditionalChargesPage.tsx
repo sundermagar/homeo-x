@@ -20,7 +20,8 @@ const EMPTY_FORM = {
 };
 
 export default function AdditionalChargesPage() {
-  const [page, setPage] = useState(1);
+  const [page, setPage]               = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [regidFilter, setRegidFilter] = useState('');
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,7 +29,7 @@ export default function AdditionalChargesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
-  const query = { page, limit: 10, regid: regidFilter ? parseInt(regidFilter, 10) : undefined };
+  const query = { page, limit: itemsPerPage, regid: regidFilter ? parseInt(regidFilter, 10) : undefined };
   const { data, isLoading } = useAdditionalCharges(query);
   
   // Fetch Predefined Charges Catalog
@@ -210,10 +211,10 @@ export default function AdditionalChargesPage() {
 
       <Pagination
         totalItems={total}
-        itemsPerPage={10}
+        itemsPerPage={itemsPerPage}
         currentPage={page}
         onPageChange={(p) => setPage(p)}
-        onLimitChange={() => {}}
+        onLimitChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
       />
 
       <Drawer

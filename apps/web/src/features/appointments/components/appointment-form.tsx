@@ -450,6 +450,8 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             />
           </div>
 
+
+
           {searchStatus === 'not-found' && !editAppointment && (
             <div className="appt-form-row appt-form-row-2 animate-fade-in" style={{ marginTop: '8px' }}>
               <div className="appt-form-group">
@@ -486,6 +488,19 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
               </div>
             </div>
           )}
+
+          <div className="appt-form-group">
+            <label className="appt-form-label">
+              <FileText size={13} strokeWidth={1.6} />
+              Chief Complaint
+            </label>
+            <textarea
+              className="appt-form-input appt-form-textarea"
+              placeholder="What brings the patient in today? e.g. fever for 3 days, recurring headache, anxiety…"
+              value={form.notes}
+              onChange={e => set('notes', e.target.value)}
+            />
+          </div>
 
           <div className="appt-form-row appt-form-row-2">
             <div className="appt-form-group">
@@ -575,18 +590,7 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
             </div>
           </div>
 
-          <div className="appt-form-group">
-            <label className="appt-form-label">
-              <FileText size={13} strokeWidth={1.6} />
-              Chief Complaint
-            </label>
-            <textarea
-              className="appt-form-input appt-form-textarea"
-              placeholder="What brings the patient in today? e.g. fever for 3 days, recurring headache, anxiety…"
-              value={form.notes}
-              onChange={e => set('notes', e.target.value)}
-            />
-          </div>
+
 
           <div className="appt-form-actions" style={{ marginTop: '16px' }}>
             <button type="button" className="appt-btn appt-form-cancel" onClick={onCancel || onClose}>

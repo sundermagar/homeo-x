@@ -24,7 +24,8 @@ export default function DayChargesPage() {
   const [search, setSearch] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
-  const [page, setPage] = useState(1);
+  const [page, setPage]               = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const filtered = charges.filter(c =>
     !search || (c.days ?? '').toLowerCase().includes(search.toLowerCase())
@@ -164,10 +165,10 @@ export default function DayChargesPage() {
 
       <Pagination
         totalItems={filtered.length}
-        itemsPerPage={10}
+        itemsPerPage={itemsPerPage}
         currentPage={page}
         onPageChange={setPage}
-        onLimitChange={() => {}}
+        onLimitChange={(sz) => { setItemsPerPage(sz); setPage(1); }}
       />
 
       <Drawer

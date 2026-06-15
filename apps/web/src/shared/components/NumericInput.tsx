@@ -15,6 +15,9 @@ export const NumericInput: React.FC<NumericInputProps> = ({
   ...props 
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (onKeyDown) {
+      onKeyDown(e);
+    }
     // Allow: backspace, delete, tab, escape, enter, and . (optional, but requested only integers)
     if (
       ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) ||

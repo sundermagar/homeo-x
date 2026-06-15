@@ -962,7 +962,7 @@ ${PRINT_STYLES}
   ${data.advice ? `
     <section class="rx-section">
       <h3 class="rx-section-label">Advice / Instructions</h3>
-      <p class="rx-prose">${escapeHtml(data.advice).replace(/\n/g, '<br>')}</p>
+      <p class="rx-prose">${escapeHtml(data.advice).replace(/\n/g, '<br>').replace(/(Next Follow-up:.*)/gi, '<strong>$1</strong>')}</p>
     </section>
   ` : ''}
 
