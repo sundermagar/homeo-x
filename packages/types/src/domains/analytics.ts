@@ -193,8 +193,11 @@ export interface UnifiedDashboardData {
 export interface RevenueBreakdown {
   physicalCurrency: number;
   physicalCurrencyPct: number;
-  upiCard: number;
+  upiCard: number; // Keeping for backward compatibility (could be pure UPI now)
   upiCardPct: number;
+  cardAmt?: number;
+  chequeAmt?: number;
+  onlineAmt?: number;
   pending: number;
   pendingCount: number;
   perPatient: number;

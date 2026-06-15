@@ -700,9 +700,9 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
       let modeFilter = '';
       if (paymentMode === 'Cash') {
-        modeFilter = "AND (LOWER(COALESCE(payment_mode, '')) = 'cash' OR payment_mode IS NULL OR payment_mode = '')";
+        modeFilter = "AND (LOWER(COALESCE(payment_mode, '')) IN ('cash', 'c') OR payment_mode IS NULL OR payment_mode = '')";
       } else if (paymentMode === 'UPI/Card') {
-        modeFilter = "AND LOWER(COALESCE(payment_mode, '')) IN ('upi', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm')";
+        modeFilter = "AND NOT (LOWER(COALESCE(payment_mode, '')) IN ('cash', 'c') OR payment_mode IS NULL OR payment_mode = '')";
       }
 
       const results = await this.db.execute(sql`
@@ -777,7 +777,7 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           date_trunc(${sql.raw(`'${truncUnit}'`)}, r.created_at)::timestamp as p,
           CAST(NULLIF(r.amount::text, '') AS numeric) as amt,
           CASE WHEN (LOWER(COALESCE(r.mode, '')) IN ('cash', 'c') OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as cash_amt,
-          CASE WHEN LOWER(COALESCE(r.mode, '')) IN ('upi', 'u', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as upi_amt
+          CASE WHEN NOT (LOWER(COALESCE(r.mode, '')) IN ('cash', 'c') OR r.mode IS NULL OR r.mode = '') THEN CAST(NULLIF(r.amount::text, '') AS numeric) ELSE 0 END as upi_amt
         FROM receipt r
         LEFT JOIN case_datas pr ON pr.regid = r.regid
         WHERE r.created_at >= ${seriesStart}::timestamp AND r.created_at <= ${seriesEnd}::timestamp
@@ -929,12 +929,18 @@ export class DashboardRepositoryPg implements IDashboardRepository {
           SELECT
             COALESCE(sum(cash_amt), 0) as cash_total,
             COALESCE(sum(upi_amt), 0) as upi_total,
+            COALESCE(sum(card_amt), 0) as card_total,
+            COALESCE(sum(cheque_amt), 0) as cheque_total,
+            COALESCE(sum(online_amt), 0) as online_total,
             COALESCE(sum(balance), 0) as pending_charges,
             count(*) FILTER (WHERE balance > 0) as pending_count
           FROM (
             SELECT
               0 as cash_amt,
               0 as upi_amt,
+              0 as card_amt,
+              0 as cheque_amt,
+              0 as online_amt,
               balance
             FROM bills
             WHERE bill_date >= ${start}::date AND bill_date < ${boundary}::date
@@ -945,7 +951,10 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
             SELECT
               CASE WHEN (LOWER(COALESCE(mode, '')) IN ('cash', 'c') OR mode IS NULL OR mode = '') THEN CAST(NULLIF(amount::text, '') AS numeric) ELSE 0 END,
-              CASE WHEN LOWER(COALESCE(mode, '')) IN ('upi', 'u', 'card', 'online', 'bank', 'gpay', 'phonepe', 'paytm') THEN CAST(NULLIF(amount::text, '') AS numeric) ELSE 0 END,
+              CASE WHEN LOWER(COALESCE(mode, '')) IN ('upi', 'u', 'gpay', 'paytm', 'phonepe') THEN CAST(NULLIF(amount::text, '') AS numeric) ELSE 0 END,
+              CASE WHEN LOWER(COALESCE(mode, '')) IN ('card', 's', 'credit card', 'debit card') THEN CAST(NULLIF(amount::text, '') AS numeric) ELSE 0 END,
+              CASE WHEN LOWER(COALESCE(mode, '')) IN ('cheque', 'b', 'bank') THEN CAST(NULLIF(amount::text, '') AS numeric) ELSE 0 END,
+              CASE WHEN LOWER(COALESCE(mode, '')) IN ('online', 'o', 'netbanking') THEN CAST(NULLIF(amount::text, '') AS numeric) ELSE 0 END,
               0
             FROM receipt
             WHERE created_at >= ${start}::timestamp AND created_at < ${boundary}::timestamp
@@ -961,19 +970,25 @@ export class DashboardRepositoryPg implements IDashboardRepository {
 
       const combined = (combinedRes as any[])[0] || {};
       const cashTotal = Number(combined.cash_total) || 0;
-      const upiCardTotal = Number(combined.upi_total) || 0;
+      const upiTotal = Number(combined.upi_total) || 0;
+      const cardTotal = Number(combined.card_total) || 0;
+      const chequeTotal = Number(combined.cheque_total) || 0;
+      const onlineTotal = Number(combined.online_total) || 0;
       const pendingTotal = Math.max(0, Number(combined.pending_charges) || 0);
       const pendingCount = Number(combined.pending_count) || 0;
 
-      const grandTotal = cashTotal + upiCardTotal || 1;
+      const grandTotal = cashTotal + upiTotal + cardTotal + chequeTotal + onlineTotal || 1;
       const patCount = (patCountRes[0] as any)?.cnt || 1;
       const perPatient = grandTotal / patCount;
 
       return {
         physicalCurrency: cashTotal,
         physicalCurrencyPct: Math.round((cashTotal / grandTotal) * 1000) / 10,
-        upiCard: upiCardTotal,
-        upiCardPct: Math.round((upiCardTotal / grandTotal) * 1000) / 10,
+        upiCard: upiTotal, // Backward compat
+        upiCardPct: Math.round((upiTotal / grandTotal) * 1000) / 10,
+        cardAmt: cardTotal,
+        chequeAmt: chequeTotal,
+        onlineAmt: onlineTotal,
         pending: pendingTotal,
         pendingCount,
         perPatient: Math.round(perPatient),

@@ -429,11 +429,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const toggleGroup = (id: string, isSubGroup = false) => {
     if (isSubGroup) {
       setOpenSubGroups(prev =>
-        prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
+        prev.includes(id) ? [] : [id]
       );
     } else {
       setOpenGroups(prev =>
-        prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
+        prev.includes(id) ? [] : [id]
       );
     }
   };

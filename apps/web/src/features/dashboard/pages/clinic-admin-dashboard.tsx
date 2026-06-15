@@ -111,9 +111,12 @@ export function ClinicAdminDashboard() {
   // Revenue Mix Data - Based on real breakdown
   const revenueMix = [
     { label: 'Cash', value: revenueBreakdown.physicalCurrency || 0, color: '#16a34a' },
-    { label: 'UPI / Card', value: revenueBreakdown.upiCard || 0, color: '#4f46e5' },
+    { label: 'UPI', value: revenueBreakdown.upiCard || 0, color: '#4f46e5' },
+    { label: 'Card', value: revenueBreakdown.cardAmt || 0, color: '#0ea5e9' },
+    { label: 'Cheque', value: revenueBreakdown.chequeAmt || 0, color: '#eab308' },
+    { label: 'Online', value: revenueBreakdown.onlineAmt || 0, color: '#8b5cf6' },
     { label: 'Pending', value: revenueBreakdown.pending || 0, color: '#dc2626' },
-  ];
+  ].filter(r => r.value > 0 || r.label === 'Cash' || r.label === 'UPI' || r.label === 'Pending'); // Always show Cash/UPI/Pending, only show others if > 0
   const maxRev = Math.max(...revenueMix.map(r => r.value), 1);
 
   // Staff and Access
