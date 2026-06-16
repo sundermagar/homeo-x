@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Drawer } from '@/shared/components/drawer';
 import { format } from 'date-fns';
 import { DollarSign, Printer, CreditCard, FileText } from 'lucide-react';
@@ -16,7 +16,18 @@ interface Props {
 }
 
 export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Props) {
-  const { data: patientHistory } = usePatientBills(regid);
+  const { data: patientHistory, refetch } = usePatientBills(regid);
+
+  useEffect(() => {
+    if (isOpen && regid) {
+      import('@/infrastructure/api-client').then(({ apiClient }) => {
+        apiClient.get('/accounts/cleanup-duplicates').then(() => {
+          refetch();
+        }).catch(console.error);
+      });
+    }
+  }, [isOpen, regid, refetch]);
+
   const { data: orgs = [] } = useOrganizations();
   const user = useAuthStore(s => s.user);
   const myOrg = orgs.find(o => o.id === user?.contextId) || orgs[0];
@@ -76,7 +87,7 @@ export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Pr
       } else if (isConsultation) {
         group.consultationCharge += chargeAmount;
       } else if (billType !== 'Custom') {
-        group.registrationCharge += chargeAmount;
+        group.additionalCharge += chargeAmount;
       }
     }
     return Array.from(map.values()).sort((a, b) => new Date(b.billDate).getTime() - new Date(a.billDate).getTime());

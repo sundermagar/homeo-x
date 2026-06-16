@@ -171,7 +171,11 @@ export class CourierRepositoryPg {
    * Matches legacy CouriermedicineController::savepackages().
    */
   async assign(input: AssignCourierInput): Promise<CourierMedicineRow> {
+    // We update all entries that belong to the same prescription batch (same rand_id)
     const [row] = await this.db.execute(sql`
+      WITH target AS (
+        SELECT rand_id FROM courier_medicine WHERE id = ${input.id}
+      )
       UPDATE courier_medicine
       SET 
         pcd = COALESCE(${input.pcd || null}, pcd),
@@ -179,7 +183,7 @@ export class CourierRepositoryPg {
         pickup = COALESCE(${input.pickup ?? null}, pickup),
         is_assign = 1,
         updated_at = NOW()
-      WHERE id = ${input.id}
+      WHERE rand_id = (SELECT rand_id FROM target)
       RETURNING *
     `) as any[];
 

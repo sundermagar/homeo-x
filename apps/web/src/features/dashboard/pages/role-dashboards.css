@@ -1064,27 +1064,27 @@ button.pp-link:hover {
 }
 
 .btn-checkin {
-  background: #f0fdf4;
-  color: #16a34a;
+  background: var(--pp-success-bg);
+  color: var(--pp-success-fg);
   border-color: #dcfce7;
 }
 
 .btn-checkin:hover:not(:disabled) {
   background: #16a34a;
   color: white;
-  border-color: #16a34a;
+  border-color: var(--pp-success-fg);
 }
 
 .btn-call {
-  background: #fffbeb;
-  color: #d97706;
+  background: var(--pp-warning-bg);
+  color: var(--pp-warning-fg);
   border-color: #fef3c7;
 }
 
 .btn-call:hover:not(:disabled) {
   background: #d97706;
   color: white;
-  border-color: #d97706;
+  border-color: var(--pp-warning-fg);
 }
 
 .dash-action-btn:disabled {
@@ -1098,7 +1098,7 @@ button.pp-link:hover {
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  background: #f8fafc;
+  background: var(--bg-surface-2);
   border: 1px solid #f1f5f9;
   border-radius: 8px;
   text-decoration: none;
@@ -1106,7 +1106,7 @@ button.pp-link:hover {
 }
 
 .hover-op-icon {
-  color: #2563eb;
+  color: var(--pp-blue);
   display: flex;
 }
 
@@ -1114,16 +1114,16 @@ button.pp-link:hover {
   font-size: 12px;
   font-weight: 700;
   flex: 1;
-  color: #475569;
+  color: var(--pp-text-2);
 }
 
 .hover-op-arrow {
-  color: #94a3b8;
+  color: var(--pp-text-4);
 }
 
 .hover-op:hover {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+  background: var(--bg-surface-2);
+  border-color: var(--border-main);
 }
 
 /* ─── Dark Theme Overrides for Buttons & OpLinks ─── */
@@ -1679,8 +1679,8 @@ button.pp-link:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-main);
   border-radius: 12px;
   padding: 16px 12px;
   cursor: pointer;
@@ -1690,8 +1690,8 @@ button.pp-link:hover {
 }
 
 .rd-quick-action-btn:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  background: var(--bg-surface-2);
+  border-color: var(--border-main);
   transform: translateY(-1px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
 }
@@ -1941,7 +1941,7 @@ button.pp-link:hover {
 }
 
 .dd-btn-start {
-  background: white;
+  background: var(--bg-card) ;
   color: var(--primary);
   border: none;
   border-radius: 8px;
@@ -1954,7 +1954,7 @@ button.pp-link:hover {
   cursor: pointer;
 }
 .dd-btn-start:hover {
-  background: #f8fafc;
+  background: var(--bg-surface-2);
 }
 
 .dd-btn-chart {
@@ -1997,7 +1997,7 @@ button.pp-link:hover {
 .dd-timeline-meta {
   font-family: var(--pp-font-mono);
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--pp-text-4);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -2020,7 +2020,7 @@ button.pp-link:hover {
   top: 6px;
   bottom: 0;
   width: 1px;
-  background: #e2e8f0;
+  background: var(--border-main);
   z-index: 0;
 }
 
@@ -2035,7 +2035,7 @@ button.pp-link:hover {
 .dd-timeline-time {
   font-family: var(--pp-font-mono);
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--pp-text-4);
   width: 36px;
   flex-shrink: 0;
   padding-top: 2px;
@@ -2047,13 +2047,13 @@ button.pp-link:hover {
   border-radius: 50%;
   margin-top: 4px;
   flex-shrink: 0;
-  background: white;
+  background: var(--bg-card) ;
   border: 2px solid #e2e8f0;
 }
 .dd-timeline-dot.seen { background: var(--success); border-color: var(--success); }
 .dd-timeline-dot.ready { background: #d97757; border-color: #d97757; }
 .dd-timeline-dot.booked { border-color: var(--primary); border-width: 2px; }
-.dd-timeline-dot.absent { background: #94a3b8; border-color: #94a3b8; }
+.dd-timeline-dot.absent { background: #94a3b8; border-color: var(--pp-text-4); }
 .dd-timeline-dot.cancelled { background: #ef4444; border-color: #ef4444; }
 
 .dd-timeline-content {
@@ -2062,12 +2062,12 @@ button.pp-link:hover {
 
 .dd-timeline-name {
   font-size: 13px;
-  color: #0f172a;
+  color: var(--text-main);
 }
 .dd-timeline-name.bold { font-weight: 700; }
 .dd-timeline-status {
   font-size: 11px;
-  color: #64748b;
+  color: var(--pp-text-3);
   margin-top: 2px;
 }
 
@@ -2121,8 +2121,8 @@ button.pp-link:hover {
   color: white;
 }
 .dd-action-card:not(.primary) .dd-action-icon {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--bg-surface-2);
+  color: var(--pp-text-2);
 }
 
 .dd-action-info {
@@ -2134,11 +2134,11 @@ button.pp-link:hover {
   font-weight: 700;
   color: inherit;
 }
-.dd-action-card:not(.primary) .dd-action-title { color: #0f172a; }
+.dd-action-card:not(.primary) .dd-action-title { color: var(--text-main); }
 
 .dd-action-subtitle {
   font-size: 11px;
-  color: #64748b;
+  color: var(--pp-text-3);
 }
 
 /* Bottom Row */
@@ -2184,8 +2184,8 @@ button.pp-link:hover {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--border-main);
+  color: var(--pp-text-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2201,11 +2201,11 @@ button.pp-link:hover {
 .dd-list-name {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
 }
 .dd-list-sub {
   font-size: 11px;
-  color: #64748b;
+  color: var(--pp-text-3);
   margin-top: 2px;
 }
 

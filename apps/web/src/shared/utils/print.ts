@@ -506,9 +506,14 @@ export const printAppointmentSlip = (appointment: {
           .footer-note { font-size: 9px; color: #cbd5e1; margin-top: 4px; }
 
           @media print {
-            body { padding: 20px; }
+            body { padding: 0; font-size: 12px; }
+            .container { page-break-inside: avoid; }
             .no-print { display: none; }
-            @page { margin: 1cm; size: A5; }
+            @page { margin: 10mm; size: auto; }
+            .letterhead { margin-bottom: 12px; }
+            .slip-label-wrap { margin-bottom: 12px; }
+            .patient-bar, .details-grid, .fee-bar, .instructions { margin-bottom: 12px; }
+            .footer { margin-top: 12px; padding-top: 10px; }
           }
         </style>
       </head>

@@ -51,8 +51,8 @@ const StatCard = memo(function StatCard({ icon: Icon, value, label, variant = 'd
         <Icon size={20} strokeWidth={2} />
       </div>
       <div>
-        <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 500, marginBottom: '2px' }}>{label}</div>
-        <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a' }}>{value}</div>
+        <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '2px' }}>{label}</div>
+        <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-main)' }}>{value}</div>
       </div>
     </div>
   );
@@ -460,7 +460,7 @@ export default function OperationsDashboard() {
                       <tbody>
                         {referrals.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((r, idx) => (
                           <tr key={idx} className="plat-table-row">
-                            <td><span className="cell-main">{r.first_name} {r.surname}</span></td>
+                            <td><span className="cell-main">{(r.first_name || r.surname) ? `${r.first_name || ''} ${r.surname || ''}`.trim() : `Unknown`}</span></td>
                             <td><span className="cell-sub">ID: {r.referral_id}</span></td>
                             <td>
                               <span style={{ color: 'var(--pp-success-fg)', fontWeight: 600 }}>₹{r.total_amount}</span>
@@ -605,7 +605,7 @@ export default function OperationsDashboard() {
               <div className="ops-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
                 {dictionary.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(d => (
                   <div key={d.id} className="ops-card" style={{ padding: 16, borderRadius: 18 }}>
-                    <div className="cell-main" style={{ fontSize: '16px', fontWeight: 800, color: 'var(--pp-blue-deep)', marginBottom: 8 }}>{d.title}</div>
+                    <div className="cell-main" style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', marginBottom: 8 }}>{d.title}</div>
                     <div style={{ fontSize: '13px', color: 'var(--pp-muted)', lineHeight: 1.5, marginBottom: 12, flex: 1 }}>{d.text}</div>
                     {d.cross_ref && (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

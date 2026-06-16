@@ -2054,7 +2054,7 @@ a {
 }
 
 .pp-btn-secondary {
-  background: white;
+  background: var(--bg-card) ;
   border-color: var(--pp-warm-4);
   color: var(--pp-text-2);
 }
@@ -2445,7 +2445,7 @@ a {
   display: block;
   font-size: 12px;
   font-weight: 400;
-  color: #94a3b8;
+  color: var(--pp-text-4);
   margin-top: 1px;
 }
 
@@ -2468,7 +2468,7 @@ a {
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--pp-text-4);
 }
 
 .cp-footer kbd {
@@ -2476,10 +2476,10 @@ a {
   font-size: 10px;
   font-weight: 700;
   background: var(--bg-surface-2);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-main);
   border-radius: 3px;
   padding: 1px 5px;
-  color: #64748b;
+  color: var(--pp-text-3);
 }
 
 /* ─── Global Shimmer Skeleton Loader ─── */
@@ -2651,7 +2651,7 @@ a {
 }
 
 .appt-segmented-btn.active {
-  background: #ffffff;
+  background: var(--bg-card) ;
   color: var(--pp-blue);
   box-shadow: 0 4px 12px rgba(22, 101, 228, 0.08), 0 1px 2px rgba(22, 101, 228, 0.04);
 }
@@ -2667,7 +2667,7 @@ a {
   font-weight: 700;
   cursor: pointer;
   border: 1px solid var(--pp-warm-4);
-  background: #ffffff;
+  background: var(--bg-card) ;
   color: var(--pp-text-2);
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -2715,7 +2715,7 @@ a {
 
 .appt-grid-card {
   padding: 24px;
-  background: #ffffff;
+  background: var(--bg-card) ;
   border: 1px solid var(--pp-warm-4);
   border-radius: 16px;
   box-shadow: var(--pp-shadow-sm);

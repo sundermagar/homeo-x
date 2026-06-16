@@ -182,9 +182,11 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
        }
     }
 
+    const patientIdStr = String(p.regid ?? p.id ?? form.patientId);
+
     setForm(f => ({
       ...f,
-      patientId: String(p.regid ?? p.id ?? f.patientId),
+      patientId: patientIdStr,
       patientName: p.fullName || `${p.firstName ?? ''} ${p.surname ?? ''}`.trim() || f.patientName,
       doctorId: previousDoctorId,
       consultationFee: previousFee,
@@ -192,6 +194,24 @@ export function AppointmentForm({ initialDate, editAppointment, onClose, onSucce
     }));
     setSearchStatus('found');
     setSearchResults([]);
+
+    // Asynchronously fetch previous chief complaint
+    apiClient.get<any>(`/patients/${patientIdStr}/history`)
+      .then(({ data }) => {
+        const visits = data?.data?.visits;
+        if (Array.isArray(visits) && visits.length > 0) {
+          const recentVisitWithComplaint = visits.find((v: any) => v.chiefComplaint?.trim());
+          if (recentVisitWithComplaint && recentVisitWithComplaint.chiefComplaint) {
+            setForm(f => ({
+              ...f,
+              notes: recentVisitWithComplaint.chiefComplaint
+            }));
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch patient history for chief complaint', err);
+      });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

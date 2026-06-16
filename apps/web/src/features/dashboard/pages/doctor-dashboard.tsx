@@ -46,6 +46,46 @@ function fmt(n: number): string {
   return `₹${n}`;
 }
 
+const QueueTimelineList = memo(function QueueTimelineList({ todayAppts, onStartConsultation }: { todayAppts: QueueItem[], onStartConsultation: (a: QueueItem) => void }) {
+  return (
+    <div className="dd-timeline-list db-scroll">
+      {todayAppts.length > 0 ? (
+        todayAppts.map((a, idx) => {
+          let dotClass = '';
+          let statusText = '';
+          if (a.status === 'Completed') { dotClass = 'seen'; statusText = 'Seen'; }
+          else if (a.status === 'Waitlist' || a.status === 'Consultation') { dotClass = 'ready'; statusText = 'Ready'; }
+          else if (a.status === 'Absent') { dotClass = 'absent'; statusText = 'Absent'; }
+          else if (a.status === 'Cancelled') { dotClass = 'cancelled'; statusText = 'Cancelled'; }
+          else { dotClass = 'booked'; statusText = `${a.bookingTime || 'Scheduled'} · booked`; }
+
+          const isBold = a.status === 'Waitlist' || a.status === 'Consultation';
+
+          return (
+            <div 
+              key={`${a.id}-${idx}`} 
+              className="dd-timeline-item"
+              style={{ cursor: 'pointer' }}
+              onClick={() => onStartConsultation(a)}
+            >
+              <div className="dd-timeline-time">{a.bookingTime || '—'}</div>
+              <div className={`dd-timeline-dot ${dotClass}`} />
+              <div className="dd-timeline-content">
+                <div className={`dd-timeline-name ${isBold ? 'bold' : ''}`}>{a.patientName}</div>
+                <div className="dd-timeline-status">{statusText}</div>
+              </div>
+            </div>
+          );
+        })
+      ) : (
+        <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: 13 }}>
+          No appointments today
+        </div>
+      )}
+    </div>
+  );
+});
+
 export function DoctorDashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -331,44 +371,10 @@ export function DoctorDashboard() {
           <div className="dd-timeline-header">
             <div className="dd-timeline-title">Today</div>
             <div className="dd-timeline-meta">
-              {todayAppts.length} · {todayAppts.filter(a => a.status === 'Waitlist').length} LEFT
+              {todayAppts.length} · {todayAppts.filter((a: any) => a.status === 'Waitlist').length} LEFT
             </div>
           </div>
-          <div className="dd-timeline-list db-scroll">
-            {todayAppts.length > 0 ? (
-              todayAppts.map((a, idx) => {
-                let dotClass = '';
-                let statusText = '';
-                if (a.status === 'Completed') { dotClass = 'seen'; statusText = 'Seen'; }
-                else if (a.status === 'Waitlist' || a.status === 'Consultation') { dotClass = 'ready'; statusText = 'Ready'; }
-                else if (a.status === 'Absent') { dotClass = 'absent'; statusText = 'Absent'; }
-                else if (a.status === 'Cancelled') { dotClass = 'cancelled'; statusText = 'Cancelled'; }
-                else { dotClass = 'booked'; statusText = `${a.bookingTime || 'Scheduled'} · booked`; }
-
-                const isBold = a.status === 'Waitlist' || a.status === 'Consultation';
-
-                return (
-                  <div 
-                    key={`${a.id}-${idx}`} 
-                    className="dd-timeline-item"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleStartConsultation(a)}
-                  >
-                    <div className="dd-timeline-time">{a.bookingTime || '—'}</div>
-                    <div className={`dd-timeline-dot ${dotClass}`} />
-                    <div className="dd-timeline-content">
-                      <div className={`dd-timeline-name ${isBold ? 'bold' : ''}`}>{a.patientName}</div>
-                      <div className="dd-timeline-status">{statusText}</div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: 13 }}>
-                No appointments today
-              </div>
-            )}
-          </div>
+          <QueueTimelineList todayAppts={todayAppts} onStartConsultation={handleStartConsultation} />
         </div>
       </div>
 
@@ -424,9 +430,9 @@ export function DoctorDashboard() {
             <div className="dd-timeline-meta">ASSIGNED TO YOU</div>
           </div>
           <div>
-            {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation' || a.status === 'Absent')).length > 0 ? (
+            {todayAppts.filter(a => (a.status === 'Waitlist' || a.status === 'Consultation' || a.status === 'Absent')).length > 0 ? (
               <div style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 4 }} className="db-scroll">
-                {todayAppts.filter(a => a.wlId != null && (a.status === 'Waitlist' || a.status === 'Consultation' || a.status === 'Absent')).map(a => {
+                {todayAppts.filter(a => (a.status === 'Waitlist' || a.status === 'Consultation' || a.status === 'Absent')).map(a => {
                   const initials = (a.patientName || '').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
                   return (
                     <div key={a.id} className={`dd-list-item ${a.status === 'Absent' ? 'opacity-50' : ''}`}>
@@ -438,7 +444,7 @@ export function DoctorDashboard() {
                         </div>
                         {a.status === 'Absent' && (
                           <div className="flex items-center gap-2">
-                            <div className="plat-badge" style={{ background: '#f1f5f9', color: '#64748b' }}>Absent</div>
+                            <div className="plat-badge" style={{ background: 'var(--bg-surface-2)', color: 'var(--text-muted)' }}>Absent</div>
                             <button 
                               className="plat-btn plat-btn-sm plat-btn-ghost" 
                               style={{ padding: '2px 6px', fontSize: '10px' }}
@@ -562,8 +568,8 @@ export function DoctorDashboard() {
         onClose={() => setRescheduleItem(null)}
         title={
           <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a' }}>Reschedule Appointment</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: 400 }}>
+            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>Reschedule Appointment</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, fontWeight: 400 }}>
               {rescheduleItem?.patientName}
             </div>
           </div>
@@ -687,12 +693,12 @@ const BillingItem = memo(function BillingItem({ patient, id, amount, status, onV
         {patient.charAt(0).toUpperCase()}
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{patient}</span>
-        <span style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>INV-{id}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>{patient}</span>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>INV-{id}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>₹{amount}</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-main)' }}>₹{amount}</span>
           <span className={`dash-tag tag-${status.toLowerCase()}`} style={{ padding: '2px 8px', fontSize: 10, borderRadius: '4px', letterSpacing: '0.02em' }}>
             {status.toUpperCase()}
           </span>
