@@ -86,7 +86,7 @@ export function PatientBillingDrawer({ regid, patientName, isOpen, onClose }: Pr
         group.registrationCharge += chargeAmount;
       } else if (isConsultation) {
         group.consultationCharge += chargeAmount;
-      } else if (billType !== 'Custom') {
+      } else {
         group.additionalCharge += chargeAmount;
       }
     }

@@ -157,10 +157,9 @@ function TimelineVisitCard({ dateKey, data, isFirst, isLast, medicalCase }: { da
                   <Pill size={13} /> Prescriptions
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {visitId && (
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <PrintPrescriptionButton
-                        visitId={String(visitId)}
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <PrintPrescriptionButton
+                      visitId={visitId ? String(visitId) : undefined}
                         inlineData={(() => {
                           const rxItems = data.rxItems.map((rx: any) => ({
                             medicationName: rx.remedy_name || rx.remedyName || rx.remedy || '',
@@ -228,7 +227,6 @@ function TimelineVisitCard({ dateKey, data, isFirst, isLast, medicalCase }: { da
                         className="h-7 py-1 px-2.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 border-indigo-200 dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-950/30 dark:border-indigo-800/40"
                       />
                     </div>
-                  )}
                   <ChevronDown size={14} style={{ color: 'var(--pp-text-3)', transform: isRxExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                 </div>
               </div>
@@ -1267,7 +1265,7 @@ export default function MedicalCaseDetailPage() {
         sumManual = summary.bills
           .filter(b => {
             const d = b.billDate || b.createdAt;
-            return toClinicDateString(d) === displayStr && (b.billType as string) === 'Additional';
+            return toClinicDateString(d) === displayStr && ((b.billType as string) === 'Additional' || b.billType === 'Custom');
           })
           .reduce((sum: number, b: any) => sum + (Number(b.charges) || 0), 0);
       }

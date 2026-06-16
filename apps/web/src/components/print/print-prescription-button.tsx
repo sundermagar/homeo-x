@@ -11,7 +11,7 @@ import { usePdfSettings } from '../../features/settings/hooks/use-settings';
 import { useAuthStore } from '@/shared/stores/auth-store';
 
 interface PrintPrescriptionButtonProps {
-  visitId: string;
+  visitId?: string;
   variant?: 'default' | 'outline' | 'ghost' | 'destructive' | 'link';
   size?: 'sm' | 'md' | 'lg' | 'icon';
   className?: string;
@@ -74,7 +74,7 @@ interface PrintPrescriptionButtonProps {
 }
 
 export function PrintPrescriptionButton({
-  visitId,
+  visitId = '',
   variant = 'outline',
   size = 'sm',
   className,
@@ -141,7 +141,7 @@ export function PrintPrescriptionButton({
           phone: inlineData.patient?.phone,
         },
         visit: {
-          visitNumber: (visit as any).visitNumber || visit.id?.slice(-6).toUpperCase() || visitId.slice(-6).toUpperCase(),
+          visitNumber: (visit as any).visitNumber || visit.id?.slice(-6).toUpperCase() || visitId?.slice(-6).toUpperCase() || 'N/A',
           date: (visit as any).completedAt || (visit as any).startedAt || (visit as any).checkedInAt || new Date().toISOString(),
           specialty: (visit as any).specialty,
           chiefComplaint: (visit as any).chiefComplaint,

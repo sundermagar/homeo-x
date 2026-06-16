@@ -119,8 +119,8 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
         group.registrationCharge += chargeAmount;
       } else if (isConsultation) {
         group.consultationCharge += chargeAmount;
-      } else if (bill.billType !== 'Custom') {
-        group.registrationCharge += chargeAmount;
+      } else {
+        group.additionalCharge += chargeAmount;
       }
 
       if (bill.paymentMode && (bill.received || 0) > 0) {
@@ -256,8 +256,8 @@ export function BillingTable({ bills, isLoading, onPrint }: BillingTableProps) {
         group.registrationCharge += chargeAmount;
       } else if (bill.billType === 'Consultation' && !isMedicine) {
         group.consultationCharge += chargeAmount;
-      } else if (bill.billType !== 'Custom') {
-        group.registrationCharge += chargeAmount;
+      } else {
+        group.additionalCharge += chargeAmount;
       }
     }
 

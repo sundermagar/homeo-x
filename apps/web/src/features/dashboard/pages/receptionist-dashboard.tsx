@@ -420,13 +420,6 @@ export function ReceptionistDashboard() {
 
   return (
     <div className="dash-root">
-      <div className="dash-kpi-strip" style={{ gap: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-        <KPIItem label="Booked today" value={todayAppts.length} />
-        <KPIItem label="In waiting room" value={todayAppts.filter(a => a.status === 'Waitlist').length} />
-        <KPIItem label="Awaiting payment" value={awaitingPaymentCount} isHighlight={true} />
-        <KPIItem label="Today's Collection" value={fmt(collectionSummary?.totalReceived ?? kpis?.todaysCollection ?? 0)} />
-      </div>
-
       {/* ── 2. QUICK OPERATIONS (Horizontal) ─────────────────────────── */}
       <div className="rd-quick-ops-grid">
         {/* Book Appointment */}
@@ -470,6 +463,13 @@ export function ReceptionistDashboard() {
             <div className="rd-quick-op-subtitle">outstanding balances</div>
           </div>
         </button>
+      </div>
+
+      <div className="dash-kpi-strip" style={{ gap: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        <KPIItem label="Booked today" value={todayAppts.length} />
+        <KPIItem label="In waiting room" value={todayAppts.filter(a => a.status === 'Waitlist').length} />
+        <KPIItem label="Awaiting payment" value={awaitingPaymentCount} isHighlight={true} />
+        <KPIItem label="Today's Collection" value={fmt(collectionSummary?.totalReceived ?? kpis?.todaysCollection ?? 0)} />
       </div>
 
       {/* ── 3. ROW 1: New Patients + Finance Queue + Dispatch/Birthdays ── */}
