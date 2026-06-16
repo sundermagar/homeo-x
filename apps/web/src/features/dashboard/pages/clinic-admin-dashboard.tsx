@@ -166,11 +166,11 @@ export function ClinicAdminDashboard() {
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1 }}>₹{totalBilled.toLocaleString()}</div>
+            <div className="cad-rev-mix-total-value">₹{totalBilled.toLocaleString()}</div>
             <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Total collected today</div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+          <div className="cad-rev-mix-body">
             <div style={{ position: 'relative', width: '140px', height: '140px', flexShrink: 0 }}>
               <PieChart width={140} height={140}>
                 <Pie
@@ -194,7 +194,7 @@ export function ClinicAdminDashboard() {
               </div>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '16px' }}>
+            <div className="cad-rev-mix-list">
               {revenueMix.map((rev, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -208,14 +208,14 @@ export function ClinicAdminDashboard() {
           </div>
 
           {/* Bottom Bar */}
-          <div style={{ display: 'flex', justifySelf: 'flex-end', flexDirection: 'column', flex: 1, justifyContent: 'flex-end' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
+          <div className="cad-rev-mix-footer">
+            <div className="cad-rev-mix-ratio-text">
               <span>Received vs Pending</span>
-              <span style={{ fontWeight: 600, color: '#1e293b' }}>₹{totalCollected.toLocaleString()} / ₹{totalPending.toLocaleString()}</span>
+              <span>₹{totalCollected.toLocaleString()} / ₹{totalPending.toLocaleString()}</span>
             </div>
-            <div style={{ height: '6px', width: '100%', display: 'flex', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${collectedPercentage}%`, background: 'linear-gradient(90deg, #34d399 0%, #38bdf8 50%, #c084fc 100%)' }} />
-              <div style={{ width: `${100 - collectedPercentage}%`, background: '#fb7185' }} />
+            <div className="cad-rev-mix-ratio-bar">
+              <div className="cad-rev-mix-ratio-fill-collected" style={{ width: `${collectedPercentage}%` }} />
+              <div className="cad-rev-mix-ratio-fill-pending" style={{ width: `${100 - collectedPercentage}%` }} />
             </div>
           </div>
         </div>

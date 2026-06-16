@@ -40,7 +40,7 @@ export default function StaffManagementPage() {
         </div>
       </div>
 
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--pp-warm-4)', paddingBottom: '20px' }}>
+      <div className="plat-staff-header-actions">
         <div className="plat-view-toggle-group">
           <button 
             className={`plat-view-toggle-btn ${activeTab === 'doctors' ? 'is-active' : ''}`} 

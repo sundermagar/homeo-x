@@ -74,15 +74,7 @@
   min-width: 300px;
 }
 
-/* ── Responsive Adjustments ── */
-@media (max-width: 1024px) {
-  .cad-kpi-card { min-width: 45%; }
-  .cad-panel { min-width: 100%; }
-}
-
-@media (max-width: 640px) {
-  .cad-kpi-card { min-width: 100%; }
-}
+/* Responsive styles defined at bottom of file */
 
 /* ── Queue List (Receptionist Dashboard) ── */
 .cad-queue-list {
@@ -472,4 +464,113 @@
   transform: translateX(16px);
 }
 
+/* ── Revenue Mix Card ── */
+.cad-rev-mix-total-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.1;
+}
+
+.cad-rev-mix-body {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.cad-rev-mix-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 16px;
+}
+
+.cad-rev-mix-footer {
+  display: flex;
+  justify-self: flex-end;
+  flex-direction: column;
+  flex: 1;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.cad-rev-mix-ratio-text {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cad-rev-mix-ratio-text span:last-child {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.cad-rev-mix-ratio-bar {
+  height: 6px;
+  width: 100%;
+  display: flex;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.cad-rev-mix-ratio-fill-collected {
+  background: linear-gradient(90deg, #34d399 0%, #38bdf8 50%, #c084fc 100%);
+}
+
+.cad-rev-mix-ratio-fill-pending {
+  background: #fb7185;
+}
+
 /* ── Responsive Adjustments ── */
+@media (max-width: 1024px) {
+  .cad-kpi-card {
+    min-width: 45%;
+  }
+  .cad-panel {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .cad-container {
+    padding: 16px;
+  }
+  .cad-grid-row {
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .cad-panel {
+    padding: 16px;
+  }
+  .cad-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .cad-kpi-card {
+    min-width: 0;
+    padding: 12px 14px;
+  }
+  .cad-kpi-card:last-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .cad-rev-mix-body {
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+  }
+  .cad-rev-mix-list {
+    padding-left: 0;
+    width: 100%;
+  }
+  .cad-rev-mix-total-value {
+    font-size: 28px;
+  }
+}

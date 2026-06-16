@@ -1560,3 +1560,38 @@
   background: var(--pp-warm-4);
   border-color: var(--pp-blue);
 }
+
+/* ─── Staff Management Page Mobile Optimization ─── */
+.plat-staff-header-actions {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--pp-warm-4);
+  padding-bottom: 20px;
+}
+
+@media (max-width: 640px) {
+  .plat-staff-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .plat-view-toggle-group {
+    display: flex !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .plat-view-toggle-group::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+
+  .plat-view-toggle-btn {
+    flex: 0 0 auto !important;
+  }
+}
