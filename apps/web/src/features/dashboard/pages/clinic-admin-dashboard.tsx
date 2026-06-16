@@ -26,7 +26,7 @@ type StaffItem = {
 function StaffRow({ staff, getInitials }: { staff: StaffItem, getInitials: (name: string) => string }) {
   const [isActive, setIsActive] = useState(staff.isActive);
   const bgClass = staff.role === 'Doctor' ? 'green' : staff.role === 'Receptionist' ? 'blue' : 'purple';
-  
+
   const handleToggle = async () => {
     const newStatus = !isActive;
     setIsActive(newStatus); // Optimistic UI update
@@ -54,10 +54,10 @@ function StaffRow({ staff, getInitials }: { staff: StaffItem, getInitials: (name
         </div>
       </div>
       <label className="cad-toggle" title="Toggle active status">
-        <input 
-          type="checkbox" 
-          checked={isActive} 
-          onChange={handleToggle} 
+        <input
+          type="checkbox"
+          checked={isActive}
+          onChange={handleToggle}
         />
         <span className="cad-slider"></span>
       </label>
@@ -103,7 +103,7 @@ export function ClinicAdminDashboard() {
   };
 
   // Doctor load calculations
-  const doctors = staffOnDuty.filter(s => s.role === 'Doctor' || s.category === 'doctor' || s.role?.toLowerCase().includes('doc'));
+  const doctors = staffOnDuty.filter(s => s.role === 'Doctor' || s.role?.toLowerCase().includes('doc') || s.name.toLowerCase().startsWith('dr'));
   const maxDocVisits = Math.max(...doctors.map(d => d.count || 0), 1);
 
   // Approvals - No backend data currently exists for this, so we show an empty real state
@@ -157,14 +157,14 @@ export function ClinicAdminDashboard() {
 
       {/* ── Middle Row ── */}
       <div className="cad-grid-row">
-        
+
         {/* Revenue Mix */}
         <div className="cad-panel cad-col-rev">
           <div className="cad-panel-header">
             <div className="cad-panel-title">Revenue mix</div>
             <div className="cad-panel-subtitle">TODAY</div>
           </div>
-          
+
           <div style={{ marginBottom: '24px' }}>
             <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.1 }}>₹{totalBilled.toLocaleString()}</div>
             <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Total collected today</div>
@@ -193,7 +193,7 @@ export function ClinicAdminDashboard() {
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>collected</span>
               </div>
             </div>
-            
+
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '16px' }}>
               {revenueMix.map((rev, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -247,7 +247,7 @@ export function ClinicAdminDashboard() {
 
       {/* ── Bottom Row ── */}
       <div className="cad-grid-row">
-        
+
         {/* Doctor Load */}
         <div className="cad-panel cad-col-load">
           <div className="cad-panel-header">
