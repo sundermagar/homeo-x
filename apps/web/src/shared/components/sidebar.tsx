@@ -466,8 +466,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             {!effectiveCollapsed && (
               <ChevronDown
-                size={14}
-                strokeWidth={2.5}
+                size={10}
+                strokeWidth={3}
                 className={`sidebar-chevron ${isSubOpen ? 'open' : ''}`}
                 style={{ opacity: 0.5 }}
               />
@@ -612,7 +612,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                       outline: 'none'
                   }}>
                     {group.label}
-                    <ChevronDown size={14} style={{ opacity: 0.5, transform: isOpen_ ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }} />
+                    <ChevronDown size={10} strokeWidth={3} style={{ opacity: 0.5, transform: isOpen_ ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }} />
                   </button>
                 )}
                 {(isOpen_ || effectiveCollapsed) && (

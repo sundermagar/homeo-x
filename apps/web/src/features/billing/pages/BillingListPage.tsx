@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Receipt, Search, ChevronLeft, ChevronRight, FilePlus, Grid, List, Download, Printer } from 'lucide-react';
@@ -11,6 +11,7 @@ import { Drawer } from '@/shared/components/drawer';
 import { EmptyState } from '@/components/shared/empty-state';
 import { BillingForm } from './BillingFormPage';
 import { CustomBillForm } from './CustomBillPage';
+import { PatientBillingDrawer } from '../components/PatientBillingDrawer';
 import '../styles/billing.css';
 
 function DailyCollectionCard({ label, amount, count, icon, type = 'default' }: { 
@@ -52,6 +53,7 @@ export default function BillingListPage() {
   const [pageSize, setPageSize] = useState(10);
   const [isNewBillOpen, setIsNewBillOpen] = useState(false);
   const [isCustomBillOpen, setIsCustomBillOpen] = useState(false);
+  const [billingDrawerGroup, setBillingDrawerGroup] = useState<any | null>(null);
 
   const parsedRegid = parseInt(regidFilter, 10);
   // Fetch a large batch to allow client-side grouping and pagination
@@ -65,20 +67,41 @@ export default function BillingListPage() {
 
   const allBills = billsQuery.data?.data ?? [];
 
-  // Group by regid to determine actual pagination items for List view
-  const uniqueRegIds = Array.from(new Set(allBills.map(b => b.regid)));
-  const totalItems = viewMode === 'list' ? uniqueRegIds.length : allBills.length;
+  const groupedBills = useMemo(() => {
+    const map = new Map<number, any>();
+    for (const bill of allBills) {
+      if (!map.has(bill.regid)) {
+        map.set(bill.regid, {
+          regid: bill.regid,
+          patientName: bill.patientName ?? '',
+          billDate: bill.billDate,
+          totalCharges: 0,
+          totalReceived: 0,
+          totalBalance: 0,
+          paymentModes: new Set<string>(),
+          bills: []
+        });
+      }
+      const group = map.get(bill.regid)!;
+      group.totalCharges += bill.charges || 0;
+      group.totalReceived += bill.received || 0;
+      group.totalBalance += bill.balance || 0;
+      if (bill.paymentMode && (bill.received || 0) > 0) {
+        group.paymentModes.add(bill.paymentMode);
+      }
+      group.bills.push(bill);
+    }
+    return Array.from(map.values());
+  }, [allBills]);
+
+  const totalItems = groupedBills.length;
   
   const startIndex = (page - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   
-  let displayedBills: typeof allBills = [];
-  if (viewMode === 'list') {
-    const pageRegIds = new Set(uniqueRegIds.slice(startIndex, endIndex));
-    displayedBills = allBills.filter(b => pageRegIds.has(b.regid));
-  } else {
-    displayedBills = allBills.slice(startIndex, endIndex);
-  }
+  const displayedGroups = groupedBills.slice(startIndex, endIndex);
+  const pageRegIds = new Set(displayedGroups.map(g => g.regid));
+  const displayedBills = allBills.filter(b => pageRegIds.has(b.regid));
 
   const getBillTypeLabel = (bill: any) => {
     const description = ((bill.customTitle || bill.treatment || bill.billType) as string || '').toLowerCase();
@@ -314,30 +337,29 @@ export default function BillingListPage() {
         <BillingTable bills={displayedBills} isLoading={false} />
       ) : (
         <div className="bill-card-grid">
-          {displayedBills.map((bill) => (
-            <div key={bill.id} className="bill-card bill-grid-card">
+          {displayedGroups.map((group) => (
+            <div key={group.regid} className="bill-card bill-grid-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--pp-ink)' }}>Bill #{bill.billNo}</div>
-                  <div className="text-small" style={{ color: 'var(--pp-text-3)' }}>{bill.billDate ? format(new Date(bill.billDate), 'dd-MM-yyyy') : 'No date'}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--pp-ink)' }}>{group.patientName}</div>
+                  <div className="text-small" style={{ color: 'var(--pp-text-3)' }}>{group.billDate ? format(new Date(group.billDate), 'dd-MM-yyyy') : 'No date'}</div>
                 </div>
                 <div className="bill-grid-card-icon">
                   <Receipt size={18} />
                 </div>
               </div>
               <div style={{ display: 'grid', gap: 10, fontSize: '13px' }}>
-                <div><strong>Patient:</strong> {bill.patientName}</div>
-                <div><strong>Type:</strong> <span style={{ color: 'var(--pp-text-3)', fontWeight: 600 }}>{getBillTypeLabel(bill)}</span></div>
-                <div><strong>Mode:</strong> <span className={`bill-badge ${bill.paymentMode === 'Online' ? 'bill-badge-primary' : 'bill-badge-default'}`}>{bill.paymentMode ?? '—'}</span></div>
-                <div><strong>Charges:</strong> ₹{bill.charges.toLocaleString()}</div>
-                <div><strong>Received:</strong> ₹{bill.received.toLocaleString()}</div>
-                <div><strong>Balance:</strong> {bill.balance > 0 ? `₹${bill.balance.toLocaleString()}` : '—'}</div>
+                <div><strong>Invoices:</strong> {group.bills.length} item{group.bills.length !== 1 ? 's' : ''}</div>
+                <div><strong>Mode:</strong> <span className={`bill-badge ${Array.from(group.paymentModes).includes('Online') ? 'bill-badge-primary' : 'bill-badge-default'}`}>{Array.from(group.paymentModes).join(', ') || '—'}</span></div>
+                <div><strong>Total Charges:</strong> ₹{group.totalCharges.toLocaleString()}</div>
+                <div><strong>Received:</strong> ₹{group.totalReceived.toLocaleString()}</div>
+                <div><strong>Balance:</strong> {group.totalBalance > 0 ? `₹${group.totalBalance.toLocaleString()}` : '—'}</div>
               </div>
               <div className="bill-grid-card-footer">
                 <button 
                   className="bill-btn bill-btn-primary" 
                   style={{ width: '100%' }}
-                  onClick={() => navigate(`/medical-cases/${bill.regid}`)}
+                  onClick={() => setBillingDrawerGroup(group)}
                 >
                   View Details
                 </button>
@@ -372,6 +394,15 @@ export default function BillingListPage() {
           onCancel={() => setIsCustomBillOpen(false)} 
         />
       </Drawer>
+
+      {billingDrawerGroup && (
+        <PatientBillingDrawer
+          regid={billingDrawerGroup.regid}
+          patientName={billingDrawerGroup.patientName}
+          isOpen={true}
+          onClose={() => setBillingDrawerGroup(null)}
+        />
+      )}
 
       <style>{`
         .bill-main { padding: 0; }

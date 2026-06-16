@@ -635,9 +635,27 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
   return (
     <div className="flex w-full max-w-full h-[calc(100vh-220px)] border border-[var(--pp-warm-4)] rounded-2xl overflow-hidden bg-[var(--bg-card)] shadow-[0_4px_24px_rgba(0,0,0,0.03)] animate-fade-in">
       <div className={`w-full md:w-80 lg:w-96 min-w-0 border-r border-[var(--pp-warm-3)] flex flex-col bg-[var(--pp-warm-1)]/40 backdrop-blur-md ${selectedConvId ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-5 border-b border-[var(--pp-warm-3)] space-y-4 bg-[var(--bg-card)]">
+        <div className="p-4 border-b border-[var(--pp-warm-3)] flex flex-col gap-3 bg-[var(--bg-card)]">
           <div className="flex justify-between items-center">
-            <h3 className="text-[11px] font-extrabold text-[var(--pp-text-3)] uppercase tracking-[0.12em]">Clinical Team Chat</h3>
+            {/* Status Filters (Tab Style) - Replaced title to save space */}
+            <div className="flex items-center gap-5 px-1">
+              {['unread', 'open', 'resolved'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setActiveStatusFilter(s)}
+                  className={`text-[11px] font-extrabold transition-all relative py-1.5 uppercase tracking-widest ${
+                    activeStatusFilter === s 
+                      ? 'text-[var(--pp-blue)]' 
+                      : 'text-[var(--pp-text-3)] hover:text-[var(--pp-ink)]'
+                  }`}
+                >
+                  {s}
+                  {activeStatusFilter === s && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--pp-blue)] rounded-full shadow-[0_1px_6px_rgba(37,99,235,0.3)]" />
+                  )}
+                </button>
+              ))}
+            </div>
             <button 
               className="w-8 h-8 rounded-xl hover:bg-[var(--pp-warm-2)] flex items-center justify-center text-[var(--pp-blue)] transition-all border border-transparent hover:border-[var(--pp-warm-3)]"
               onClick={() => setIsModalOpen(true)}
@@ -647,9 +665,9 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
           </div>
 
           <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--pp-text-3)]/50 transition-colors group-focus-within:text-[var(--pp-blue)]" size={14} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--pp-text-3)]/50 transition-colors group-focus-within:text-[var(--pp-blue)]" size={14} />
             <input 
-              className="pp-filter-search-input pl-10 h-10 text-xs font-semibold border-[var(--pp-warm-4)] focus:border-[var(--pp-blue)] focus:ring-4 focus:ring-[var(--pp-blue)]/5 transition-all rounded-xl w-full outline-none bg-[var(--pp-warm-1)]/30" 
+              className="pp-filter-search-input pl-9 h-9 text-xs font-semibold border-[var(--pp-warm-4)] focus:border-[var(--pp-blue)] focus:ring-4 focus:ring-[var(--pp-blue)]/5 transition-all rounded-xl w-full outline-none bg-[var(--pp-warm-1)]/30" 
               placeholder="Search conversations..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -657,7 +675,7 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
           </div>
 
           {/* Tier 1: Channel Filters (Pill Style) */}
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[var(--pp-warm-2)] rounded-xl border border-[var(--pp-warm-3)]/60">
+          <div className="flex flex-wrap items-center gap-1 p-1 bg-[var(--pp-warm-2)] rounded-xl border border-[var(--pp-warm-3)]/60">
             {['all', 'wa', 'widget', 'assigned'].map((f) => (
               <button
                 key={f}
@@ -669,26 +687,6 @@ export const Inbox = ({ channelId }: { channelId?: number }) => {
                 }`}
               >
                 {f === 'wa' ? 'WA' : f}
-              </button>
-            ))}
-          </div>
-
-          {/* Tier 2: Status Filters (Tab Style) */}
-          <div className="flex items-center gap-6 px-2">
-            {['unread', 'open', 'resolved'].map((s) => (
-              <button
-                key={s}
-                onClick={() => setActiveStatusFilter(s)}
-                className={`text-[11px] font-extrabold transition-all relative py-1 uppercase tracking-widest ${
-                  activeStatusFilter === s 
-                    ? 'text-[var(--pp-blue)]' 
-                    : 'text-[var(--pp-text-3)] hover:text-[var(--pp-ink)]'
-                }`}
-              >
-                {s}
-                {activeStatusFilter === s && (
-                  <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[var(--pp-blue)] rounded-full shadow-[0_1px_6px_rgba(37,99,235,0.3)]" />
-                )}
               </button>
             ))}
           </div>

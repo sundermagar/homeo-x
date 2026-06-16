@@ -1144,7 +1144,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         WHERE (u.deleted_at IS NULL OR u.deleted_at::text = '') 
           AND u.type IN ('Doctor', 'Staff', 'Receptionist', 'Clinicadmin')
         GROUP BY u.id, u.name, u.type, u.is_active
-        LIMIT 20
       `).catch(() => []),
         this.db.execute(sql`
         SELECT d.id, d.name, d.designation as specialty, TRUE as is_active, 'doctor' as category, count(a.id)::int as visit_count
@@ -1152,7 +1151,6 @@ export class DashboardRepositoryPg implements IDashboardRepository {
         LEFT JOIN appointments a ON a.${sql.identifier(docCol)} = d.id AND a.booking_date = ${today} AND (a.deleted_at IS NULL OR a.deleted_at::text = '')
         WHERE (d.deleted_at IS NULL OR d.deleted_at::text = '')
         GROUP BY d.id, d.name, d.designation
-        LIMIT 20
       `).catch(() => [])
       ]);
 

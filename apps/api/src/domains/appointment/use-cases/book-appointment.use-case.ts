@@ -69,7 +69,22 @@ export class BookAppointmentUseCase {
 
     let tokenNo: number | undefined;
     const todayStr = new Date().toLocaleDateString('en-CA');
-    if (dto.bookingDate === todayStr) {
+    
+    // Normalize bookingDate to YYYY-MM-DD for comparison
+    let normalizedBookingDate = dto.bookingDate;
+    if (normalizedBookingDate.includes('/')) {
+      const [d, m, y] = normalizedBookingDate.split('/');
+      if (d && m && y && y.length === 4) {
+        normalizedBookingDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+    } else if (normalizedBookingDate.includes('-')) {
+      const [d, m, y] = normalizedBookingDate.split('-');
+      if (d && m && y && d.length !== 4) {
+        normalizedBookingDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+    }
+
+    if (normalizedBookingDate === todayStr) {
       try {
         tokenNo = await this.repo.issueToken(id);
         if (this.repo.addToWaitlist) {
